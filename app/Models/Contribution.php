@@ -1,0 +1,114 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+
+class Contribution extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'donor_id',
+        'campaign_id',
+        'created_by',
+        'verified_by',
+        'type',
+        'status',
+        'amount',
+        'payment_method',
+        'reference_number',
+        'notes',
+        'received_at',
+        'verified_at',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'amount' => 'decimal:2',
+            'received_at' => 'datetime',
+            'verified_at' => 'datetime',
+        ];
+    }
+
+    public function donor(): BelongsTo
+    {
+        return $this->belongsTo(Donor::class);
+    }
+
+    public function campaign(): BelongsTo
+    {
+        return $this->belongsTo(Campaign::class);
+    }
+
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function verifier(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'verified_by');
+    }
+
+    public function items(): HasMany
+    {
+        return $this->hasMany(ContributionItem::class);
+    }
+
+    public function scopeType($query, ?string $type)
+    {
+        return $type ? $query->where('type', $type) : $query;
+    }
+
+    public function scopeStatus($query, ?string $status)
+    {
+        return $status ? $query->where('status', $status) : $query;
+    }
+
+    public function scopeCampaign($query, ?int $campaignId)
+    {
+        return $campaignId ? $query->where('campaign_id', $campaignId) : $query;
+    }
+
+    public function scopeSearch($query, ?string $term)
+    {
+        $term = trim((string) $term);
+
+        if ($term === '') {
+            return $query;
+        }
+
+        return $query->where(function ($query) use ($term) {
+            $query
+                ->where('reference_number', 'like', "%{$term}%")
+                ->orWhere('notes', 'like', "%{$term}%")
+                ->orWhereHas('donor', function ($query) use ($term) {
+                    $query
+                        ->where('full_name', 'like', "%{$term}%")
+                        ->orWhere('contact_number', 'like', "%{$term}%")
+                        ->orWhere('email', 'like', "%{$term}%");
+                })
+                ->orWhereHas('campaign', fn ($query) => $query->where('name', 'like', "%{$term}%"))
+                ->orWhereHas('items', function ($query) use ($term) {
+                    $query
+                        ->where('name', 'like', "%{$term}%")
+                        ->orWhere('category', 'like', "%{$term}%");
+                });
+        });
+    }
+
+    public function isCash(): bool
+    {
+        return $this->type === 'cash';
+    }
+
+    public function isEditable(): bool
+    {
+        return in_array($this->status, ['pending', 'received'], true);
+    }
+}
