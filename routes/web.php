@@ -7,7 +7,10 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DonationController;
 use App\Http\Controllers\DonationPortalController;
 use App\Http\Controllers\DonorController;
+use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\InventoryCashController;
+use App\Http\Controllers\InventoryStockAdjustmentController;
+use App\Http\Controllers\ReportController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function () {
@@ -34,9 +37,19 @@ Route::middleware(['auth', 'role:admin,secretary,treasurer'])->group(function ()
     Route::patch('/donations/{contribution}/verify', [DonationPortalController::class, 'verify'])->name('donations.verify');
 
     Route::get('/role-workflows', [InventoryCashController::class, 'index'])->name('workflows.index');
-    Route::post('/role-workflows/inventory', [InventoryCashController::class, 'storeInventory'])->name('inventory.store');
+    Route::post('/role-workflows/inventory', [InventoryCashController::class, 'storeInventory'])->name('workflows.inventory.store');
     Route::post('/role-workflows/cash', [InventoryCashController::class, 'storeCash'])->name('cash.store');
 
+    Route::get('/inventory', [InventoryController::class, 'index'])->name('inventory.index');
+    Route::post('/inventory', [InventoryController::class, 'store'])->name('inventory.store');
+    Route::get('/inventory/{inventoryItem}', [InventoryController::class, 'show'])->name('inventory.show');
+    Route::patch('/inventory/{inventoryItem}', [InventoryController::class, 'update'])->name('inventory.update');
+    Route::post('/inventory/{inventoryItem}/adjustments', [InventoryStockAdjustmentController::class, 'store'])
+        ->name('inventory.adjustments.store');
+
     Route::get('/bank-reconciliation', [BankReconciliationController::class, 'index'])->name('bank-reconciliation.index');
-    Route::post('/bank-reconciliation', [BankReconciliationController::class, 'store'])->name('bank-reconciliation.store');
+    Route::post('/bank-reconciliation/reconcile', [BankReconciliationController::class, 'reconcile'])->name('bank-reconciliation.reconcile');
+
+    Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
+    Route::get('/reports/financial-ledgers/csv', [ReportController::class, 'financialLedgersCsv'])->name('reports.financial-ledgers.csv');
 });

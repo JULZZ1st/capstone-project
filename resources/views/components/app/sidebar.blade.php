@@ -3,10 +3,10 @@
         ['label' => 'Dashboard', 'route' => 'dashboard', 'active' => 'dashboard'],
         ['label' => 'Donor Management', 'route' => 'donors.index', 'active' => 'donors.*'],
         ['label' => 'Donations Portal', 'route' => 'donations.index', 'active' => 'donations.*'],
-        ['label' => 'In-Kind Inventory', 'route' => 'workflows.index', 'active' => 'workflows.*'],
+        ['label' => 'In-Kind Inventory', 'route' => 'inventory.index', 'active' => 'inventory.*'],
         ['label' => 'Bank Reconciliation', 'route' => 'bank-reconciliation.index', 'active' => 'bank-reconciliation.*'],
         ['label' => 'Financial Ledger', 'route' => 'workflows.index', 'active' => 'cash.*'],
-        ['label' => 'Report Generator'],
+        ['label' => 'Report Generator', 'route' => 'reports.index', 'active' => 'reports.*'],
         ['label' => 'System Administration'],
     ];
 @endphp
