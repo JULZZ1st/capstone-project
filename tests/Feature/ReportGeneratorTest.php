@@ -86,6 +86,28 @@ class ReportGeneratorTest extends TestCase
         $response->assertSee('coming soon');
     }
 
+    public function test_authorized_user_can_download_financial_ledgers_csv(): void
+    {
+        $reconciled = $this->cashContribution(['amount' => 15000, 'payment_method' => 'bank_transfer', 'received_at' => '2026-06-05', 'donor_name' => 'Dr. Manuel Co']);
+        $this->reconcile($reconciled);
+
+        $response = $this->actingAs(User::factory()->create())
+            ->get(route('reports.financial-ledgers.csv', ['year' => 2026, 'month' => 6]));
+
+        $response->assertOk();
+        $this->assertStringContainsString('text/csv', $response->headers->get('Content-Type'));
+
+        $content = $response->streamedContent();
+        $this->assertStringContainsString('Dr. Manuel Co', $content);
+        $this->assertStringContainsString('15000.00', $content);
+        $this->assertStringContainsString('Reconciled', $content);
+    }
+
+    public function test_guest_cannot_download_financial_ledgers_csv(): void
+    {
+        $this->get(route('reports.financial-ledgers.csv'))->assertRedirect(route('login'));
+    }
+
     private function cashContribution(array $overrides = []): Contribution
     {
         $donor = Donor::query()->create([
