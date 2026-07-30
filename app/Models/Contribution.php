@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Contribution extends Model
 {
@@ -58,6 +59,19 @@ class Contribution extends Model
     public function items(): HasMany
     {
         return $this->hasMany(ContributionItem::class);
+    }
+
+    public function ledgerEntry(): HasOne
+    {
+        return $this->hasOne(BankLedgerEntry::class, 'matched_contribution_id');
+    }
+
+    public function scopeEligibleForReconciliation($query)
+    {
+        return $query
+            ->where('type', 'cash')
+            ->whereIn('payment_method', config('donations.electronic_payment_methods'))
+            ->whereDoesntHave('ledgerEntry');
     }
 
     public function scopeType($query, ?string $type)

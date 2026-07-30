@@ -6,7 +6,7 @@
 @section('content')
     <div class="grid gap-6 lg:grid-cols-2">
         <x-dashboard.panel title="Secretary: In-Kind Inventory" subtitle="Record and review in-kind donation inventory.">
-            <form action="{{ route('inventory.store') }}" method="POST" class="space-y-3">
+            <form action="{{ route('workflows.inventory.store') }}" method="POST" class="space-y-3">
                 @csrf
                 <input name="name" placeholder="Item Name" class="w-full rounded-md border-slate-300 px-3 py-2 text-sm" required>
                 <input name="category" placeholder="Category" class="w-full rounded-md border-slate-300 px-3 py-2 text-sm" required>

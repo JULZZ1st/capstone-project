@@ -11,6 +11,7 @@ use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\InventoryCashController;
 use App\Http\Controllers\InventoryStockAdjustmentController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\SystemSecurityController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function () {
@@ -52,4 +53,7 @@ Route::middleware(['auth', 'role:admin,secretary,treasurer'])->group(function ()
 
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
     Route::get('/reports/financial-ledgers/csv', [ReportController::class, 'financialLedgersCsv'])->name('reports.financial-ledgers.csv');
+    Route::get('/system-security', [SystemSecurityController::class, 'index'])->name('system-security.index');
+    Route::patch('/system-security/users/{user}/two-factor-enforcement', [SystemSecurityController::class, 'updateTwoFactorEnforcement'])
+        ->name('system-security.two-factor-enforcement.update');
 });

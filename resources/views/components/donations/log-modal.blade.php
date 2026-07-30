@@ -63,7 +63,7 @@
 
         <div class="flex flex-col-reverse gap-3 border-t border-slate-200 bg-slate-50 px-5 py-4 sm:flex-row sm:justify-end">
             <button type="button" class="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-white" data-dialog-close="log-contribution-dialog">Cancel</button>
-            <x-button class="sm:w-auto" @disabled($donors->isEmpty())>Save Contribution</x-button>
+            <x-button class="sm:w-auto" :disabled="$donors->isEmpty()">Save Contribution</x-button>
         </div>
     </form>
 </dialog>

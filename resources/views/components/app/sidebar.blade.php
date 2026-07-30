@@ -7,7 +7,7 @@
         ['label' => 'Bank Reconciliation', 'route' => 'bank-reconciliation.index', 'active' => 'bank-reconciliation.*'],
         ['label' => 'Financial Ledger', 'route' => 'workflows.index', 'active' => 'cash.*'],
         ['label' => 'Report Generator', 'route' => 'reports.index', 'active' => 'reports.*'],
-        ['label' => 'System Administration'],
+        ['label' => 'System Administration', 'route' => 'system-security.index', 'active' => 'system-security.*'],
     ];
 @endphp
 
