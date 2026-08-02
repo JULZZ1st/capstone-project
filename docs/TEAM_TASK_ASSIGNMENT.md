@@ -3,7 +3,7 @@
 
 **Document Type:** Official Task Allocation & Defense Reference
 **Status:** Living document — update checklists as tasks are completed
-**Source of Truth:** [`docs/PROJECT_REQUIREMENTS.md`](./PROJECT_REQUIREMENTS.md) (Functional Requirements Specification, last reviewed 2026-07-30)
+**Source of Truth:** [`docs/PROJECT_REQUIREMENTS.md`](./PROJECT_REQUIREMENTS.md) (Functional Requirements Specification, last reviewed 2026-08-02)
 **Team:** Gina, Neziel, Julius, Edemar
 
 ---
@@ -117,7 +117,7 @@ Gina owns the three modules that carry the system's day-to-day operational core:
 - [ ] Inventory stock movement lifecycle diagram (stock-in → alert thresholds → stock-out)
 - [ ] Donation Portal intake-to-verification flow diagram (cash vs in-kind branches)
 - [ ] Dashboard widget data-source reference (which query backs each stat/panel)
-- [ ] Category management admin guide (once built)
+- [ ] Category management admin guide — feature is built (A6); standalone how-to guide not yet written
 
 ### Deliverables
 - Fully functional Dashboard reflecting live donation, inventory, and cash metrics
