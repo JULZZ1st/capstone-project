@@ -3,6 +3,7 @@
 namespace App\Support\Dashboard;
 
 use App\Models\BankReconciliation;
+use App\Models\CashDisbursement;
 use App\Models\CashTransaction;
 use App\Models\Donation;
 use App\Models\Donor;
@@ -63,6 +64,15 @@ class DashboardMetrics
                 ->latest()
                 ->limit($limit)
                 ->get(),
+            'disbursements' => [
+                'total_disbursed' => CashDisbursement::query()->sum('amount'),
+                'recent' => CashDisbursement::query()
+                    ->select(['id', 'disbursed_to', 'purpose', 'amount', 'disbursed_at'])
+                    ->latest('disbursed_at')
+                    ->latest()
+                    ->limit($limit)
+                    ->get(),
+            ],
         ];
     }
 
