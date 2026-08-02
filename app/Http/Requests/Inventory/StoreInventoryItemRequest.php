@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests\Inventory;
 
+use App\Models\InventoryCategory;
 use App\Models\InventoryItem;
+use App\Models\InventoryUnit;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -17,9 +19,9 @@ class StoreInventoryItemRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:255'],
-            'category' => ['required', Rule::in(array_keys(config('inventory.categories')))],
+            'category' => ['required', Rule::in(array_keys(InventoryCategory::options()))],
             'description' => ['nullable', 'string', 'max:2000'],
-            'unit' => ['required', Rule::in(array_keys(config('inventory.units')))],
+            'unit' => ['required', Rule::in(array_keys(InventoryUnit::options()))],
             'initial_quantity' => ['required', 'numeric', 'min:0', 'max:999999.99'],
             'minimum_reserve_quantity' => ['required', 'numeric', 'min:0', 'max:999999.99'],
             'estimated_unit_value' => ['nullable', 'numeric', 'min:0', 'max:99999999.99'],
