@@ -53,8 +53,10 @@ Same migration seeds both tables from the current `config('inventory.categories'
 
 ### Models
 
-- `App\Models\InventoryCategory` — `fillable: [key, label, is_active]`, `scopeActive()`, static `options(): array` returning `key => label` for active rows, cached via `Cache::remember('inventory.categories.options', ...)` with a short TTL, invalidated (`Cache::forget`) on create/update/delete.
-- `App\Models\InventoryUnit` — identical shape/behavior, `options()` cached under a separate key.
+- `App\Models\InventoryCategory` — `fillable: [key, label, is_active]`, `scopeActive()`, static `options(): array` returning `key => label` for active rows via a plain query (`static::query()->active()->orderBy('label')->pluck('label', 'key')->all()`).
+- `App\Models\InventoryUnit` — identical shape/behavior.
+
+Deliberately **no caching** on `options()`: these tables are tiny (tens of rows), the query runs once per request, and caching validation-critical reference data (admin adds a category → staff must be able to use it immediately) risks stale-cache correctness bugs and cross-test pollution (the test suite has no cache-flush step between tests). This is a scoped simplification of the original design — YAGNI outweighs the marginal query-count savings here.
 
 ### Policies
 
@@ -68,7 +70,6 @@ Same migration seeds both tables from the current `config('inventory.categories'
   - `create(string $modelClass, array $data): Model`
   - `update(string $modelClass, Model $item, array $data): Model`
   - `delete(string $modelClass, Model $item): void` — throws `ValidationException` if any `inventory_items` row currently references `$item->key` in the corresponding column (`category` or `unit`); otherwise hard-deletes.
-  - Each mutation clears the relevant cached `options()`.
 
   Rationale for one generic service instead of two near-duplicates: `InventoryCategory` and `InventoryUnit` have identical shape and identical business rules (unique key, in-use guard on delete); a parameterized service avoids copy-pasted logic while each Form Request/Controller/Policy stays per-model and explicit.
 
