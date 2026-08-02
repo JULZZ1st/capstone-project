@@ -73,7 +73,7 @@ class InventoryItem extends Model
             return $query;
         }
 
-        $matchingCategories = collect(config('inventory.categories'))
+        $matchingCategories = collect(InventoryCategory::options())
             ->filter(fn (string $label, string $key) => str_contains(strtolower($label), strtolower($term)) || str_contains($key, strtolower($term)))
             ->keys()
             ->all();

@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Inventory;
 
+use App\Models\InventoryCategory;
 use App\Models\InventoryItem;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -17,7 +18,7 @@ class InventoryIndexRequest extends FormRequest
     {
         return [
             'search' => ['nullable', 'string', 'max:255'],
-            'category' => ['nullable', Rule::in(array_keys(config('inventory.categories')))],
+            'category' => ['nullable', Rule::in(array_keys(InventoryCategory::options()))],
             'status' => ['nullable', Rule::in(array_keys(config('inventory.item_statuses')))],
         ];
     }
