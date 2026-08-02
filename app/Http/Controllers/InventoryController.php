@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use App\Http\Requests\Inventory\InventoryIndexRequest;
 use App\Http\Requests\Inventory\StoreInventoryItemRequest;
 use App\Http\Requests\Inventory\UpdateInventoryItemRequest;
+use App\Models\InventoryCategory;
 use App\Models\InventoryItem;
+use App\Models\InventoryUnit;
 use App\Services\Inventory\CreateInventoryItem;
 use App\Services\Inventory\InventoryAlertQuery;
 use Illuminate\Http\RedirectResponse;
@@ -46,6 +48,8 @@ class InventoryController extends Controller
             'items' => $items,
             'filters' => $filters,
             'alerts' => $alertQuery->get(),
+            'categories' => InventoryCategory::query()->active()->orderBy('label')->get(),
+            'units' => InventoryUnit::query()->active()->orderBy('label')->get(),
         ]);
     }
 

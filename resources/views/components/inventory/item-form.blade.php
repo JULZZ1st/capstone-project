@@ -1,4 +1,4 @@
-@props(['item' => null])
+@props(['item' => null, 'categories', 'units'])
 
 <div class="grid gap-4 md:grid-cols-2">
     <x-form.input name="name" label="Item Name" :value="$item?->name" required />
@@ -7,8 +7,8 @@
         <x-form.label for="category">Category</x-form.label>
         <select id="category" name="category" class="mt-1 block w-full rounded-md border-slate-300 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500" required>
             <option value="">Select category</option>
-            @foreach (config('inventory.categories') as $key => $label)
-                <option value="{{ $key }}" @selected(old('category', $item?->category) === $key)>{{ $label }}</option>
+            @foreach ($categories as $category)
+                <option value="{{ $category->key }}" @selected(old('category', $item?->category) === $category->key)>{{ $category->label }}</option>
             @endforeach
         </select>
         <x-form.error name="category" />
@@ -17,8 +17,8 @@
     <div>
         <x-form.label for="unit">Unit</x-form.label>
         <select id="unit" name="unit" class="mt-1 block w-full rounded-md border-slate-300 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500" required>
-            @foreach (config('inventory.units') as $key => $label)
-                <option value="{{ $key }}" @selected(old('unit', $item?->unit ?? config('inventory.defaults.unit')) === $key)>{{ $label }}</option>
+            @foreach ($units as $unit)
+                <option value="{{ $unit->key }}" @selected(old('unit', $item?->unit ?? config('inventory.defaults.unit')) === $unit->key)>{{ $unit->label }}</option>
             @endforeach
         </select>
         <x-form.error name="unit" />

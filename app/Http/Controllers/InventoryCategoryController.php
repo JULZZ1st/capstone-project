@@ -15,7 +15,7 @@ class InventoryCategoryController extends Controller
 {
     public function index(): View
     {
-        Gate::authorize('viewAny', InventoryCategory::class);
+        Gate::authorize('create', InventoryCategory::class);
 
         return view('inventory.categories', [
             'categories' => InventoryCategory::query()->orderBy('label')->get(),
