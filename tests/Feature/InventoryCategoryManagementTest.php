@@ -166,6 +166,45 @@ class InventoryCategoryManagementTest extends TestCase
         $this->assertDatabaseMissing('inventory_units', ['id' => $unit->id]);
     }
 
+    public function test_manage_categories_page_lists_seeded_categories_and_units(): void
+    {
+        $admin = $this->userWithRole('admin');
+
+        $response = $this->actingAs($admin)->get(route('inventory.categories.index'));
+
+        $response->assertOk();
+        $response->assertSee('Manage Item Categories');
+        $response->assertSee('Food');
+        $response->assertSee('Piece');
+    }
+
+    public function test_non_admin_cannot_view_categories_index(): void
+    {
+        $secretary = $this->userWithRole('secretary');
+
+        $this->actingAs($secretary)->get(route('inventory.categories.index'))->assertForbidden();
+    }
+
+    public function test_manage_categories_button_hidden_from_non_admin_on_inventory_index(): void
+    {
+        $secretary = $this->userWithRole('secretary');
+
+        $response = $this->actingAs($secretary)->get(route('inventory.index'));
+
+        $response->assertOk();
+        $response->assertDontSee('Manage Categories');
+    }
+
+    public function test_manage_categories_button_visible_to_admin_on_inventory_index(): void
+    {
+        $admin = $this->userWithRole('admin');
+
+        $response = $this->actingAs($admin)->get(route('inventory.index'));
+
+        $response->assertOk();
+        $response->assertSee('Manage Categories');
+    }
+
     public function test_deleting_a_category_in_use_is_blocked_over_http(): void
     {
         $admin = $this->userWithRole('admin');
@@ -188,6 +227,44 @@ class InventoryCategoryManagementTest extends TestCase
             ->assertSessionHasErrors('key');
 
         $this->assertDatabaseHas('inventory_categories', ['id' => $category->id]);
+    }
+
+    public function test_newly_created_category_is_immediately_valid_for_inventory_item_creation(): void
+    {
+        $admin = $this->userWithRole('admin');
+        InventoryCategory::query()->create(['key' => 'emergency_kits', 'label' => 'Emergency Kits', 'is_active' => true]);
+
+        $response = $this->actingAs($admin)->post(route('inventory.store'), [
+            'name' => 'Emergency Kit Bundle',
+            'category' => 'emergency_kits',
+            'unit' => 'piece',
+            'initial_quantity' => 5,
+            'minimum_reserve_quantity' => 1,
+            'storage_location' => 'Main Storage',
+            'status' => 'active',
+        ]);
+
+        $response->assertRedirect(route('inventory.index'));
+        $this->assertDatabaseHas('inventory_items', ['name' => 'Emergency Kit Bundle', 'category' => 'emergency_kits']);
+    }
+
+    public function test_deactivated_category_is_rejected_for_inventory_item_creation(): void
+    {
+        $admin = $this->userWithRole('admin');
+        $category = InventoryCategory::query()->where('key', 'other')->firstOrFail();
+        $category->update(['is_active' => false]);
+
+        $response = $this->actingAs($admin)->post(route('inventory.store'), [
+            'name' => 'Should Fail',
+            'category' => 'other',
+            'unit' => 'piece',
+            'initial_quantity' => 5,
+            'minimum_reserve_quantity' => 1,
+            'storage_location' => 'Main Storage',
+            'status' => 'active',
+        ]);
+
+        $response->assertSessionHasErrors('category');
     }
 
     private function userWithRole(string $role): User
