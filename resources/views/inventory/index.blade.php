@@ -15,11 +15,18 @@
                 <p class="mt-1 text-sm text-slate-600">Track donated goods, reserve levels, and stock movement.</p>
             </div>
 
-            @can('create', App\Models\InventoryItem::class)
-                <x-button type="button" class="sm:w-auto" data-dialog-open="create-inventory-item-dialog">
-                    Add New Inventory Item
-                </x-button>
-            @endcan
+            <div class="flex flex-col gap-2 sm:flex-row">
+                @can('create', App\Models\InventoryCategory::class)
+                    <a href="{{ route('inventory.categories.index') }}" class="inline-flex items-center justify-center rounded-md border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+                        Manage Categories &amp; Units
+                    </a>
+                @endcan
+                @can('create', App\Models\InventoryItem::class)
+                    <x-button type="button" class="sm:w-auto" data-dialog-open="create-inventory-item-dialog">
+                        Add New Inventory Item
+                    </x-button>
+                @endcan
+            </div>
         </div>
 
         <x-inventory.alert-panel :alerts="$alerts" />
@@ -55,6 +62,6 @@
     </div>
 
     @can('create', App\Models\InventoryItem::class)
-        <x-inventory.create-modal />
+        <x-inventory.create-modal :categories="$categories" :units="$units" />
     @endcan
 @endsection

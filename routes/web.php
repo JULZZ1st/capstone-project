@@ -3,6 +3,7 @@
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\BankReconciliationController;
+use App\Http\Controllers\CashDisbursementController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DonationController;
 use App\Http\Controllers\DonationPortalController;
@@ -39,16 +40,16 @@ Route::middleware(['auth', 'role:admin,secretary,treasurer'])->group(function ()
     Route::patch('/donations/{contribution}', [DonationPortalController::class, 'update'])->name('donations.update');
     Route::patch('/donations/{contribution}/verify', [DonationPortalController::class, 'verify'])->name('donations.verify');
 
+    Route::get('/cash-disbursements', [CashDisbursementController::class, 'index'])->name('cash-disbursements.index');
+    Route::post('/cash-disbursements', [CashDisbursementController::class, 'store'])->name('cash-disbursements.store');
+    Route::get('/cash-disbursements/{cashDisbursement}', [CashDisbursementController::class, 'show'])->name('cash-disbursements.show');
+
     Route::get('/role-workflows', [InventoryCashController::class, 'index'])->name('workflows.index');
     Route::post('/role-workflows/inventory', [InventoryCashController::class, 'storeInventory'])->name('workflows.inventory.store');
     Route::post('/role-workflows/cash', [InventoryCashController::class, 'storeCash'])->name('cash.store');
 
     Route::get('/inventory', [InventoryController::class, 'index'])->name('inventory.index');
     Route::post('/inventory', [InventoryController::class, 'store'])->name('inventory.store');
-    Route::get('/inventory/{inventoryItem}', [InventoryController::class, 'show'])->name('inventory.show');
-    Route::patch('/inventory/{inventoryItem}', [InventoryController::class, 'update'])->name('inventory.update');
-    Route::post('/inventory/{inventoryItem}/adjustments', [InventoryStockAdjustmentController::class, 'store'])
-        ->name('inventory.adjustments.store');
 
     Route::get('/inventory/categories', [InventoryCategoryController::class, 'index'])->name('inventory.categories.index');
     Route::post('/inventory/categories', [InventoryCategoryController::class, 'store'])->name('inventory.categories.store');
@@ -58,6 +59,11 @@ Route::middleware(['auth', 'role:admin,secretary,treasurer'])->group(function ()
     Route::post('/inventory/units', [InventoryUnitController::class, 'store'])->name('inventory.units.store');
     Route::patch('/inventory/units/{inventoryUnit}', [InventoryUnitController::class, 'update'])->name('inventory.units.update');
     Route::delete('/inventory/units/{inventoryUnit}', [InventoryUnitController::class, 'destroy'])->name('inventory.units.destroy');
+
+    Route::get('/inventory/{inventoryItem}', [InventoryController::class, 'show'])->name('inventory.show');
+    Route::patch('/inventory/{inventoryItem}', [InventoryController::class, 'update'])->name('inventory.update');
+    Route::post('/inventory/{inventoryItem}/adjustments', [InventoryStockAdjustmentController::class, 'store'])
+        ->name('inventory.adjustments.store');
 
     Route::get('/bank-reconciliation', [BankReconciliationController::class, 'index'])->name('bank-reconciliation.index');
     Route::post('/bank-reconciliation/reconcile', [BankReconciliationController::class, 'reconcile'])->name('bank-reconciliation.reconcile');

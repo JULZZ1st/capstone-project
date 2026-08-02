@@ -1,3 +1,5 @@
+@props(['categories', 'units'])
+
 @php($open = old('_modal') === 'create')
 
 <dialog id="create-inventory-item-dialog" class="w-[min(860px,calc(100vw-2rem))] rounded-lg p-0 shadow-xl backdrop:bg-slate-950/50" @if($open) open @endif>
@@ -14,7 +16,7 @@
         </div>
 
         <div class="space-y-4 px-6 py-5">
-            <x-inventory.item-form />
+            <x-inventory.item-form :categories="$categories" :units="$units" />
         </div>
 
         <div class="flex flex-col-reverse gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4 sm:flex-row sm:justify-end">
