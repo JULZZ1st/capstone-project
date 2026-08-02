@@ -37,9 +37,9 @@ Gina owns the three modules that carry the system's day-to-day operational core:
 | Process Stock-Out | S8 | ✅ done |
 | Monitor Live Stock (low/critical/expiring alerts) | S9 | ✅ done |
 | View Inventory Logs (movement history) | S11 | ✅ done |
-| Configure Item Categories (admin-editable) | A6 | 🟡 partial — outstanding |
+| Configure Item Categories (admin-editable) | A6 | ✅ done |
 | Record Cash Receipts (Donation Portal) | S5 | ✅ done |
-| Record Cash Disbursements | S6 | ⏳ outstanding |
+| Record Cash Disbursements | S6 | ✅ done |
 
 ### Database Tables Used
 - `inventory_items` — item master data, quantity, unit, thresholds
@@ -48,6 +48,8 @@ Gina owns the three modules that carry the system's day-to-day operational core:
 - `contribution_items` — line items for in-kind contributions (links to `inventory_items`)
 - `donors` — read dependency for donation intake (owned by Neziel, consumed here)
 - `campaigns` — optional grouping for contributions
+- `inventory_categories`, `inventory_units` — admin-managed reference data replacing `config/inventory.php` (A6)
+- `cash_disbursements` — outbound cash disbursement records (`disbursed_to`, `purpose`, `amount`, `payment_method`, `disbursed_at`, `created_by`); no status/approval columns yet — reserved for Julius's A7 work (S6)
 
 ### Backend Tasks
 - [ ] **(done)** `DashboardController` — aggregate stat summaries, activity feed, panel data
@@ -59,9 +61,9 @@ Gina owns the three modules that carry the system's day-to-day operational core:
 - [ ] **(done)** `DonationPortalController` — `index`, `store`, `show`, `update`, `verify`
 - [ ] **(done)** `LogContribution` service — creates `Contribution` + `ContributionItem` rows
 - [ ] **(done)** `InventoryItemPolicy`, `ContributionPolicy` — authorization rules
-- [ ] Extend `AdjustInventoryStock`/migration to support admin-managed categories instead of `config/inventory.php` static list (closes A6)
-- [ ] Design and build cash disbursement recording endpoint (new controller action or extend `DonationPortalController`) — outbound transaction type, distinct from inbound `contributions` (closes S6; coordinate schema with Julius since disbursements feed the Financial Ledger)
-- [ ] Wire dashboard widgets to reflect disbursement totals once S6/A7 land (cross-module, depends on Julius's cash bookkeeping work)
+- [x] Add `inventory_categories`/`inventory_units` tables, models, policies, `ManageInventoryReferenceItem` service, and CRUD controllers/routes; update `InventoryItem` validation and search to read from the database instead of `config/inventory.php` (closes A6)
+- [x] Design and build cash disbursement recording endpoint (`CashDisbursementController`, `cash_disbursements` table, `RecordCashDisbursement` service) — outbound record, distinct from inbound `contributions` (closes S6; schema deliberately excludes approval/status columns pending Julius's A7 work)
+- [x] Wire dashboard widgets to reflect disbursement totals now recorded via S6 (additive `disbursements` key in `DashboardMetrics`); ready to extend once Julius's A7 approval workflow lands, without hardcoded assumptions about his schema
 
 ### Frontend Tasks
 - [ ] **(done)** `dashboard.blade.php` + `components/dashboard/*` (panel, stat-list, activity-list, summary-card, empty/error states)
@@ -69,8 +71,8 @@ Gina owns the three modules that carry the system's day-to-day operational core:
 - [ ] **(done)** `components/inventory/*` — filter tabs, search bar, status badge, stock summary, alert panel, table/table-row, create modal, item form, adjust-stock modal
 - [ ] **(done)** `donations/index.blade.php`, `donations/show.blade.php`
 - [ ] **(done)** `components/donations/*` — status badge, filter bar, table/table-row, cash-fields, in-kind-fields, item-row, log-modal
-- [ ] Build admin-facing "Manage Item Categories" screen (add/edit/remove category + unit) to replace static config
-- [ ] Build "Record Disbursement" form/modal in the Donation Portal or a new Cash Bookkeeping tab
+- [x] Build admin-facing "Manage Item Categories" screen (add/edit/remove category + unit) to replace static config
+- [x] Build "Record Disbursement" form/modal — new "Cash Disbursements" page and sidebar entry
 
 ### API Endpoints Needed
 | Method | Route | Purpose | Status |
@@ -86,16 +88,16 @@ Gina owns the three modules that carry the system's day-to-day operational core:
 | GET | `/donations/{contribution}` | Donation detail | ✅ done |
 | PATCH | `/donations/{contribution}` | Update donation | ✅ done |
 | PATCH | `/donations/{contribution}/verify` | Verify donation | ✅ done |
-| — | `/inventory/categories` (new) | CRUD item categories/units | outstanding |
-| — | `/cash-disbursements` (new) | Record outbound cash disbursement | outstanding |
+| GET/POST/PATCH/DELETE | `/inventory/categories`, `/inventory/units` | CRUD item categories/units (admin-only mutations) | ✅ done |
+| GET/POST | `/cash-disbursements`, `/cash-disbursements/{cashDisbursement}` | Record and view outbound cash disbursements | ✅ done |
 
 ### Validation Rules
 - Stock-out quantity must not exceed current `quantity_before` (enforced in `AdjustInventoryStock`).
 - `movement_type` restricted to `stock_in` / `stock_out`; `reason` restricted to a known set (e.g., `distribution`).
 - Contribution `type` restricted to `cash` / `in_kind`; `amount` required when `type = cash`; `contribution_items` required when `type = in_kind`.
 - `payment_method` + `reference_number` combination must be unique per the DB constraint on `contributions`.
-- New: category/unit names must be unique and non-empty when the admin-managed category screen is built.
-- New: disbursement amount must be positive and not exceed available cash balance (define balance source with Julius).
+- Category/unit `key` must be unique and non-empty, enforced via `inventory_categories`/`inventory_units` unique constraints and Form Request validation (done).
+- Disbursement amount must be positive (`min:0.01`); a balance-ceiling check against available cash was deliberately deferred — no authoritative balance source exists yet pending Julius's Financial Ledger integration.
 
 ### Dependencies
 - Consumes `donors` records owned by **Neziel** (Donor Management) for donation intake.
@@ -107,9 +109,9 @@ Gina owns the three modules that carry the system's day-to-day operational core:
 ### Testing Checklist
 - [ ] **(done)** `tests/Feature/InventoryManagementTest.php` — stock-in/out, thresholds, validation
 - [ ] **(done)** `tests/Feature/DonationManagementTest.php` — cash/in-kind intake, verification flow
-- [ ] Add feature test for admin category management once built
-- [ ] Add feature test for cash disbursement recording once built
-- [ ] Add dashboard widget test asserting stat totals match underlying contribution/inventory data
+- [x] Add feature test for admin category management once built — `tests/Feature/InventoryCategoryManagementTest.php`
+- [x] Add feature test for cash disbursement recording once built — `tests/Feature/CashDisbursementTest.php`
+- [x] Add dashboard widget test asserting stat totals match underlying data — `test_dashboard_reflects_recorded_disbursement_totals`
 
 ### Documentation Required
 - [ ] Inventory stock movement lifecycle diagram (stock-in → alert thresholds → stock-out)
@@ -138,10 +140,10 @@ Gina owns the three modules that carry the system's day-to-day operational core:
 - [x] Donation Portal cash intake
 - [x] Donation Portal in-kind intake
 - [x] Donation verification workflow
-- [ ] Admin-managed item categories/units (A6)
-- [ ] Cash disbursement recording (S6)
-- [ ] Dashboard widgets updated for disbursement data
-- [ ] New feature tests for above
+- [x] Admin-managed item categories/units (A6)
+- [x] Cash disbursement recording (S6)
+- [x] Dashboard widgets updated for disbursement data
+- [x] New feature tests for above
 
 ---
 
