@@ -36,6 +36,10 @@
         <section class="grid gap-6 xl:grid-cols-2">
             <x-dashboard.panel title="Treasurer Action Items" subtitle="Cash and reconciliation work needing attention.">
                 @php($actionItems = $dashboard['treasurer_action_items'])
+                <div class="mb-3 flex items-center justify-between rounded-md bg-slate-50 px-3 py-2">
+                    <span class="text-sm text-slate-600">Total cash disbursed</span>
+                    <span class="text-sm font-semibold text-slate-950">{{ $money($dashboard['disbursements']['total_disbursed']) }}</span>
+                </div>
                 @if ($actionItems['pending_cash_count'] === 0 && $actionItems['unreconciled_cash_count'] === 0)
                     <x-dashboard.empty-state message="No treasurer action items right now." />
                 @else
@@ -134,6 +138,26 @@
                                         <p class="text-sm text-slate-600">{{ $donation->donation_type }}</p>
                                     </div>
                                     <p class="text-sm font-semibold text-slate-950">{{ $money($donation->amount) }}</p>
+                                </div>
+                            </li>
+                        @endforeach
+                    </ul>
+                @endif
+            </x-dashboard.panel>
+
+            <x-dashboard.panel title="Recent Cash Disbursements" subtitle="Latest outgoing cash payments recorded.">
+                @if ($dashboard['disbursements']['recent']->isEmpty())
+                    <x-dashboard.empty-state message="No cash disbursements have been recorded yet." />
+                @else
+                    <ul class="divide-y divide-slate-100">
+                        @foreach ($dashboard['disbursements']['recent'] as $disbursement)
+                            <li class="py-3 first:pt-0 last:pb-0">
+                                <div class="flex items-start justify-between gap-4">
+                                    <div>
+                                        <p class="text-sm font-medium text-slate-950">{{ $disbursement->disbursed_to }}</p>
+                                        <p class="text-sm text-slate-600">{{ config("disbursements.purposes.{$disbursement->purpose}") }}</p>
+                                    </div>
+                                    <p class="text-sm font-semibold text-slate-950">{{ $money($disbursement->amount) }}</p>
                                 </div>
                             </li>
                         @endforeach
