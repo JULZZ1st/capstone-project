@@ -17,6 +17,8 @@ class StoreContributionRequest extends FormRequest
 
     public function rules(): array
     {
+        $isInKind = $this->input('donation_type') === 'in_kind';
+
         return [
             'donation_type' => ['required', Rule::in(array_keys(config('donations.types')))],
             'donor_id' => ['required', 'exists:donors,id'],
@@ -31,7 +33,7 @@ class StoreContributionRequest extends FormRequest
                 Rule::unique('contributions', 'reference_number')->where(fn ($query) => $query->where('payment_method', $this->input('payment_method'))),
             ],
             'notes' => ['nullable', 'string', 'max:2000'],
-            'items' => ['required_if:donation_type,in_kind', 'array', 'min:1'],
+            'items' => $isInKind ? ['required', 'array', 'min:1'] : ['array'],
             'items.*.name' => ['required_if:donation_type,in_kind', 'string', 'max:255'],
             'items.*.category' => ['required_if:donation_type,in_kind', Rule::in(array_keys(config('donations.item_categories')))],
             'items.*.quantity' => ['required_if:donation_type,in_kind', 'numeric', 'min:0.01', 'max:999999.99'],
@@ -44,26 +46,30 @@ class StoreContributionRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        $items = collect($this->input('items', []))
-            ->map(function ($item) {
-                $item = is_array($item) ? $item : [];
+        $donationType = $this->nullableLower($this->input('donation_type'));
 
-                return [
-                    'name' => $this->nullableValue(Arr::get($item, 'name')),
-                    'category' => $this->nullableLower(Arr::get($item, 'category')),
-                    'quantity' => $this->nullableValue(Arr::get($item, 'quantity')),
-                    'unit' => $this->nullableLower(Arr::get($item, 'unit')),
-                    'condition' => $this->nullableLower(Arr::get($item, 'condition')),
-                    'estimated_value' => $this->nullableValue(Arr::get($item, 'estimated_value')),
-                    'notes' => $this->nullableValue(Arr::get($item, 'notes')),
-                ];
-            })
-            ->filter(fn ($item) => collect($item)->filter(fn ($value) => $value !== null)->isNotEmpty())
-            ->values()
-            ->all();
+        $items = $donationType === 'in_kind'
+            ? collect($this->input('items', []))
+                ->map(function ($item) {
+                    $item = is_array($item) ? $item : [];
+
+                    return [
+                        'name' => $this->nullableValue(Arr::get($item, 'name')),
+                        'category' => $this->nullableLower(Arr::get($item, 'category')),
+                        'quantity' => $this->nullableValue(Arr::get($item, 'quantity')),
+                        'unit' => $this->nullableLower(Arr::get($item, 'unit')),
+                        'condition' => $this->nullableLower(Arr::get($item, 'condition')),
+                        'estimated_value' => $this->nullableValue(Arr::get($item, 'estimated_value')),
+                        'notes' => $this->nullableValue(Arr::get($item, 'notes')),
+                    ];
+                })
+                ->filter(fn ($item) => collect($item)->filter(fn ($value) => $value !== null)->isNotEmpty())
+                ->values()
+                ->all()
+            : [];
 
         $this->merge([
-            'donation_type' => $this->nullableLower($this->input('donation_type')),
+            'donation_type' => $donationType,
             'campaign_id' => $this->nullableValue($this->input('campaign_id')),
             'amount' => $this->nullableValue($this->input('amount')),
             'payment_method' => $this->nullableLower($this->input('payment_method')),
