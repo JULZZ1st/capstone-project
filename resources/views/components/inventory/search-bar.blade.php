@@ -7,18 +7,21 @@
 
     <div>
         <x-form.label for="search">Search Inventory</x-form.label>
-        <input
-            id="search"
-            name="search"
-            value="{{ $filters['search'] ?? '' }}"
-            placeholder="Search by item name, category, batch, location, or notes"
-            class="mt-1 block w-full rounded-md border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500"
-        >
+        <div class="relative mt-1.5">
+            <x-icon name="search" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <input
+                id="search"
+                name="search"
+                value="{{ $filters['search'] ?? '' }}"
+                placeholder="Search by item name, category, batch, location, or notes"
+                class="block w-full rounded-lg border-slate-300 py-2.5 pl-9 pr-3 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500"
+            >
+        </div>
     </div>
 
-    <div>
+    <div class="md:w-48">
         <x-form.label for="status">Item Status</x-form.label>
-        <select id="status" name="status" class="mt-1 block w-full rounded-md border-slate-300 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500">
+        <select id="status" name="status" class="mt-1.5 block w-full rounded-lg border-slate-300 py-2.5 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500">
             <option value="">All statuses</option>
             @foreach (config('inventory.item_statuses') as $key => $status)
                 <option value="{{ $key }}" @selected(($filters['status'] ?? null) === $key)>{{ $status['label'] }}</option>
@@ -27,7 +30,7 @@
     </div>
 
     <div class="flex items-end gap-2">
-        <x-button class="w-auto">Search</x-button>
-        <a href="{{ route('inventory.index') }}" class="rounded-md border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">Clear</a>
+        <x-button class="w-auto px-5">Search</x-button>
+        <a href="{{ route('inventory.index') }}" class="inline-flex w-auto items-center justify-center rounded-md border border-slate-300 px-5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">Clear</a>
     </div>
 </form>

@@ -52,9 +52,19 @@ class DonationPortalController extends Controller
             ->paginate(config('donations.pagination.per_page'))
             ->withQueryString();
 
+        $summary = Contribution::query()
+            ->selectRaw(<<<'SQL'
+                COUNT(*) as total_contributions,
+                SUM(CASE WHEN type = 'cash' THEN 1 ELSE 0 END) as cash_contributions,
+                SUM(CASE WHEN type = 'in_kind' THEN 1 ELSE 0 END) as in_kind_contributions,
+                SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending_verification
+            SQL)
+            ->first();
+
         return view('donations.index', [
             'contributions' => $contributions,
             'filters' => $filters,
+            'summary' => $summary,
             'donors' => Donor::query()
                 ->active()
                 ->orderBy('full_name')
