@@ -64,6 +64,7 @@ Gina owns the three modules that carry the system's day-to-day operational core:
 - [x] Add `inventory_categories`/`inventory_units` tables, models, policies, `ManageInventoryReferenceItem` service, and CRUD controllers/routes; update `InventoryItem` validation and search to read from the database instead of `config/inventory.php` (closes A6)
 - [x] Design and build cash disbursement recording endpoint (`CashDisbursementController`, `cash_disbursements` table, `RecordCashDisbursement` service) — outbound record, distinct from inbound `contributions` (closes S6; schema deliberately excludes approval/status columns pending Julius's A7 work)
 - [x] Wire dashboard widgets to reflect disbursement totals now recorded via S6 (additive `disbursements` key in `DashboardMetrics`); ready to extend once Julius's A7 approval workflow lands, without hardcoded assumptions about his schema
+- [x] Repoint `DashboardMetrics` off the orphaned pre-Donation-Portal tables (`cash_transactions`, `donations`, `bank_reconciliations` — none written to by any current feature) onto the live schema: cash/pending totals and funding distribution now read `contributions`, reconciliation status reads Julius's `bank_ledger_entries`, and the activity feed drops the dead tables in favor of `contributions`/`inventory_items`/`cash_disbursements`
 
 ### Frontend Tasks
 - [ ] **(done)** `dashboard.blade.php` + `components/dashboard/*` (panel, stat-list, activity-list, summary-card, empty/error states)
@@ -112,12 +113,13 @@ Gina owns the three modules that carry the system's day-to-day operational core:
 - [x] Add feature test for admin category management once built — `tests/Feature/InventoryCategoryManagementTest.php`
 - [x] Add feature test for cash disbursement recording once built — `tests/Feature/CashDisbursementTest.php`
 - [x] Add dashboard widget test asserting stat totals match underlying data — `test_dashboard_reflects_recorded_disbursement_totals`
+- [x] Add regression coverage for the dashboard data-source fix — `tests/Feature/DashboardMetricsTest.php` (verified-only cash totals, campaign funding distribution, cash+in-kind recent donations, bank-ledger reconciliation state, and an explicit test that legacy `cash_transactions`/`donations` rows no longer affect dashboard totals)
 
 ### Documentation Required
-- [ ] Inventory stock movement lifecycle diagram (stock-in → alert thresholds → stock-out)
-- [ ] Donation Portal intake-to-verification flow diagram (cash vs in-kind branches)
-- [ ] Dashboard widget data-source reference (which query backs each stat/panel)
-- [ ] Category management admin guide — feature is built (A6); standalone how-to guide not yet written
+- [x] Inventory stock movement lifecycle diagram (stock-in → alert thresholds → stock-out) — [`docs/inventory-stock-lifecycle.md`](./inventory-stock-lifecycle.md)
+- [x] Donation Portal intake-to-verification flow diagram (cash vs in-kind branches) — [`docs/donation-portal-flow.md`](./donation-portal-flow.md)
+- [x] Dashboard widget data-source reference (which query backs each stat/panel) — [`docs/dashboard-data-sources.md`](./dashboard-data-sources.md)
+- [x] Category management admin guide — [`docs/category-management-admin-guide.md`](./category-management-admin-guide.md)
 
 ### Deliverables
 - Fully functional Dashboard reflecting live donation, inventory, and cash metrics

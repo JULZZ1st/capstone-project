@@ -2,10 +2,9 @@
 
 namespace App\Support\Dashboard;
 
-use App\Models\BankReconciliation;
+use App\Models\BankLedgerEntry;
 use App\Models\CashDisbursement;
-use App\Models\CashTransaction;
-use App\Models\Donation;
+use App\Models\Contribution;
 use App\Models\Donor;
 use App\Models\InventoryItem;
 use Illuminate\Support\Collection;
@@ -18,11 +17,12 @@ class DashboardMetrics
     {
         $limit = config('dashboard.limits.recent_items');
         $pendingStatus = config('dashboard.cash_statuses.pending');
+        $verifiedStatus = config('dashboard.cash_statuses.verified');
 
         return [
             'summary' => [
-                'total_cash_ledger' => CashTransaction::query()->verified()->sum('amount'),
-                'pending_cash_verification' => CashTransaction::query()->pending()->count(),
+                'total_cash_ledger' => Contribution::query()->where('type', 'cash')->where('status', $verifiedStatus)->sum('amount'),
+                'pending_cash_verification' => Contribution::query()->where('type', 'cash')->where('status', $pendingStatus)->count(),
                 'in_kind_batches' => Cache::remember(
                     'dashboard.summary.in_kind_batches',
                     config('dashboard.cache.safe_summary_ttl'),
@@ -35,10 +35,12 @@ class DashboardMetrics
                 ),
             ],
             'treasurer_action_items' => $this->treasurerActionItems($pendingStatus),
-            'funding_distribution' => $this->fundingDistribution(),
-            'recent_cash_awaiting_audit' => CashTransaction::query()
-                ->select(['id', 'donor_name', 'amount', 'purpose', 'received_at', 'created_at', 'status'])
-                ->pending()
+            'funding_distribution' => $this->fundingDistribution($verifiedStatus),
+            'recent_cash_awaiting_audit' => Contribution::query()
+                ->select(['id', 'donor_id', 'amount', 'payment_method', 'received_at', 'created_at'])
+                ->with('donor:id,full_name')
+                ->where('type', 'cash')
+                ->where('status', $pendingStatus)
                 ->latest('received_at')
                 ->latest()
                 ->limit($limit)
@@ -57,9 +59,10 @@ class DashboardMetrics
                     ->limit($limit)
                     ->get(),
             ],
-            'recent_donations' => Donation::query()
-                ->select(['id', 'donor_id', 'donation_type', 'amount', 'description', 'received_at', 'created_at'])
-                ->with(['donor:id,full_name'])
+            'recent_donations' => Contribution::query()
+                ->select(['id', 'donor_id', 'type', 'amount', 'received_at', 'created_at'])
+                ->with('donor:id,full_name')
+                ->withCount('items')
                 ->latest('received_at')
                 ->latest()
                 ->limit($limit)
@@ -78,36 +81,42 @@ class DashboardMetrics
 
     private function treasurerActionItems(string $pendingStatus): array
     {
-        $latestReconciliation = BankReconciliation::query()->latest('date')->first(['date', 'closing_balance']);
+        $latestReconciledEntry = BankLedgerEntry::query()
+            ->where('status', 'reconciled')
+            ->whereNotNull('matched_at')
+            ->latest('matched_at')
+            ->first(['id', 'amount', 'transaction_date', 'matched_at']);
 
         return [
-            'pending_cash_count' => CashTransaction::query()->pending()->count(),
-            'latest_reconciliation' => $latestReconciliation,
-            'unreconciled_cash_count' => CashTransaction::query()
-                ->when($latestReconciliation, fn ($query) => $query->whereDate('received_at', '>', $latestReconciliation->date))
-                ->when(! $latestReconciliation, fn ($query) => $query->whereNotNull('id'))
-                ->count(),
+            'pending_cash_count' => Contribution::query()->where('type', 'cash')->where('status', $pendingStatus)->count(),
+            'latest_reconciliation' => $latestReconciledEntry,
+            'unreconciled_ledger_count' => BankLedgerEntry::query()->needsReview()->count(),
         ];
     }
 
-    private function fundingDistribution(): Collection
+    private function fundingDistribution(string $verifiedStatus): Collection
     {
-        return CashTransaction::query()
-            ->select('purpose', DB::raw('sum(amount) as total'))
-            ->verified()
-            ->groupBy('purpose')
+        return Contribution::query()
+            ->select('campaign_id', DB::raw('sum(amount) as total'))
+            ->where('type', 'cash')
+            ->where('status', $verifiedStatus)
+            ->groupBy('campaign_id')
+            ->with('campaign:id,name')
             ->orderByDesc('total')
             ->limit(config('dashboard.limits.funding_categories'))
-            ->get();
+            ->get()
+            ->map(fn (Contribution $row): object => (object) [
+                'label' => $row->campaign?->name ?? 'Uncategorized',
+                'total' => $row->total,
+            ]);
     }
 
     private function systemLogActivity(int $limit): Collection
     {
         return collect()
-            ->merge($this->activityFrom(Donation::query()->latest()->limit($limit)->get(['id', 'donation_type as label', 'created_at']), 'Donation recorded'))
+            ->merge($this->activityFrom(Contribution::query()->latest()->limit($limit)->get(['id', 'type as label', 'created_at']), 'Contribution logged'))
             ->merge($this->activityFrom(InventoryItem::query()->latest()->limit($limit)->get(['id', 'name as label', 'created_at']), 'Inventory updated'))
-            ->merge($this->activityFrom(CashTransaction::query()->latest()->limit($limit)->get(['id', 'donor_name as label', 'created_at']), 'Cash entry recorded'))
-            ->merge($this->activityFrom(BankReconciliation::query()->latest()->limit($limit)->get(['id', 'date as label', 'created_at']), 'Reconciliation saved'))
+            ->merge($this->activityFrom(CashDisbursement::query()->latest()->limit($limit)->get(['id', 'disbursed_to as label', 'created_at']), 'Cash disbursed'))
             ->sortByDesc('created_at')
             ->take($limit)
             ->values();

@@ -40,7 +40,7 @@
                     <span class="text-sm text-slate-600">Total cash disbursed</span>
                     <span class="text-sm font-semibold text-slate-950">{{ $money($dashboard['disbursements']['total_disbursed']) }}</span>
                 </div>
-                @if ($actionItems['pending_cash_count'] === 0 && $actionItems['unreconciled_cash_count'] === 0)
+                @if ($actionItems['pending_cash_count'] === 0 && $actionItems['unreconciled_ledger_count'] === 0)
                     <x-dashboard.empty-state message="No treasurer action items right now." />
                 @else
                     <dl class="space-y-3">
@@ -49,12 +49,12 @@
                             <dd class="text-sm font-semibold text-slate-950">{{ number_format($actionItems['pending_cash_count']) }}</dd>
                         </div>
                         <div class="flex items-center justify-between rounded-md bg-slate-50 px-3 py-2">
-                            <dt class="text-sm text-slate-600">Cash entries after latest reconciliation</dt>
-                            <dd class="text-sm font-semibold text-slate-950">{{ number_format($actionItems['unreconciled_cash_count']) }}</dd>
+                            <dt class="text-sm text-slate-600">Bank ledger entries awaiting review</dt>
+                            <dd class="text-sm font-semibold text-slate-950">{{ number_format($actionItems['unreconciled_ledger_count']) }}</dd>
                         </div>
                         @if ($actionItems['latest_reconciliation'])
                             <div class="rounded-md bg-green-50 px-3 py-2 text-sm text-green-800">
-                                Latest reconciliation: {{ $actionItems['latest_reconciliation']->date }} with closing balance {{ $money($actionItems['latest_reconciliation']->closing_balance) }}.
+                                Latest reconciliation: {{ $actionItems['latest_reconciliation']->matched_at->format('Y-m-d') }} for {{ $money($actionItems['latest_reconciliation']->amount) }}.
                             </div>
                         @endif
                     </dl>
@@ -68,7 +68,7 @@
                     <ul class="space-y-3">
                         @foreach ($dashboard['funding_distribution'] as $item)
                             <li class="flex items-center justify-between gap-4 rounded-md bg-slate-50 px-3 py-2">
-                                <span class="truncate text-sm text-slate-600">{{ $item->purpose }}</span>
+                                <span class="truncate text-sm text-slate-600">{{ $item->label }}</span>
                                 <span class="text-sm font-semibold text-slate-950">{{ $money($item->total) }}</span>
                             </li>
                         @endforeach
@@ -81,14 +81,14 @@
                     <x-dashboard.empty-state message="No cash donations awaiting audit." />
                 @else
                     <ul class="divide-y divide-slate-100">
-                        @foreach ($dashboard['recent_cash_awaiting_audit'] as $transaction)
+                        @foreach ($dashboard['recent_cash_awaiting_audit'] as $contribution)
                             <li class="py-3 first:pt-0 last:pb-0">
                                 <div class="flex items-start justify-between gap-4">
                                     <div>
-                                        <p class="text-sm font-medium text-slate-950">{{ $transaction->donor_name }}</p>
-                                        <p class="text-sm text-slate-600">{{ $transaction->purpose }}</p>
+                                        <p class="text-sm font-medium text-slate-950">{{ $contribution->donor?->full_name ?? 'Unknown donor' }}</p>
+                                        <p class="text-sm text-slate-600">{{ config("donations.payment_methods.{$contribution->payment_method}") ?? 'Cash' }}</p>
                                     </div>
-                                    <p class="text-sm font-semibold text-slate-950">{{ $money($transaction->amount) }}</p>
+                                    <p class="text-sm font-semibold text-slate-950">{{ $money($contribution->amount) }}</p>
                                 </div>
                             </li>
                         @endforeach
@@ -135,9 +135,13 @@
                                 <div class="flex items-start justify-between gap-4">
                                     <div>
                                         <p class="text-sm font-medium text-slate-950">{{ $donation->donor?->full_name ?? 'Unknown donor' }}</p>
-                                        <p class="text-sm text-slate-600">{{ $donation->donation_type }}</p>
+                                        <p class="text-sm text-slate-600">{{ config("donations.types.{$donation->type}") }}</p>
                                     </div>
-                                    <p class="text-sm font-semibold text-slate-950">{{ $money($donation->amount) }}</p>
+                                    @if ($donation->type === 'cash')
+                                        <p class="text-sm font-semibold text-slate-950">{{ $money($donation->amount) }}</p>
+                                    @else
+                                        <p class="text-sm font-semibold text-slate-950">{{ number_format($donation->items_count) }} item(s)</p>
+                                    @endif
                                 </div>
                             </li>
                         @endforeach
