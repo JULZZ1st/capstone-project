@@ -2,13 +2,18 @@
 
 @php($selectedType = old('donation_type', 'cash'))
 
-<dialog id="log-contribution-dialog" class="w-[min(940px,calc(100vw-2rem))] rounded-lg p-0 shadow-xl backdrop:bg-slate-950/50" @if($errors->any()) open @endif>
+<dialog id="log-contribution-dialog" class="w-[min(940px,calc(100vw-2rem))] rounded-2xl p-0 shadow-xl backdrop:bg-slate-950/50" @if($errors->any()) open @endif>
     <form method="POST" action="{{ route('donations.store') }}" class="max-h-[90vh] overflow-y-auto" data-contribution-form>
         @csrf
         <div class="sticky top-0 z-10 flex items-center justify-between border-b border-slate-200 bg-white px-5 py-4">
-            <div>
-                <h2 class="text-lg font-semibold text-slate-950">Log New Contribution</h2>
-                <p class="text-sm text-slate-500">Record cash or in-kind donations from active donors.</p>
+            <div class="flex items-center gap-3">
+                <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-100 text-blue-700">
+                    <x-icon name="gift" class="h-5 w-5" />
+                </span>
+                <div>
+                    <h2 class="text-lg font-semibold text-slate-950">Log New Contribution</h2>
+                    <p class="text-sm text-slate-500">Record cash or in-kind donations from active donors.</p>
+                </div>
             </div>
             <button type="button" class="rounded-md px-2 py-1 text-2xl leading-none text-slate-500 hover:bg-slate-100" data-dialog-close="log-contribution-dialog">&times;</button>
         </div>

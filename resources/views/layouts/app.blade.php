@@ -7,7 +7,7 @@
     <title>@yield('title', config('dashboard.barangay_name'))</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="bg-slate-100 text-slate-900 antialiased">
+<body class="bg-slate-50 text-slate-900 antialiased">
     <div class="min-h-screen lg:flex">
         <x-app.sidebar />
 

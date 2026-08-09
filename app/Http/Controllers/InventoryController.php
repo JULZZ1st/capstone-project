@@ -44,10 +44,21 @@ class InventoryController extends Controller
             ->paginate(config('inventory.pagination.per_page'))
             ->withQueryString();
 
+        $stockSummary = InventoryItem::query()
+            ->active()
+            ->selectRaw(<<<'SQL'
+                COUNT(*) as total_items,
+                SUM(CASE WHEN current_quantity <= 0 THEN 1 ELSE 0 END) as out_of_stock,
+                SUM(CASE WHEN current_quantity > 0 AND current_quantity <= minimum_reserve_quantity THEN 1 ELSE 0 END) as low_stock,
+                SUM(CASE WHEN current_quantity > minimum_reserve_quantity THEN 1 ELSE 0 END) as in_stock
+            SQL)
+            ->first();
+
         return view('inventory.index', [
             'items' => $items,
             'filters' => $filters,
             'alerts' => $alertQuery->get(),
+            'stockSummary' => $stockSummary,
             'categories' => InventoryCategory::query()->active()->orderBy('label')->get(),
             'units' => InventoryUnit::query()->active()->orderBy('label')->get(),
         ]);

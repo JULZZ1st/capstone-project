@@ -1,4 +1,5 @@
 import './bootstrap';
+import './charts';
 
 document.addEventListener('click', (event) => {
     const openButton = event.target.closest('[data-dialog-open]');
