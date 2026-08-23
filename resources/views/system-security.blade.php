@@ -25,9 +25,49 @@
 
         <section class="rounded-xl border border-slate-200 bg-white shadow-sm">
             <x-system-security.section-header title="Authorized Administrative Personnel">
-                <x-slot:actions>
-                    <x-system-security.status-badge :label="number_format($personnel->count()).' Active Accounts'" tone="emerald" />
-                </x-slot:actions>
+                    <x-slot:actions>
+                        <x-system-security.status-badge :label="number_format($personnel->count()).' Active Accounts'" tone="emerald" />
+
+                        <details class="relative ml-2 inline-block">
+                            <summary class="rounded-md bg-slate-100 px-2 py-1 text-xs font-semibold">Create Staff Account</summary>
+                            <form method="POST" action="{{ route('system-security.users.store') }}" class="mt-2 w-80 rounded border border-slate-100 bg-white p-3 shadow-lg">
+                                @csrf
+                                <div class="space-y-2">
+                                    <div>
+                                        <label class="block text-[11px] text-slate-500">First name</label>
+                                        <input name="first_name" required class="mt-1 w-full rounded border px-2 py-1 text-sm" />
+                                    </div>
+                                    <div>
+                                        <label class="block text-[11px] text-slate-500">Last name</label>
+                                        <input name="last_name" required class="mt-1 w-full rounded border px-2 py-1 text-sm" />
+                                    </div>
+                                    <div>
+                                        <label class="block text-[11px] text-slate-500">Email</label>
+                                        <input name="email" type="email" required class="mt-1 w-full rounded border px-2 py-1 text-sm" />
+                                    </div>
+                                    <div>
+                                        <label class="block text-[11px] text-slate-500">Role</label>
+                                        <select name="role" required class="mt-1 w-full rounded border px-2 py-1 text-sm">
+                                            <option value="admin">Administrator</option>
+                                            <option value="secretary">Secretary</option>
+                                            <option value="treasurer">Treasurer</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-[11px] text-slate-500">Initial password</label>
+                                        <input name="password" type="password" required class="mt-1 w-full rounded border px-2 py-1 text-sm" />
+                                    </div>
+                                    <div>
+                                        <label class="block text-[11px] text-slate-500">Confirm password</label>
+                                        <input name="password_confirmation" type="password" required class="mt-1 w-full rounded border px-2 py-1 text-sm" />
+                                    </div>
+                                    <div class="mt-2 flex justify-end">
+                                        <button class="rounded bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white">Create</button>
+                                    </div>
+                                </div>
+                            </form>
+                        </details>
+                    </x-slot:actions>
             </x-system-security.section-header>
 
             <div class="grid gap-4 p-4 lg:grid-cols-3">
