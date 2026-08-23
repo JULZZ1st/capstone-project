@@ -372,8 +372,8 @@ Edemar owns the security perimeter of the system: authentication, session handli
 | Log In | A1 / S1 | ✅ done |
 | Log Out | A2 / S2 | ✅ done |
 | Audit System Logs | A4 | ✅ done |
-| Manage Staff Accounts (view + 2FA toggle) | A3 | 🟡 partial |
-| Manage Staff Accounts (full create/edit/deactivate CRUD) | A3 | ⏳ outstanding |
+| Manage Staff Accounts (view + 2FA toggle) | A3 | ✅ done |
+| Manage Staff Accounts (full create/edit/deactivate CRUD) | A3 | ✅ done |
 
 ### Database Tables Used
 - `users` — credentials, `first_name`, `last_name`, `status`, `last_login_at`, `role_id`
@@ -383,26 +383,26 @@ Edemar owns the security perimeter of the system: authentication, session handli
 - `security_activity_events` — audit log (actor, action, summary, metadata, IP, occurred_at)
 
 ### Backend Tasks
-- [ ] **(done)** `Auth\AuthenticatedSessionController` — `create`, `store` (login), `destroy` (logout)
-- [ ] **(done)** `Auth\RegisteredUserController` — `create`, `store` (self-service registration)
-- [ ] **(done)** `role:admin,secretary,treasurer` route middleware
-- [ ] **(done)** `SystemSecurityController` — `index`, `updateTwoFactorEnforcement`
-- [ ] **(done)** `SystemSecurityDashboardQuery` service — personnel list, activity log query/filter
-- [ ] **(done)** `ToggleTwoFactorEnforcement` service
-- [ ] **(done)** `SecurityActivityEventPolicy`
-- [ ] Build `StaffAccountController` (or extend `SystemSecurityController`) — `store` (create staff account with role assignment), `update` (edit name/role/email), `deactivate` (soft-disable, sets `status`)
-- [ ] Build `CreateStaffAccount` / `UpdateStaffAccount` / `DeactivateStaffAccount` services following existing service-class pattern
-- [ ] Gate account creation/edit/deactivation behind `admin`-only authorization (extend or add a policy)
-- [ ] Ensure every account lifecycle action (create/edit/deactivate) writes a `security_activity_events` row for auditability
+- [x] `Auth\AuthenticatedSessionController` — `create`, `store` (login), `destroy` (logout)
+- [x] `Auth\RegisteredUserController` — `create`, `store` (self-service registration)
+- [x] `role:admin,secretary,treasurer` route middleware
+- [x] `SystemSecurityController` — `index`, `updateTwoFactorEnforcement`
+- [x] `SystemSecurityDashboardQuery` service — personnel list, activity log query/filter
+- [x] `ToggleTwoFactorEnforcement` service
+- [x] `SecurityActivityEventPolicy`
+- [x] Build `StaffAccountController` (or extend `SystemSecurityController`) — `store` (create staff account with role assignment), `update` (edit name/role/email), `deactivate` (soft-disable, sets `status`)
+- [x] Build `CreateStaffAccount` / `UpdateStaffAccount` / `DeactivateStaffAccount` services following existing service-class pattern
+- [x] Gate account creation/edit/deactivation behind `admin`-only authorization (extend or add a policy)
+- [x] Ensure every account lifecycle action (create/edit/deactivate) writes a `security_activity_events` row for auditability
 - [ ] Review self-service `/register` — confirm whether it should remain open or be restricted once admin-driven account creation exists (scope decision, flag for defense Q&A)
 
 ### Frontend Tasks
-- [ ] **(done)** `auth/login.blade.php`, `auth/register.blade.php`, `layouts/guest.blade.php`
-- [ ] **(done)** `system-security.blade.php`
-- [ ] **(done)** `components/system-security/*` — status-badge, section-header, permission-checklist, filter-dropdown, search-bar, activity-log-row, user-security-card
-- [ ] Build "Create Staff Account" modal/form (name, email, role selection, initial password/invite flow)
-- [ ] Build "Edit Staff Account" modal (name, role, status)
-- [ ] Build "Deactivate Account" confirmation action + disabled-state styling on `user-security-card`
+- [x] `auth/login.blade.php`, `auth/register.blade.php`, `layouts/guest.blade.php`
+- [x] `system-security.blade.php`
+- [x] `components/system-security/*` — status-badge, section-header, permission-checklist, filter-dropdown, search-bar, activity-log-row, user-security-card
+- [x] Build "Create Staff Account" modal/form (name, email, role selection, initial password/invite flow)
+- [x] Build "Edit Staff Account" modal (name, role, status)
+- [x] Build "Deactivate Account" confirmation action + disabled-state styling on `user-security-card`
 - [ ] Add role/permission assignment UI if per-user granular permissions (`security_permissions`) are to be admin-editable
 
 ### API Endpoints Needed
@@ -413,9 +413,9 @@ Edemar owns the security perimeter of the system: authentication, session handli
 | POST | `/logout` | Logout | ✅ done |
 | GET | `/system-security` | Security dashboard (personnel + audit log) | ✅ done |
 | PATCH | `/system-security/users/{user}/two-factor-enforcement` | Toggle 2FA enforcement | ✅ done |
-| POST | `/system-security/users` (new) | Create staff account | outstanding |
-| PATCH | `/system-security/users/{user}` (new) | Edit staff account | outstanding |
-| PATCH | `/system-security/users/{user}/deactivate` (new) | Deactivate staff account | outstanding |
+| POST | `/system-security/users` (new) | Create staff account | ✅ done |
+| PATCH | `/system-security/users/{user}` (new) | Edit staff account | ✅ done |
+| PATCH | `/system-security/users/{user}/deactivate` (new) | Deactivate staff account | ✅ done |
 
 ### Validation Rules
 - Login: valid email + password required; rate-limit/lockout on repeated failures (verify existing throttle behavior).
@@ -430,12 +430,17 @@ Edemar owns the security perimeter of the system: authentication, session handli
 - Staff account management affects who can perform actions in every other module (e.g., `verified_by`, `created_by`, `matched_by`, `granted_by` foreign keys all reference `users`).
 
 ### Testing Checklist
-- [ ] **(done)** `tests/Feature/Auth/RegistrationTest.php`
-- [ ] **(done)** `tests/Feature/SystemSecurityAdministrationTest.php`
-- [ ] Add login/logout feature test if not already covered under an existing auth test
-- [ ] Add feature test for staff account creation (admin-only, role assignment)
-- [ ] Add feature test for staff account edit and deactivation, including the "last admin" safeguard
-- [ ] Add feature test asserting non-admin roles cannot access account management endpoints
+- [x] `tests/Feature/Auth/RegistrationTest.php`
+- [x] `tests/Feature/SystemSecurityAdministrationTest.php`
+- [x] Add login/logout feature test if not already covered under an existing auth test
+- [x] Add feature test for staff account creation (admin-only, role assignment)
+- [x] Add feature test for staff account edit and deactivation, including the "last admin" safeguard
+- [x] Add feature test asserting non-admin roles cannot access account management endpoints
+
+**Testing verification:**
+- Full Laravel test suite: 85 passed, 0 failed, 0 errors, 280 assertions
+- `SystemSecurityAdministrationTest`: 4 passed, 12 assertions
+- `SystemSecurityStaffAccountTest`: 6 passed, 15 assertions
 
 ### Documentation Required
 - [ ] Authentication flow diagram (login → role-based redirect → protected routes)
