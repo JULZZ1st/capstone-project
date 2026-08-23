@@ -6,7 +6,12 @@
     $twoFactorEnforced = (bool) $profile?->two_factor_enforced;
 @endphp
 
-<article {{ $attributes->merge(['class' => 'rounded-lg border border-slate-200 bg-white p-4 shadow-sm']) }}>
+@php
+    $isDeactivated = isset($user->status) && $user->status !== config('auth_defaults.user_status');
+@endphp
+
+<article {{ $attributes->merge(['class' => 'rounded-lg border p-4 shadow-sm']) }}
+    style="background-color: {{ $isDeactivated ? '#f8fafc' : 'white' }}; border-color: {{ $isDeactivated ? '#fde68a' : '#e2e8f0' }}">
     <div class="flex items-start gap-3">
         <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-sm font-bold text-emerald-800 ring-1 ring-emerald-200">
             {{ strtoupper(substr($user->first_name ?: $user->name, 0, 1).substr($user->last_name ?: $user->name, 0, 1)) }}
@@ -14,6 +19,9 @@
         <div class="min-w-0">
             <p class="truncate text-sm font-bold text-slate-950">{{ $user->name }}</p>
             <x-system-security.status-badge :label="$user->roleDisplayName()" tone="emerald" class="mt-1" />
+            @if($isDeactivated)
+                <p class="mt-1 text-xs font-semibold text-rose-700">Deactivated</p>
+            @endif
         </div>
     </div>
 
@@ -46,5 +54,54 @@
     <div class="mt-4 flex items-center justify-between border-t border-slate-100 pt-3">
         <p class="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Simulated Key</p>
         <p class="font-mono text-[10px] font-bold text-slate-700">{{ $profile?->security_key_suffix ?? '------' }}</p>
+    </div>
+
+    <div class="mt-3 flex items-center justify-end gap-2">
+        {{-- Edit button opens a small details-based panel --}}
+        <details class="relative">
+            <summary class="rounded bg-slate-100 px-2 py-1 text-xs font-semibold">Edit</summary>
+            <form method="POST" action="{{ route('system-security.users.update', $user) }}" class="mt-2 w-80 rounded border border-slate-100 bg-white p-3 shadow-lg">
+                @csrf
+                @method('PATCH')
+                <div class="space-y-2">
+                    <div>
+                        <label class="block text-[11px] text-slate-500">First name</label>
+                        <input name="first_name" required value="{{ old('first_name', $user->first_name) }}" class="mt-1 w-full rounded border px-2 py-1 text-sm" />
+                    </div>
+                    <div>
+                        <label class="block text-[11px] text-slate-500">Last name</label>
+                        <input name="last_name" required value="{{ old('last_name', $user->last_name) }}" class="mt-1 w-full rounded border px-2 py-1 text-sm" />
+                    </div>
+                    <div>
+                        <label class="block text-[11px] text-slate-500">Email</label>
+                        <input name="email" type="email" required value="{{ old('email', $user->email) }}" class="mt-1 w-full rounded border px-2 py-1 text-sm" />
+                    </div>
+                    <div>
+                        <label class="block text-[11px] text-slate-500">Role</label>
+                        <select name="role" required class="mt-1 w-full rounded border px-2 py-1 text-sm">
+                            <option value="admin" {{ $user->roleName() === 'admin' ? 'selected' : '' }}>Administrator</option>
+                            <option value="secretary" {{ $user->roleName() === 'secretary' ? 'selected' : '' }}>Secretary</option>
+                            <option value="treasurer" {{ $user->roleName() === 'treasurer' ? 'selected' : '' }}>Treasurer</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] text-slate-500">Status</label>
+                        <select name="status" class="mt-1 w-full rounded border px-2 py-1 text-sm">
+                            <option value="{{ config('auth_defaults.user_status') }}" {{ ! $isDeactivated ? 'selected' : '' }}>Active</option>
+                            <option value="deactivated" {{ $isDeactivated ? 'selected' : '' }}>Deactivated</option>
+                        </select>
+                    </div>
+                    <div class="mt-2 flex justify-end">
+                        <button class="rounded bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white">Save</button>
+                    </div>
+                </div>
+            </form>
+        </details>
+
+        <form method="POST" action="{{ route('system-security.users.deactivate', $user) }}" onsubmit="return confirm('Are you sure you want to deactivate this account? This will disable the account and may prevent access.')">
+            @csrf
+            @method('PATCH')
+            <button class="rounded bg-rose-600 px-2 py-1 text-xs font-semibold text-white">Deactivate</button>
+        </form>
     </div>
 </article>

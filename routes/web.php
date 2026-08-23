@@ -73,4 +73,10 @@ Route::middleware(['auth', 'role:admin,secretary,treasurer'])->group(function ()
     Route::get('/system-security', [SystemSecurityController::class, 'index'])->name('system-security.index');
     Route::patch('/system-security/users/{user}/two-factor-enforcement', [SystemSecurityController::class, 'updateTwoFactorEnforcement'])
         ->name('system-security.two-factor-enforcement.update');
+    Route::post('/system-security/users', [App\Http\Controllers\StaffAccountController::class, 'store'])
+        ->name('system-security.users.store');
+    Route::patch('/system-security/users/{user}', [App\Http\Controllers\StaffAccountController::class, 'update'])
+        ->name('system-security.users.update');
+    Route::patch('/system-security/users/{user}/deactivate', [App\Http\Controllers\StaffAccountController::class, 'deactivate'])
+        ->name('system-security.users.deactivate');
 });
