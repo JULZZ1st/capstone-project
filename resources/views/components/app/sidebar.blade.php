@@ -5,6 +5,7 @@
         ['label' => 'Donations Portal', 'route' => 'donations.index', 'active' => 'donations.*'],
         ['label' => 'In-Kind Inventory', 'route' => 'inventory.index', 'active' => 'inventory.*'],
         ['label' => 'Bank Reconciliation', 'route' => 'bank-reconciliation.index', 'active' => 'bank-reconciliation.*'],
+        ['label' => 'Fund Disbursements', 'route' => 'disbursements.index', 'active' => 'disbursements.*'],
         ['label' => 'Financial Ledger', 'route' => 'workflows.index', 'active' => 'cash.*'],
         ['label' => 'Report Generator', 'route' => 'reports.index', 'active' => 'reports.*'],
         ['label' => 'System Administration', 'route' => 'system-security.index', 'active' => 'system-security.*'],
