@@ -25,6 +25,9 @@ class Contribution extends Model
         'notes',
         'received_at',
         'verified_at',
+        'voided_at',
+        'voided_by',
+        'void_reason',
     ];
 
     protected function casts(): array
@@ -33,6 +36,7 @@ class Contribution extends Model
             'amount' => 'decimal:2',
             'received_at' => 'datetime',
             'verified_at' => 'datetime',
+            'voided_at' => 'datetime',
         ];
     }
 
@@ -54,6 +58,11 @@ class Contribution extends Model
     public function verifier(): BelongsTo
     {
         return $this->belongsTo(User::class, 'verified_by');
+    }
+
+    public function voider(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'voided_by');
     }
 
     public function items(): HasMany
@@ -119,6 +128,11 @@ class Contribution extends Model
     public function isCash(): bool
     {
         return $this->type === 'cash';
+    }
+
+    public function isVoided(): bool
+    {
+        return $this->voided_at !== null;
     }
 
     public function isEditable(): bool

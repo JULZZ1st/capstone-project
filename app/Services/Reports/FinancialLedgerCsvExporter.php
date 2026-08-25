@@ -12,10 +12,11 @@ class FinancialLedgerCsvExporter
         return response()->streamDownload(function () use ($ledgerRows) {
             $handle = fopen('php://output', 'w');
 
-            fputcsv($handle, ['Donor', 'Campaign', 'Payment Method', 'Amount (PHP)', 'Received At', 'Status']);
+            fputcsv($handle, ['Entry Type', 'Donor / Requester', 'Campaign / Purpose', 'Payment Method', 'Amount (PHP)', 'Received At', 'Status']);
 
             foreach ($ledgerRows as $row) {
                 fputcsv($handle, [
+                    $row['entry_type'] ?? 'Contribution',
                     $row['donor_name'],
                     $row['campaign_name'] ?? 'General Fund',
                     $row['payment_method_label'],

@@ -211,15 +211,15 @@
 
             <x-dashboard.panel title="Recent Cash Disbursements" subtitle="Latest outgoing cash payments recorded." icon="banknotes" tone="info">
                 @if ($dashboard['disbursements']['recent']->isEmpty())
-                    <x-dashboard.empty-state icon="banknotes" message="No cash disbursements have been recorded yet." action="{{ route('cash-disbursements.index') }}" action-label="Record Disbursement" />
+                    <x-dashboard.empty-state icon="banknotes" message="No cash disbursements have been recorded yet." action="{{ route('disbursements.index') }}" action-label="Record Disbursement" />
                 @else
                     <ul class="divide-y divide-slate-100">
                         @foreach ($dashboard['disbursements']['recent'] as $disbursement)
                             <li class="py-3 first:pt-0 last:pb-0">
                                 <div class="flex items-start justify-between gap-4">
                                     <div>
-                                        <p class="text-sm font-medium text-slate-950">{{ $disbursement->disbursed_to }}</p>
-                                        <p class="text-sm text-slate-600">{{ config("disbursements.purposes.{$disbursement->purpose}") }}</p>
+                                        <p class="text-sm font-medium text-slate-950">{{ $disbursement->purpose }}</p>
+                                        <p class="text-sm text-slate-600">{{ $disbursement->requester->name }} &middot; {{ ucfirst($disbursement->status) }}</p>
                                     </div>
                                     <p class="text-sm font-semibold text-slate-950">{{ $money($disbursement->amount) }}</p>
                                 </div>

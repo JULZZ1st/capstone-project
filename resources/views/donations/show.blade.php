@@ -88,6 +88,16 @@
                     </form>
                 @endcan
 
+                @can('void', $contribution)
+                    <form method="POST" action="{{ route('contributions.void', $contribution) }}" class="mt-4 space-y-2">
+                        @csrf
+                        @method('PATCH')
+                        <x-form.label for="void_reason">Void reason</x-form.label>
+                        <textarea id="void_reason" name="void_reason" rows="3" required class="block w-full rounded-md border-slate-300 text-sm shadow-sm focus:border-red-500 focus:ring-red-500"></textarea>
+                        <x-button>Void Contribution</x-button>
+                    </form>
+                @endcan
+
                 @can('update', $contribution)
                     <form method="POST" action="{{ route('donations.update', $contribution) }}" class="mt-4 space-y-4">
                         @csrf

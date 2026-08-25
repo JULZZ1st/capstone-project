@@ -3,8 +3,8 @@
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\BankReconciliationController;
-use App\Http\Controllers\CashDisbursementController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DisbursementController;
 use App\Http\Controllers\DonationController;
 use App\Http\Controllers\DonationPortalController;
 use App\Http\Controllers\DonorController;
@@ -40,10 +40,6 @@ Route::middleware(['auth', 'role:admin,secretary,treasurer'])->group(function ()
     Route::patch('/donations/{contribution}', [DonationPortalController::class, 'update'])->name('donations.update');
     Route::patch('/donations/{contribution}/verify', [DonationPortalController::class, 'verify'])->name('donations.verify');
 
-    Route::get('/cash-disbursements', [CashDisbursementController::class, 'index'])->name('cash-disbursements.index');
-    Route::post('/cash-disbursements', [CashDisbursementController::class, 'store'])->name('cash-disbursements.store');
-    Route::get('/cash-disbursements/{cashDisbursement}', [CashDisbursementController::class, 'show'])->name('cash-disbursements.show');
-
     Route::get('/role-workflows', [InventoryCashController::class, 'index'])->name('workflows.index');
     Route::post('/role-workflows/inventory', [InventoryCashController::class, 'storeInventory'])->name('workflows.inventory.store');
     Route::post('/role-workflows/cash', [InventoryCashController::class, 'storeCash'])->name('cash.store');
@@ -67,6 +63,12 @@ Route::middleware(['auth', 'role:admin,secretary,treasurer'])->group(function ()
 
     Route::get('/bank-reconciliation', [BankReconciliationController::class, 'index'])->name('bank-reconciliation.index');
     Route::post('/bank-reconciliation/reconcile', [BankReconciliationController::class, 'reconcile'])->name('bank-reconciliation.reconcile');
+    Route::get('/disbursements', [DisbursementController::class, 'index'])->name('disbursements.index');
+    Route::post('/disbursements', [DisbursementController::class, 'store'])->name('disbursements.store');
+    Route::patch('/disbursements/{disbursement}/approve', [DisbursementController::class, 'approve'])->name('disbursements.approve');
+    Route::patch('/disbursements/{disbursement}/reject', [DisbursementController::class, 'reject'])->name('disbursements.reject');
+    Route::patch('/disbursements/{disbursement}/void', [DisbursementController::class, 'voidDisbursement'])->name('disbursements.void');
+    Route::patch('/contributions/{contribution}/void', [DisbursementController::class, 'voidContribution'])->name('contributions.void');
 
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
     Route::get('/reports/financial-ledgers/csv', [ReportController::class, 'financialLedgersCsv'])->name('reports.financial-ledgers.csv');

@@ -68,10 +68,10 @@ class DashboardMetrics
                 ->limit($limit)
                 ->get(),
             'disbursements' => [
-                'total_disbursed' => CashDisbursement::query()->sum('amount'),
+                'total_disbursed' => CashDisbursement::query()->where('status', 'approved')->whereNull('voided_at')->sum('amount'),
                 'recent' => CashDisbursement::query()
-                    ->select(['id', 'disbursed_to', 'purpose', 'amount', 'disbursed_at'])
-                    ->latest('disbursed_at')
+                    ->select(['id', 'purpose', 'amount', 'status', 'requested_by', 'created_at'])
+                    ->with('requester:id,first_name,last_name,name')
                     ->latest()
                     ->limit($limit)
                     ->get(),
@@ -116,7 +116,7 @@ class DashboardMetrics
         return collect()
             ->merge($this->activityFrom(Contribution::query()->latest()->limit($limit)->get(['id', 'type as label', 'created_at']), 'Contribution logged'))
             ->merge($this->activityFrom(InventoryItem::query()->latest()->limit($limit)->get(['id', 'name as label', 'created_at']), 'Inventory updated'))
-            ->merge($this->activityFrom(CashDisbursement::query()->latest()->limit($limit)->get(['id', 'disbursed_to as label', 'created_at']), 'Cash disbursed'))
+            ->merge($this->activityFrom(CashDisbursement::query()->latest()->limit($limit)->get(['id', 'purpose as label', 'created_at']), 'Cash disbursed'))
             ->sortByDesc('created_at')
             ->take($limit)
             ->values();
