@@ -79,9 +79,17 @@
                     @endforelse
                 </div>
             </section>
+        @elseif ($tab === 'philanthropy-roster')
+            @include('reports.partials.donor-giving-summary', [
+                'donorSummary' => $donorSummary,
+                'year' => $year,
+                'month' => $month,
+                'search' => $search,
+                'sort' => $sort,
+            ])
         @else
             <x-dashboard.panel
-                :title="$tab === 'in-kind-audits' ? 'In-Kind Audits' : 'Philanthropy Roster'"
+                title="In-Kind Audits"
                 subtitle="This report is coming soon."
             >
                 <x-dashboard.empty-state message="This report category is not available yet." />

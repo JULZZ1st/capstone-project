@@ -19,6 +19,8 @@ class ReportIndexRequest extends FormRequest
             'tab' => ['nullable', Rule::in(['financial-ledgers', 'in-kind-audits', 'philanthropy-roster'])],
             'year' => ['nullable', 'integer', 'min:2000', 'max:2100'],
             'month' => ['nullable', 'integer', 'min:1', 'max:12'],
+            'search' => ['nullable', 'string', 'max:255'],
+            'sort' => ['nullable', Rule::in(['highest', 'lowest', 'most_contributions', 'latest'])],
         ];
     }
 
@@ -35,5 +37,15 @@ class ReportIndexRequest extends FormRequest
     public function month(): int
     {
         return (int) ($this->validated('month') ?? now()->month);
+    }
+
+    public function search(): ?string
+    {
+        return $this->validated('search');
+    }
+
+    public function sort(): ?string
+    {
+        return $this->validated('sort');
     }
 }

@@ -76,14 +76,44 @@ class ReportGeneratorTest extends TestCase
         $response->assertSee('coming soon');
     }
 
-    public function test_philanthropy_roster_tab_renders_a_coming_soon_placeholder(): void
+    public function test_philanthropy_roster_tab_renders_the_donor_giving_summary(): void
     {
+        $donor = Donor::query()->create([
+            'donor_type' => 'individual',
+            'full_name' => 'Philanthropy Donor',
+            'address' => 'Brgy. San Jose',
+            'contact_number' => '09171234567',
+            'email' => 'philanthropy@example.com',
+            'status' => config('donors.defaults.status'),
+        ]);
+
+        Contribution::query()->create([
+            'donor_id' => $donor->id,
+            'type' => 'cash',
+            'status' => 'received',
+            'amount' => 5000,
+            'payment_method' => 'cash',
+            'reference_number' => 'REF-'.random_int(100000, 999999),
+            'received_at' => now(),
+        ]);
+
         $response = $this->actingAs(User::factory()->create())
-            ->get(route('reports.index', ['tab' => 'philanthropy-roster']));
+            ->get(route('reports.index', ['tab' => 'philanthropy-roster', 'year' => now()->year, 'month' => now()->month]));
 
         $response->assertOk();
         $response->assertSee('Philanthropy Roster');
-        $response->assertSee('coming soon');
+        $response->assertSee('Donor Giving Summary');
+        $response->assertSee('Philanthropy Donor');
+        $response->assertSee('5,000.00');
+    }
+
+    public function test_philanthropy_roster_tab_shows_empty_state_with_no_giving(): void
+    {
+        $response = $this->actingAs(User::factory()->create())
+            ->get(route('reports.index', ['tab' => 'philanthropy-roster', 'year' => now()->year, 'month' => now()->month]));
+
+        $response->assertOk();
+        $response->assertSee('No donor giving activity found for this period.');
     }
 
     public function test_authorized_user_can_download_financial_ledgers_csv(): void
