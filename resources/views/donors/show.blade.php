@@ -54,16 +54,21 @@
                     <tr class="bg-slate-100">
                         <th class="p-2 text-left">Type</th>
                         <th class="p-2 text-left">Amount</th>
-                        <th class="p-2 text-left">Description</th>
+                        <th class="p-2 text-left">Notes</th>
                         <th class="p-2 text-left">Date</th>
                     </tr>
                     </thead>
                     <tbody>
                     @forelse ($donations as $donation)
                         <tr class="border-t">
-                            <td class="p-2">{{ $donation->donation_type }}</td>
+                            <td class="p-2">
+                                {{ config("donations.types.{$donation->type}") ?? ucfirst($donation->type) }}
+                                @if ($donation->voided_at)
+                                    <span class="ml-1 inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-800 ring-1 ring-inset ring-red-200">Voided</span>
+                                @endif
+                            </td>
                             <td class="p-2">PHP {{ number_format((float) $donation->amount, 2) }}</td>
-                            <td class="p-2">{{ $donation->description ?: 'Not provided' }}</td>
+                            <td class="p-2">{{ $donation->notes ?: 'Not provided' }}</td>
                             <td class="p-2">{{ optional($donation->received_at)->toFormattedDateString() ?: 'Not provided' }}</td>
                         </tr>
                     @empty

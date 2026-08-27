@@ -23,11 +23,6 @@ class Donor extends Model
         'notes',
     ];
 
-    public function donations(): HasMany
-    {
-        return $this->hasMany(Donation::class);
-    }
-
     public function contributions(): HasMany
     {
         return $this->hasMany(Contribution::class);
@@ -69,12 +64,12 @@ class Donor extends Model
     public function scopeWithDonationMetrics($query)
     {
         return $query
-            ->withCount('donations')
+            ->withCount(['contributions as donations_count' => fn ($query) => $query->whereNull('voided_at')])
             ->withSum([
-                'donations as total_cash_donations' => fn ($query) => $query->where('donation_type', config('donors.donation_types.cash')),
+                'contributions as total_cash_donations' => fn ($query) => $query->where('type', 'cash')->whereNull('voided_at'),
             ], 'amount')
             ->withSum([
-                'donations as total_in_kind_donations' => fn ($query) => $query->where('donation_type', config('donors.donation_types.in_kind')),
+                'contributions as total_in_kind_donations' => fn ($query) => $query->where('type', 'in_kind')->whereNull('voided_at'),
             ], 'amount');
     }
 }
