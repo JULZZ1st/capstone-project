@@ -6,7 +6,6 @@
         ['label' => 'Fund Disbursements', 'icon' => 'banknotes', 'route' => 'disbursements.index', 'active' => 'disbursements.*'],
         ['label' => 'In-Kind Inventory', 'icon' => 'archive', 'route' => 'inventory.index', 'active' => 'inventory.*'],
         ['label' => 'Bank Reconciliation', 'icon' => 'scale', 'route' => 'bank-reconciliation.index', 'active' => 'bank-reconciliation.*'],
-        ['label' => 'Financial Ledger', 'icon' => 'chart-document', 'route' => 'workflows.index', 'active' => 'cash.*'],
         ['label' => 'Report Generator', 'icon' => 'document', 'route' => 'reports.index', 'active' => 'reports.*'],
         ['label' => 'System Administration', 'icon' => 'shield-check', 'route' => 'system-security.index', 'active' => 'system-security.*'],
     ];

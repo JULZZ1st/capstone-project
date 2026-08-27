@@ -5,12 +5,10 @@ use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\BankReconciliationController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DisbursementController;
-use App\Http\Controllers\DonationController;
 use App\Http\Controllers\DonationPortalController;
 use App\Http\Controllers\DonorController;
 use App\Http\Controllers\InventoryCategoryController;
 use App\Http\Controllers\InventoryController;
-use App\Http\Controllers\InventoryCashController;
 use App\Http\Controllers\InventoryStockAdjustmentController;
 use App\Http\Controllers\InventoryUnitController;
 use App\Http\Controllers\ReportController;
@@ -39,10 +37,6 @@ Route::middleware(['auth', 'role:admin,secretary,treasurer'])->group(function ()
     Route::get('/donations/{contribution}', [DonationPortalController::class, 'show'])->name('donations.show');
     Route::patch('/donations/{contribution}', [DonationPortalController::class, 'update'])->name('donations.update');
     Route::patch('/donations/{contribution}/verify', [DonationPortalController::class, 'verify'])->name('donations.verify');
-
-    Route::get('/role-workflows', [InventoryCashController::class, 'index'])->name('workflows.index');
-    Route::post('/role-workflows/inventory', [InventoryCashController::class, 'storeInventory'])->name('workflows.inventory.store');
-    Route::post('/role-workflows/cash', [InventoryCashController::class, 'storeCash'])->name('cash.store');
 
     Route::get('/inventory', [InventoryController::class, 'index'])->name('inventory.index');
     Route::post('/inventory', [InventoryController::class, 'store'])->name('inventory.store');
