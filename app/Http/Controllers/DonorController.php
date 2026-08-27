@@ -55,9 +55,9 @@ class DonorController extends Controller
 
     public function show(Donor $donor): View
     {
-        $donor->loadCount('donations');
+        $donor->loadCount(['contributions as donations_count']);
 
-        $donations = $donor->donations()
+        $donations = $donor->contributions()
             ->latest('received_at')
             ->latest()
             ->paginate(config('donors.pagination.history_per_page'));

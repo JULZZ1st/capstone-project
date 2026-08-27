@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Models\Donation;
+use App\Models\Contribution;
 use App\Models\Donor;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -120,18 +120,22 @@ class DonationManagementTest extends TestCase
             'status' => config('donors.defaults.status'),
         ]);
 
-        Donation::query()->create([
+        Contribution::query()->create([
             'donor_id' => $donor->id,
-            'donation_type' => config('donors.donation_types.cash'),
+            'type' => 'cash',
+            'status' => 'verified',
             'amount' => 500,
-            'description' => 'Medical support',
+            'payment_method' => 'cash',
+            'notes' => 'Medical support',
             'received_at' => now(),
         ]);
-        Donation::query()->create([
+        Contribution::query()->create([
             'donor_id' => $otherDonor->id,
-            'donation_type' => config('donors.donation_types.cash'),
+            'type' => 'cash',
+            'status' => 'verified',
             'amount' => 900,
-            'description' => 'Other donor support',
+            'payment_method' => 'cash',
+            'notes' => 'Other donor support',
             'received_at' => now(),
         ]);
 
