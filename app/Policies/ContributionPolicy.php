@@ -39,4 +39,13 @@ class ContributionPolicy
             && $contribution->status === 'pending'
             && $user->hasRole(['admin', 'treasurer']);
     }
+
+    public function void(User $user, Contribution $contribution): bool
+    {
+        return $user->hasRole('admin')
+            && $contribution->isCash()
+            && $contribution->status === 'pending'
+            && ! $contribution->isVoided()
+            && ! $contribution->ledgerEntry()->exists();
+    }
 }

@@ -12,7 +12,10 @@
         <x-app.sidebar />
 
         <div class="min-w-0 flex-1">
-            <x-app.header :title="$title ?? trim($__env->yieldContent('page-title', 'Dashboard'))" />
+            <x-app.header
+                :title="$title ?? trim($__env->yieldContent('page-title', 'Dashboard'))"
+                :subtitle="$subtitle ?? trim($__env->yieldContent('page-subtitle', ''))"
+            />
 
             <main class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
                 @if (session('success') || session('status'))

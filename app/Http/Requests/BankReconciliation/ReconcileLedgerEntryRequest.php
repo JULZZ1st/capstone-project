@@ -21,6 +21,7 @@ class ReconcileLedgerEntryRequest extends FormRequest
                 'required',
                 Rule::exists('contributions', 'id')
                     ->where('type', 'cash')
+                    ->where('status', 'verified')
                     ->whereIn('payment_method', config('donations.electronic_payment_methods')),
             ],
         ];

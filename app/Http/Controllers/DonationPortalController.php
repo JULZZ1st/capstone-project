@@ -9,8 +9,12 @@ use App\Http\Requests\Donations\VerifyContributionRequest;
 use App\Models\Campaign;
 use App\Models\Contribution;
 use App\Models\Donor;
+use App\Models\InventoryCategory;
+use App\Models\InventorySubcategory;
 use App\Services\Contributions\LogContribution;
+use App\Services\Inventory\ResolveInventoryClassification;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\View\View;
 
 class DonationPortalController extends Controller
@@ -30,6 +34,7 @@ class DonationPortalController extends Controller
                 'status',
                 'amount',
                 'payment_method',
+                'receipt_number',
                 'reference_number',
                 'notes',
                 'received_at',
@@ -61,6 +66,12 @@ class DonationPortalController extends Controller
             SQL)
             ->first();
 
+        $categoriesForItems = InventoryCategory::query()
+            ->active()
+            ->with(['subcategories' => fn ($query) => $query->active()->orderBy('label')])
+            ->orderBy('label')
+            ->get(['id', 'key', 'label']);
+
         return view('donations.index', [
             'contributions' => $contributions,
             'filters' => $filters,
@@ -73,12 +84,19 @@ class DonationPortalController extends Controller
                 ->active()
                 ->orderBy('name')
                 ->get(['id', 'name']),
+            'categories' => $categoriesForItems,
+            'subcategoriesByCategory' => $categoriesForItems
+                ->mapWithKeys(fn (InventoryCategory $category) => [$category->key => $category->subcategories->map(fn (InventorySubcategory $subcategory) => [
+                    'key' => $subcategory->key,
+                    'label' => $subcategory->label,
+                ])->values()])
+                ->all(),
         ]);
     }
 
-    public function store(StoreContributionRequest $request, LogContribution $logger): RedirectResponse
+    public function store(StoreContributionRequest $request, LogContribution $logger, ResolveInventoryClassification $resolver): RedirectResponse
     {
-        $contribution = $logger->handle($request->validated(), $request->user());
+        $contribution = $logger->handle($request->validated(), $request->user(), $resolver);
 
         return redirect()
             ->route('donations.index')
@@ -88,7 +106,7 @@ class DonationPortalController extends Controller
 
     public function show(Contribution $contribution): View
     {
-        $this->authorize('view', $contribution);
+        Gate::authorize('view', $contribution);
 
         $contribution->load([
             'donor',
@@ -98,7 +116,15 @@ class DonationPortalController extends Controller
             'items',
         ]);
 
-        return view('donations.show', compact('contribution'));
+        $categoryLabels = InventoryCategory::query()->pluck('label', 'key');
+        $subcategoryLabels = InventorySubcategory::query()
+            ->with('category:id,key')
+            ->get(['id', 'inventory_category_id', 'key', 'label'])
+            ->mapWithKeys(fn (InventorySubcategory $subcategory) => [
+                $subcategory->category->key.':'.$subcategory->key => $subcategory->label,
+            ]);
+
+        return view('donations.show', compact('contribution', 'categoryLabels', 'subcategoryLabels'));
     }
 
     public function update(UpdateContributionRequest $request, Contribution $contribution): RedirectResponse

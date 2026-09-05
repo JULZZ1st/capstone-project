@@ -10,9 +10,9 @@
 
 <tr @class(['bg-blue-50/60' => session('highlight_contribution') === $contribution->id, 'hover:bg-slate-50' => session('highlight_contribution') !== $contribution->id])>
     <td class="whitespace-nowrap px-5 py-4 align-top">
-        <p class="font-semibold text-slate-950">#{{ str_pad((string) $contribution->id, 5, '0', STR_PAD_LEFT) }}</p>
+        <p class="font-semibold text-slate-950">{{ $contribution->receipt_number ?? '#'.str_pad((string) $contribution->id, 5, '0', STR_PAD_LEFT) }}</p>
         @if ($contribution->isCash())
-            <p class="text-xs text-slate-500">{{ $contribution->reference_number ?? 'No reference' }}</p>
+            <p class="text-xs text-slate-500">{{ $contribution->reference_number ? 'Ref: '.$contribution->reference_number : 'No external reference' }}</p>
         @endif
     </td>
     <td class="px-4 py-4 align-top">

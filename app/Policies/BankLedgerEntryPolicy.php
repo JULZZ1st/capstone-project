@@ -16,4 +16,9 @@ class BankLedgerEntryPolicy
     {
         return $user->hasRole(['admin', 'treasurer']);
     }
+
+    public function import(User $user): bool
+    {
+        return $user->hasRole(['admin', 'treasurer']);
+    }
 }

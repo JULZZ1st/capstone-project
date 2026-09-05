@@ -8,6 +8,7 @@ use App\Models\Donor;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Tests\TestCase;
 
 class BankReconciliationTest extends TestCase
@@ -32,6 +33,47 @@ class BankReconciliationTest extends TestCase
         $response->assertSee($contribution->donor->full_name);
     }
 
+    public function test_treasurer_can_import_csv_bank_transactions(): void
+    {
+        $csv = "statement_id,description,reference_number,amount,transaction_date,payment_method\n".
+            "stmt-100,GCash incoming,GC-100,1250.50,2026-09-05,gcash\n";
+
+        $response = $this->actingAs($this->userWithRole('treasurer'))->post(route('bank-reconciliation.import'), [
+            'statement' => UploadedFile::fake()->createWithContent('statement.csv', $csv),
+        ]);
+
+        $response->assertRedirect(route('bank-reconciliation.index'));
+        $this->assertDatabaseHas('bank_ledger_entries', [
+            'statement_id' => 'stmt-100',
+            'reference_number' => 'GC-100',
+            'status' => 'unmatched',
+        ]);
+    }
+
+    public function test_duplicate_statement_ids_are_rejected_without_partial_import(): void
+    {
+        $this->ledgerEntry(['statement_id' => 'stmt-duplicate']);
+        $csv = "statement_id,description,amount,transaction_date\n".
+            "stmt-duplicate,Duplicate,100,2026-09-05\n".
+            "stmt-new,New transaction,200,2026-09-05\n";
+
+        $response = $this->actingAs($this->userWithRole('treasurer'))->post(route('bank-reconciliation.import'), [
+            'statement' => UploadedFile::fake()->createWithContent('statement.csv', $csv),
+        ]);
+
+        $response->assertSessionHasErrors('statement');
+        $this->assertDatabaseMissing('bank_ledger_entries', ['statement_id' => 'stmt-new']);
+    }
+
+    public function test_secretary_cannot_import_bank_transactions(): void
+    {
+        $response = $this->actingAs($this->userWithRole('secretary'))->post(route('bank-reconciliation.import'), [
+            'statement' => UploadedFile::fake()->createWithContent('statement.csv', "statement_id,description,amount,transaction_date\nstmt-1,Test,100,2026-09-05\n"),
+        ]);
+
+        $response->assertForbidden();
+    }
+
     public function test_matching_reference_number_surfaces_as_a_suggestion(): void
     {
         $entry = $this->ledgerEntry(['reference_number' => 'BDO-TRF-55419', 'amount' => 100000]);
@@ -43,6 +85,22 @@ class BankReconciliationTest extends TestCase
         $response->assertOk();
         $response->assertSee('1 suggestion found');
         $response->assertSee($contribution->donor->full_name);
+        $response->assertSee($contribution->receipt_number);
+    }
+
+    public function test_unverified_electronic_contributions_are_not_match_candidates(): void
+    {
+        $entry = $this->ledgerEntry(['reference_number' => 'UNVERIFIED-REF']);
+        $contribution = $this->electronicContribution([
+            'reference_number' => 'UNVERIFIED-REF',
+            'status' => 'pending',
+        ]);
+
+        $response = $this->actingAs(User::factory()->create())->get(route('bank-reconciliation.index'));
+
+        $response->assertOk();
+        $response->assertDontSee($contribution->donor->full_name);
+        $response->assertSee($entry->description);
     }
 
     public function test_treasurer_can_reconcile_a_matched_entry(): void
@@ -65,6 +123,24 @@ class BankReconciliationTest extends TestCase
         ]);
     }
 
+    public function test_reconciled_transactions_appear_in_history(): void
+    {
+        $entry = $this->ledgerEntry(['reference_number' => 'GCSH-HISTORY']);
+        $contribution = $this->electronicContribution(['reference_number' => 'GCSH-HISTORY']);
+        $treasurer = $this->userWithRole('treasurer');
+
+        $this->actingAs($treasurer)->post(route('bank-reconciliation.reconcile'), [
+            'bank_ledger_entry_id' => $entry->id,
+            'contribution_id' => $contribution->id,
+        ]);
+
+        $this->actingAs($treasurer)
+            ->get(route('bank-reconciliation.index'))
+            ->assertOk()
+            ->assertSee('Reconciliation History')
+            ->assertSee($contribution->receipt_number);
+    }
+
     public function test_reconciled_entry_no_longer_appears_in_the_workspace(): void
     {
         $entry = $this->ledgerEntry(['reference_number' => 'GCSH-7741235', 'amount' => 5000]);
@@ -78,8 +154,9 @@ class BankReconciliationTest extends TestCase
         $response = $this->actingAs(User::factory()->create())->get(route('bank-reconciliation.index'));
 
         $response->assertOk();
-        $response->assertDontSee($entry->description);
-        $response->assertDontSee($contribution->donor->full_name);
+        $response->assertSee('Reconciliation History');
+        $response->assertSee($entry->description);
+        $response->assertSee($contribution->donor->full_name);
     }
 
     public function test_secretary_cannot_reconcile_an_entry(): void
@@ -123,7 +200,7 @@ class BankReconciliationTest extends TestCase
         return Contribution::query()->create(array_merge([
             'donor_id' => $donor->id,
             'type' => 'cash',
-            'status' => 'received',
+            'status' => 'verified',
             'amount' => 1000,
             'payment_method' => 'bank_transfer',
             'reference_number' => 'BDO-TRF-'.random_int(10000, 99999),

@@ -2,19 +2,15 @@
 
 @section('title', 'Report Generator | '.config('dashboard.barangay_name'))
 @section('page-title', 'Report Generator')
+@section('page-subtitle', 'Generate municipal audits and transparency logs for municipal review.')
 
 @section('content')
     <div class="space-y-6">
-        <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-                <h1 class="text-2xl font-bold text-slate-950">Report Generator</h1>
-                <p class="mt-1 text-sm text-slate-500">Generate municipal audits and transparency logs for municipal review.</p>
-            </div>
-
-            @if ($tab === 'financial-ledgers')
+        @if ($tab === 'financial-ledgers')
+            <div class="flex justify-end">
                 <a
                     href="{{ route('reports.financial-ledgers.csv', ['year' => $year, 'month' => $month]) }}"
-                    class="inline-flex items-center gap-2 rounded-md bg-green-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-green-800"
+                    class="inline-flex w-full items-center justify-center gap-2 rounded-md bg-green-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-green-800 sm:w-auto"
                 >
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4">
                         <path d="M10.75 2.75a.75.75 0 00-1.5 0v8.614L6.295 8.235a.75.75 0 10-1.09 1.03l4.25 4.5a.75.75 0 001.09 0l4.25-4.5a.75.75 0 00-1.09-1.03l-2.955 3.129V2.75z" />
@@ -22,8 +18,8 @@
                     </svg>
                     Download Official CSV Report
                 </a>
-            @endif
-        </div>
+            </div>
+        @endif
 
         <x-reports.tab-nav :active="$tab" :year="$year" :month="$month" />
 
@@ -79,9 +75,17 @@
                     @endforelse
                 </div>
             </section>
+        @elseif ($tab === 'philanthropy-roster')
+            @include('reports.partials.donor-giving-summary', [
+                'donorSummary' => $donorSummary,
+                'year' => $year,
+                'month' => $month,
+                'search' => $search,
+                'sort' => $sort,
+            ])
         @else
             <x-dashboard.panel
-                :title="$tab === 'in-kind-audits' ? 'In-Kind Audits' : 'Philanthropy Roster'"
+                title="In-Kind Audits"
                 subtitle="This report is coming soon."
             >
                 <x-dashboard.empty-state message="This report category is not available yet." />

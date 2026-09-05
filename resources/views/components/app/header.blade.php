@@ -1,4 +1,4 @@
-@props(['title' => 'Dashboard'])
+@props(['title' => 'Dashboard', 'subtitle' => null])
 
 @php
     $user = auth()->user();
@@ -7,11 +7,14 @@
 
 <header class="sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur">
     <div class="flex min-h-16 items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
-        <div class="min-w-0">
-            <h1 class="truncate text-xl font-semibold text-slate-950">{{ $title }}</h1>
+        <div class="min-w-0 py-3">
+            <h1 class="truncate text-sm font-bold text-slate-950 sm:text-[15px]">{{ $title }}</h1>
+            @if ($subtitle)
+                <p class="mt-0.5 max-w-2xl truncate text-[11px] leading-4 text-slate-500 sm:text-xs">{{ $subtitle }}</p>
+            @endif
         </div>
 
-        <details class="group relative">
+        <details class="group relative shrink-0">
             <summary class="flex cursor-pointer list-none items-center gap-3 rounded-full px-2 py-1.5 transition hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <span class="hidden text-right sm:block">
                     <span class="block text-sm font-semibold text-slate-900">{{ $user?->name }}</span>

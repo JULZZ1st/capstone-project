@@ -47,5 +47,6 @@ return [
     'limits' => [
         'feed' => (int) env('BANK_RECONCILIATION_FEED_LIMIT', 20),
         'pending_receipts' => (int) env('BANK_RECONCILIATION_RECEIPTS_LIMIT', 20),
+        'history' => (int) env('BANK_RECONCILIATION_HISTORY_LIMIT', 20),
     ],
 ];

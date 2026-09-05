@@ -13,6 +13,7 @@ class ContributionItem extends Model
     protected $fillable = [
         'name',
         'category',
+        'subcategory',
         'quantity',
         'unit',
         'condition',

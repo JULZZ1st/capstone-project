@@ -16,7 +16,7 @@
     </td>
     <td class="px-4 py-4 align-top">
         <span class="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700 ring-1 ring-inset ring-slate-200">
-            {{ $categoryLabel }}
+            {{ $categoryLabel }}@if ($item->subcategory) · {{ $item->subcategory->label }} @endif
         </span>
     </td>
     <td class="px-4 py-4 text-right align-top">

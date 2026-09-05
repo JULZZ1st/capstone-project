@@ -19,6 +19,10 @@
                 <h2 class="text-base font-semibold text-slate-950">Record</h2>
                 <dl class="mt-4 grid gap-4 sm:grid-cols-2">
                     <div>
+                        <dt class="text-xs font-semibold uppercase text-slate-500">Receipt No.</dt>
+                        <dd class="mt-1 text-sm font-semibold text-slate-900">{{ $contribution->receipt_number ?? '#'.str_pad((string) $contribution->id, 5, '0', STR_PAD_LEFT) }}</dd>
+                    </div>
+                    <div>
                         <dt class="text-xs font-semibold uppercase text-slate-500">Date received</dt>
                         <dd class="mt-1 text-sm text-slate-900">{{ optional($contribution->received_at)->format('M d, Y h:i A') ?? 'Not provided' }}</dd>
                     </div>
@@ -31,7 +35,7 @@
                         <dd class="mt-1 text-sm text-slate-900">{{ $contribution->creator?->name ?? trim(($contribution->creator?->first_name ?? '').' '.($contribution->creator?->last_name ?? '')) ?: 'System' }}</dd>
                     </div>
                     <div>
-                        <dt class="text-xs font-semibold uppercase text-slate-500">Reference</dt>
+                        <dt class="text-xs font-semibold uppercase text-slate-500">External Reference</dt>
                         <dd class="mt-1 text-sm text-slate-900">{{ $contribution->reference_number ?? 'Not provided' }}</dd>
                     </div>
                 </dl>
@@ -58,7 +62,8 @@
                                     <tr>
                                         <td class="px-4 py-3">
                                             <p class="font-medium text-slate-900">{{ $item->name }}</p>
-                                            <p class="text-xs text-slate-500">{{ config("donations.item_categories.{$item->category}") }}</p>
+                                            @php($subcategoryLabel = $item->subcategory ? $subcategoryLabels->get($item->category.':'.$item->subcategory) : null)
+                                            <p class="text-xs text-slate-500">{{ $categoryLabels->get($item->category, $item->category) }}@if($subcategoryLabel) &middot; {{ $subcategoryLabel }} @endif</p>
                                         </td>
                                         <td class="px-4 py-3">{{ $item->quantity }} {{ config("donations.units.{$item->unit}") }}</td>
                                         <td class="px-4 py-3">{{ config("donations.item_conditions.{$item->condition}") }}</td>
@@ -85,6 +90,16 @@
                         @csrf
                         @method('PATCH')
                         <x-button>Verify Cash Contribution</x-button>
+                    </form>
+                @endcan
+
+                @can('void', $contribution)
+                    <form method="POST" action="{{ route('contributions.void', $contribution) }}" class="mt-4 space-y-2">
+                        @csrf
+                        @method('PATCH')
+                        <x-form.label for="void_reason">Void reason</x-form.label>
+                        <textarea id="void_reason" name="void_reason" rows="3" required class="block w-full rounded-md border-slate-300 text-sm shadow-sm focus:border-red-500 focus:ring-red-500"></textarea>
+                        <x-button>Void Contribution</x-button>
                     </form>
                 @endcan
 

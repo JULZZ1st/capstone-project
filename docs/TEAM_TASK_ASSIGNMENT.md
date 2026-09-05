@@ -39,7 +39,7 @@ Gina owns the three modules that carry the system's day-to-day operational core:
 | View Inventory Logs (movement history) | S11 | ✅ done |
 | Configure Item Categories (admin-editable) | A6 | ✅ done |
 | Record Cash Receipts (Donation Portal) | S5 | ✅ done |
-| Record Cash Disbursements | S6 | ✅ done |
+| Record Cash Disbursements | S6 | ✅ done (via Julius's canonical Disbursements module — see below; Gina's original standalone implementation was removed as a duplicate) |
 
 ### Database Tables Used
 - `inventory_items` — item master data, quantity, unit, thresholds
@@ -49,7 +49,7 @@ Gina owns the three modules that carry the system's day-to-day operational core:
 - `donors` — read dependency for donation intake (owned by Neziel, consumed here)
 - `campaigns` — optional grouping for contributions
 - `inventory_categories`, `inventory_units` — admin-managed reference data replacing `config/inventory.php` (A6)
-- `cash_disbursements` — outbound cash disbursement records (`disbursed_to`, `purpose`, `amount`, `payment_method`, `disbursed_at`, `created_by`); no status/approval columns yet — reserved for Julius's A7 work (S6)
+- `cash_disbursements` — now owned entirely by **Julius** (request → approve/reject → void workflow with maker-checker and audit trail). Gina's original standalone schema/controller for this table was removed and superseded — see Julius's section below.
 
 ### Backend Tasks
 - [ ] **(done)** `DashboardController` — aggregate stat summaries, activity feed, panel data
@@ -62,9 +62,10 @@ Gina owns the three modules that carry the system's day-to-day operational core:
 - [ ] **(done)** `LogContribution` service — creates `Contribution` + `ContributionItem` rows
 - [ ] **(done)** `InventoryItemPolicy`, `ContributionPolicy` — authorization rules
 - [x] Add `inventory_categories`/`inventory_units` tables, models, policies, `ManageInventoryReferenceItem` service, and CRUD controllers/routes; update `InventoryItem` validation and search to read from the database instead of `config/inventory.php` (closes A6)
-- [x] Design and build cash disbursement recording endpoint (`CashDisbursementController`, `cash_disbursements` table, `RecordCashDisbursement` service) — outbound record, distinct from inbound `contributions` (closes S6; schema deliberately excludes approval/status columns pending Julius's A7 work)
-- [x] Wire dashboard widgets to reflect disbursement totals now recorded via S6 (additive `disbursements` key in `DashboardMetrics`); ready to extend once Julius's A7 approval workflow lands, without hardcoded assumptions about his schema
+- [x] ~~Design and build cash disbursement recording endpoint (`CashDisbursementController`, `cash_disbursements` table, `RecordCashDisbursement` service)~~ — **removed.** This standalone implementation (no approval/status columns) was a duplicate of Julius's later, canonical request/approve/reject/void workflow and has been deleted from the codebase (controller, request classes, service, old migration, views, test).
+- [x] `DashboardMetrics` disbursement widgets read Julius's live `cash_disbursements` schema directly (`CashDisbursement::query()->where('status', 'approved')->whereNull('voided_at')->sum('amount')`) — confirmed compatible with the current schema, no adaptation needed
 - [x] Repoint `DashboardMetrics` off the orphaned pre-Donation-Portal tables (`cash_transactions`, `donations`, `bank_reconciliations` — none written to by any current feature) onto the live schema: cash/pending totals and funding distribution now read `contributions`, reconciliation status reads Julius's `bank_ledger_entries`, and the activity feed drops the dead tables in favor of `contributions`/`inventory_items`/`cash_disbursements`
+- [x] Removed the dead legacy `/role-workflows` page — `DonationController` (unrouted, wrote directly to the orphaned `Donation` model), `InventoryCashController` (wrote directly to `CashTransaction`, bypassing inventory stock-movement logging), `role-workflows.blade.php`, and the "Financial Ledger" sidebar entry pointing at it. This was leftover prototype scaffolding that predates the Donation Portal/Inventory modules and is unrelated to Julius's canonical Disbursements module (`disbursements.index`), which remains in the sidebar as "Fund Disbursements"
 
 ### Frontend Tasks
 - [ ] **(done)** `dashboard.blade.php` + `components/dashboard/*` (panel, stat-list, activity-list, summary-card, empty/error states)
@@ -73,7 +74,7 @@ Gina owns the three modules that carry the system's day-to-day operational core:
 - [ ] **(done)** `donations/index.blade.php`, `donations/show.blade.php`
 - [ ] **(done)** `components/donations/*` — status badge, filter bar, table/table-row, cash-fields, in-kind-fields, item-row, log-modal
 - [x] Build admin-facing "Manage Item Categories" screen (add/edit/remove category + unit) to replace static config
-- [x] Build "Record Disbursement" form/modal — new "Cash Disbursements" page and sidebar entry
+- [x] ~~Build "Record Disbursement" form/modal — new "Cash Disbursements" page and sidebar entry~~ — **removed**, superseded by Julius's `disbursements/index.blade.php` (request form + approve/reject/void actions in one maker-checker page)
 
 ### API Endpoints Needed
 | Method | Route | Purpose | Status |
@@ -90,7 +91,7 @@ Gina owns the three modules that carry the system's day-to-day operational core:
 | PATCH | `/donations/{contribution}` | Update donation | ✅ done |
 | PATCH | `/donations/{contribution}/verify` | Verify donation | ✅ done |
 | GET/POST/PATCH/DELETE | `/inventory/categories`, `/inventory/units` | CRUD item categories/units (admin-only mutations) | ✅ done |
-| GET/POST | `/cash-disbursements`, `/cash-disbursements/{cashDisbursement}` | Record and view outbound cash disbursements | ✅ done |
+| GET/POST/PATCH | `/disbursements`, `/disbursements/{disbursement}/approve\|reject\|void`, `/contributions/{contribution}/void` | Request/approve/reject/void disbursements — Julius's canonical implementation, replaces Gina's removed `/cash-disbursements` endpoints | ✅ done — see Julius's section |
 
 ### Validation Rules
 - Stock-out quantity must not exceed current `quantity_before` (enforced in `AdjustInventoryStock`).
@@ -104,15 +105,15 @@ Gina owns the three modules that carry the system's day-to-day operational core:
 - Consumes `donors` records owned by **Neziel** (Donor Management) for donation intake.
 - Feeds contribution and inventory data into **Neziel's** Report Generator (Financial Ledgers, future inventory reports).
 - Feeds contribution data into **Julius's** Bank Reconciliation and Financial Ledger modules.
-- Cash disbursement work must align with **Julius's** Financial Ledger schema (a disbursement is a ledger entry, not just an inventory concept).
+- Cash disbursement recording is now fully owned by **Julius** — Gina's original standalone implementation was removed in favor of his canonical request/approve/reject/void workflow, which is directly consumed by the Financial Ledger report.
 - Relies on **Edemar's** authentication/role middleware (`role:admin,secretary,treasurer`) to gate all routes.
 
 ### Testing Checklist
 - [ ] **(done)** `tests/Feature/InventoryManagementTest.php` — stock-in/out, thresholds, validation
 - [ ] **(done)** `tests/Feature/DonationManagementTest.php` — cash/in-kind intake, verification flow
 - [x] Add feature test for admin category management once built — `tests/Feature/InventoryCategoryManagementTest.php`
-- [x] Add feature test for cash disbursement recording once built — `tests/Feature/CashDisbursementTest.php`
-- [x] Add dashboard widget test asserting stat totals match underlying data — `test_dashboard_reflects_recorded_disbursement_totals`
+- [x] ~~Add feature test for cash disbursement recording once built — `tests/Feature/CashDisbursementTest.php`~~ — **removed** along with the standalone feature; disbursement workflow testing now lives in Julius's `tests/Feature/DisbursementWorkflowTest.php`
+- [x] Dashboard widget test asserting stat totals match underlying data — `test_dashboard_reflects_recorded_disbursement_totals` (reads Julius's current schema; implemented but not locally re-verified after the Neziel/Julius merge — PHP/Composer unavailable locally)
 - [x] Add regression coverage for the dashboard data-source fix — `tests/Feature/DashboardMetricsTest.php` (verified-only cash totals, campaign funding distribution, cash+in-kind recent donations, bank-ledger reconciliation state, and an explicit test that legacy `cash_transactions`/`donations` rows no longer affect dashboard totals)
 
 ### Documentation Required
@@ -126,7 +127,7 @@ Gina owns the three modules that carry the system's day-to-day operational core:
 - In-Kind Inventory module: item CRUD, stock-in/out, live alerts, movement history
 - Donation Portal: cash + in-kind intake with verification workflow
 - Admin-manageable item categories (closes A6)
-- Cash disbursement recording (closes S6, unblocks Julius's approval flow A7)
+- Cash disbursement recording (closes S6) — now fulfilled entirely by Julius's canonical Disbursements module; Gina's original standalone implementation was removed as a duplicate
 
 ### Estimated Priority
 - **Critical:** Donation Portal (S5), Stock-In/Stock-Out (S7/S8), Dashboard (A10)
@@ -143,7 +144,7 @@ Gina owns the three modules that carry the system's day-to-day operational core:
 - [x] Donation Portal in-kind intake
 - [x] Donation verification workflow
 - [x] Admin-managed item categories/units (A6)
-- [x] Cash disbursement recording (S6)
+- [x] Cash disbursement recording (S6) — fulfilled via Julius's canonical Disbursements module (Gina's original standalone version removed)
 - [x] Dashboard widgets updated for disbursement data
 - [x] New feature tests for above
 
@@ -167,35 +168,43 @@ Neziel owns donor-facing records (the "who" behind every donation) and the repor
 | Generate Financial Reports (Financial Ledgers) | A11 | ✅ done |
 | View Cash Ledger Logs | S10 | ✅ done |
 | CSV Export | (supports A11) | ✅ done |
+| Donor Giving Summary (Philanthropy Roster tab) | Future Enhancements | ✅ implemented but not locally verified yet |
 | Export PDF Files | A12 | ⏳ outstanding |
 | Download PDF Reports (Staff) | S12 | ⏳ outstanding |
-| Additional report types (donor giving summary, inventory valuation) | Future Enhancements | ⏳ outstanding |
+| Additional report types (inventory valuation) | Future Enhancements | ⏳ outstanding |
 
 ### Database Tables Used
 - `donors` — donor master data (individuals/organizations)
-- `contributions` / `contribution_items` — read dependency for donation history and Financial Ledgers report
+- `contributions` / `contribution_items` — read dependency for donation history, the Financial Ledgers report, and (new) the Donor Giving Summary report (`contribution_items.estimated_value` sums in-kind totals per donor, since `contributions.amount` is `null` for in-kind rows)
 - `campaigns` — optional grouping context
 - `bank_ledger_entries` — read dependency (Julius's module) for ledger-based reports
+- `cash_disbursements` — read dependency (Julius's module); already consumed by `FinancialLedgerReportBuilder`
 
 ### Backend Tasks
-- [ ] **(done)** `DonorController` — `index` (with search), `store`, `show`, `update`
-- [ ] **(done)** `FinancialLedgerReportBuilder` service — assembles ledger data filterable by year/month
-- [ ] **(done)** `FinancialLedgerCsvExporter` service
-- [ ] **(done)** `ReportController` — `index`, `financialLedgersCsv`
-- [ ] Add PDF export capability: introduce a PDF rendering library (e.g., `barryvdh/laravel-dompdf`) to `composer.json`
-- [ ] Build `FinancialLedgerPdfExporter` (or generalized `ReportPdfExporter`) mirroring the CSV exporter's structure
-- [ ] Add `ReportController::financialLedgersPdf` (or generic `{report}/pdf`) endpoint
-- [ ] Design and build at least one additional report builder (e.g., Donor Giving Summary) following the `FinancialLedgerReportBuilder` pattern
-- [ ] Add donor deduplication/merge safeguard (validation-level, not full feature) if duplicate donor entries are a defense concern
+- [x] **(done)** `DonorController` — `index` (with search), `store`, `show`, `update`
+- [x] **(done)** `FinancialLedgerReportBuilder` service — assembles ledger data filterable by year/month
+- [x] **(done)** `FinancialLedgerCsvExporter` service
+- [x] **(done)** `ReportController` — `index`, `financialLedgersCsv`
+- [x] **(implemented but not locally verified yet)** `DonorGivingSummaryReportBuilder` service — per-donor aggregates (contribution count, cash total, in-kind total via `contribution_items.estimated_value`, combined value, first/last gift date); excludes cancelled/voided contributions to stay consistent with `FinancialLedgerReportBuilder`'s rules; supports search + 4 sort modes (`highest`, `lowest`, `most_contributions`, `latest`)
+- [x] **(implemented but not locally verified yet)** `ReportController::index` extended to build the donor summary when `tab === 'philanthropy-roster'` — reuses the existing route/action rather than adding a new one
+- [x] **(implemented but not locally verified yet)** `ReportIndexRequest` extended with `search`/`sort` validation rules and accessors
+- [x] Fixed `Donor::scopeWithDonationMetrics()` and `DonorController::show()` — both still read the orphaned `Donation` model (`donations()` relation, `donation_type`/`description` columns), so donor cards and donor-profile "Donation History" never reflected real contributions logged through the Donation Portal. Repointed to the `contributions` relation (`type`, `notes`), excluding voided contributions from the count/totals via `whereNull('voided_at')`; `donors/show.blade.php` updated to match and now shows a "Voided" badge per row. `tests/Feature/DonationManagementTest.php::test_donor_history_shows_only_selected_donor_donations` rewritten to create `Contribution` rows instead of `Donation` rows
+- [ ] Add PDF export capability: introduce a PDF rendering library (e.g., `barryvdh/laravel-dompdf`) to `composer.json` — **outstanding**, not present in `composer.json`
+- [ ] Build `FinancialLedgerPdfExporter` (or generalized `ReportPdfExporter`) mirroring the CSV exporter's structure — **outstanding**, no such class exists in `app/Services/Reports`
+- [ ] Add `ReportController::financialLedgersPdf` (or generic `{report}/pdf`) endpoint — **outstanding**, no PDF route exists in `routes/web.php`
+- [x] ~~Design and build at least one additional report builder (e.g., Donor Giving Summary)~~ — **done**, see `DonorGivingSummaryReportBuilder` above
+- [ ] Add donor deduplication/merge safeguard (validation-level, not full feature) if duplicate donor entries are a defense concern — still outstanding
+- [ ] Additional report types beyond Donor Giving Summary (e.g. inventory valuation) — still outstanding, no code found
 
 ### Frontend Tasks
-- [ ] **(done)** `donors/index.blade.php`, `donors/show.blade.php`
-- [ ] **(done)** `components/donors/*` — search-bar, form, create-modal, edit-modal, card, history-summary
-- [ ] **(done)** `reports/index.blade.php`
-- [ ] **(done)** `components/reports/*` — tab-nav, month-filter, wire-source-bar, ledger-row
-- [ ] Add "Download PDF" button/action to the Report Generator UI (Financial Ledgers tab)
-- [ ] Add new tab(s) to `reports/index.blade.php` for each new report type
-- [ ] Surface donor giving history totals on `donors/show.blade.php` if not already summarized
+- [x] **(done)** `donors/index.blade.php`, `donors/show.blade.php`
+- [x] **(done)** `components/donors/*` — search-bar, form, create-modal, edit-modal, card, history-summary
+- [x] **(done)** `reports/index.blade.php`
+- [x] **(done)** `components/reports/*` — tab-nav, month-filter, wire-source-bar, ledger-row
+- [x] **(implemented but not locally verified yet)** `resources/views/reports/partials/donor-giving-summary.blade.php` — filter form (search/month/year/sort) + results table, rendered through the existing **Philanthropy Roster** tab
+- [ ] Add "Download PDF" button/action to the Report Generator UI (Financial Ledgers tab) — **outstanding**, no PDF button exists
+- [x] ~~Add new tab(s) to `reports/index.blade.php` for each new report type~~ — **not needed for Donor Giving Summary.** It reuses the existing **Philanthropy Roster** tab (previously a "coming soon" placeholder) instead of adding a new tab — matches the original design doc's stated plan to reuse the same `ReportController`/tab pattern for follow-up reports (`docs/superpowers/specs/2026-07-25-report-generator-design.md`). Documented here as "Philanthropy Roster / Donor Giving Summary," not as a separate tab. "In-Kind Audits" remains a "coming soon" placeholder.
+- [ ] Surface donor giving history totals on `donors/show.blade.php` if not already summarized — still outstanding; Donor Giving Summary lives on the Reports page, not the donor profile page
 
 ### API Endpoints Needed
 | Method | Route | Purpose | Status |
@@ -204,38 +213,42 @@ Neziel owns donor-facing records (the "who" behind every donation) and the repor
 | POST | `/donors` | Create donor | ✅ done |
 | GET | `/donors/{donor}` | Donor profile + history | ✅ done |
 | PATCH | `/donors/{donor}` | Update donor | ✅ done |
-| GET | `/reports` | Report Generator index | ✅ done |
+| GET | `/reports` | Report Generator index (all tabs, incl. `?tab=philanthropy-roster`) | ✅ done |
 | GET | `/reports/financial-ledgers/csv` | CSV export | ✅ done |
+| GET | `/reports?tab=philanthropy-roster` | Donor Giving Summary — no new route; reuses `reports.index` with `search`/`sort`/`year`/`month` query params | ✅ implemented but not locally verified yet |
 | GET | `/reports/financial-ledgers/pdf` (new) | PDF export | outstanding |
-| GET | `/reports/{report-type}` (new) | Additional report types | outstanding |
+| GET | `/reports/{report-type}` (new) | Additional report types (e.g. inventory valuation) | outstanding |
 
 ### Validation Rules
 - Donor name required; contact fields validated per format (email/phone) if collected.
 - Donor `payment_method` + `reference_number` referenced from `contributions` must satisfy the existing unique constraint.
 - Report filters: year/month must resolve to a valid date range; reject empty result sets gracefully (empty state, not error).
-- PDF export: reuse the same filtered dataset as the CSV export to guarantee parity between formats.
+- Donor Giving Summary: `sort` restricted to `highest`/`lowest`/`most_contributions`/`latest` (`ReportIndexRequest`); cancelled and voided contributions are excluded from totals; donors with zero giving in the selected period are excluded from the roster rather than shown as zero-value rows.
+- PDF export (once built): reuse the same filtered dataset as the CSV export to guarantee parity between formats — not yet applicable, no PDF exporter exists.
 
 ### Dependencies
 - Donor records are a prerequisite for **Gina's** Donation Portal (a contribution always references a `donor_id`).
-- Financial Ledgers report reads `contributions` (Gina), `bank_ledger_entries` (Julius), so timing of those modules affects report completeness.
-- PDF export is a shared capability also needed by **Julius** (Financial Ledger/Bank Reconciliation reports) — coordinate the library choice and exporter interface once, reuse across both.
+- Financial Ledgers report reads `contributions` (Gina), `cash_disbursements`/`bank_ledger_entries` (Julius) — confirmed the report builder already consumes Julius's canonical disbursement/reconciliation data.
+- Donor Giving Summary reads `contributions` + `contribution_items` (Gina) — confirmed compatible with the live schema. This fixed a stale assumption inherited from an earlier WIP draft, which used `'in-kind'` instead of the real `'in_kind'` type value, and treated in-kind `amount` as populated when it is actually `null` on `contributions` for in-kind rows (the real value lives in `contribution_items.estimated_value`).
+- PDF export is a shared capability also needed by **Julius** (Financial Ledger/Bank Reconciliation reports) — coordinate the library choice and exporter interface once, reuse across both. Still outstanding for both.
 - Relies on **Edemar's** role middleware for route access.
 
 ### Testing Checklist
-- [ ] **(done)** `tests/Feature/FinancialLedgerReportBuilderTest.php`
-- [ ] **(done)** `tests/Feature/ReportGeneratorTest.php`
-- [ ] Add donor CRUD/search feature test if not already covered
-- [ ] Add PDF export feature test once built (assert content-type, byte signature, and row parity with CSV)
-- [ ] Add feature test for each new report type
+- [x] **(done)** `tests/Feature/FinancialLedgerReportBuilderTest.php`
+- [x] **(done, updated)** `tests/Feature/ReportGeneratorTest.php` — `test_philanthropy_roster_tab_renders_a_coming_soon_placeholder` replaced with `test_philanthropy_roster_tab_renders_the_donor_giving_summary` and `test_philanthropy_roster_tab_shows_empty_state_with_no_giving`, since the tab no longer shows a placeholder
+- [x] **(implemented but not locally verified yet)** `tests/Feature/DonorGivingSummaryReportTest.php` — covers guest redirect, cash+in-kind totals per donor, exclusion of cancelled/voided contributions, exclusion of zero-giving donors, sort options, search filter, and a full HTTP round-trip via the philanthropy-roster tab
+- [ ] Add donor CRUD/search feature test if not already covered — not verified as part of this update
+- [ ] Add PDF export feature test once built (assert content-type, byte signature, and row parity with CSV) — still outstanding, no exporter exists yet
+- [x] ~~Add feature test for each new report type~~ — Donor Giving Summary covered; inventory valuation (or other future types) still outstanding
 
 ### Documentation Required
-- [ ] Donor data model reference (fields, relationships to contributions)
-- [ ] Report Generator architecture doc (builder → exporter pattern, how to add a new report type)
-- [ ] PDF export setup notes (library, fonts, layout constraints)
+- [ ] Donor data model reference (fields, relationships to contributions) — still outstanding
+- [x] Report Generator architecture doc (builder → exporter pattern, how to add a new report type) — [`docs/report-generator-architecture.md`](./report-generator-architecture.md) (copied in as reference material; describes the builder/exporter split this codebase already follows)
+- [x] PDF export setup notes (library, fonts, layout constraints) — [`docs/pdf-export-setup.md`](./pdf-export-setup.md) (**reference only** — documents how to install/wire `barryvdh/laravel-dompdf` for when PDF export is actually built; the library is not installed and no PDF code exists yet)
 
 ### Deliverables
-- Donor Management: full CRUD, search, profile with donation history
-- Report Generator: Financial Ledgers report with CSV export (done); PDF export (outstanding); at least one additional report type (outstanding)
+- Donor Management: full CRUD, search, profile with donation history (done)
+- Report Generator: Financial Ledgers report with CSV export (done); Donor Giving Summary / Philanthropy Roster report (implemented but not locally verified yet); PDF export (outstanding — no library installed, no exporter, no route, no view); additional report types beyond Donor Giving Summary, e.g. inventory valuation (outstanding)
 
 ### Estimated Priority
 - **Critical:** Manage Donor Records (A5), Generate Financial Reports (A11)
@@ -248,10 +261,12 @@ Neziel owns donor-facing records (the "who" behind every donation) and the repor
 - [x] Donor profile with contribution history
 - [x] Financial Ledgers report builder
 - [x] CSV export
-- [ ] PDF export library integration
+- [x] Donor Giving Summary report (Philanthropy Roster tab) — implemented but not locally verified yet
+- [ ] PDF export library integration (`barryvdh/laravel-dompdf` not in `composer.json`)
 - [ ] Financial Ledgers PDF export (A12/S12)
-- [ ] At least one additional report type
-- [ ] Feature tests for PDF export and new report types
+- [ ] Additional report type beyond Donor Giving Summary (e.g. inventory valuation)
+- [x] Feature tests for Donor Giving Summary — implemented but not locally verified yet
+- [ ] Feature tests for PDF export (not applicable yet, no exporter exists)
 
 ---
 
@@ -269,63 +284,69 @@ Julius owns the financial control layer: matching bank statement entries against
 |---|---|---|
 | Reconcile Cash Ledger | A8 | ✅ done |
 | View Cash Ledger Logs (ledger entry listings) | S10 (shared with Neziel's report view) | ✅ done |
-| Approve Fund Disbursements | A7 | ⏳ outstanding |
-| Void Cash Transactions | A9 | ⏳ outstanding |
-| Record Cash Disbursements (schema/ledger side) | S6 (UI/entry owned by Gina) | ⏳ outstanding |
+| Approve Fund Disbursements | A7 | ✅ implemented but not locally verified yet |
+| Void Cash Transactions | A9 | ✅ implemented but not locally verified yet |
+| Record Cash Disbursements (request/approve/reject/void, canonical) | S6 (now fully owned by Julius; Gina's earlier duplicate implementation removed) | ✅ implemented but not locally verified yet |
 
 ### Database Tables Used
 - `bank_ledger_entries` — imported/recorded bank statement lines (`status`, `matched_contribution_id`, `matched_by`, `matched_at`)
-- `contributions` — matched against ledger entries (owned/populated by Gina's Donation Portal)
-- New (outstanding): a disbursement/approval table (e.g., `cash_disbursements`) and a void/reversal audit table or status column on `contributions`/`cash_disbursements`
+- `contributions` — matched against ledger entries (owned/populated by Gina's Donation Portal); now also carries `voided_at`/`voided_by`/`void_reason` for the void/reversal mechanism (migration `2026_08_23_000001_add_void_fields_to_contributions_table.php`)
+- `cash_disbursements` — **implemented**: `amount`, `purpose`, `requested_by`, `approved_by`, `status`, `approved_at`, `rejected_at`, `rejection_reason`, `voided_at`, `voided_by`, `void_reason` (migration `2026_08_23_000002_create_cash_disbursements_table.php`). This is the canonical schema — it replaced Gina's earlier standalone `cash_disbursements` table (no approval/status columns), which has been deleted along with her `CashDisbursementController`/`RecordCashDisbursement` service.
 
 ### Backend Tasks
-- [ ] **(done)** `BankReconciliationController` — `index`, `reconcile`
-- [ ] **(done)** `LedgerMatchFinder` service — candidate matching logic
-- [ ] **(done)** `ReconcileLedgerEntry` service — marks entry reconciled, links to contribution
-- [ ] **(done)** `LedgerChannelResolver` service — payment channel resolution
-- [ ] **(done)** `BankLedgerEntryPolicy` — authorization
-- [ ] Design `cash_disbursements` migration (`amount`, `purpose`, `requested_by`, `approved_by`, `status`, `approved_at`)
-- [ ] Build `DisbursementController` (or extend an existing cash controller) — `store` (request), `approve`, `reject`
-- [ ] Build `ApproveDisbursement` service enforcing maker-checker (requester ≠ approver)
-- [ ] Design void/reversal mechanism: add `voided_at`, `voided_by`, `void_reason` columns (soft state, no hard deletes) to `contributions` and/or `cash_disbursements`
-- [ ] Build `VoidCashTransaction` service — reverses ledger effect while preserving original record and writing an audit trail entry
-- [ ] Extend `SecurityActivityEvent` logging (or a dedicated audit log) to capture disbursement approvals and void actions
+- [x] **(done)** `BankReconciliationController` — `index`, `reconcile`
+- [x] **(done)** `LedgerMatchFinder` service — candidate matching logic
+- [x] **(done)** `ReconcileLedgerEntry` service — marks entry reconciled, links to contribution
+- [x] **(done)** `LedgerChannelResolver` service — payment channel resolution
+- [x] **(done)** `BankLedgerEntryPolicy` — authorization
+- [x] **(implemented but not locally verified yet)** `cash_disbursements` migration (`amount`, `purpose`, `requested_by`, `approved_by`, `status`, `approved_at`, `rejected_at`, `rejection_reason`, `voided_at`, `voided_by`, `void_reason`) — `database/migrations/2026_08_23_000002_create_cash_disbursements_table.php`
+- [x] **(implemented but not locally verified yet)** `DisbursementController` — `index`, `store` (request), `approve`, `reject`, `voidDisbursement`, `voidContribution`
+- [x] **(implemented but not locally verified yet)** `RequestDisbursement` service (maker step)
+- [x] **(implemented but not locally verified yet)** `ApproveDisbursement` service — enforces maker-checker: throws a `ValidationException` if the disbursement isn't pending, and if `requested_by === $approver->id` (requester cannot approve their own request); writes a `security_activity_events` row (`disbursement_approved`)
+- [x] **(implemented but not locally verified yet)** `RejectDisbursement` service
+- [x] **(implemented but not locally verified yet)** Void/reversal mechanism — `voided_at`/`voided_by`/`void_reason` columns added to both `contributions` and `cash_disbursements`; original record is never deleted, only soft-voided
+- [x] **(implemented but not locally verified yet)** `VoidDisbursement` service — restricted to `status === 'approved'` and not already voided; writes a `security_activity_events` row (`disbursement_voided`)
+- [x] **(implemented but not locally verified yet)** `VoidContribution` service — voids a pending, unreconciled cash contribution; writes a `security_activity_events` row (`contribution_voided`)
+- [x] **(implemented but not locally verified yet)** `CashDisbursementPolicy` — `viewAny`/`create` gated to `admin`/`secretary`/`treasurer`; `approve`/`reject` gated to `admin` + requester-cannot-approve-self; `void` gated to `admin` + `status === 'approved'` + not already voided
+- [x] **(implemented but not locally verified yet)** `ContributionPolicy::void` — gated to `admin`, cash type, `pending` status, not already voided, and no linked `BankLedgerEntry` (i.e. unreconciled)
+- [x] **(implemented but not locally verified yet)** `FinancialLedgerReportBuilder` updated to consume approved, non-voided disbursements: filters `CashDisbursement` rows to `status === 'approved' && ! $disbursement->isVoided()` for `disbursement_total`, and merges disbursements into the unified `ledger` rows alongside contributions (`entry_type: 'Disbursement'`)
 
 ### Frontend Tasks
-- [ ] **(done)** `bank-reconciliation.blade.php`
-- [ ] **(done)** `components/bank-reconciliation/*` — badge, receipt-card, match-modal, audit-banner, ledger-entry
-- [ ] Build "Fund Disbursements" page: request list, approve/reject actions, status badges
-- [ ] Build "Void Transaction" action (button + confirmation modal) on contribution/disbursement detail views
-- [ ] Surface void/disbursement history on the Financial Ledgers report view (coordinate with Neziel)
+- [x] **(done)** `bank-reconciliation.blade.php`
+- [x] **(done)** `components/bank-reconciliation/*` — badge, receipt-card, match-modal, audit-banner, ledger-entry
+- [x] **(implemented but not locally verified yet)** `disbursements/index.blade.php` — single-page "Fund Disbursements" screen: request form, request history list, status badges, inline Approve/Reject/Void action forms gated by `@can`
+- [x] **(implemented but not locally verified yet)** "Void" actions wired directly into the UI — per-disbursement void form on `disbursements/index.blade.php`, and a void form on `donations/show.blade.php` (`route('contributions.void', $contribution)`) for contributions
+- [x] **(done)** Void/disbursement rows surface on the Financial Ledgers report view — `resources/views/reports/index.blade.php` renders unified `ledger` rows (`x-reports.ledger-row`) covering both contributions and disbursements, via `FinancialLedgerReportBuilder`
 
 ### API Endpoints Needed
 | Method | Route | Purpose | Status |
 |---|---|---|---|
 | GET | `/bank-reconciliation` | List ledger entries + match candidates | ✅ done |
 | POST | `/bank-reconciliation/reconcile` | Reconcile a ledger entry | ✅ done |
-| POST | `/disbursements` (new) | Request a cash disbursement | outstanding |
-| PATCH | `/disbursements/{disbursement}/approve` (new) | Approve disbursement | outstanding |
-| PATCH | `/disbursements/{disbursement}/reject` (new) | Reject disbursement | outstanding |
-| PATCH | `/contributions/{contribution}/void` (new) | Void a cash transaction | outstanding |
+| GET | `/disbursements` | List disbursement requests | ✅ implemented but not locally verified yet |
+| POST | `/disbursements` | Request a cash disbursement | ✅ implemented but not locally verified yet |
+| PATCH | `/disbursements/{disbursement}/approve` | Approve disbursement | ✅ implemented but not locally verified yet |
+| PATCH | `/disbursements/{disbursement}/reject` | Reject disbursement | ✅ implemented but not locally verified yet |
+| PATCH | `/disbursements/{disbursement}/void` | Void an approved disbursement | ✅ implemented but not locally verified yet |
+| PATCH | `/contributions/{contribution}/void` | Void a pending, unreconciled cash contribution | ✅ implemented but not locally verified yet |
 
 ### Validation Rules
 - A `bank_ledger_entries` row can match at most one `contribution` (existing unique constraint on `matched_contribution_id`).
 - Reconciliation requires `status = unmatched` before allowing a match action.
-- New: disbursement amount must be positive and requires a `purpose`; approver must have `admin` role and cannot equal the requester.
-- New: void action requires a `void_reason`; only unreconciled/unverified transactions (or explicitly permitted states) may be voided — define exact rule with Gina/Neziel since it affects report totals.
-- New: voided transactions must be excluded from active balance calculations but retained in audit history.
+- Disbursement amount must be positive and requires a `purpose` (enforced in `StoreDisbursementRequest`); approver must have `admin` role and cannot equal the requester (enforced in `ApproveDisbursement`, throws `ValidationException` if violated).
+- Void action requires a `void_reason` (enforced in `VoidDisbursementRequest`/`VoidContributionRequest`); only `approved`, non-voided disbursements can be voided (`VoidDisbursement`), and only `pending`, unreconciled cash contributions can be voided (`ContributionPolicy::void` — checks `isCash()`, `status === 'pending'`, `! isVoided()`, and no linked `BankLedgerEntry`).
+- Voided disbursements are excluded from active balance calculations: `FinancialLedgerReportBuilder` filters to `status === 'approved' && ! $disbursement->isVoided()` for `disbursement_total`, but voided/cancelled entries remain visible in the unified ledger rows with a "Voided" status label — audit history is preserved, not hidden.
 
 ### Dependencies
 - Reconciliation depends on `contributions` created by **Gina's** Donation Portal.
-- Disbursement and void data feed directly into **Neziel's** Financial Ledgers report — report builder must be updated once these tables exist.
-- Void/disbursement actions must be logged through **Edemar's** audit log infrastructure (`SecurityActivityEvent` or equivalent) for consistency with system-wide audit trail.
-- Cash disbursement UI entry point (S6) is owned by **Gina**; Julius owns the underlying ledger/approval schema and logic — align on the data contract early.
+- Disbursement and void data feed directly into **Neziel's** Financial Ledgers report — confirmed the report builder already reads `CashDisbursement` for both the disbursement total and the unified ledger rows.
+- Void/disbursement actions log through **Edemar's** `security_activity_events` infrastructure (`disbursement_approved`, `disbursement_voided`, `contribution_voided` actions confirmed in the services).
+- **Cash disbursement UI entry point (S6) is now fully owned by Julius.** Gina originally built a standalone recording page/controller/schema for S6 (no approval columns); once Julius's full request → approve/reject → void workflow landed with the superseding `cash_disbursements` schema, Gina's duplicate (`CashDisbursementController`, `RecordCashDisbursement`, the old migration, `cash-disbursements/*` views, `CashDisbursementTest`) was removed from the codebase as redundant. Julius's `DisbursementController` + `disbursements/index.blade.php` is the single, canonical implementation of S6 going forward.
 
 ### Testing Checklist
-- [ ] **(done)** `tests/Feature/BankReconciliationTest.php`
-- [ ] Add feature test for disbursement request + approval flow (maker-checker enforcement)
-- [ ] Add feature test for void/reversal preserving audit trail and excluding voided entries from balances
-- [ ] Add regression test confirming Financial Ledgers report totals correctly reflect disbursements and voids once built
+- [x] **(done)** `tests/Feature/BankReconciliationTest.php`
+- [x] **(implemented but not locally verified yet)** `tests/Feature/DisbursementWorkflowTest.php` — covers: requester cannot approve own disbursement (`assertForbidden`); admin approval is audited (`security_activity_events` row + `status`/`approved_by` updated); pending, unreconciled contribution can be voided and audited; approved disbursement can be voided and audited
+- [ ] No dedicated regression test yet asserting `FinancialLedgerReportBuilder` totals correctly exclude voided/rejected disbursements from `disbursement_total` while still listing them in the ledger — state transitions and audit rows are covered by `DisbursementWorkflowTest`, but not report-total correctness end-to-end. Genuinely outstanding.
 
 ### Documentation Required
 - [ ] Reconciliation matching algorithm reference (how `LedgerMatchFinder` scores candidates)
@@ -333,10 +354,11 @@ Julius owns the financial control layer: matching bank statement entries against
 - [ ] Void/reversal policy doc — what can be voided, by whom, and audit trail guarantees
 
 ### Deliverables
-- Bank Reconciliation: ledger import/listing, match-and-reconcile flow
-- Fund Disbursement: request + approval workflow (closes A7)
-- Void/Reversal: audit-preserving cash transaction voiding (closes A9)
-- Updated Financial Ledger data model reflecting disbursements and voids
+- Bank Reconciliation: ledger import/listing, match-and-reconcile flow (done)
+- Fund Disbursement: request + approval workflow (closes A7) — implemented but not locally verified yet
+- Void/Reversal: audit-preserving cash transaction voiding (closes A9) — implemented but not locally verified yet
+- Updated Financial Ledger data model reflecting disbursements and voids — implemented but not locally verified yet
+- Absorbed and superseded Gina's original standalone Cash Disbursement recording (S6) into this canonical module
 
 ### Estimated Priority
 - **Critical:** Reconcile Cash Ledger (A8)
@@ -348,11 +370,12 @@ Julius owns the financial control layer: matching bank statement entries against
 - [x] Ledger-to-contribution matching
 - [x] Reconciliation status tracking
 - [x] Audit banner in reconciliation UI
-- [ ] `cash_disbursements` schema + migration
-- [ ] Disbursement request + approval workflow (A7)
-- [ ] Void/reversal mechanism with audit trail (A9)
-- [ ] Financial Ledgers report updated for disbursements/voids
-- [ ] Feature tests for disbursement and void flows
+- [x] `cash_disbursements` schema + migration — implemented but not locally verified yet
+- [x] Disbursement request + approval workflow (A7) — implemented but not locally verified yet
+- [x] Void/reversal mechanism with audit trail (A9) — implemented but not locally verified yet
+- [x] Financial Ledgers report updated for disbursements/voids — implemented but not locally verified yet
+- [x] Feature tests for disbursement and void flows — `tests/Feature/DisbursementWorkflowTest.php`, implemented but not locally verified yet
+- [ ] Regression test confirming report totals correctly exclude voided/rejected disbursements — not yet written
 
 ---
 
@@ -507,7 +530,7 @@ graph TD
 | `contributions` / `contribution_items` | Gina | Julius (reconciliation), Neziel (reports) |
 | `inventory_items` / `inventory_stock_movements` | Gina | Neziel (future inventory reports) |
 | `bank_ledger_entries` | Julius | Neziel (Financial Ledgers report) |
-| `cash_disbursements` *(new)* | Julius (schema/approval) + Gina (entry UI) | Neziel (reports) |
+| `cash_disbursements` | Julius (schema/approval/void — canonical; Gina's earlier duplicate entry UI removed) | Neziel (reports) |
 
 ### API Dependencies
 - All protected routes depend on Edemar's `auth` + `role:admin,secretary,treasurer` middleware group in `routes/web.php`.
@@ -524,8 +547,8 @@ graph TD
 1. Edemar — confirm auth/role foundation stable (already largely done); prioritize staff account CRUD next since other members' audit trails reference `users`.
 2. Neziel — donor management (already done) unblocks Gina's donation intake testing.
 3. Gina — inventory + donation portal (already done); coordinate disbursement entry UI with Julius before building.
-4. Julius — reconciliation (already done); design `cash_disbursements` schema and share it with Gina before either builds against it.
-5. Neziel — extend Financial Ledgers report + add PDF export once Julius's disbursement/void data exists; add new report types last.
+4. Julius — reconciliation (already done); `cash_disbursements` schema and request/approve/reject/void workflow implemented (Gina's earlier duplicate entry UI removed as redundant).
+5. Neziel — Financial Ledgers report now reads Julius's disbursement/void data; Donor Giving Summary added via the existing Philanthropy Roster tab. PDF export and further report types remain outstanding.
 6. All — final cross-module regression pass (see checklist below) before defense.
 
 ### Possible Merge Conflicts
@@ -552,13 +575,22 @@ graph TD
 
 ### Final Integration Checklist
 - [ ] All outstanding ⏳/🟡 requirements from `PROJECT_REQUIREMENTS.md` re-verified against the codebase
-- [ ] `cash_disbursements` schema agreed and migrated (Julius + Gina)
-- [ ] Disbursement approval flow (A7) functional end-to-end: request (Gina UI) → approve (Julius backend) → reflected in report (Neziel)
-- [ ] Void/reversal flow (A9) functional end-to-end and excluded from active balances but visible in audit history
-- [ ] Staff account full CRUD (A3) functional and admin-gated (Edemar)
-- [ ] PDF export functional for at least the Financial Ledgers report (A12/S12) (Neziel)
-- [ ] Admin-managed item categories functional (A6) (Gina)
-- [ ] All new endpoints covered by feature tests; full `tests/Feature` suite passes
-- [ ] Audit log (`security_activity_events`) captures all new sensitive actions (disbursement approval, void, staff account changes)
-- [ ] Full demo path re-walked end-to-end: Log in → Dashboard → Create donor → Record donation → Verify → Stock-in/out → Reconcile → Request/approve disbursement → Void a transaction → Generate report → Export CSV/PDF → Manage staff account
-- [ ] `docs/PROJECT_REQUIREMENTS.md` status column updated to match final implementation state before defense
+- [x] `cash_disbursements` schema agreed and migrated — implemented; now solely Julius's canonical schema (Gina's earlier duplicate schema/controller removed)
+- [x] Disbursement approval flow (A7) functional end-to-end: request → approve (Julius, `DisbursementController`) → reflected in report (Neziel, `FinancialLedgerReportBuilder`) — implemented but not locally verified yet
+- [x] Void/reversal flow (A9) functional end-to-end and excluded from active balances but visible in audit history — implemented but not locally verified yet
+- [ ] Staff account full CRUD (A3) functional and admin-gated (Edemar) — see Edemar's section, unchanged by this update
+- [ ] PDF export functional for at least the Financial Ledgers report (A12/S12) (Neziel) — still outstanding, not started
+- [ ] Admin-managed item categories functional (A6) (Gina) — see Gina's section, unchanged by this update
+- [ ] All new endpoints covered by feature tests; full `tests/Feature` suite passes — **cannot confirm**: PHP/Composer are not available in this environment's local PowerShell; must be run before defense
+- [x] Audit log (`security_activity_events`) captures all new sensitive actions — confirmed in code (`disbursement_approved`, `disbursement_voided`, `contribution_voided` actions written by the respective services); not locally verified via a test run
+- [ ] Full demo path re-walked end-to-end: Log in → Dashboard → Create donor → Record donation → Verify → Stock-in/out → Reconcile → Request/approve disbursement → Void a transaction → Generate report (incl. Philanthropy Roster) → Export CSV/PDF → Manage staff account — not walked; requires a running local environment
+- [ ] `docs/PROJECT_REQUIREMENTS.md` status column updated to match final implementation state before defense — out of scope for this update (only `TEAM_TASK_ASSIGNMENT.md` was updated)
+
+**Final verification still needed** — PHP/Composer are not available in this environment's local PowerShell, so nothing above marked "implemented but not locally verified yet" has been run. Before defense, run:
+```bash
+composer dump-autoload
+php artisan migrate --pretend
+php artisan route:list
+php artisan view:cache
+php artisan test
+```

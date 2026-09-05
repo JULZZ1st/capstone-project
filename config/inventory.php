@@ -26,6 +26,43 @@ return [
         'other' => 'Other',
     ],
 
+    'subcategories' => [
+        'kitchen_supplies' => [
+            'cookware' => 'Cookware',
+            'utensils' => 'Utensils',
+            'dinnerware' => 'Dinnerware',
+            'food_storage' => 'Food Storage',
+            'small_appliances' => 'Small Appliances',
+        ],
+        'food' => [
+            'rice_grains' => 'Rice & Grains',
+            'canned_goods' => 'Canned Goods',
+            'noodles' => 'Noodles',
+            'snacks' => 'Snacks',
+            'condiments' => 'Condiments',
+        ],
+        'medical_supplies' => [
+            'first_aid' => 'First Aid',
+            'medicines' => 'Medicines',
+            'ppe' => 'PPE',
+            'medical_devices' => 'Medical Devices',
+        ],
+        'clothing' => [
+            'shirts' => 'Shirts',
+            'pants' => 'Pants',
+            'underwear' => 'Underwear',
+            'footwear' => 'Footwear',
+            'jackets' => 'Jackets',
+        ],
+        'hygiene_supplies' => [
+            'soap' => 'Soap',
+            'shampoo' => 'Shampoo',
+            'toothcare' => 'Toothcare',
+            'sanitary_products' => 'Sanitary Products',
+            'cleaning_hygiene' => 'Cleaning Hygiene',
+        ],
+    ],
+
     'units' => [
         'piece' => 'Piece',
         'pack' => 'Pack',

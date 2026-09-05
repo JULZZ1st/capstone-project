@@ -11,54 +11,51 @@ class CashDisbursement extends Model
     use HasFactory;
 
     protected $fillable = [
-        'disbursed_to',
-        'purpose',
         'amount',
-        'payment_method',
-        'reference_number',
-        'notes',
-        'disbursed_at',
-        'created_by',
+        'purpose',
+        'requested_by',
+        'approved_by',
+        'status',
+        'approved_at',
+        'rejected_at',
+        'rejection_reason',
+        'voided_at',
+        'voided_by',
+        'void_reason',
     ];
 
     protected function casts(): array
     {
         return [
             'amount' => 'decimal:2',
-            'disbursed_at' => 'datetime',
+            'approved_at' => 'datetime',
+            'rejected_at' => 'datetime',
+            'voided_at' => 'datetime',
         ];
     }
 
-    public function creator(): BelongsTo
+    public function requester(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'created_by');
+        return $this->belongsTo(User::class, 'requested_by');
     }
 
-    public function scopeSearch($query, ?string $term)
+    public function approver(): BelongsTo
     {
-        $term = trim((string) $term);
-
-        if ($term === '') {
-            return $query;
-        }
-
-        return $query->where(function ($query) use ($term) {
-            $query
-                ->where('disbursed_to', 'like', "%{$term}%")
-                ->orWhere('reference_number', 'like', "%{$term}%")
-                ->orWhere('notes', 'like', "%{$term}%");
-        });
+        return $this->belongsTo(User::class, 'approved_by');
     }
 
-    public function scopePurpose($query, ?string $purpose)
+    public function voider(): BelongsTo
     {
-        return $purpose ? $query->where('purpose', $purpose) : $query;
+        return $this->belongsTo(User::class, 'voided_by');
     }
 
-    public function scopeDateRange($query, ?string $from, ?string $to)
+    public function isPending(): bool
     {
-        return $query
-            ->when($from, fn ($query) => $query->whereDate('disbursed_at', '>=', $from))
-            ->when($to, fn ($query) => $query->whereDate('disbursed_at', '<=', $to));
+        return $this->status === 'pending';
+    }
+
+    public function isVoided(): bool
+    {
+        return $this->voided_at !== null;
     }
 }
