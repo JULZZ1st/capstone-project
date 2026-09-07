@@ -95,6 +95,32 @@ class SystemSecurityStaffAccountTest extends TestCase
             ->assertStatus(422);
     }
 
+    public function test_deactivated_account_remains_visible_and_can_be_reactivated(): void
+    {
+        $admin = $this->userWithRole('admin');
+        $user = User::factory()->create([
+            'role_id' => Role::query()->firstOrCreate(['name' => 'secretary'])->id,
+            'status' => 'deactivated',
+        ]);
+
+        $indexResponse = $this->actingAs($admin)->get(route('system-security.index'));
+        $indexResponse->assertOk();
+        $indexResponse->assertSee($user->email);
+        $indexResponse->assertSee('Deactivated');
+
+        $response = $this->actingAs($admin)->patch(route('system-security.users.update', $user), [
+            'first_name' => $user->first_name,
+            'last_name' => $user->last_name,
+            'email' => $user->email,
+            'role' => 'secretary',
+            'status' => config('auth_defaults.user_status'),
+        ]);
+
+        $response->assertRedirect(route('system-security.index'));
+        $this->assertDatabaseHas('users', ['id' => $user->id, 'status' => config('auth_defaults.user_status')]);
+        $this->assertDatabaseHas('security_activity_events', ['action' => 'staff_account_updated', 'user_id' => $user->id]);
+    }
+
     public function test_non_admin_cannot_deactivate_staff_account(): void
     {
         $secretary = $this->userWithRole('secretary');

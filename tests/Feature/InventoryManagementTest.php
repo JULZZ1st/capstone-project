@@ -139,6 +139,25 @@ class InventoryManagementTest extends TestCase
         ]);
     }
 
+    public function test_stock_adjustment_is_recorded_in_the_security_audit_log(): void
+    {
+        $user = User::factory()->create();
+        $item = $this->inventoryItem(['current_quantity' => 10, 'quantity' => 10]);
+
+        $this->actingAs($user)->post(route('inventory.adjustments.store', $item), [
+            'movement_type' => 'stock_in',
+            'quantity' => 4,
+            'reason' => 'correction',
+            'reference_number' => 'ADJ-AUDIT',
+            'remarks' => 'Count correction.',
+        ]);
+
+        $this->assertDatabaseHas('security_activity_events', [
+            'action' => 'inventory_stock_stock_in',
+            'actor_id' => $user->id,
+        ]);
+    }
+
     public function test_low_reserve_alert_and_status_render_from_dynamic_stock(): void
     {
         $item = $this->inventoryItem([
@@ -153,6 +172,35 @@ class InventoryManagementTest extends TestCase
         $response->assertOk();
         $response->assertSee($item->name);
         $response->assertSee('Critical Stock');
+    }
+
+    public function test_authorized_user_can_export_inventory_summary_pdf(): void
+    {
+        $this->inventoryItem(['name' => 'Rice Packs', 'category' => 'food']);
+
+        $response = $this->actingAs(User::factory()->create())->get(route('inventory.export.pdf'));
+
+        $response->assertOk();
+        $this->assertStringContainsString('application/pdf', $response->headers->get('Content-Type'));
+        $this->assertStringStartsWith('%PDF', $response->getContent());
+    }
+
+    public function test_inventory_pdf_export_respects_search_filter(): void
+    {
+        $this->inventoryItem(['name' => 'Rice Packs']);
+        $this->inventoryItem(['name' => 'Blankets']);
+
+        $response = $this->actingAs(User::factory()->create())->get(route('inventory.export.pdf', ['search' => 'Rice']));
+
+        $response->assertOk();
+        $content = $response->getContent();
+        $this->assertStringContainsString('application/pdf', $response->headers->get('Content-Type'));
+        $this->assertStringStartsWith('%PDF', $content);
+    }
+
+    public function test_guest_cannot_export_inventory_summary_pdf(): void
+    {
+        $this->get(route('inventory.export.pdf'))->assertRedirect(route('login'));
     }
 
     public function test_policy_blocks_treasurer_stock_adjustments(): void

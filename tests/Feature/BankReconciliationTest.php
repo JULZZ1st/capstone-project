@@ -123,6 +123,39 @@ class BankReconciliationTest extends TestCase
         ]);
     }
 
+    public function test_reconciliation_is_recorded_in_the_security_audit_log(): void
+    {
+        $entry = $this->ledgerEntry(['reference_number' => 'GCSH-AUDIT', 'amount' => 2500]);
+        $contribution = $this->electronicContribution(['reference_number' => 'GCSH-AUDIT', 'amount' => 2500]);
+        $treasurer = $this->userWithRole('treasurer');
+
+        $this->actingAs($treasurer)->post(route('bank-reconciliation.reconcile'), [
+            'bank_ledger_entry_id' => $entry->id,
+            'contribution_id' => $contribution->id,
+        ]);
+
+        $this->assertDatabaseHas('security_activity_events', [
+            'action' => 'bank_reconciliation_matched',
+            'actor_id' => $treasurer->id,
+        ]);
+    }
+
+    public function test_bank_statement_import_is_recorded_in_the_security_audit_log(): void
+    {
+        $treasurer = $this->userWithRole('treasurer');
+        $csv = "statement_id,description,reference_number,amount,transaction_date,payment_method\n".
+            "stmt-audit,GCash incoming,GC-AUDIT,750.00,2026-09-05,gcash\n";
+
+        $this->actingAs($treasurer)->post(route('bank-reconciliation.import'), [
+            'statement' => UploadedFile::fake()->createWithContent('statement.csv', $csv),
+        ]);
+
+        $this->assertDatabaseHas('security_activity_events', [
+            'action' => 'bank_statement_imported',
+            'actor_id' => $treasurer->id,
+        ]);
+    }
+
     public function test_reconciled_transactions_appear_in_history(): void
     {
         $entry = $this->ledgerEntry(['reference_number' => 'GCSH-HISTORY']);

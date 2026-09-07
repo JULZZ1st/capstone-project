@@ -11,9 +11,18 @@
                 <h2 class="mt-2 text-2xl font-semibold text-slate-950">{{ $donor->full_name }}</h2>
                 <p class="mt-1 text-sm text-slate-600">{{ $donor->address }}</p>
             </div>
-            <button type="button" class="inline-flex items-center justify-center rounded-md bg-blue-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-800" data-dialog-open="edit-donor-modal-{{ $donor->id }}">
-                Edit Profile
-            </button>
+            <div class="flex gap-2">
+                <button type="button" class="inline-flex items-center justify-center rounded-md bg-blue-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-800" data-dialog-open="edit-donor-modal-{{ $donor->id }}">
+                    Edit Profile
+                </button>
+                <form method="POST" action="{{ route('donors.destroy', $donor) }}" onsubmit="return confirm('Remove this donor? If they have donation history, the profile will be deactivated instead of permanently deleted.')">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit" class="inline-flex items-center justify-center rounded-md border border-red-300 px-4 py-2.5 text-sm font-semibold text-red-700 hover:bg-red-50">
+                        Remove
+                    </button>
+                </form>
+            </div>
         </div>
 
         <x-donors.history-summary :donor="$donor" />
