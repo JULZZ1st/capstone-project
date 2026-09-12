@@ -10,7 +10,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('inventory_items', function (Blueprint $table) {
-            $table->string('unit')->default(config('inventory.defaults.unit'))->after('category');
+            if (! Schema::hasColumn('inventory_items', 'unit')) {
+                $table->string('unit')->default(config('inventory.defaults.unit'))->after('category');
+            }
             $table->decimal('current_quantity', 12, 2)->default(0)->after('quantity');
             $table->decimal('minimum_reserve_quantity', 12, 2)->default(0)->after('current_quantity');
             $table->decimal('estimated_unit_value', 12, 2)->nullable()->after('minimum_reserve_quantity');
