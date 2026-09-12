@@ -33,6 +33,7 @@ Route::middleware(['auth', 'role:admin,secretary,treasurer'])->group(function ()
     Route::post('/donors', [DonorController::class, 'store'])->name('donors.store');
     Route::get('/donors/{donor}', [DonorController::class, 'show'])->name('donors.show');
     Route::patch('/donors/{donor}', [DonorController::class, 'update'])->name('donors.update');
+    Route::delete('/donors/{donor}', [DonorController::class, 'destroy'])->name('donors.destroy');
     Route::get('/donations', [DonationPortalController::class, 'index'])->name('donations.index');
     Route::post('/donations', [DonationPortalController::class, 'store'])->name('donations.store');
     Route::get('/donations/{contribution}', [DonationPortalController::class, 'show'])->name('donations.show');
@@ -41,6 +42,7 @@ Route::middleware(['auth', 'role:admin,secretary,treasurer'])->group(function ()
 
     Route::get('/inventory', [InventoryController::class, 'index'])->name('inventory.index');
     Route::post('/inventory', [InventoryController::class, 'store'])->name('inventory.store');
+    Route::get('/inventory/export/pdf', [InventoryController::class, 'exportPdf'])->name('inventory.export.pdf');
 
     Route::get('/inventory/categories', [InventoryCategoryController::class, 'index'])->name('inventory.categories.index');
     Route::post('/inventory/categories', [InventoryCategoryController::class, 'store'])->name('inventory.categories.store');
@@ -71,6 +73,8 @@ Route::middleware(['auth', 'role:admin,secretary,treasurer'])->group(function ()
 
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
     Route::get('/reports/financial-ledgers/csv', [ReportController::class, 'financialLedgersCsv'])->name('reports.financial-ledgers.csv');
+    Route::get('/reports/financial-ledgers/pdf', [ReportController::class, 'financialLedgersPdf'])->name('reports.financial-ledgers.pdf');
+    Route::get('/reports/philanthropy-roster/pdf', [ReportController::class, 'philanthropyRosterPdf'])->name('reports.philanthropy-roster.pdf');
     Route::get('/system-security', [SystemSecurityController::class, 'index'])->name('system-security.index');
     Route::patch('/system-security/users/{user}/two-factor-enforcement', [SystemSecurityController::class, 'updateTwoFactorEnforcement'])
         ->name('system-security.two-factor-enforcement.update');

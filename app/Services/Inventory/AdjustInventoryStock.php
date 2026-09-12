@@ -3,6 +3,7 @@
 namespace App\Services\Inventory;
 
 use App\Models\InventoryItem;
+use App\Models\SecurityActivityEvent;
 use App\Models\User;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
@@ -55,6 +56,21 @@ class AdjustInventoryStock
                 'last_movement_at' => now(),
                 'updated_by' => $user->id,
             ])->save();
+
+            SecurityActivityEvent::query()->create([
+                'actor_id' => $user->id,
+                'action' => 'inventory_stock_'.$data['movement_type'],
+                'summary' => "{$user->name} recorded a {$data['movement_type']} movement of {$quantity} for {$item->name}.",
+                'metadata' => [
+                    'inventory_item_id' => $item->id,
+                    'movement_type' => $data['movement_type'],
+                    'quantity' => $quantity,
+                    'quantity_before' => $quantityBefore,
+                    'quantity_after' => $quantityAfter,
+                    'reason' => $data['reason'],
+                ],
+                'occurred_at' => now(),
+            ]);
 
             return $item;
         });

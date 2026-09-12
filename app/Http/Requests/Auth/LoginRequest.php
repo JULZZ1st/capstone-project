@@ -39,9 +39,20 @@ class LoginRequest extends FormRequest
         $this->ensureIsNotRateLimited();
 
         $credentials = $this->only('email', 'password');
-        $credentials['status'] = config('auth_defaults.user_status');
 
         if (! Auth::attempt($credentials, $this->boolean('remember'))) {
+            RateLimiter::hit($this->throttleKey());
+
+            throw ValidationException::withMessages([
+                'auth' => __('The provided credentials are incorrect.'),
+            ]);
+        }
+
+        $expectedStatus = Str::lower(trim((string) config('auth_defaults.user_status')));
+        $actualStatus = Str::lower(trim((string) Auth::user()->status));
+
+        if ($actualStatus !== $expectedStatus) {
+            Auth::logout();
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([

@@ -7,7 +7,16 @@
 @section('content')
     <div class="space-y-6">
         @if ($tab === 'financial-ledgers')
-            <div class="flex justify-end">
+            <div class="flex flex-col justify-end gap-2 sm:flex-row">
+                <a
+                    href="{{ route('reports.financial-ledgers.pdf', ['year' => $year, 'month' => $month]) }}"
+                    class="inline-flex w-full items-center justify-center gap-2 rounded-md bg-red-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-red-800 sm:w-auto"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4">
+                        <path fill-rule="evenodd" d="M4.5 2A1.5 1.5 0 003 3.5v13A1.5 1.5 0 004.5 18h11a1.5 1.5 0 001.5-1.5V7.621a1.5 1.5 0 00-.44-1.06l-4.12-4.122A1.5 1.5 0 0011.378 2H4.5zm4.75 8.75a.75.75 0 00-1.5 0v2.546l-.72-.72a.75.75 0 00-1.06 1.06l2 2a.75.75 0 001.06 0l2-2a.75.75 0 10-1.06-1.06l-.72.72V10.75z" clip-rule="evenodd" />
+                    </svg>
+                    Download PDF Report
+                </a>
                 <a
                     href="{{ route('reports.financial-ledgers.csv', ['year' => $year, 'month' => $month]) }}"
                     class="inline-flex w-full items-center justify-center gap-2 rounded-md bg-green-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-green-800 sm:w-auto"

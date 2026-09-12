@@ -3,6 +3,8 @@
 namespace App\Services\BankReconciliation;
 
 use App\Models\BankLedgerEntry;
+use App\Models\SecurityActivityEvent;
+use App\Models\User;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -16,7 +18,7 @@ class ImportBankStatement
     {
     }
 
-    public function handle(UploadedFile $file): int
+    public function handle(UploadedFile $file, ?User $user = null): int
     {
         $rows = $this->rows($file);
 
@@ -40,6 +42,16 @@ class ImportBankStatement
                 $created++;
             }
         });
+
+        if ($user !== null) {
+            SecurityActivityEvent::query()->create([
+                'actor_id' => $user->id,
+                'action' => 'bank_statement_imported',
+                'summary' => "{$user->name} imported {$created} bank transaction(s) for reconciliation.",
+                'metadata' => ['imported_count' => $created],
+                'occurred_at' => now(),
+            ]);
+        }
 
         return $created;
     }

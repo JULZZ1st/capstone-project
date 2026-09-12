@@ -43,18 +43,26 @@
                                     @csrf @method('PATCH')
                                     <x-button>Approve</x-button>
                                 </form>
-                                <form method="POST" action="{{ route('disbursements.reject', $disbursement) }}">
-                                    @csrf @method('PATCH')
-                                    <input type="hidden" name="rejection_reason" value="Rejected during administrative review">
-                                    <x-button>Reject</x-button>
-                                </form>
+                                <details class="relative">
+                                    <summary class="cursor-pointer rounded-md bg-red-100 px-2 py-1 text-xs font-semibold text-red-700">Reject</summary>
+                                    <form method="POST" action="{{ route('disbursements.reject', $disbursement) }}" class="absolute right-0 z-10 mt-2 w-72 space-y-2 rounded border border-slate-100 bg-white p-3 shadow-lg">
+                                        @csrf @method('PATCH')
+                                        <x-form.label for="rejection_reason_{{ $disbursement->id }}">Rejection reason</x-form.label>
+                                        <textarea id="rejection_reason_{{ $disbursement->id }}" name="rejection_reason" rows="2" required class="block w-full rounded-md border-slate-300 text-sm shadow-sm focus:border-red-500 focus:ring-red-500"></textarea>
+                                        <x-button class="w-full">Confirm Rejection</x-button>
+                                    </form>
+                                </details>
                             @endcan
                             @can('void', $disbursement)
-                                <form method="POST" action="{{ route('disbursements.void', $disbursement) }}">
-                                    @csrf @method('PATCH')
-                                    <input type="hidden" name="void_reason" value="Voided during administrative review">
-                                    <x-button>Void</x-button>
-                                </form>
+                                <details class="relative">
+                                    <summary class="cursor-pointer rounded-md bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700">Void</summary>
+                                    <form method="POST" action="{{ route('disbursements.void', $disbursement) }}" class="absolute right-0 z-10 mt-2 w-72 space-y-2 rounded border border-slate-100 bg-white p-3 shadow-lg">
+                                        @csrf @method('PATCH')
+                                        <x-form.label for="void_reason_{{ $disbursement->id }}">Void reason</x-form.label>
+                                        <textarea id="void_reason_{{ $disbursement->id }}" name="void_reason" rows="2" required class="block w-full rounded-md border-slate-300 text-sm shadow-sm focus:border-red-500 focus:ring-red-500"></textarea>
+                                        <x-button class="w-full">Confirm Void</x-button>
+                                    </form>
+                                </details>
                             @endcan
                         </div>
                     </article>

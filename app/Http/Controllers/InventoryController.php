@@ -11,7 +11,10 @@ use App\Models\InventoryUnit;
 use App\Services\Inventory\CreateInventoryItem;
 use App\Services\Inventory\ResolveInventoryClassification;
 use App\Services\Inventory\InventoryAlertQuery;
+use App\Services\Reports\InventoryReportBuilder;
+use App\Services\Reports\InventoryReportPdfExporter;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\View\View;
 
@@ -69,6 +72,15 @@ class InventoryController extends Controller
                 ->get(),
             'units' => InventoryUnit::query()->active()->orderBy('label')->get(),
         ]);
+    }
+
+    public function exportPdf(InventoryIndexRequest $request, InventoryReportBuilder $builder, InventoryReportPdfExporter $exporter): Response
+    {
+        $report = $builder->build($request->validated());
+
+        $filename = sprintf('inventory-summary-report-%s.pdf', now()->toDateString());
+
+        return $exporter->handle($report, $filename);
     }
 
     public function store(StoreInventoryItemRequest $request, CreateInventoryItem $creator, ResolveInventoryClassification $resolver): RedirectResponse

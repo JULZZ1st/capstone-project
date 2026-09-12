@@ -23,7 +23,7 @@
         <section class="rounded-xl border border-slate-200 bg-white shadow-sm">
             <x-system-security.section-header title="Authorized Administrative Personnel">
                     <x-slot:actions>
-                        <x-system-security.status-badge :label="number_format($personnel->count()).' Active Accounts'" tone="emerald" />
+                        <x-system-security.status-badge :label="number_format($personnel->where('status', config('auth_defaults.user_status'))->count()).' Active Accounts'" tone="emerald" />
 
                         <details class="relative ml-2 inline-block">
                             <summary class="rounded-md bg-slate-100 px-2 py-1 text-xs font-semibold">Create Staff Account</summary>

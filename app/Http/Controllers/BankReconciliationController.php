@@ -58,7 +58,7 @@ class BankReconciliationController extends Controller
 
     public function import(ImportBankStatementRequest $request, ImportBankStatement $importer): RedirectResponse
     {
-        $count = $importer->handle($request->file('statement'));
+        $count = $importer->handle($request->file('statement'), $request->user());
 
         return redirect()
             ->route('bank-reconciliation.index')

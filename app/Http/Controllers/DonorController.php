@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Http\Requests\Donors\StoreDonorRequest;
 use App\Http\Requests\Donors\UpdateDonorRequest;
 use App\Models\Donor;
+use App\Services\Donors\RemoveDonor;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
@@ -86,6 +88,19 @@ class DonorController extends Controller
         return redirect()
             ->route('donors.index')
             ->with('success', 'Donor profile updated successfully.');
+    }
+
+    public function destroy(Request $request, Donor $donor, RemoveDonor $remover): RedirectResponse
+    {
+        $result = $remover->handle($donor, $request->user());
+
+        $message = $result === 'deactivated'
+            ? 'Donor has existing donation history, so the profile was deactivated instead of deleted.'
+            : 'Donor profile deleted successfully.';
+
+        return redirect()
+            ->route('donors.index')
+            ->with('success', $message);
     }
 
     private function hasLikelyDuplicate(array $data): bool
