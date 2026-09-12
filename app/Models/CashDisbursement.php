@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class CashDisbursement extends Model
 {
@@ -13,6 +14,10 @@ class CashDisbursement extends Model
     protected $fillable = [
         'amount',
         'purpose',
+        'recipient',
+        'requested_date',
+        'notes',
+        'supporting_reference',
         'requested_by',
         'approved_by',
         'status',
@@ -28,6 +33,7 @@ class CashDisbursement extends Model
     {
         return [
             'amount' => 'decimal:2',
+            'requested_date' => 'date',
             'approved_at' => 'datetime',
             'rejected_at' => 'datetime',
             'voided_at' => 'datetime',
@@ -47,6 +53,18 @@ class CashDisbursement extends Model
     public function voider(): BelongsTo
     {
         return $this->belongsTo(User::class, 'voided_by');
+    }
+
+    public function withdrawalMatch(): HasOne
+    {
+        return $this->hasOne(BankWithdrawalDisbursementMatch::class);
+    }
+
+    public function scopeApprovedActive($query)
+    {
+        return $query
+            ->where('status', 'approved')
+            ->whereNull('voided_at');
     }
 
     public function isPending(): bool

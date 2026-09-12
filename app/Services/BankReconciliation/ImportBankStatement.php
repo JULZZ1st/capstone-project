@@ -38,6 +38,12 @@ class ImportBankStatement
                     ]);
                 }
 
+                if ($this->isDuplicateEntry($data)) {
+                    throw ValidationException::withMessages([
+                        'statement' => "A matching bank entry already exists on row ".($index + 2).'.',
+                    ]);
+                }
+
                 BankLedgerEntry::query()->create($data);
                 $created++;
             }
@@ -132,9 +138,14 @@ class ImportBankStatement
         $description = $this->value($row, ['description', 'details', 'narration']);
         $amount = $this->value($row, ['amount', 'transaction_amount', 'transaction amount']);
         $date = $this->value($row, ['transaction_date', 'transaction date', 'date', 'value_date']);
+        $transactionType = strtolower($this->value($row, ['transaction_type', 'transaction type', 'type']) ?? 'deposit');
 
         if (blank($statementId) || blank($description) || blank($amount) || blank($date)) {
             throw ValidationException::withMessages(['statement' => "Missing required transaction data on row {$line}."]);
+        }
+
+        if (! in_array($transactionType, ['deposit', 'withdrawal'], true)) {
+            throw ValidationException::withMessages(['statement' => "Invalid transaction type on row {$line}."]);
         }
 
         if (! is_numeric(str_replace(',', '', $amount))) {
@@ -157,7 +168,8 @@ class ImportBankStatement
             'transaction_date' => $transactionDate,
             'payment_method' => $this->value($row, ['payment_method', 'payment method', 'channel'])
                 ?? $this->channelResolver->resolve($description),
-            'status' => 'unmatched',
+            'transaction_type' => $transactionType,
+            'status' => $transactionType === 'withdrawal' ? 'unreconciled' : 'unmatched',
         ];
     }
 
@@ -170,5 +182,19 @@ class ImportBankStatement
         }
 
         return null;
+    }
+
+    private function isDuplicateEntry(array $data): bool
+    {
+        if (blank($data['reference_number'])) {
+            return false;
+        }
+
+        return BankLedgerEntry::query()
+            ->where('transaction_type', $data['transaction_type'])
+            ->where('reference_number', $data['reference_number'])
+            ->whereDate('transaction_date', $data['transaction_date'])
+            ->where('amount', (float) $data['amount'])
+            ->exists();
     }
 }

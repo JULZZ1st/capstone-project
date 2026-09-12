@@ -34,17 +34,28 @@ class DisbursementController extends Controller
         return redirect()->route('disbursements.index')->with('success', 'Disbursement request submitted.');
     }
 
+    public function show(CashDisbursement $disbursement): View
+    {
+        Gate::authorize('view', $disbursement);
+
+        $disbursement->load(['requester', 'approver', 'voider']);
+
+        return view('disbursements.show', [
+            'disbursement' => $disbursement,
+        ]);
+    }
+
     public function approve(CashDisbursement $disbursement, ApproveDisbursement $approver): RedirectResponse
     {
         Gate::authorize('approve', $disbursement);
         $approver->handle($disbursement, request()->user());
-        return back()->with('success', 'Disbursement approved.');
+        return redirect()->route('disbursements.index')->with('success', 'Disbursement approved.');
     }
 
     public function reject(RejectDisbursementRequest $request, CashDisbursement $disbursement, RejectDisbursement $rejector): RedirectResponse
     {
         $rejector->handle($disbursement, $request->validated('rejection_reason'), $request->user());
-        return back()->with('success', 'Disbursement rejected.');
+        return redirect()->route('disbursements.index')->with('success', 'Disbursement rejected.');
     }
 
     public function voidContribution(VoidContributionRequest $request, Contribution $contribution, VoidContribution $voider): RedirectResponse

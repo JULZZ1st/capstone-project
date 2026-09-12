@@ -17,6 +17,11 @@ class CashDisbursementPolicy
         return $this->viewAny($user);
     }
 
+    public function view(User $user, CashDisbursement $disbursement): bool
+    {
+        return $this->viewAny($user);
+    }
+
     public function approve(User $user, CashDisbursement $disbursement): bool
     {
         return $user->hasRole('admin')

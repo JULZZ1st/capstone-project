@@ -63,9 +63,12 @@ Route::middleware(['auth', 'role:admin,secretary,treasurer'])->group(function ()
 
     Route::get('/bank-reconciliation', [BankReconciliationController::class, 'index'])->name('bank-reconciliation.index');
     Route::post('/bank-reconciliation/import', [BankReconciliationController::class, 'import'])->name('bank-reconciliation.import');
+    Route::post('/bank-reconciliation/withdrawals', [BankReconciliationController::class, 'storeWithdrawal'])->name('bank-reconciliation.withdrawals.store');
+    Route::post('/bank-reconciliation/withdrawals/{withdrawal}/matches', [BankReconciliationController::class, 'storeWithdrawalMatches'])->name('bank-reconciliation.withdrawals.matches.store');
     Route::post('/bank-reconciliation/reconcile', [BankReconciliationController::class, 'reconcile'])->name('bank-reconciliation.reconcile');
     Route::get('/disbursements', [DisbursementController::class, 'index'])->name('disbursements.index');
     Route::post('/disbursements', [DisbursementController::class, 'store'])->name('disbursements.store');
+    Route::get('/disbursements/{disbursement}', [DisbursementController::class, 'show'])->name('disbursements.show');
     Route::patch('/disbursements/{disbursement}/approve', [DisbursementController::class, 'approve'])->name('disbursements.approve');
     Route::patch('/disbursements/{disbursement}/reject', [DisbursementController::class, 'reject'])->name('disbursements.reject');
     Route::patch('/disbursements/{disbursement}/void', [DisbursementController::class, 'voidDisbursement'])->name('disbursements.void');

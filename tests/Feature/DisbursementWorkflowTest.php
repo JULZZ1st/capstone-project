@@ -15,6 +15,59 @@ class DisbursementWorkflowTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_disbursement_request_saves_new_fields_as_pending_and_displays_in_history(): void
+    {
+        $requester = $this->userWithRole('treasurer');
+
+        $response = $this->actingAs($requester)->post(route('disbursements.store'), [
+            'amount' => 2450.75,
+            'purpose' => 'Medical assistance payout',
+            'recipient' => 'Juan Dela Cruz',
+            'requested_date' => '2026-09-12',
+            'notes' => 'Urgent dialysis support',
+            'supporting_reference' => 'BRGY-REF-2026-001',
+        ]);
+
+        $response->assertRedirect(route('disbursements.index'));
+        $this->assertDatabaseHas('cash_disbursements', [
+            'amount' => 2450.75,
+            'purpose' => 'Medical assistance payout',
+            'recipient' => 'Juan Dela Cruz',
+            'notes' => 'Urgent dialysis support',
+            'supporting_reference' => 'BRGY-REF-2026-001',
+            'requested_by' => $requester->id,
+            'status' => 'pending',
+        ]);
+        $this->assertSame('2026-09-12', CashDisbursement::query()->firstOrFail()->requested_date->toDateString());
+
+        $this->actingAs($requester)
+            ->get(route('disbursements.index'))
+            ->assertOk()
+            ->assertSee('Sep 12, 2026')
+            ->assertSee('Medical assistance payout')
+            ->assertSee('Juan Dela Cruz')
+            ->assertSee('PHP 2,450.75')
+            ->assertSee($requester->name)
+            ->assertSee('pending')
+            ->assertSee(route('disbursements.show', CashDisbursement::query()->firstOrFail()), false)
+            ->assertSee('BRGY-REF-2026-001')
+            ->assertSee('Urgent dialysis support');
+    }
+
+    public function test_disbursement_request_requires_new_required_fields(): void
+    {
+        $requester = $this->userWithRole('treasurer');
+
+        $this->actingAs($requester)
+            ->post(route('disbursements.store'), [
+                'amount' => 2450.75,
+                'purpose' => 'Medical assistance payout',
+            ])
+            ->assertSessionHasErrors(['recipient', 'requested_date']);
+
+        $this->assertDatabaseCount('cash_disbursements', 0);
+    }
+
     public function test_requester_cannot_approve_own_disbursement(): void
     {
         $requester = $this->userWithRole('treasurer');
@@ -46,7 +99,76 @@ class DisbursementWorkflowTest extends TestCase
         $this->actingAs($admin)->patch(route('disbursements.approve', $disbursement))->assertRedirect();
 
         $this->assertDatabaseHas('cash_disbursements', ['id' => $disbursement->id, 'status' => 'approved', 'approved_by' => $admin->id]);
+        $this->assertNotNull($disbursement->fresh()->approved_at);
         $this->assertDatabaseHas('security_activity_events', ['action' => 'disbursement_approved', 'actor_id' => $admin->id]);
+    }
+
+    public function test_pending_disbursement_detail_shows_admin_decision_actions(): void
+    {
+        $requester = $this->userWithRole('treasurer');
+        $admin = $this->userWithRole('admin');
+        $disbursement = CashDisbursement::query()->create([
+            'amount' => 1250,
+            'purpose' => 'Emergency supplies',
+            'recipient' => 'Community Pharmacy',
+            'requested_date' => '2026-09-12',
+            'notes' => 'Prescription support',
+            'supporting_reference' => 'MED-001',
+            'requested_by' => $requester->id,
+            'status' => 'pending',
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('disbursements.show', $disbursement))
+            ->assertOk()
+            ->assertSee('Emergency supplies')
+            ->assertSee('Community Pharmacy')
+            ->assertSee('PHP 1,250.00')
+            ->assertSee('MED-001')
+            ->assertSee('Prescription support')
+            ->assertSee('Approve')
+            ->assertSee('Reject');
+    }
+
+    public function test_non_admin_cannot_approve_or_reject_server_side(): void
+    {
+        $requester = $this->userWithRole('treasurer');
+        $secretary = $this->userWithRole('secretary');
+        $disbursement = CashDisbursement::query()->create([
+            'amount' => 1250,
+            'purpose' => 'Emergency supplies',
+            'requested_by' => $requester->id,
+            'status' => 'pending',
+        ]);
+
+        $this->actingAs($secretary)
+            ->patch(route('disbursements.approve', $disbursement))
+            ->assertForbidden();
+
+        $this->actingAs($secretary)
+            ->patch(route('disbursements.reject', $disbursement), ['rejection_reason' => 'Missing details'])
+            ->assertForbidden();
+
+        $this->assertDatabaseHas('cash_disbursements', ['id' => $disbursement->id, 'status' => 'pending']);
+    }
+
+    public function test_non_admin_can_view_pending_details_without_decision_actions(): void
+    {
+        $requester = $this->userWithRole('treasurer');
+        $disbursement = CashDisbursement::query()->create([
+            'amount' => 1250,
+            'purpose' => 'Emergency supplies',
+            'requested_by' => $requester->id,
+            'status' => 'pending',
+        ]);
+
+        $this->actingAs($requester)
+            ->get(route('disbursements.show', $disbursement))
+            ->assertOk()
+            ->assertSee('Emergency supplies')
+            ->assertDontSee('Admin decision')
+            ->assertDontSee('Approve')
+            ->assertDontSee('Reject');
     }
 
     public function test_pending_unreconciled_contribution_can_be_voided_and_audited(): void

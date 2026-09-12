@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\BankLedgerEntry;
+use App\Models\CashDisbursement;
 use App\Models\Contribution;
 use App\Models\Donor;
 use App\Models\Role;
@@ -72,6 +73,273 @@ class BankReconciliationTest extends TestCase
         ]);
 
         $response->assertForbidden();
+    }
+
+    public function test_treasurer_can_manually_create_bank_withdrawal_for_review(): void
+    {
+        $treasurer = $this->userWithRole('treasurer');
+
+        $response = $this->actingAs($treasurer)->post(route('bank-reconciliation.withdrawals.store'), [
+            'transaction_date' => '2026-09-12',
+            'reference_number' => 'WD-2026-001',
+            'description' => 'ATM withdrawal for relief supplies',
+            'amount' => 3500.75,
+        ]);
+
+        $response->assertRedirect(route('bank-reconciliation.index', ['tab' => 'outgoing']));
+        $this->assertDatabaseHas('bank_ledger_entries', [
+            'reference_number' => 'WD-2026-001',
+            'description' => 'ATM withdrawal for relief supplies',
+            'amount' => 3500.75,
+            'transaction_type' => 'withdrawal',
+            'status' => 'unreconciled',
+        ]);
+        $this->assertSame('2026-09-12', BankLedgerEntry::query()->firstOrFail()->transaction_date->toDateString());
+    }
+
+    public function test_admin_can_manually_create_bank_withdrawal_for_review(): void
+    {
+        $admin = $this->userWithRole('admin');
+
+        $this->actingAs($admin)->post(route('bank-reconciliation.withdrawals.store'), [
+            'transaction_date' => '2026-09-12',
+            'reference_number' => 'WD-ADMIN-001',
+            'description' => 'Counter withdrawal',
+            'amount' => 1500,
+        ])->assertRedirect(route('bank-reconciliation.index', ['tab' => 'outgoing']));
+
+        $this->assertDatabaseHas('bank_ledger_entries', [
+            'reference_number' => 'WD-ADMIN-001',
+            'transaction_type' => 'withdrawal',
+            'status' => 'unreconciled',
+        ]);
+    }
+
+    public function test_imported_withdrawal_rows_appear_under_outgoing_review(): void
+    {
+        $treasurer = $this->userWithRole('treasurer');
+        $csv = "statement_id,description,reference_number,amount,transaction_date,transaction_type\n".
+            "stmt-wd-100,Bank withdrawal for supplies,WD-IMPORT-100,4200.00,2026-09-10,withdrawal\n";
+
+        $this->actingAs($treasurer)->post(route('bank-reconciliation.import'), [
+            'return_tab' => 'outgoing',
+            'statement' => UploadedFile::fake()->createWithContent('withdrawals.csv', $csv),
+        ])->assertRedirect(route('bank-reconciliation.index', ['tab' => 'outgoing']));
+
+        $this->assertDatabaseHas('bank_ledger_entries', [
+            'statement_id' => 'stmt-wd-100',
+            'reference_number' => 'WD-IMPORT-100',
+            'transaction_type' => 'withdrawal',
+            'status' => 'unreconciled',
+        ]);
+
+        $this->actingAs($treasurer)
+            ->get(route('bank-reconciliation.index', ['tab' => 'outgoing']))
+            ->assertOk()
+            ->assertSee('Bank Withdrawals to Review')
+            ->assertSee('Bank withdrawal for supplies')
+            ->assertSee('WD-IMPORT-100')
+            ->assertSee('PHP 4,200.00')
+            ->assertSee('withdrawal')
+            ->assertSee('unreconciled');
+    }
+
+    public function test_duplicate_withdrawal_reference_date_amount_is_rejected(): void
+    {
+        $treasurer = $this->userWithRole('treasurer');
+        $this->ledgerEntry([
+            'statement_id' => 'withdrawal-existing',
+            'reference_number' => 'WD-DUP-001',
+            'amount' => 2000,
+            'transaction_date' => '2026-09-12',
+            'transaction_type' => 'withdrawal',
+            'status' => 'unreconciled',
+        ]);
+
+        $this->actingAs($treasurer)->post(route('bank-reconciliation.withdrawals.store'), [
+            'transaction_date' => '2026-09-12',
+            'reference_number' => 'WD-DUP-001',
+            'description' => 'Duplicate withdrawal',
+            'amount' => 2000,
+        ])->assertSessionHasErrors('reference_number');
+
+        $this->assertSame(1, BankLedgerEntry::query()->where('reference_number', 'WD-DUP-001')->count());
+    }
+
+    public function test_import_duplicate_withdrawal_reference_date_amount_is_rejected(): void
+    {
+        $treasurer = $this->userWithRole('treasurer');
+        $this->ledgerEntry([
+            'statement_id' => 'withdrawal-import-existing',
+            'reference_number' => 'WD-IMPORT-DUP',
+            'amount' => 3200,
+            'transaction_date' => '2026-09-12',
+            'transaction_type' => 'withdrawal',
+            'status' => 'unreconciled',
+        ]);
+        $csv = "statement_id,description,reference_number,amount,transaction_date,transaction_type\n".
+            "stmt-wd-new,Duplicate imported withdrawal,WD-IMPORT-DUP,3200.00,2026-09-12,withdrawal\n";
+
+        $this->actingAs($treasurer)->post(route('bank-reconciliation.import'), [
+            'return_tab' => 'outgoing',
+            'statement' => UploadedFile::fake()->createWithContent('withdrawals.csv', $csv),
+        ])->assertSessionHasErrors('statement');
+
+        $this->assertDatabaseMissing('bank_ledger_entries', ['statement_id' => 'stmt-wd-new']);
+    }
+
+    public function test_secretary_cannot_create_or_import_withdrawals_server_side(): void
+    {
+        $secretary = $this->userWithRole('secretary');
+        $csv = "statement_id,description,reference_number,amount,transaction_date,transaction_type\n".
+            "stmt-secretary-wd,Secretary withdrawal,WD-SEC-001,100,2026-09-12,withdrawal\n";
+
+        $this->actingAs($secretary)->post(route('bank-reconciliation.withdrawals.store'), [
+            'transaction_date' => '2026-09-12',
+            'reference_number' => 'WD-SEC-001',
+            'description' => 'Secretary withdrawal',
+            'amount' => 100,
+        ])->assertForbidden();
+
+        $this->actingAs($secretary)->post(route('bank-reconciliation.import'), [
+            'return_tab' => 'outgoing',
+            'statement' => UploadedFile::fake()->createWithContent('withdrawals.csv', $csv),
+        ])->assertForbidden();
+
+        $this->assertDatabaseMissing('bank_ledger_entries', ['reference_number' => 'WD-SEC-001']);
+    }
+
+    public function test_one_bank_withdrawal_can_match_multiple_approved_disbursements_and_show_ready_when_balanced(): void
+    {
+        $treasurer = $this->userWithRole('treasurer');
+        $withdrawal = $this->withdrawalEntry(['amount' => 5000, 'reference_number' => 'WD-MATCH-READY']);
+        $first = $this->cashDisbursement(['amount' => 2000, 'purpose' => 'Approved medicine payout']);
+        $second = $this->cashDisbursement(['amount' => 3000, 'purpose' => 'Approved food payout']);
+
+        $this->actingAs($treasurer)->post(route('bank-reconciliation.withdrawals.matches.store', $withdrawal), [
+            'disbursement_ids' => [$first->id, $second->id],
+        ])->assertRedirect(route('bank-reconciliation.index', ['tab' => 'outgoing']));
+
+        $this->assertDatabaseHas('bank_withdrawal_disbursement_matches', [
+            'bank_ledger_entry_id' => $withdrawal->id,
+            'cash_disbursement_id' => $first->id,
+        ]);
+        $this->assertDatabaseHas('bank_withdrawal_disbursement_matches', [
+            'bank_ledger_entry_id' => $withdrawal->id,
+            'cash_disbursement_id' => $second->id,
+        ]);
+
+        $this->actingAs($treasurer)
+            ->get(route('bank-reconciliation.index', ['tab' => 'outgoing']))
+            ->assertOk()
+            ->assertSee('Selected Disbursements Total')
+            ->assertSee('PHP 5,000.00')
+            ->assertSee('Difference')
+            ->assertSee('PHP 0.00')
+            ->assertSee('Ready to Reconcile')
+            ->assertSee('Approved medicine payout')
+            ->assertSee('Approved food payout');
+    }
+
+    public function test_non_zero_withdrawal_match_difference_shows_discrepancy(): void
+    {
+        $treasurer = $this->userWithRole('treasurer');
+        $withdrawal = $this->withdrawalEntry(['amount' => 6000, 'reference_number' => 'WD-MATCH-DIFF']);
+        $disbursement = $this->cashDisbursement(['amount' => 2500, 'purpose' => 'Partial approved payout']);
+
+        $this->actingAs($treasurer)->post(route('bank-reconciliation.withdrawals.matches.store', $withdrawal), [
+            'disbursement_ids' => [$disbursement->id],
+        ])->assertRedirect(route('bank-reconciliation.index', ['tab' => 'outgoing']));
+
+        $this->actingAs($treasurer)
+            ->get(route('bank-reconciliation.index', ['tab' => 'outgoing']))
+            ->assertOk()
+            ->assertSee('Bank Withdrawal Amount')
+            ->assertSee('PHP 6,000.00')
+            ->assertSee('Selected Disbursements Total')
+            ->assertSee('PHP 2,500.00')
+            ->assertSee('Difference')
+            ->assertSee('PHP 3,500.00')
+            ->assertSee('Discrepancy');
+    }
+
+    public function test_only_approved_active_unmatched_disbursements_are_selectable_for_withdrawal_matching(): void
+    {
+        $treasurer = $this->userWithRole('treasurer');
+        $withdrawal = $this->withdrawalEntry(['reference_number' => 'WD-ELIGIBLE']);
+        $otherWithdrawal = $this->withdrawalEntry(['reference_number' => 'WD-OTHER']);
+        $eligible = $this->cashDisbursement(['purpose' => 'Eligible approved disbursement']);
+        $pending = $this->cashDisbursement(['purpose' => 'Pending hidden disbursement', 'status' => 'pending', 'approved_by' => null, 'approved_at' => null]);
+        $rejected = $this->cashDisbursement(['purpose' => 'Rejected hidden disbursement', 'status' => 'rejected', 'approved_by' => null, 'approved_at' => null]);
+        $voided = $this->cashDisbursement(['purpose' => 'Voided hidden disbursement', 'voided_at' => now(), 'voided_by' => $treasurer->id, 'void_reason' => 'Cancelled']);
+        $alreadyMatched = $this->cashDisbursement(['purpose' => 'Already matched hidden disbursement']);
+        $otherWithdrawal->matchedDisbursements()->sync([$alreadyMatched->id]);
+
+        $response = $this->actingAs($treasurer)->get(route('bank-reconciliation.index', ['tab' => 'outgoing']));
+
+        $response->assertOk()
+            ->assertSee('Eligible approved disbursement')
+            ->assertDontSee('Pending hidden disbursement')
+            ->assertDontSee('Rejected hidden disbursement')
+            ->assertDontSee('Voided hidden disbursement')
+            ->assertDontSee('Already matched hidden disbursement');
+
+        $this->actingAs($treasurer)->post(route('bank-reconciliation.withdrawals.matches.store', $withdrawal), [
+            'disbursement_ids' => [$pending->id, $rejected->id, $voided->id, $alreadyMatched->id],
+        ])->assertSessionHasErrors('disbursement_ids');
+
+        $this->assertDatabaseMissing('bank_withdrawal_disbursement_matches', [
+            'bank_ledger_entry_id' => $withdrawal->id,
+            'cash_disbursement_id' => $pending->id,
+        ]);
+        $this->assertDatabaseMissing('bank_withdrawal_disbursement_matches', [
+            'bank_ledger_entry_id' => $withdrawal->id,
+            'cash_disbursement_id' => $eligible->id,
+        ]);
+    }
+
+    public function test_same_disbursement_cannot_be_matched_to_more_than_one_withdrawal(): void
+    {
+        $treasurer = $this->userWithRole('treasurer');
+        $firstWithdrawal = $this->withdrawalEntry(['reference_number' => 'WD-FIRST']);
+        $secondWithdrawal = $this->withdrawalEntry(['reference_number' => 'WD-SECOND']);
+        $disbursement = $this->cashDisbursement(['purpose' => 'Single-use approved payout']);
+
+        $this->actingAs($treasurer)->post(route('bank-reconciliation.withdrawals.matches.store', $firstWithdrawal), [
+            'disbursement_ids' => [$disbursement->id],
+        ])->assertRedirect(route('bank-reconciliation.index', ['tab' => 'outgoing']));
+
+        $this->actingAs($treasurer)->post(route('bank-reconciliation.withdrawals.matches.store', $secondWithdrawal), [
+            'disbursement_ids' => [$disbursement->id],
+        ])->assertSessionHasErrors('disbursement_ids');
+
+        $this->assertDatabaseHas('bank_withdrawal_disbursement_matches', [
+            'bank_ledger_entry_id' => $firstWithdrawal->id,
+            'cash_disbursement_id' => $disbursement->id,
+        ]);
+        $this->assertDatabaseMissing('bank_withdrawal_disbursement_matches', [
+            'bank_ledger_entry_id' => $secondWithdrawal->id,
+            'cash_disbursement_id' => $disbursement->id,
+        ]);
+    }
+
+    public function test_already_reconciled_withdrawal_cannot_be_matched_again(): void
+    {
+        $treasurer = $this->userWithRole('treasurer');
+        $withdrawal = $this->withdrawalEntry([
+            'reference_number' => 'WD-RECONCILED',
+            'status' => 'reconciled',
+        ]);
+        $disbursement = $this->cashDisbursement(['purpose' => 'Approved payout blocked by reconciled withdrawal']);
+
+        $this->actingAs($treasurer)->post(route('bank-reconciliation.withdrawals.matches.store', $withdrawal), [
+            'disbursement_ids' => [$disbursement->id],
+        ])->assertSessionHasErrors('withdrawal');
+
+        $this->assertDatabaseMissing('bank_withdrawal_disbursement_matches', [
+            'bank_ledger_entry_id' => $withdrawal->id,
+            'cash_disbursement_id' => $disbursement->id,
+        ]);
     }
 
     public function test_matching_reference_number_surfaces_as_a_suggestion(): void
@@ -216,6 +484,35 @@ class BankReconciliationTest extends TestCase
             'transaction_date' => now()->toDateString(),
             'payment_method' => 'bank_transfer',
             'status' => 'unmatched',
+        ], $overrides));
+    }
+
+    private function withdrawalEntry(array $overrides = []): BankLedgerEntry
+    {
+        return $this->ledgerEntry(array_merge([
+            'statement_id' => 'wd_'.random_int(1000, 9999),
+            'description' => 'Bank withdrawal',
+            'reference_number' => 'WD-'.random_int(10000, 99999),
+            'amount' => 1000,
+            'transaction_type' => 'withdrawal',
+            'status' => 'unreconciled',
+        ], $overrides));
+    }
+
+    private function cashDisbursement(array $overrides = []): CashDisbursement
+    {
+        $requester = $this->userWithRole('treasurer');
+        $approver = $this->userWithRole('admin');
+
+        return CashDisbursement::query()->create(array_merge([
+            'amount' => 1000,
+            'purpose' => 'Approved cash assistance',
+            'recipient' => 'Barangay Resident',
+            'requested_date' => '2026-09-12',
+            'requested_by' => $requester->id,
+            'status' => 'approved',
+            'approved_by' => $approver->id,
+            'approved_at' => now(),
         ], $overrides));
     }
 
