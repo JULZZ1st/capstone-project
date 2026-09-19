@@ -19,6 +19,8 @@ class StoreWithdrawalDisbursementMatchRequest extends FormRequest
         return [
             'disbursement_ids' => ['nullable', 'array'],
             'disbursement_ids.*' => ['integer', 'distinct', 'exists:cash_disbursements,id'],
+            'discrepancy_reason' => ['nullable', 'string', 'max:5000'],
+            'finalize' => ['nullable', 'boolean'],
         ];
     }
 
@@ -41,6 +43,12 @@ class StoreWithdrawalDisbursementMatchRequest extends FormRequest
                 $ids = $this->disbursementIds();
 
                 if ($ids === []) {
+                    $this->validateDiscrepancyReason($validator, $withdrawal, 0);
+
+                    if ($this->boolean('finalize') && abs((float) $withdrawal->amount) >= 0.005) {
+                        $validator->errors()->add('finalize', 'The withdrawal can only be reconciled when the difference is zero.');
+                    }
+
                     return;
                 }
 
@@ -56,9 +64,32 @@ class StoreWithdrawalDisbursementMatchRequest extends FormRequest
 
                 if ($validCount !== count($ids)) {
                     $validator->errors()->add('disbursement_ids', 'Selected disbursements must be approved, active, and not already matched to another withdrawal.');
+
+                    return;
+                }
+
+                $selectedTotal = CashDisbursement::query()
+                    ->whereIn('id', $ids)
+                    ->sum('amount');
+
+                $difference = (float) $withdrawal->amount - (float) $selectedTotal;
+
+                $this->validateDiscrepancyReason($validator, $withdrawal, (float) $selectedTotal);
+
+                if ($this->boolean('finalize') && abs($difference) >= 0.005) {
+                    $validator->errors()->add('finalize', 'The withdrawal can only be reconciled when the difference is zero.');
                 }
             },
         ];
+    }
+
+    private function validateDiscrepancyReason(Validator $validator, BankLedgerEntry $withdrawal, float $selectedTotal): void
+    {
+        $difference = (float) $withdrawal->amount - $selectedTotal;
+
+        if (abs($difference) >= 0.005 && trim((string) $this->input('discrepancy_reason')) === '') {
+            $validator->errors()->add('discrepancy_reason', 'An explanation is required while the withdrawal difference remains unresolved.');
+        }
     }
 
     public function disbursementIds(): array

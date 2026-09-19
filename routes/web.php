@@ -65,6 +65,8 @@ Route::middleware(['auth', 'role:admin,secretary,treasurer'])->group(function ()
     Route::post('/bank-reconciliation/import', [BankReconciliationController::class, 'import'])->name('bank-reconciliation.import');
     Route::post('/bank-reconciliation/withdrawals', [BankReconciliationController::class, 'storeWithdrawal'])->name('bank-reconciliation.withdrawals.store');
     Route::post('/bank-reconciliation/withdrawals/{withdrawal}/matches', [BankReconciliationController::class, 'storeWithdrawalMatches'])->name('bank-reconciliation.withdrawals.matches.store');
+    Route::post('/bank-reconciliation/withdrawals/{withdrawal}/reconcile', [BankReconciliationController::class, 'finalizeWithdrawal'])->name('bank-reconciliation.withdrawals.reconcile');
+    Route::get('/bank-reconciliation/withdrawals/{withdrawal}', [BankReconciliationController::class, 'withdrawalDetails'])->name('bank-reconciliation.withdrawals.show');
     Route::post('/bank-reconciliation/reconcile', [BankReconciliationController::class, 'reconcile'])->name('bank-reconciliation.reconcile');
     Route::get('/disbursements', [DisbursementController::class, 'index'])->name('disbursements.index');
     Route::post('/disbursements', [DisbursementController::class, 'store'])->name('disbursements.store');

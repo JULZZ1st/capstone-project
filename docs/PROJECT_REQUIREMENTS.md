@@ -3,7 +3,7 @@
 
 **Document Type:** Official Requirements Checklist & Defense Reference
 **Status:** Living document — update the *Current Status* column as features are built or revised
-**Last Reviewed Against Codebase:** 2026-08-02
+**Last Reviewed Against Codebase:** 2026-09-19
 
 ---
 
@@ -40,9 +40,9 @@
 |---|---|---|---|---|---|---|
 | Manage Donor Records | Create, view, and update donor records (individuals/organizations) used across donations and reporting. | Administrator | Critical | ✅ Implemented | Donor Management (`DonorController`, `Donor`) | Full create/read/update flow with donor history and search. |
 | Configure Item Categories | Define and maintain the list of in-kind item categories and units used in inventory intake. | Administrator | Medium | ✅ Implemented | Inventory Management (`InventoryCategoryController`, `InventoryUnitController`, `InventoryCategory`, `InventoryUnit`) | Categories/units are now database-backed (`inventory_categories`, `inventory_units`), seeded from the former static config list. Admins manage them via the "Manage Item Categories" screen (`/inventory/categories`); creation/editing/deletion is admin-only, with delete blocked while a category/unit is still referenced by an inventory item. |
-| Approve Fund Disbursements | Review and approve outgoing cash disbursement requests before funds are released. | Administrator | High | ⏳ Planned | Cash Bookkeeping | No disbursement/approval workflow, model, or route exists yet. Current cash flow only records inbound donations (`Contribution`, `CashTransaction`). |
-| Reconcile Cash Ledger | Match bank statement entries against recorded contributions and mark them reconciled. | Administrator | Critical | ✅ Implemented | Bank Reconciliation (`BankReconciliationController`, `LedgerMatchFinder`, `ReconcileLedgerEntry`) | Includes ledger-entry matching, reconciliation status tracking, and an audit banner in the UI. |
-| Void Cash Transactions | Reverse or cancel an erroneously recorded cash transaction while preserving an audit trail. | Administrator | High | ⏳ Planned | Cash Bookkeeping | No void/cancel/reversal action exists on `CashTransaction` or `Contribution` models or controllers. |
+| Approve Fund Disbursements | Review and approve outgoing cash disbursement requests before funds are released. | Administrator | High | ✅ Implemented | Cash Bookkeeping (`DisbursementController`, `CashDisbursement`) | Requests start as `pending`; admins approve or reject them, and the requester cannot approve their own request. Approved disbursements can be voided with a reason. |
+| Reconcile Cash Ledger | Match incoming bank deposits to contributions and outgoing bank withdrawals to approved disbursements. | Administrator | Critical | ✅ Implemented | Bank Reconciliation (`BankReconciliationController`, outgoing match/finalization routes) | Includes incoming matching, outgoing multi-disbursement matching, discrepancy explanations, zero-difference finalization, read-only history/details, and duplicate protections. |
+| Void Cash Transactions | Reverse or cancel an erroneously recorded cash transaction while preserving an audit trail. | Administrator | High | ✅ Implemented | Cash Bookkeeping (`DisbursementController`, void services) | Approved disbursements and eligible pending contributions can be voided with a required reason; original rows remain for auditability. |
 
 ### 3. Intelligence & Reporting
 
@@ -70,7 +70,7 @@
 | Search Donor Database | Search existing donor records by name or other identifying details. | Staff | High | ✅ Implemented | Donor Management (`DonorController`) | Search bar component wired to donor index query. |
 | View Donor Profiles | View a donor's full profile, including contribution history. | Staff | High | ✅ Implemented | Donor Management (`DonorController::show`) | Includes a donor history summary component. |
 | Record Cash Receipts | Log an incoming cash donation against a donor, with verification workflow. | Staff | Critical | ✅ Implemented | Donation Portal (`DonationPortalController`, `Contribution`) | Includes `store`, `update`, and `verify` actions; a simpler legacy cash-entry form also exists under Role Workflows. |
-| Record Cash Disbursements | Log an outgoing cash disbursement (e.g., aid payout, operational expense). | Staff | High | ✅ Implemented | Cash Bookkeeping (`CashDisbursementController`, `CashDisbursement`, `RecordCashDisbursement`) | New `cash_disbursements` table and `/cash-disbursements` module record outbound payments (recipient, purpose, amount, payment method, reference). Records are final on creation — no approval/status workflow is built yet; that remains Administrator → Approve Fund Disbursements (A7), owned by Julius. |
+| Record Cash Disbursements | Submit an outgoing cash disbursement request (e.g., aid payout, operational expense). | Staff | High | ✅ Implemented | Cash Bookkeeping (`DisbursementController`, `CashDisbursement`) | `/disbursements` records amount, purpose, recipient, requested date, notes, and supporting reference with `pending` status. Admin approval/rejection precedes outgoing bank reconciliation. |
 
 ### 3. Warehouse & Distribution Execution
 
@@ -100,9 +100,9 @@
 | A4 | Audit System Logs | Administrator | High | ✅ |
 | A5 | Manage Donor Records | Administrator | Critical | ✅ |
 | A6 | Configure Item Categories | Administrator | Medium | ✅ |
-| A7 | Approve Fund Disbursements | Administrator | High | ⏳ |
+| A7 | Approve Fund Disbursements | Administrator | High | ✅ |
 | A8 | Reconcile Cash Ledger | Administrator | Critical | ✅ |
-| A9 | Void Cash Transactions | Administrator | High | ⏳ |
+| A9 | Void Cash Transactions | Administrator | High | ✅ |
 | A10 | Access Main Dashboard | Administrator | High | ✅ |
 | A11 | Generate Financial Reports | Administrator | Critical | ✅ |
 | A12 | Export PDF Files | Administrator | Medium | ⏳ |
@@ -119,7 +119,7 @@
 | S11 | View Inventory Logs | Staff | Medium | ✅ |
 | S12 | Download PDF Reports | Staff | Medium | ⏳ |
 
-**Totals:** 24 requirements — 19 ✅ Implemented, 1 🟡 Partially Implemented, 4 ⏳ Planned.
+**Totals:** 24 requirements — 21 ✅ Implemented, 1 🟡 Partially Implemented, 2 ⏳ Planned.
 
 ---
 
@@ -128,7 +128,7 @@
 | Module | Implemented | Partially Implemented | Planned |
 |---|---|---|---|
 | System & Account Control | Log In, Log Out, Audit System Logs | Manage Staff Accounts | — |
-| Master Data & Cash Bookkeeping Management | Manage Donor Records, Reconcile Cash Ledger, Configure Item Categories | — | Approve Fund Disbursements, Void Cash Transactions |
+| Master Data & Cash Bookkeeping Management | Manage Donor Records, Reconcile Cash Ledger, Configure Item Categories, Approve Fund Disbursements, Void Cash Transactions | — | — |
 | Intelligence & Reporting | Access Main Dashboard, Generate Financial Reports | — | Export PDF Files |
 
 ## Staff Feature Matrix
@@ -154,7 +154,7 @@ graph TD
     Inventory[Inventory Management<br/>Stock-In / Stock-Out]
     BankRecon[Bank Reconciliation]
     Reports[Report Generator<br/>CSV / PDF Export]
-    Disbursement[Fund Disbursement<br/>Approve & Void — Planned]
+    Disbursement[Fund Disbursement<br/>Request, Approve, Reject & Void]
 
     Auth --> Dashboard
     Auth --> Security
@@ -173,11 +173,7 @@ graph TD
 
     Security -.-> Auth
 
-    classDef planned stroke-dasharray: 5 5;
-    class Disbursement planned;
 ```
-
-*Dashed lines indicate dependencies on the planned Fund Disbursement capability, which is not yet implemented.*
 
 ---
 
@@ -186,9 +182,9 @@ graph TD
 1. **Foundation (done):** Authentication, role-based access, main dashboard.
 2. **Core records (done):** Donor management, donation portal (cash & in-kind receipts with verification).
 3. **Warehouse operations (done):** Inventory item management, stock-in/stock-out adjustments, live stock monitoring.
-4. **Cash oversight (done):** Bank reconciliation and financial ledger reporting (CSV export).
+4. **Cash oversight (done):** Fund disbursement request/approval/void workflow, incoming and outgoing bank reconciliation, reconciliation history/details, Treasurer dashboard action items, and financial ledger reporting (CSV export).
 5. **Administrative account control (next priority):** Full staff account lifecycle management — create, edit, deactivate accounts, and assign roles/permissions from an admin UI.
-6. **Cash bookkeeping completeness (next priority):** Cash disbursement recording is done; disbursement approval workflow and void/reversal of cash transactions with audit trail remain outstanding (Julius).
+6. **Cash bookkeeping completeness (done):** Disbursement request, approval/rejection, void/reversal, outgoing bank matching, discrepancy handling, and final reconciliation are implemented (Julius).
 7. **Reporting completeness:** PDF export for all report types and downloadable PDF reports for Staff.
 8. **Master data configurability (done):** Admin UI for managing item categories/units instead of static config.
 
@@ -198,8 +194,7 @@ graph TD
 
 - PDF export/download for all reports (Financial Ledgers and future report types).
 - Admin-managed staff account lifecycle (create, edit, deactivate, role/permission assignment).
-- Disbursement approval workflow (maker-checker) for outgoing funds — recording itself is done (S6); approval (A7) is outstanding.
-- Void/reversal of cash transactions with a preserved audit trail (no hard deletes).
+- Controlled correction/reversal process for already finalized reconciliations.
 - Additional report types (e.g., donor giving summaries, inventory valuation, distribution impact reports).
 - Notification system for low-stock alerts and pending approvals.
 
@@ -216,8 +211,8 @@ graph TD
 **Master Data & Cash Bookkeeping Management**
 - Given a donor's details, an Administrator can create and later update the donor record.
 - Given a bank statement entry, an Administrator can match it to a recorded contribution and mark it reconciled.
-- *(Planned)* Given a disbursement request, an Administrator can approve or reject it before funds are recorded as disbursed.
-- *(Planned)* Given an erroneous cash transaction, an Administrator can void it without deleting the underlying record.
+- Given a disbursement request, an Administrator can approve or reject it before it becomes eligible for outgoing reconciliation.
+- Given an approved disbursement or eligible pending contribution, an Administrator can void it with a reason without deleting the underlying record.
 
 **Intelligence & Reporting**
 - Given a selected month/year, the system generates a Financial Ledgers report showing all matching transactions.
@@ -238,7 +233,7 @@ graph TD
 - [ ] Confirm the *Current Status* column above still matches the deployed codebase (re-run through routes/controllers if time has passed since last review).
 - [ ] Prepare a live demo path: Log in → Dashboard → Record a donation → Verify it → Stock-in/stock-out an item → Reconcile a ledger entry → Generate a Financial Ledgers report → Export CSV.
 - [ ] Be ready to explain the three implementation roles (`admin`, `secretary`, `treasurer`) and how they map to the Administrator/Staff terminology used in this document.
-- [ ] Be ready to explicitly state which requirements are **Planned**, and why (scope prioritization, time constraints): Approve Fund Disbursements, Void Cash Transactions, PDF export (both roles).
+- [ ] Be ready to explicitly state which requirements are **Planned**, and why (scope prioritization, time constraints): PDF export (both roles).
 - [ ] Be ready to explain the **Partially Implemented** item: Manage Staff Accounts (view + 2FA toggle only, no full CRUD).
 - [ ] Verify test coverage referenced in `tests/Feature/` (Bank Reconciliation, Donation Management, Inventory Management, Financial Ledger Report Builder, Report Generator, System Security Administration, Registration) passes before the defense.
 - [ ] Have this document available as the panel's reference for scope — do not claim features beyond what is marked ✅ Implemented.

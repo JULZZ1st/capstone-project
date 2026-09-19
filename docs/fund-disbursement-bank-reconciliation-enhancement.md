@@ -1,10 +1,10 @@
-# Fund Disbursement and Bank Reconciliation Enhancement
+# Fund Disbursement and Bank Reconciliation Workflow
 
-## Recommended Actual System Flow
+This document describes the implemented Fund Disbursement and Bank Reconciliation workflow. The focused coverage is in `tests/Feature/DisbursementWorkflowTest.php` and `tests/Feature/BankReconciliationTest.php`.
 
 ### 1. Secretary/Treasurer Creates a Fund Disbursement Request
 
-On the current **Fund Disbursements** page, instead of having only `Amount + Purpose`, expand the request form with the following fields:
+The **Fund Disbursements** page accepts:
 
 | Field | Example |
 |---|---|
@@ -15,31 +15,31 @@ On the current **Fund Disbursements** page, instead of having only `Amount + Pur
 | Notes | Food packs for distribution |
 | Supporting Reference | PR/Receipt No. if available |
 
-After submission, the request status should automatically become:
+After submission, the request status becomes:
 
 **Pending Approval**
 
-The current Fund Disbursements page can remain. The existing form or modal only needs to be expanded rather than redesigned from scratch.
+The request remains pending until an administrator makes a decision.
 
 ---
 
 ### 2. Admin Approves the Request
 
-The Request History table can display:
+The Request History table displays:
 
 | Date | Purpose | Amount | Requested By | Status | Action |
 |---|---|---:|---|---|---|
 | Sept 12 | Relief goods | ₱10,000 | Secretary | Pending | View |
 
-When the Admin opens the request, show:
+When the Admin opens the request, the available decisions are:
 
 **Approve** | **Reject**
 
-After approval:
+After approval, the request becomes:
 
 > **Approved — ₱10,000**
 
-The requester should not be allowed to approve their own disbursement request.
+The requester cannot approve their own disbursement request.
 
 ---
 
@@ -55,7 +55,7 @@ The current page has:
 
 **DONATION RECEIPTS TO MATCH**
 
-For the improved workflow, add two tabs:
+The implemented workspace has two tabs:
 
 ### Incoming Funds
 
@@ -69,7 +69,7 @@ New functionality:
 
 **Bank Withdrawals ↔ Approved Disbursements**
 
-The existing incoming reconciliation flow should remain.
+Incoming reconciliation remains deposit-to-contribution matching and is separate from outgoing reconciliation.
 
 The workspace can be structured as:
 
@@ -117,26 +117,23 @@ Example:
 **Recorded/Approved Disbursements:** ₱9,500  
 **Difference:** **₱500**
 
-Instead of allowing immediate reconciliation, show:
+The outgoing screen shows:
 
 > ⚠️ **₱500 discrepancy detected**
 
-The system should ask:
+The system requires an explanation for:
 
 **What happened to the remaining ₱500?**
 
-Possible statuses:
+The unresolved withdrawal remains:
 
-- Pending Review
-- Pending Liquidation
-- Discrepancy
-- Reconciled
+- `unreconciled` status with a saved discrepancy amount and explanation
 
 Require an explanation, for example:
 
 > “₱500 remains as cash-on-hand pending liquidation.”
 
-The explanation becomes part of the reconciliation history and audit trail.
+The explanation is saved with the withdrawal and remains visible while the discrepancy is unresolved. It does not permit final reconciliation.
 
 ---
 
@@ -148,17 +145,13 @@ Example:
 
 The disbursement `DIS-2026-0015` is already matched to withdrawal `BANK-0034`.
 
-If someone tries to select it again, show:
-
-> 🔒 **Already reconciled with BANK-0034**
-
-The disbursement should no longer be selectable.
+If someone tries to select it again, server-side validation rejects the request. The disbursement is excluded from the eligible selectable pool.
 
 The same rule applies to a bank transaction:
 
 > This bank withdrawal has already been reconciled.
 
-The system should enforce these rules automatically.
+The unique match constraint, eligibility query, policy, and request validation enforce these rules automatically.
 
 ---
 
@@ -173,42 +166,37 @@ After successful reconciliation, show:
 > Matched disbursements: 3  
 > Difference: ₱0
 
-A normal user should not be able to directly edit the reconciled linkage.
+A normal user cannot directly edit the reconciled linkage through the normal matching route.
 
-If a correction is required, it should use a controlled correction or reversal process instead of direct editing.
+No correction or reversal workflow is included in this task; the finalized record is read-only through the normal workflow.
 
-The audit trail should record sensitive actions such as:
+Approval, rejection, and void actions write security audit events. Finalized outgoing reconciliation records its reconciler and timestamp in the ledger row and history/details view.
 
-- disbursement approval
-- disbursement rejection
-- reconciliation
-- cancellation or correction
-- account or access changes
 
 ---
 
 ## 7. Reconciliation History
 
-The existing **RECONCILIATION HISTORY** section can be enhanced with:
+Outgoing **RECONCILIATION HISTORY** displays:
 
 | Date | Bank Ref | Type | Bank Amount | Matched Amount | Difference | Status | Reconciled By |
 |---|---|---|---:|---:|---:|---|---|
 | Sep 13 | WD-00981 | Withdrawal | ₱10,000 | ₱10,000 | ₱0 | Reconciled | Treasurer |
-| Sep 14 | WD-00982 | Withdrawal | ₱8,000 | ₱7,500 | ₱500 | Pending Liquidation | — |
+| Sep 14 | WD-00982 | Withdrawal | ₱8,000 | ₱7,500 | ₱500 | Unreconciled / Discrepancy | — |
 
-Clicking a row should open **View Details**, showing exactly which disbursements were matched to the bank transaction.
+Each row has **View Details**, which shows the finalized withdrawal, every matched disbursement and amount, status, reconciler, and reconciliation timestamp.
 
 ---
 
 ## 8. Reflect Reconciliation Work on the Dashboard
 
-The **Treasurer Action Items** section can show operational counts such as:
+The **Treasurer Action Items** section shows live operational summaries:
 
 - 3 Bank Withdrawals Awaiting Reconciliation
 - 1 Discrepancy Requiring Explanation
 - ₱2,500 Pending Liquidation
 
-Each item can link directly to the Bank Reconciliation page.
+Each item links directly to **Bank Reconciliation → Outgoing Funds**.
 
 ---
 
@@ -224,11 +212,11 @@ However, for the manual process described by the adviser:
 
 **Bank Withdrawal → Cash Book Expenses**
 
-The correct system equivalent should be:
+The implemented system equivalent is:
 
 **Bank Withdrawal → Approved Cash Disbursement(s)**
 
-Therefore, the Bank Reconciliation module should support both:
+The implemented Bank Reconciliation module supports both:
 
 > **Deposit → Verified Contribution**
 
@@ -238,37 +226,36 @@ This keeps incoming and outgoing reconciliation separate and clear.
 
 ---
 
-# Suggested Database Relationship
+# Implemented Database Relationship
 
 ## Bank Ledger Entry
 
-Suggested fields:
+Relevant fields:
 
 - transaction date
 - reference
 - type: `deposit` / `withdrawal`
 - amount
-- reconciliation status
+- reconciliation status, discrepancy amount/reason, reconciled by, and reconciled at
 
 ## Cash Disbursement
 
-Suggested fields:
+Relevant fields:
 
 - amount
 - purpose
-- approval status
+- approval status (`pending`, `approved`, `rejected`) and void fields
 - approved by
 - approved at
 
 ## Reconciliation Match
 
-Use a separate linking record with fields such as:
+The implemented linking table stores:
 
 - bank ledger entry
 - cash disbursement
-- amount matched
-- matched by
-- matched at
+- bank ledger entry and cash disbursement foreign keys
+- timestamps
 
 A separate matching table is important because **one bank withdrawal can pay for several disbursements**.
 
@@ -291,19 +278,19 @@ A single `matched_disbursement_id` field would not be enough because one withdra
 ## Secretary
 
 - Records operational transactions, donations, and inventory
-- Can submit a disbursement request if allowed by policy
+- Can submit a disbursement request; cannot approve, reject, or finalize reconciliation
 
 ## Admin
 
 - Approves or rejects disbursement requests
-- Handles controlled cancellations or corrections
+- Approves or rejects requests and can void approved disbursements with a reason
 
 ## Treasurer
 
 - Imports or records bank transactions
 - Selects approved disbursements
 - Checks the difference between bank withdrawals and system records
-- Confirms reconciliation
+- Resolves discrepancy explanations and confirms balanced reconciliation
 - Reviews the financial ledger and reports
 
 ---
@@ -346,13 +333,13 @@ Then demonstrate a second case:
 > System records: ₱9,500  
 > **₱500 discrepancy**
 
-The system should refuse to mark it as fully reconciled until the discrepancy is explained or resolved.
+The system refuses to mark it as fully reconciled until the discrepancy is resolved to zero.
 
 ---
 
 # Main Value of the System
 
-The system should not only store numbers. It should control the full process:
+The system does not only store numbers. It controls the full process:
 
 **Disbursement Request → Approval → Bank Comparison → Discrepancy Handling → Reconciliation → Audit Trail**
 

@@ -273,23 +273,25 @@ Neziel owns donor-facing records (the "who" behind every donation) and the repor
 ## Julius — Bank Reconciliation, Financial Ledger
 
 ### Overview
-Julius owns the financial control layer: matching bank statement entries against recorded donations, and (going forward) the full cash bookkeeping lifecycle including disbursements, approvals, and void/reversal with audit trail.
+Julius owns the financial control layer: matching incoming bank entries against recorded donations, matching outgoing withdrawals against approved disbursements, and the cash bookkeeping lifecycle including requests, approvals, void/reversal, discrepancy handling, and finalized reconciliation with audit trail.
 
 ### Responsibilities
 - Keep the reconciliation process accurate and auditable (match, mark reconciled, track status).
-- Extend cash bookkeeping beyond inbound-only: disbursements, approval workflow, void/reversal.
+- Maintain the disbursement request, maker-checker approval/rejection, void/reversal, and outgoing reconciliation workflow.
 
 ### Features
 | Feature | Related Requirement(s) | Status |
 |---|---|---|
 | Reconcile Cash Ledger | A8 | ✅ done |
 | View Cash Ledger Logs (ledger entry listings) | S10 (shared with Neziel's report view) | ✅ done |
-| Approve Fund Disbursements | A7 | ✅ implemented but not locally verified yet |
-| Void Cash Transactions | A9 | ✅ implemented but not locally verified yet |
-| Record Cash Disbursements (request/approve/reject/void, canonical) | S6 (now fully owned by Julius; Gina's earlier duplicate implementation removed) | ✅ implemented but not locally verified yet |
+| Approve Fund Disbursements | A7 | ✅ implemented and covered by `tests/Feature/DisbursementWorkflowTest.php` |
+| Void Cash Transactions | A9 | ✅ implemented and covered by `tests/Feature/DisbursementWorkflowTest.php` |
+| Record Cash Disbursements (request/approve/reject/void, canonical) | S6 (now fully owned by Julius; Gina's earlier duplicate implementation removed) | ✅ implemented and tested |
+| Outgoing Bank Reconciliation (match, discrepancy, finalize, history/details) | Task 4-7 workflow | ✅ implemented and covered by `tests/Feature/BankReconciliationTest.php` |
 
 ### Database Tables Used
-- `bank_ledger_entries` — imported/recorded bank statement lines (`status`, `matched_contribution_id`, `matched_by`, `matched_at`)
+- `bank_ledger_entries` — imported/recorded bank statement lines (`transaction_type`, `status`, incoming match fields, `discrepancy_amount`, `discrepancy_reason`, `reconciled_by`, `reconciled_at`)
+- `bank_withdrawal_disbursement_matches` — many-to-one outgoing links from approved disbursements to a withdrawal, with uniqueness protection per disbursement
 - `contributions` — matched against ledger entries (owned/populated by Gina's Donation Portal); now also carries `voided_at`/`voided_by`/`void_reason` for the void/reversal mechanism (migration `2026_08_23_000001_add_void_fields_to_contributions_table.php`)
 - `cash_disbursements` — **implemented**: `amount`, `purpose`, `requested_by`, `approved_by`, `status`, `approved_at`, `rejected_at`, `rejection_reason`, `voided_at`, `voided_by`, `void_reason` (migration `2026_08_23_000002_create_cash_disbursements_table.php`). This is the canonical schema — it replaced Gina's earlier standalone `cash_disbursements` table (no approval/status columns), which has been deleted along with her `CashDisbursementController`/`RecordCashDisbursement` service.
 
@@ -299,23 +301,18 @@ Julius owns the financial control layer: matching bank statement entries against
 - [x] **(done)** `ReconcileLedgerEntry` service — marks entry reconciled, links to contribution
 - [x] **(done)** `LedgerChannelResolver` service — payment channel resolution
 - [x] **(done)** `BankLedgerEntryPolicy` — authorization
-- [x] **(implemented but not locally verified yet)** `cash_disbursements` migration (`amount`, `purpose`, `requested_by`, `approved_by`, `status`, `approved_at`, `rejected_at`, `rejection_reason`, `voided_at`, `voided_by`, `void_reason`) — `database/migrations/2026_08_23_000002_create_cash_disbursements_table.php`
-- [x] **(implemented but not locally verified yet)** `DisbursementController` — `index`, `store` (request), `approve`, `reject`, `voidDisbursement`, `voidContribution`
-- [x] **(implemented but not locally verified yet)** `RequestDisbursement` service (maker step)
-- [x] **(implemented but not locally verified yet)** `ApproveDisbursement` service — enforces maker-checker: throws a `ValidationException` if the disbursement isn't pending, and if `requested_by === $approver->id` (requester cannot approve their own request); writes a `security_activity_events` row (`disbursement_approved`)
-- [x] **(implemented but not locally verified yet)** `RejectDisbursement` service
-- [x] **(implemented but not locally verified yet)** Void/reversal mechanism — `voided_at`/`voided_by`/`void_reason` columns added to both `contributions` and `cash_disbursements`; original record is never deleted, only soft-voided
-- [x] **(implemented but not locally verified yet)** `VoidDisbursement` service — restricted to `status === 'approved'` and not already voided; writes a `security_activity_events` row (`disbursement_voided`)
-- [x] **(implemented but not locally verified yet)** `VoidContribution` service — voids a pending, unreconciled cash contribution; writes a `security_activity_events` row (`contribution_voided`)
-- [x] **(implemented but not locally verified yet)** `CashDisbursementPolicy` — `viewAny`/`create` gated to `admin`/`secretary`/`treasurer`; `approve`/`reject` gated to `admin` + requester-cannot-approve-self; `void` gated to `admin` + `status === 'approved'` + not already voided
-- [x] **(implemented but not locally verified yet)** `ContributionPolicy::void` — gated to `admin`, cash type, `pending` status, not already voided, and no linked `BankLedgerEntry` (i.e. unreconciled)
-- [x] **(implemented but not locally verified yet)** `FinancialLedgerReportBuilder` updated to consume approved, non-voided disbursements: filters `CashDisbursement` rows to `status === 'approved' && ! $disbursement->isVoided()` for `disbursement_total`, and merges disbursements into the unified `ledger` rows alongside contributions (`entry_type: 'Disbursement'`)
+- [x] `cash_disbursements` migration and canonical request/approval/void schema
+- [x] `DisbursementController` — `index`, `store` (request), `approve`, `reject`, `voidDisbursement`, `voidContribution`
+- [x] `RequestDisbursement`, `ApproveDisbursement`, `RejectDisbursement`, `VoidDisbursement`, and `VoidContribution` services
+- [x] Maker-checker and void policies with audit events
+- [x] `FinancialLedgerReportBuilder` consumes approved, non-voided disbursements
+- [x] Outgoing reconciliation services, requests, migrations, history, details, and finalization metadata
 
 ### Frontend Tasks
 - [x] **(done)** `bank-reconciliation.blade.php`
 - [x] **(done)** `components/bank-reconciliation/*` — badge, receipt-card, match-modal, audit-banner, ledger-entry
-- [x] **(implemented but not locally verified yet)** `disbursements/index.blade.php` — single-page "Fund Disbursements" screen: request form, request history list, status badges, inline Approve/Reject/Void action forms gated by `@can`
-- [x] **(implemented but not locally verified yet)** "Void" actions wired directly into the UI — per-disbursement void form on `disbursements/index.blade.php`, and a void form on `donations/show.blade.php` (`route('contributions.void', $contribution)`) for contributions
+- [x] `disbursements/index.blade.php` — request form, request history, status badges, and gated approval/rejection/void actions
+- [x] Void actions wired into the UI for disbursements and eligible contributions
 - [x] **(done)** Void/disbursement rows surface on the Financial Ledgers report view — `resources/views/reports/index.blade.php` renders unified `ledger` rows (`x-reports.ledger-row`) covering both contributions and disbursements, via `FinancialLedgerReportBuilder`
 
 ### API Endpoints Needed
@@ -323,12 +320,16 @@ Julius owns the financial control layer: matching bank statement entries against
 |---|---|---|---|
 | GET | `/bank-reconciliation` | List ledger entries + match candidates | ✅ done |
 | POST | `/bank-reconciliation/reconcile` | Reconcile a ledger entry | ✅ done |
-| GET | `/disbursements` | List disbursement requests | ✅ implemented but not locally verified yet |
-| POST | `/disbursements` | Request a cash disbursement | ✅ implemented but not locally verified yet |
-| PATCH | `/disbursements/{disbursement}/approve` | Approve disbursement | ✅ implemented but not locally verified yet |
-| PATCH | `/disbursements/{disbursement}/reject` | Reject disbursement | ✅ implemented but not locally verified yet |
-| PATCH | `/disbursements/{disbursement}/void` | Void an approved disbursement | ✅ implemented but not locally verified yet |
-| PATCH | `/contributions/{contribution}/void` | Void a pending, unreconciled cash contribution | ✅ implemented but not locally verified yet |
+| GET | `/disbursements` | List disbursement requests | ✅ tested |
+| POST | `/disbursements` | Request a cash disbursement | ✅ tested |
+| PATCH | `/disbursements/{disbursement}/approve` | Approve disbursement | ✅ tested |
+| PATCH | `/disbursements/{disbursement}/reject` | Reject disbursement | ✅ tested |
+| PATCH | `/disbursements/{disbursement}/void` | Void an approved disbursement | ✅ tested |
+| PATCH | `/contributions/{contribution}/void` | Void a pending, unreconciled cash contribution | ✅ tested |
+| POST | `/bank-reconciliation/withdrawals` | Record a bank withdrawal | ✅ tested |
+| POST | `/bank-reconciliation/withdrawals/{withdrawal}/matches` | Save approved disbursement matches and discrepancy data | ✅ tested |
+| POST | `/bank-reconciliation/withdrawals/{withdrawal}/reconcile` | Finalize a balanced outgoing reconciliation | ✅ tested |
+| GET | `/bank-reconciliation/withdrawals/{withdrawal}` | Read-only finalized withdrawal details | ✅ tested |
 
 ### Validation Rules
 - A `bank_ledger_entries` row can match at most one `contribution` (existing unique constraint on `matched_contribution_id`).
@@ -345,7 +346,9 @@ Julius owns the financial control layer: matching bank statement entries against
 
 ### Testing Checklist
 - [x] **(done)** `tests/Feature/BankReconciliationTest.php`
-- [x] **(implemented but not locally verified yet)** `tests/Feature/DisbursementWorkflowTest.php` — covers: requester cannot approve own disbursement (`assertForbidden`); admin approval is audited (`security_activity_events` row + `status`/`approved_by` updated); pending, unreconciled contribution can be voided and audited; approved disbursement can be voided and audited
+- [x] `tests/Feature/DisbursementWorkflowTest.php` — covers request/pending state, maker-checker approval/rejection, voiding, audit events, and approved active totals
+- [x] `tests/Feature/BankReconciliationTest.php` — covers incoming reconciliation plus outgoing withdrawal creation/import, eligible matching, discrepancy handling, finalization locking, history, and details
+- [x] `tests/Feature/DashboardMetricsTest.php` — covers live Treasurer Action Items counts and unresolved difference totals
 - [ ] No dedicated regression test yet asserting `FinancialLedgerReportBuilder` totals correctly exclude voided/rejected disbursements from `disbursement_total` while still listing them in the ledger — state transitions and audit rows are covered by `DisbursementWorkflowTest`, but not report-total correctness end-to-end. Genuinely outstanding.
 
 ### Documentation Required
@@ -354,15 +357,15 @@ Julius owns the financial control layer: matching bank statement entries against
 - [ ] Void/reversal policy doc — what can be voided, by whom, and audit trail guarantees
 
 ### Deliverables
-- Bank Reconciliation: ledger import/listing, match-and-reconcile flow (done)
-- Fund Disbursement: request + approval workflow (closes A7) — implemented but not locally verified yet
-- Void/Reversal: audit-preserving cash transaction voiding (closes A9) — implemented but not locally verified yet
-- Updated Financial Ledger data model reflecting disbursements and voids — implemented but not locally verified yet
+- Bank Reconciliation: incoming/outgoing ledger matching, discrepancy handling, finalization, history, and details (done)
+- Fund Disbursement: request + approval/rejection workflow (closes A7) — done
+- Void/Reversal: audit-preserving cash transaction voiding (closes A9) — done
+- Updated Financial Ledger data model reflecting disbursements and voids — done
 - Absorbed and superseded Gina's original standalone Cash Disbursement recording (S6) into this canonical module
 
 ### Estimated Priority
 - **Critical:** Reconcile Cash Ledger (A8)
-- **High:** Approve Fund Disbursements (A7), Void Cash Transactions (A9)
+- **High:** Controlled correction/reversal process for already finalized reconciliations
 - **Medium:** View Cash Ledger Logs (S10, shared)
 
 ### Completion Checklist
@@ -370,11 +373,12 @@ Julius owns the financial control layer: matching bank statement entries against
 - [x] Ledger-to-contribution matching
 - [x] Reconciliation status tracking
 - [x] Audit banner in reconciliation UI
-- [x] `cash_disbursements` schema + migration — implemented but not locally verified yet
-- [x] Disbursement request + approval workflow (A7) — implemented but not locally verified yet
-- [x] Void/reversal mechanism with audit trail (A9) — implemented but not locally verified yet
-- [x] Financial Ledgers report updated for disbursements/voids — implemented but not locally verified yet
-- [x] Feature tests for disbursement and void flows — `tests/Feature/DisbursementWorkflowTest.php`, implemented but not locally verified yet
+- [x] `cash_disbursements` schema + migration
+- [x] Disbursement request + approval workflow (A7)
+- [x] Void/reversal mechanism with audit trail (A9)
+- [x] Financial Ledgers report updated for disbursements/voids
+- [x] Feature tests for disbursement and void flows — `tests/Feature/DisbursementWorkflowTest.php`
+- [x] Outgoing reconciliation discrepancy/finalization/history workflow — `tests/Feature/BankReconciliationTest.php`
 - [ ] Regression test confirming report totals correctly exclude voided/rejected disbursements — not yet written
 
 ---
@@ -449,7 +453,7 @@ Edemar owns the security perimeter of the system: authentication, session handli
 
 ### Dependencies
 - Every other module (`role:admin,secretary,treasurer` middleware) depends on Edemar's authentication and role system being correct — **this module should be stabilized first / integrated earliest**.
-- Audit logging (`security_activity_events`) is a shared resource: **Julius's** disbursement approvals and void actions, and **Gina's** cash disbursement recording, should log through this same table/service rather than inventing a parallel log.
+- Audit logging (`security_activity_events`) is a shared resource: **Julius's** disbursement approvals and void actions log through this table/service rather than inventing a parallel log.
 - Staff account management affects who can perform actions in every other module (e.g., `verified_by`, `created_by`, `matched_by`, `granted_by` foreign keys all reference `users`).
 
 ### Testing Checklist
@@ -535,7 +539,7 @@ graph TD
 ### API Dependencies
 - All protected routes depend on Edemar's `auth` + `role:admin,secretary,treasurer` middleware group in `routes/web.php`.
 - Neziel's Financial Ledgers report (`ReportController`) reads from Gina's `contributions` and Julius's `bank_ledger_entries` — report accuracy is blocked on both modules staying schema-compatible.
-- Gina's future disbursement entry endpoint must write to the `cash_disbursements` schema Julius designs — this is the tightest cross-member coupling in the plan and should be scoped together before either side starts coding.
+- The implemented `/disbursements` request/approval endpoint writes to Julius's canonical `cash_disbursements` schema; outgoing bank reconciliation consumes only approved, active rows.
 
 ### Module Dependencies
 1. **Edemar's** auth/role system is a hard prerequisite for every other module (nothing behind the middleware works without it) — already done, but staff account CRUD should land early since it affects who can be a `verified_by`/`matched_by`/`approved_by` actor in demos and tests.
@@ -546,8 +550,8 @@ graph TD
 ### Integration Order
 1. Edemar — confirm auth/role foundation stable (already largely done); prioritize staff account CRUD next since other members' audit trails reference `users`.
 2. Neziel — donor management (already done) unblocks Gina's donation intake testing.
-3. Gina — inventory + donation portal (already done); coordinate disbursement entry UI with Julius before building.
-4. Julius — reconciliation (already done); `cash_disbursements` schema and request/approve/reject/void workflow implemented (Gina's earlier duplicate entry UI removed as redundant).
+3. Gina — inventory + donation portal (already done); contribution data remains the incoming reconciliation source.
+4. Julius — reconciliation (already done); `cash_disbursements` schema, request/approve/reject/void workflow, and outgoing withdrawal reconciliation are implemented (Gina's earlier duplicate entry UI removed as redundant).
 5. Neziel — Financial Ledgers report now reads Julius's disbursement/void data; Donor Giving Summary added via the existing Philanthropy Roster tab. PDF export and further report types remain outstanding.
 6. All — final cross-module regression pass (see checklist below) before defense.
 
@@ -576,17 +580,17 @@ graph TD
 ### Final Integration Checklist
 - [ ] All outstanding ⏳/🟡 requirements from `PROJECT_REQUIREMENTS.md` re-verified against the codebase
 - [x] `cash_disbursements` schema agreed and migrated — implemented; now solely Julius's canonical schema (Gina's earlier duplicate schema/controller removed)
-- [x] Disbursement approval flow (A7) functional end-to-end: request → approve (Julius, `DisbursementController`) → reflected in report (Neziel, `FinancialLedgerReportBuilder`) — implemented but not locally verified yet
-- [x] Void/reversal flow (A9) functional end-to-end and excluded from active balances but visible in audit history — implemented but not locally verified yet
+- [x] Disbursement approval flow (A7) functional end-to-end: request → approve (Julius, `DisbursementController`) → reflected in report (Neziel, `FinancialLedgerReportBuilder`) — verified by `DisbursementWorkflowTest`
+- [x] Void/reversal flow (A9) functional end-to-end and excluded from active balances but visible in audit history — verified by `DisbursementWorkflowTest`
 - [ ] Staff account full CRUD (A3) functional and admin-gated (Edemar) — see Edemar's section, unchanged by this update
 - [ ] PDF export functional for at least the Financial Ledgers report (A12/S12) (Neziel) — still outstanding, not started
 - [ ] Admin-managed item categories functional (A6) (Gina) — see Gina's section, unchanged by this update
-- [ ] All new endpoints covered by feature tests; full `tests/Feature` suite passes — **cannot confirm**: PHP/Composer are not available in this environment's local PowerShell; must be run before defense
+- [x] Relevant new endpoints covered by feature tests; the focused disbursement, bank reconciliation, and dashboard suite passes (`47` tests, `230` assertions). The full suite still has unrelated donation/report/PDF failures.
 - [x] Audit log (`security_activity_events`) captures all new sensitive actions — confirmed in code (`disbursement_approved`, `disbursement_voided`, `contribution_voided` actions written by the respective services); not locally verified via a test run
 - [ ] Full demo path re-walked end-to-end: Log in → Dashboard → Create donor → Record donation → Verify → Stock-in/out → Reconcile → Request/approve disbursement → Void a transaction → Generate report (incl. Philanthropy Roster) → Export CSV/PDF → Manage staff account — not walked; requires a running local environment
 - [ ] `docs/PROJECT_REQUIREMENTS.md` status column updated to match final implementation state before defense — out of scope for this update (only `TEAM_TASK_ASSIGNMENT.md` was updated)
 
-**Final verification still needed** — PHP/Composer are not available in this environment's local PowerShell, so nothing above marked "implemented but not locally verified yet" has been run. Before defense, run:
+**Remaining verification** is limited to unrelated project-wide failures and outstanding features such as PDF export and staff account CRUD. The implemented disbursement and reconciliation workflow has been verified with the focused feature suite.
 ```bash
 composer dump-autoload
 php artisan migrate --pretend

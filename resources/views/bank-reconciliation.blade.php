@@ -5,7 +5,9 @@
 @section('page-subtitle', 'Audit bank transactions against registered community donations.')
 
 @section('content')
-    @php($activeTab = request('tab') === 'outgoing' ? 'outgoing' : 'incoming')
+    @php
+        $activeTab = request('tab') === 'outgoing' ? 'outgoing' : 'incoming';
+    @endphp
 
     <div class="space-y-6">
         @if (session('success'))
@@ -200,6 +202,9 @@
                                     ]) data-status-for="{{ $withdrawal->id }}">
                                         {{ abs($difference) < 0.005 ? 'Ready to Reconcile' : 'Discrepancy' }}
                                     </span>
+                                    @if (abs($difference) >= 0.005 && $withdrawal->discrepancy_reason)
+                                        <p class="mt-2 text-xs text-red-800"><span class="font-semibold">Reason:</span> {{ $withdrawal->discrepancy_reason }}</p>
+                                    @endif
                                 </div>
                             </div>
 
@@ -219,9 +224,27 @@
                                                 </label>
                                             @endforeach
                                         </div>
+                                        @if (abs($difference) >= 0.005)
+                                            <x-form.input name="discrepancy_reason" label="Explanation / Reason" required value="{{ old('discrepancy_reason', $withdrawal->discrepancy_reason) }}" />
+                                        @else
+                                            <input type="hidden" name="discrepancy_reason" value="">
+                                        @endif
                                         <x-form.error name="disbursement_ids" />
                                         <x-form.error name="withdrawal" />
-                                        <x-button>Save Match Selection</x-button>
+                                        <x-form.error name="discrepancy_reason" />
+                                        <div class="flex flex-wrap gap-2">
+                                            <x-button>Save Match Selection</x-button>
+                                            <x-button
+                                                type="submit"
+                                                formaction="{{ route('bank-reconciliation.withdrawals.reconcile', $withdrawal) }}"
+                                                name="finalize"
+                                                value="1"
+                                                data-finalize-button
+                                                disabled
+                                                class="bg-emerald-700 hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50"
+                                            >Confirm Reconciliation</x-button>
+                                        </div>
+                                        <x-form.error name="finalize" />
                                     @else
                                         <x-dashboard.empty-state message="No approved unreconciled disbursements are available to match." />
                                     @endif
@@ -244,6 +267,51 @@
                     @endforeach
                 @endif
             </section>
+
+            <section class="rounded-lg border border-slate-200 bg-white shadow-sm">
+                <div class="border-b border-slate-100 px-5 py-4">
+                    <h2 class="text-xs font-semibold uppercase tracking-wide text-slate-500">Reconciliation History</h2>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full text-left text-sm">
+                        <thead class="border-b border-slate-100 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                            <tr>
+                                <th class="px-5 py-3 font-semibold">Date</th>
+                                <th class="px-5 py-3 font-semibold">Bank Reference</th>
+                                <th class="px-5 py-3 font-semibold">Type</th>
+                                <th class="px-5 py-3 text-right font-semibold">Bank Amount</th>
+                                <th class="px-5 py-3 text-right font-semibold">Matched Amount</th>
+                                <th class="px-5 py-3 text-right font-semibold">Difference</th>
+                                <th class="px-5 py-3 font-semibold">Status</th>
+                                <th class="px-5 py-3 font-semibold">Reconciled By</th>
+                                <th class="px-5 py-3"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse ($withdrawalHistory as $entry)
+                                @php
+                                    $matchedAmount = $entry->matchedDisbursements->sum(fn ($disbursement) => (float) $disbursement->amount);
+                                @endphp
+                                <tr class="border-t border-slate-100 align-top">
+                                    <td class="whitespace-nowrap px-5 py-4 text-slate-700">{{ $entry->transaction_date->format('Y-m-d') }}</td>
+                                    <td class="whitespace-nowrap px-5 py-4 font-medium text-slate-900">{{ $entry->reference_number ?? '-' }}</td>
+                                    <td class="px-5 py-4 text-slate-700">{{ $entry->transaction_type }}</td>
+                                    <td class="whitespace-nowrap px-5 py-4 text-right text-slate-700">PHP {{ number_format((float) $entry->amount, 2) }}</td>
+                                    <td class="whitespace-nowrap px-5 py-4 text-right text-slate-700">PHP {{ number_format($matchedAmount, 2) }}</td>
+                                    <td class="whitespace-nowrap px-5 py-4 text-right text-slate-700">PHP {{ number_format((float) $entry->amount - $matchedAmount, 2) }}</td>
+                                    <td class="px-5 py-4"><span class="inline-flex rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold uppercase text-emerald-800">{{ $entry->status }}</span></td>
+                                    <td class="whitespace-nowrap px-5 py-4 text-slate-700">{{ $entry->reconciler?->name ?? trim(($entry->reconciler?->first_name ?? '').' '.($entry->reconciler?->last_name ?? '')) ?: '-' }}</td>
+                                    <td class="whitespace-nowrap px-5 py-4 text-right"><a href="{{ route('bank-reconciliation.withdrawals.show', $entry) }}" class="font-semibold text-blue-700 hover:text-blue-900">View Details</a></td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="9" class="px-5 py-6"><x-dashboard.empty-state message="No reconciled withdrawals yet." /></td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </section>
         @endif
     </div>
 
@@ -254,6 +322,7 @@
             const totalEl = document.querySelector(`[data-selected-total-for="${withdrawalId}"]`);
             const differenceEl = document.querySelector(`[data-difference-for="${withdrawalId}"]`);
             const statusEl = document.querySelector(`[data-status-for="${withdrawalId}"]`);
+            const finalizeButton = form.querySelector('[data-finalize-button]');
             const formatter = new Intl.NumberFormat('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
             const updateTotals = () => {
@@ -269,6 +338,7 @@
                 statusEl.classList.toggle('text-emerald-800', ready);
                 statusEl.classList.toggle('bg-red-100', ! ready);
                 statusEl.classList.toggle('text-red-800', ! ready);
+                finalizeButton.disabled = ! ready;
             };
 
             form.addEventListener('change', updateTotals);

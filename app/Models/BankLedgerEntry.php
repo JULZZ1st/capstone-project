@@ -24,7 +24,11 @@ class BankLedgerEntry extends Model
         'matched_contribution_id',
         'matched_by',
         'matched_at',
+        'reconciled_by',
+        'reconciled_at',
         'notes',
+        'discrepancy_amount',
+        'discrepancy_reason',
     ];
 
     protected function casts(): array
@@ -33,6 +37,8 @@ class BankLedgerEntry extends Model
             'amount' => 'decimal:2',
             'transaction_date' => 'date',
             'matched_at' => 'datetime',
+            'reconciled_at' => 'datetime',
+            'discrepancy_amount' => 'decimal:2',
         ];
     }
 
@@ -44,6 +50,11 @@ class BankLedgerEntry extends Model
     public function matcher(): BelongsTo
     {
         return $this->belongsTo(User::class, 'matched_by');
+    }
+
+    public function reconciler(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'reconciled_by');
     }
 
     public function withdrawalDisbursementMatches(): HasMany

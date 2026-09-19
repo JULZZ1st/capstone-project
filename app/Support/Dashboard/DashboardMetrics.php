@@ -87,10 +87,19 @@ class DashboardMetrics
             ->latest('matched_at')
             ->first(['id', 'amount', 'transaction_date', 'matched_at']);
 
+        $withdrawalsToReview = BankLedgerEntry::query()->withdrawalsToReview();
+        $discrepanciesToReview = (clone $withdrawalsToReview)->whereNotNull('discrepancy_amount');
+
         return [
             'pending_cash_count' => Contribution::query()->where('type', 'cash')->where('status', $pendingStatus)->count(),
             'latest_reconciliation' => $latestReconciledEntry,
             'unreconciled_ledger_count' => BankLedgerEntry::query()->needsReview()->count(),
+            'bank_withdrawals_awaiting_reconciliation' => $withdrawalsToReview->count(),
+            'discrepancies_requiring_review' => $discrepanciesToReview->count(),
+            'unresolved_difference_amount' => (clone $discrepanciesToReview)
+                ->select('discrepancy_amount')
+                ->get()
+                ->sum(fn (BankLedgerEntry $entry): float => abs((float) $entry->discrepancy_amount)),
         ];
     }
 

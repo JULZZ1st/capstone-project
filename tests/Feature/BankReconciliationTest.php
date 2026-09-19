@@ -249,7 +249,15 @@ class BankReconciliationTest extends TestCase
 
         $this->actingAs($treasurer)->post(route('bank-reconciliation.withdrawals.matches.store', $withdrawal), [
             'disbursement_ids' => [$disbursement->id],
+            'discrepancy_reason' => 'Bank fee was deducted before the disbursement cleared.',
         ])->assertRedirect(route('bank-reconciliation.index', ['tab' => 'outgoing']));
+
+        $this->assertDatabaseHas('bank_ledger_entries', [
+            'id' => $withdrawal->id,
+            'discrepancy_amount' => 3500,
+            'discrepancy_reason' => 'Bank fee was deducted before the disbursement cleared.',
+            'status' => 'unreconciled',
+        ]);
 
         $this->actingAs($treasurer)
             ->get(route('bank-reconciliation.index', ['tab' => 'outgoing']))
@@ -260,7 +268,146 @@ class BankReconciliationTest extends TestCase
             ->assertSee('PHP 2,500.00')
             ->assertSee('Difference')
             ->assertSee('PHP 3,500.00')
-            ->assertSee('Discrepancy');
+            ->assertSee('Discrepancy')
+            ->assertSee('Bank fee was deducted before the disbursement cleared.');
+    }
+
+    public function test_balanced_withdrawal_can_be_finalized(): void
+    {
+        $treasurer = $this->userWithRole('treasurer');
+        $withdrawal = $this->withdrawalEntry(['amount' => 5000, 'reference_number' => 'WD-FINALIZE']);
+        $first = $this->cashDisbursement(['amount' => 2000]);
+        $second = $this->cashDisbursement(['amount' => 3000]);
+
+        $this->actingAs($treasurer)->post(route('bank-reconciliation.withdrawals.reconcile', $withdrawal), [
+            'disbursement_ids' => [$first->id, $second->id],
+            'finalize' => 1,
+        ])->assertRedirect(route('bank-reconciliation.index', ['tab' => 'outgoing']));
+
+        $this->assertDatabaseHas('bank_ledger_entries', [
+            'id' => $withdrawal->id,
+            'status' => 'reconciled',
+            'reconciled_by' => $treasurer->id,
+            'discrepancy_amount' => null,
+            'discrepancy_reason' => null,
+        ]);
+        $this->assertNotNull(BankLedgerEntry::query()->findOrFail($withdrawal->id)->reconciled_at);
+        $this->assertDatabaseHas('bank_withdrawal_disbursement_matches', [
+            'bank_ledger_entry_id' => $withdrawal->id,
+            'cash_disbursement_id' => $first->id,
+        ]);
+        $this->assertDatabaseHas('bank_withdrawal_disbursement_matches', [
+            'bank_ledger_entry_id' => $withdrawal->id,
+            'cash_disbursement_id' => $second->id,
+        ]);
+
+        $this->actingAs($treasurer)->post(route('bank-reconciliation.withdrawals.matches.store', $withdrawal), [
+            'disbursement_ids' => [$first->id],
+        ])->assertSessionHasErrors('withdrawal');
+    }
+
+    public function test_finalized_withdrawal_history_has_details_and_is_read_only(): void
+    {
+        $treasurer = $this->userWithRole('treasurer');
+        $withdrawal = $this->withdrawalEntry([
+            'amount' => 5000,
+            'reference_number' => 'WD-HISTORY-001',
+            'transaction_date' => '2026-09-13',
+        ]);
+        $disbursement = $this->cashDisbursement([
+            'amount' => 5000,
+            'purpose' => 'Finalized relief payout',
+            'recipient' => 'Barangay Resident',
+        ]);
+
+        $this->actingAs($treasurer)->post(route('bank-reconciliation.withdrawals.reconcile', $withdrawal), [
+            'disbursement_ids' => [$disbursement->id],
+            'finalize' => 1,
+        ])->assertRedirect(route('bank-reconciliation.index', ['tab' => 'outgoing']));
+
+        $historyResponse = $this->actingAs($treasurer)
+            ->get(route('bank-reconciliation.index', ['tab' => 'outgoing']))
+            ->assertOk();
+
+        $historyResponse
+            ->assertSee('Reconciliation History')
+            ->assertSee('Date')
+            ->assertSee('Bank Reference')
+            ->assertSee('Type')
+            ->assertSee('Bank Amount')
+            ->assertSee('Matched Amount')
+            ->assertSee('Difference')
+            ->assertSee('Status')
+            ->assertSee('Reconciled By')
+            ->assertSee('2026-09-13')
+            ->assertSee('WD-HISTORY-001')
+            ->assertSee('withdrawal')
+            ->assertSee('PHP 5,000.00')
+            ->assertSee('PHP 0.00')
+            ->assertSee('reconciled')
+            ->assertSee($treasurer->name)
+            ->assertSee('View Details');
+
+        $this->actingAs($treasurer)
+            ->get(route('bank-reconciliation.withdrawals.show', $withdrawal))
+            ->assertOk()
+            ->assertSee('Withdrawal Reconciliation Details')
+            ->assertSee('Finalized relief payout')
+            ->assertSee('WD-HISTORY-001')
+            ->assertSee('PHP 5,000.00')
+            ->assertSee('Matched Disbursements')
+            ->assertSee('Reconciled By')
+            ->assertSee('Reconciled At')
+            ->assertSee($treasurer->name)
+            ->assertSee('reconciled')
+            ->assertDontSee('Save Match Selection')
+            ->assertDontSee('Confirm Reconciliation');
+    }
+
+    public function test_discrepant_withdrawal_cannot_be_finalized(): void
+    {
+        $treasurer = $this->userWithRole('treasurer');
+        $withdrawal = $this->withdrawalEntry(['amount' => 6000, 'reference_number' => 'WD-FINALIZE-DIFF']);
+        $disbursement = $this->cashDisbursement(['amount' => 2500]);
+
+        $this->actingAs($treasurer)->post(route('bank-reconciliation.withdrawals.reconcile', $withdrawal), [
+            'disbursement_ids' => [$disbursement->id],
+            'discrepancy_reason' => 'Pending liquidation.',
+            'finalize' => 1,
+        ])->assertSessionHasErrors('finalize');
+
+        $this->assertDatabaseHas('bank_ledger_entries', [
+            'id' => $withdrawal->id,
+            'status' => 'unreconciled',
+            'reconciled_by' => null,
+            'reconciled_at' => null,
+        ]);
+        $this->assertDatabaseMissing('bank_withdrawal_disbursement_matches', [
+            'bank_ledger_entry_id' => $withdrawal->id,
+            'cash_disbursement_id' => $disbursement->id,
+        ]);
+    }
+
+    public function test_discrepancy_requires_an_explanation(): void
+    {
+        $treasurer = $this->userWithRole('treasurer');
+        $withdrawal = $this->withdrawalEntry(['amount' => 6000, 'reference_number' => 'WD-MATCH-REASON']);
+        $disbursement = $this->cashDisbursement(['amount' => 2500]);
+
+        $this->actingAs($treasurer)->post(route('bank-reconciliation.withdrawals.matches.store', $withdrawal), [
+            'disbursement_ids' => [$disbursement->id],
+        ])->assertSessionHasErrors('discrepancy_reason');
+
+        $this->assertDatabaseMissing('bank_withdrawal_disbursement_matches', [
+            'bank_ledger_entry_id' => $withdrawal->id,
+            'cash_disbursement_id' => $disbursement->id,
+        ]);
+        $this->assertDatabaseHas('bank_ledger_entries', [
+            'id' => $withdrawal->id,
+            'status' => 'unreconciled',
+            'discrepancy_amount' => null,
+            'discrepancy_reason' => null,
+        ]);
     }
 
     public function test_only_approved_active_unmatched_disbursements_are_selectable_for_withdrawal_matching(): void
@@ -281,8 +428,7 @@ class BankReconciliationTest extends TestCase
             ->assertSee('Eligible approved disbursement')
             ->assertDontSee('Pending hidden disbursement')
             ->assertDontSee('Rejected hidden disbursement')
-            ->assertDontSee('Voided hidden disbursement')
-            ->assertDontSee('Already matched hidden disbursement');
+            ->assertDontSee('Voided hidden disbursement');
 
         $this->actingAs($treasurer)->post(route('bank-reconciliation.withdrawals.matches.store', $withdrawal), [
             'disbursement_ids' => [$pending->id, $rejected->id, $voided->id, $alreadyMatched->id],

@@ -2,11 +2,11 @@
 
 ## Purpose and Scope
 
-This document defines the implementation specification for a responsive authenticated dashboard for the Barangay Donation Platform.
+This document describes the implementation design for a responsive authenticated dashboard for the Barangay Donation Platform.
 
-The current project is a Laravel 11 application using Blade templates, Tailwind CSS, Vite, MySQL, the default `web` session guard, role-based middleware, and existing domain models for donors, donations, inventory items, cash transactions, and bank reconciliations. The dashboard must reuse this architecture and must not hardcode display data.
+The current project is a Laravel 11 application using Blade templates, Tailwind CSS, Vite, MySQL, the default `web` session guard, role-based middleware, and existing domain models for donors, contributions, inventory items, disbursements, and bank reconciliation. The dashboard reuses this architecture and does not hardcode display data.
 
-This document is a specification only. Do not implement application code until this design is approved.
+The dashboard described here is implemented through `DashboardController`, `DashboardMetrics`, and `resources/views/dashboard.blade.php`.
 
 ## Design Principles
 
@@ -133,16 +133,19 @@ Create a shared authenticated layout for operational pages:
 - Purpose:
   - Give treasurers a focused queue for cash and reconciliation work.
 - Data source:
-  - `cash_transactions`
-  - `bank_reconciliations`
-- Required backend logic:
-  - Count pending cash transactions.
-  - Count cash transactions without recent reconciliation coverage if reconciliation rules are defined.
-  - Show the most urgent few items, limited by config.
-  - Restrict sensitive action links by role where needed.
+  - pending cash `contributions`
+  - `bank_ledger_entries` and `bank_withdrawal_disbursement_matches`
+- Implemented backend logic:
+  - Count pending cash contributions.
+  - Count bank ledger entries needing review.
+  - Count unreconciled bank withdrawals.
+  - Count unreconciled withdrawals with discrepancy amounts.
+  - Sum absolute unresolved discrepancy amounts.
+  - Link outgoing summaries to `bank-reconciliation.index` with `tab=outgoing`.
 - Required database tables:
-  - `cash_transactions`
-  - `bank_reconciliations`
+  - `contributions`
+  - `bank_ledger_entries`
+  - `bank_withdrawal_disbursement_matches`
 - Loading state:
   - Card-level skeleton if async partials are introduced.
 - Empty state:
