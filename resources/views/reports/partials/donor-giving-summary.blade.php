@@ -48,12 +48,20 @@
     </form>
 
     <section class="rounded-lg border border-slate-200 bg-white shadow-sm">
-        <div class="flex flex-col gap-1 border-b border-slate-100 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+        <div class="flex flex-col gap-3 border-b border-slate-100 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
                 <p class="text-xs font-semibold uppercase tracking-wide text-emerald-700">Report Status: Philanthropy Roster</p>
                 <h2 class="text-sm font-bold uppercase text-slate-950">Donor Giving Summary</h2>
             </div>
-            <p class="text-xs text-slate-400">{{ $donorSummary['total_donors'] }} donor(s) with recorded giving</p>
+            <div class="flex items-center gap-3">
+                <p class="text-xs text-slate-400">{{ $donorSummary['total_donors'] }} donor(s) with recorded giving</p>
+                <a
+                    href="{{ route('reports.philanthropy-roster.pdf', ['year' => $year, 'month' => $month, 'search' => $search, 'sort' => $sort]) }}"
+                    class="inline-flex items-center justify-center gap-2 rounded-md bg-red-700 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-red-800"
+                >
+                    Download PDF
+                </a>
+            </div>
         </div>
 
         @if ($donorSummary['rows']->isEmpty())

@@ -16,4 +16,21 @@ class BankLedgerEntryPolicy
     {
         return $user->hasRole(['admin', 'treasurer']);
     }
+
+    public function import(User $user): bool
+    {
+        return $user->hasRole(['admin', 'treasurer']);
+    }
+
+    public function create(User $user): bool
+    {
+        return $user->hasRole(['admin', 'treasurer']);
+    }
+
+    public function matchWithdrawal(User $user, BankLedgerEntry $bankLedgerEntry): bool
+    {
+        return $user->hasRole(['admin', 'treasurer'])
+            && $bankLedgerEntry->isWithdrawal()
+            && ! $bankLedgerEntry->isReconciled();
+    }
 }

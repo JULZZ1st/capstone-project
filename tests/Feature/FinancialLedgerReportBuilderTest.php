@@ -3,8 +3,11 @@
 namespace Tests\Feature;
 
 use App\Models\BankLedgerEntry;
+use App\Models\CashDisbursement;
 use App\Models\Contribution;
 use App\Models\Donor;
+use App\Models\Role;
+use App\Models\User;
 use App\Services\Reports\FinancialLedgerReportBuilder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -60,6 +63,54 @@ class FinancialLedgerReportBuilderTest extends TestCase
         $this->assertSame('Dr. Manuel Co', $ledger[1]['donor_name']);
         $this->assertSame('reconciled', $ledger[1]['status_key']);
         $this->assertSame('Reconciled', $ledger[1]['status_label']);
+    }
+
+    public function test_voided_contribution_is_excluded_from_totals_but_shown_as_voided_in_ledger(): void
+    {
+        $voider = User::factory()->create(['role_id' => Role::query()->firstOrCreate(['name' => 'admin'])->id]);
+        $this->cashContribution(['amount' => 15000, 'payment_method' => 'bank_transfer', 'received_at' => '2026-06-05']);
+        $voided = $this->cashContribution([
+            'amount' => 50000,
+            'payment_method' => 'gcash',
+            'received_at' => '2026-06-10',
+            'status' => 'cancelled',
+            'voided_at' => now(),
+            'voided_by' => $voider->id,
+            'void_reason' => 'Duplicate entry',
+        ]);
+
+        $report = app(FinancialLedgerReportBuilder::class)->build(2026, 6);
+
+        $this->assertSame(15000.0, $report['summary']['recorded_total']);
+        $voidedRow = $report['ledger']->firstWhere('id', $voided->id);
+        $this->assertSame('voided', $voidedRow['status_key']);
+        $this->assertSame('Voided', $voidedRow['status_label']);
+    }
+
+    public function test_disbursement_total_only_counts_approved_active_disbursements(): void
+    {
+        $requester = User::factory()->create(['role_id' => Role::query()->firstOrCreate(['name' => 'treasurer'])->id]);
+        $admin = User::factory()->create(['role_id' => Role::query()->firstOrCreate(['name' => 'admin'])->id]);
+
+        CashDisbursement::query()->create([
+            'amount' => 2000, 'purpose' => 'Approved', 'requested_by' => $requester->id,
+            'status' => 'approved', 'approved_by' => $admin->id, 'approved_at' => '2026-06-01',
+            'created_at' => '2026-06-01',
+        ]);
+        CashDisbursement::query()->create([
+            'amount' => 1000, 'purpose' => 'Pending', 'requested_by' => $requester->id,
+            'status' => 'pending', 'created_at' => '2026-06-02',
+        ]);
+        CashDisbursement::query()->create([
+            'amount' => 3000, 'purpose' => 'Voided approved', 'requested_by' => $requester->id,
+            'status' => 'approved', 'approved_by' => $admin->id, 'approved_at' => '2026-06-03',
+            'voided_at' => '2026-06-03', 'voided_by' => $admin->id, 'void_reason' => 'Unused',
+            'created_at' => '2026-06-03',
+        ]);
+
+        $report = app(FinancialLedgerReportBuilder::class)->build(2026, 6);
+
+        $this->assertSame(2000.0, $report['summary']['disbursement_total']);
     }
 
     private function cashContribution(array $overrides = []): Contribution

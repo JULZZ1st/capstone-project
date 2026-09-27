@@ -2,6 +2,7 @@
 
 @section('title', 'Donations Portal')
 @section('page-title', 'Donations Portal')
+@section('page-subtitle', 'Log, review, and verify cash and in-kind contributions.')
 
 @section('content')
     @if ($errors->any())
@@ -9,13 +10,9 @@
     @endif
 
     <div class="space-y-6">
-        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-                <h1 class="text-2xl font-bold tracking-tight text-slate-950">Donations Portal</h1>
-                <p class="mt-1 text-sm text-slate-500">Log, review, and verify cash and in-kind contributions.</p>
-            </div>
-            <x-button type="button" class="w-auto shadow-sm" data-dialog-open="log-contribution-dialog">
-                <x-icon name="plus" class="-ml-0.5 mr-1.5 h-4 w-4" />
+        <div class="flex justify-end">
+            <x-button type="button" class="w-full gap-2 shadow-sm sm:w-auto" data-dialog-open="log-contribution-dialog">
+                <x-icon name="plus" class="h-4 w-4" />
                 Log New Contribution
             </x-button>
         </div>
@@ -89,5 +86,5 @@
         @endif
     </div>
 
-    <x-donations.log-modal :donors="$donors" :campaigns="$campaigns" />
+    <x-donations.log-modal :donors="$donors" :campaigns="$campaigns" :categories="$categories" :subcategories-by-category="$subcategoriesByCategory" />
 @endsection

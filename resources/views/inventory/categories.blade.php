@@ -2,6 +2,7 @@
 
 @section('title', 'Manage Item Categories')
 @section('page-title', 'Manage Item Categories')
+@section('page-subtitle', 'Add, rename, or retire the categories, subcategories, and units used across in-kind inventory.')
 
 @section('content')
     @if ($errors->any())
@@ -11,8 +12,6 @@
     <div class="space-y-6">
         <div>
             <a href="{{ route('inventory.index') }}" class="text-sm font-semibold text-blue-700 hover:text-blue-800">Back to inventory</a>
-            <h1 class="mt-2 text-2xl font-semibold text-slate-950">Manage Item Categories</h1>
-            <p class="mt-1 text-sm text-slate-600">Add, rename, or retire the categories and units used across in-kind inventory.</p>
         </div>
 
         <div class="grid gap-6 lg:grid-cols-2">
@@ -33,5 +32,7 @@
                 dialog-id="unit"
             />
         </div>
+
+        <x-inventory.subcategory-table :categories="$categories" />
     </div>
 @endsection

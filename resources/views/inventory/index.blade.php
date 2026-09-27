@@ -2,6 +2,7 @@
 
 @section('title', 'In-Kind Inventory')
 @section('page-title', 'In-Kind Inventory')
+@section('page-subtitle', 'Track donated goods, reserve levels, and stock movement.')
 
 @section('content')
     @if ($errors->any())
@@ -9,25 +10,21 @@
     @endif
 
     <div class="space-y-6">
-        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-                <h1 class="text-2xl font-bold tracking-tight text-slate-950">In-Kind Inventory</h1>
-                <p class="mt-1 text-sm text-slate-500">Track donated goods, reserve levels, and stock movement.</p>
-            </div>
-
-            <div class="flex flex-col gap-2 sm:flex-row">
-                @can('create', App\Models\InventoryCategory::class)
-                    <a href="{{ route('inventory.categories.index') }}" class="inline-flex items-center justify-center rounded-md border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50">
-                        Manage Categories &amp; Units
-                    </a>
-                @endcan
-                @can('create', App\Models\InventoryItem::class)
-                    <x-button type="button" class="w-auto shadow-sm" data-dialog-open="create-inventory-item-dialog">
-                        <x-icon name="plus" class="-ml-0.5 mr-1.5 h-4 w-4" />
-                        Add New Inventory Item
-                    </x-button>
-                @endcan
-            </div>
+        <div class="flex flex-col justify-end gap-2 sm:flex-row">
+            <a href="{{ route('inventory.export.pdf', $filters) }}" class="inline-flex items-center justify-center rounded-md border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50">
+                Export PDF
+            </a>
+            @can('create', App\Models\InventoryCategory::class)
+                <a href="{{ route('inventory.categories.index') }}" class="inline-flex items-center justify-center rounded-md border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50">
+                    Manage Categories &amp; Units
+                </a>
+            @endcan
+            @can('create', App\Models\InventoryItem::class)
+                <x-button type="button" class="w-full gap-2 shadow-sm sm:w-auto" data-dialog-open="create-inventory-item-dialog">
+                    <x-icon name="plus" class="h-4 w-4" />
+                    Add New Inventory Item
+                </x-button>
+            @endcan
         </div>
 
         <x-inventory.alert-panel :alerts="$alerts" />

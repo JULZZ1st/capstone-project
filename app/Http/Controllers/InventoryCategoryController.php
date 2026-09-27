@@ -18,7 +18,7 @@ class InventoryCategoryController extends Controller
         Gate::authorize('create', InventoryCategory::class);
 
         return view('inventory.categories', [
-            'categories' => InventoryCategory::query()->orderBy('label')->get(),
+            'categories' => InventoryCategory::query()->with(['subcategories' => fn ($query) => $query->orderBy('label')])->orderBy('label')->get(),
             'units' => InventoryUnit::query()->orderBy('label')->get(),
         ]);
     }

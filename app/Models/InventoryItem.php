@@ -14,6 +14,7 @@ class InventoryItem extends Model
     protected $fillable = [
         'name',
         'category',
+        'inventory_subcategory_id',
         'unit',
         'quantity',
         'current_quantity',
@@ -58,6 +59,11 @@ class InventoryItem extends Model
     public function updater(): BelongsTo
     {
         return $this->belongsTo(User::class, 'updated_by');
+    }
+
+    public function subcategory(): BelongsTo
+    {
+        return $this->belongsTo(InventorySubcategory::class, 'inventory_subcategory_id');
     }
 
     public function scopeReceived($query)

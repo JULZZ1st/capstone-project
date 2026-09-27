@@ -1,7 +1,9 @@
-@props(['index', 'row' => []])
+@props(['index', 'row' => [], 'categories'])
+
+@php($selectedSubcategory = old("items.{$index}.subcategory", $row['subcategory'] ?? ''))
 
 <div class="rounded-md border border-slate-200 bg-slate-50 p-3" data-item-row>
-    <div class="grid gap-3 md:grid-cols-6">
+    <div class="grid gap-3 md:grid-cols-7">
         <div class="md:col-span-2">
             <x-form.label for="items_{{ $index }}_name">Item Name</x-form.label>
             <input id="items_{{ $index }}_name" name="items[{{ $index }}][name]" value="{{ old("items.{$index}.name", $row['name'] ?? '') }}" class="mt-1 block w-full rounded-md border-slate-300 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500">
@@ -9,13 +11,31 @@
         </div>
         <div>
             <x-form.label for="items_{{ $index }}_category">Category</x-form.label>
-            <select id="items_{{ $index }}_category" name="items[{{ $index }}][category]" class="mt-1 block w-full rounded-md border-slate-300 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500">
+            <select id="items_{{ $index }}_category" name="items[{{ $index }}][category]" class="mt-1 block w-full rounded-md border-slate-300 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500" data-item-category>
                 <option value="">Select</option>
-                @foreach (config('donations.item_categories') as $value => $label)
-                    <option value="{{ $value }}" @selected(old("items.{$index}.category", $row['category'] ?? '') === $value)>{{ $label }}</option>
+                @foreach ($categories as $category)
+                    <option value="{{ $category->key }}" @selected(old("items.{$index}.category", $row['category'] ?? '') === $category->key)>{{ $category->label }}</option>
                 @endforeach
+                <option value="__other__" @selected(old("items.{$index}.category", $row['category'] ?? '') === '__other__')>Other</option>
             </select>
             <x-form.error name="items.{{ $index }}.category" />
+        </div>
+        <div data-item-custom-category hidden>
+            <x-form.label for="items_{{ $index }}_custom_category">Specify Category</x-form.label>
+            <input id="items_{{ $index }}_custom_category" name="items[{{ $index }}][custom_category]" value="{{ old("items.{$index}.custom_category", $row['custom_category'] ?? '') }}" class="mt-1 block w-full rounded-md border-slate-300 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500">
+            <x-form.error name="items.{{ $index }}.custom_category" />
+        </div>
+        <div>
+            <x-form.label for="items_{{ $index }}_subcategory">Subcategory</x-form.label>
+            <select id="items_{{ $index }}_subcategory" name="items[{{ $index }}][subcategory]" class="mt-1 block w-full rounded-md border-slate-300 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500 disabled:bg-slate-100 disabled:text-slate-500" data-item-subcategory data-selected-subcategory="{{ $selectedSubcategory }}" disabled>
+                <option value="">Select category first</option>
+            </select>
+            <x-form.error name="items.{{ $index }}.subcategory" />
+        </div>
+        <div data-item-custom-subcategory hidden>
+            <x-form.label for="items_{{ $index }}_custom_subcategory">Specify Subcategory</x-form.label>
+            <input id="items_{{ $index }}_custom_subcategory" name="items[{{ $index }}][custom_subcategory]" value="{{ old("items.{$index}.custom_subcategory", $row['custom_subcategory'] ?? '') }}" class="mt-1 block w-full rounded-md border-slate-300 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500">
+            <x-form.error name="items.{{ $index }}.custom_subcategory" />
         </div>
         <div>
             <x-form.label for="items_{{ $index }}_quantity">Quantity</x-form.label>

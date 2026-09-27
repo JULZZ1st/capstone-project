@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Donations;
 
 use App\Models\Contribution;
+use App\Models\InventoryCategory;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
@@ -26,7 +27,7 @@ class StoreContributionRequest extends FormRequest
             'amount' => ['required_if:donation_type,cash', 'nullable', 'numeric', 'min:0.01', 'max:99999999.99'],
             'payment_method' => ['required_if:donation_type,cash', 'nullable', Rule::in(array_keys(config('donations.payment_methods')))],
             'reference_number' => [
-                Rule::requiredIf(fn () => $this->isElectronicPayment()),
+                Rule::requiredIf(fn () => $this->requiresExternalReference()),
                 'nullable',
                 'string',
                 'max:100',
@@ -35,13 +36,65 @@ class StoreContributionRequest extends FormRequest
             'notes' => ['nullable', 'string', 'max:2000'],
             'items' => $isInKind ? ['required', 'array', 'min:1'] : ['array'],
             'items.*.name' => ['required_if:donation_type,in_kind', 'string', 'max:255'],
-            'items.*.category' => ['required_if:donation_type,in_kind', Rule::in(array_keys(config('donations.item_categories')))],
+            'items.*.category' => ['required_if:donation_type,in_kind', Rule::in([...array_keys(InventoryCategory::options()), '__other__'])],
+            'items.*.custom_category' => ['required_if:items.*.category,__other__', 'nullable', 'string', 'max:255'],
+            'items.*.subcategory' => ['nullable', 'string', 'max:100'],
+            'items.*.custom_subcategory' => ['required_if:items.*.subcategory,__other__', 'nullable', 'string', 'max:255'],
             'items.*.quantity' => ['required_if:donation_type,in_kind', 'numeric', 'min:0.01', 'max:999999.99'],
             'items.*.unit' => ['required_if:donation_type,in_kind', Rule::in(array_keys(config('donations.units')))],
             'items.*.condition' => ['required_if:donation_type,in_kind', Rule::in(array_keys(config('donations.item_conditions')))],
             'items.*.estimated_value' => ['nullable', 'numeric', 'min:0', 'max:99999999.99'],
             'items.*.notes' => ['nullable', 'string', 'max:1000'],
         ];
+    }
+
+    public function withValidator($validator): void
+    {
+        $validator->after(function ($validator) {
+            if ($this->input('donation_type') !== 'in_kind') {
+                return;
+            }
+
+            $categories = InventoryCategory::query()
+                ->active()
+                ->with(['subcategories' => fn ($query) => $query->active()->orderBy('label')])
+                ->get()
+                ->keyBy('key');
+
+            foreach ($this->input('items', []) as $index => $item) {
+                $categoryKey = Arr::get($item, 'category');
+                $subcategoryKey = Arr::get($item, 'subcategory');
+
+                if ($categoryKey === '__other__' && blank(Arr::get($item, 'custom_category'))) {
+                    $validator->errors()->add("items.{$index}.custom_category", 'Specify a category.');
+                }
+
+                if ($subcategoryKey === '__other__' && blank(Arr::get($item, 'custom_subcategory'))) {
+                    $validator->errors()->add("items.{$index}.custom_subcategory", 'Specify a subcategory.');
+                }
+
+                if (! $categoryKey || ! $categories->has($categoryKey)) {
+                    continue;
+                }
+
+                $subcategories = $categories[$categoryKey]->subcategories->keyBy('key');
+                $field = "items.{$index}.subcategory";
+
+                if ($subcategories->isNotEmpty() && blank($subcategoryKey)) {
+                    $validator->errors()->add($field, 'The subcategory field is required when the selected category has subcategories.');
+
+                    continue;
+                }
+
+                if (filled($subcategoryKey) && ! $subcategories->has($subcategoryKey)) {
+                    if ($subcategoryKey === '__other__') {
+                        continue;
+                    }
+
+                    $validator->errors()->add($field, 'The selected subcategory is invalid for the selected category.');
+                }
+            }
+        });
     }
 
     protected function prepareForValidation(): void
@@ -56,6 +109,9 @@ class StoreContributionRequest extends FormRequest
                     return [
                         'name' => $this->nullableValue(Arr::get($item, 'name')),
                         'category' => $this->nullableLower(Arr::get($item, 'category')),
+                        'custom_category' => $this->nullableValue(Arr::get($item, 'custom_category')),
+                        'subcategory' => $this->nullableLower(Arr::get($item, 'subcategory')),
+                        'custom_subcategory' => $this->nullableValue(Arr::get($item, 'custom_subcategory')),
                         'quantity' => $this->nullableValue(Arr::get($item, 'quantity')),
                         'unit' => $this->nullableLower(Arr::get($item, 'unit')),
                         'condition' => $this->nullableLower(Arr::get($item, 'condition')),
@@ -79,10 +135,11 @@ class StoreContributionRequest extends FormRequest
         ]);
     }
 
-    private function isElectronicPayment(): bool
+    private function requiresExternalReference(): bool
     {
         return $this->input('donation_type') === 'cash'
-            && in_array($this->input('payment_method'), config('donations.electronic_payment_methods'), true);
+            && filled($this->input('payment_method'))
+            && $this->input('payment_method') !== 'cash';
     }
 
     private function nullableValue(mixed $value): ?string

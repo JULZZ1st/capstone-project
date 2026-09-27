@@ -29,14 +29,15 @@ class SystemSecurityAdministrationTest extends TestCase
         $response->assertSee(SecurityPermission::query()->firstOrFail()->name);
     }
 
-    public function test_non_admin_cannot_view_system_security_administration_page(): void
+    public function test_secretary_can_view_system_security_administration_page(): void
     {
         $secretary = $this->userWithRole('secretary');
         $this->seed(SystemSecuritySeeder::class);
 
-        $this->actingAs($secretary)
-            ->get(route('system-security.index'))
-            ->assertForbidden();
+        $response = $this->actingAs($secretary)->get(route('system-security.index'));
+
+        $response->assertOk();
+        $response->assertSee('System Security Administration');
     }
 
     public function test_admin_can_filter_security_activity_events(): void

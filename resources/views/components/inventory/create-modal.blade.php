@@ -2,31 +2,33 @@
 
 @php($open = old('_modal') === 'create')
 
-<dialog id="create-inventory-item-dialog" class="w-[min(860px,calc(100vw-2rem))] rounded-2xl p-0 shadow-xl backdrop:bg-slate-950/50" @if($open) open @endif>
-    <form method="POST" action="{{ route('inventory.store') }}" class="max-h-[90vh] overflow-y-auto bg-white">
+<dialog id="create-inventory-item-dialog" class="m-auto w-[min(860px,calc(100vw-2rem))] overflow-hidden rounded-xl p-0 shadow-2xl backdrop:bg-slate-950/55" @if($open) open @endif>
+    <form method="POST" action="{{ route('inventory.store') }}" class="flex max-h-[90vh] flex-col bg-white">
         @csrf
         <input type="hidden" name="_modal" value="create">
 
-        <div class="sticky top-0 z-10 flex items-start justify-between border-b border-slate-200 bg-white px-6 py-4">
-            <div class="flex items-center gap-3">
-                <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-100 text-blue-700">
+        <div class="flex shrink-0 items-start justify-between gap-4 border-b border-slate-200 px-5 py-4 sm:px-6">
+            <div class="flex min-w-0 items-start gap-3">
+                <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-100">
                     <x-icon name="archive" class="h-5 w-5" />
-                </span>
-                <div>
+                </div>
+                <div class="min-w-0">
                     <h2 class="text-lg font-semibold text-slate-950">Add New Inventory Item</h2>
                     <p class="mt-0.5 text-sm text-slate-500">Record donated goods and reserve levels.</p>
                 </div>
             </div>
-            <button type="button" class="rounded-md px-2 py-1 text-sm text-slate-500 hover:bg-slate-100" data-dialog-close="create-inventory-item-dialog">Close</button>
+            <button type="button" class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500" data-dialog-close="create-inventory-item-dialog" aria-label="Close modal">
+                <x-icon name="x-circle" class="h-5 w-5" />
+            </button>
         </div>
 
-        <div class="space-y-4 px-6 py-5">
+        <div class="min-h-0 flex-1 overflow-y-auto px-5 py-4 sm:px-6">
             <x-inventory.item-form :categories="$categories" :units="$units" />
         </div>
 
-        <div class="flex flex-col-reverse gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4 sm:flex-row sm:justify-end">
-            <button type="button" class="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-white" data-dialog-close="create-inventory-item-dialog">Cancel</button>
-            <x-button class="sm:w-auto">Save Inventory Item</x-button>
+        <div class="flex shrink-0 items-center justify-between gap-3 border-t border-slate-200 bg-slate-50/70 px-5 py-3.5 sm:px-6">
+            <button type="button" class="inline-flex h-10 items-center justify-center rounded-lg border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2" data-dialog-close="create-inventory-item-dialog">Cancel</button>
+            <x-button class="h-10 w-auto rounded-lg px-5">Save Inventory Item</x-button>
         </div>
     </form>
 </dialog>

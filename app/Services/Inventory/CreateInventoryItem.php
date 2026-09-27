@@ -9,14 +9,17 @@ use Illuminate\Support\Facades\DB;
 
 class CreateInventoryItem
 {
-    public function handle(array $data, User $user): InventoryItem
+    public function handle(array $data, User $user, ResolveInventoryClassification $resolver): InventoryItem
     {
-        return DB::transaction(function () use ($data, $user) {
+        return DB::transaction(function () use ($data, $user, $resolver) {
             $initialQuantity = (float) $data['initial_quantity'];
+            $category = $resolver->category($user, $data['category'], $data['custom_category'] ?? null);
+            $subcategory = $resolver->subcategory($user, $category, $data['subcategory_selection'] ?? null, $data['custom_subcategory'] ?? null);
 
             $item = InventoryItem::query()->create([
                 'name' => $data['name'],
-                'category' => $data['category'],
+                'category' => $category->key,
+                'inventory_subcategory_id' => $subcategory?->id,
                 'unit' => $data['unit'],
                 'quantity' => (int) round($initialQuantity),
                 'current_quantity' => $initialQuantity,

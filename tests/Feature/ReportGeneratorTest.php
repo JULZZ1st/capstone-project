@@ -138,6 +138,57 @@ class ReportGeneratorTest extends TestCase
         $this->get(route('reports.financial-ledgers.csv'))->assertRedirect(route('login'));
     }
 
+    public function test_authorized_user_can_download_financial_ledgers_pdf(): void
+    {
+        $reconciled = $this->cashContribution(['amount' => 15000, 'payment_method' => 'bank_transfer', 'received_at' => '2026-06-05', 'donor_name' => 'Dr. Manuel Co']);
+        $this->reconcile($reconciled);
+
+        $response = $this->actingAs(User::factory()->create())
+            ->get(route('reports.financial-ledgers.pdf', ['year' => 2026, 'month' => 6]));
+
+        $response->assertOk();
+        $this->assertStringContainsString('application/pdf', $response->headers->get('Content-Type'));
+        $this->assertStringStartsWith('%PDF', $response->getContent());
+    }
+
+    public function test_guest_cannot_download_financial_ledgers_pdf(): void
+    {
+        $this->get(route('reports.financial-ledgers.pdf'))->assertRedirect(route('login'));
+    }
+
+    public function test_authorized_user_can_download_philanthropy_roster_pdf(): void
+    {
+        $donor = Donor::query()->create([
+            'donor_type' => 'individual',
+            'full_name' => 'PDF Donor',
+            'address' => 'Brgy. San Jose',
+            'contact_number' => '09171234567',
+            'email' => 'pdf-donor@example.com',
+            'status' => config('donors.defaults.status'),
+        ]);
+        Contribution::query()->create([
+            'donor_id' => $donor->id,
+            'type' => 'cash',
+            'status' => 'received',
+            'amount' => 3000,
+            'payment_method' => 'cash',
+            'reference_number' => 'REF-'.random_int(100000, 999999),
+            'received_at' => now(),
+        ]);
+
+        $response = $this->actingAs(User::factory()->create())
+            ->get(route('reports.philanthropy-roster.pdf', ['year' => now()->year, 'month' => now()->month]));
+
+        $response->assertOk();
+        $this->assertStringContainsString('application/pdf', $response->headers->get('Content-Type'));
+        $this->assertStringStartsWith('%PDF', $response->getContent());
+    }
+
+    public function test_guest_cannot_download_philanthropy_roster_pdf(): void
+    {
+        $this->get(route('reports.philanthropy-roster.pdf'))->assertRedirect(route('login'));
+    }
+
     private function cashContribution(array $overrides = []): Contribution
     {
         $donor = Donor::query()->create([

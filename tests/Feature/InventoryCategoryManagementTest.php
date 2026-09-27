@@ -2,8 +2,11 @@
 
 namespace Tests\Feature;
 
+use App\Models\Contribution;
+use App\Models\Donor;
 use App\Models\InventoryCategory;
 use App\Models\InventoryItem;
+use App\Models\InventorySubcategory;
 use App\Models\InventoryUnit;
 use App\Models\Role;
 use App\Models\User;
@@ -248,6 +251,148 @@ class InventoryCategoryManagementTest extends TestCase
         $this->assertDatabaseHas('inventory_items', ['name' => 'Emergency Kit Bundle', 'category' => 'emergency_kits']);
     }
 
+    public function test_inventory_modal_exposes_subcategories_grouped_by_category(): void
+    {
+        $response = $this->actingAs($this->userWithRole('admin'))->get(route('inventory.index'));
+
+        $response->assertOk()
+            ->assertSee('data-inventory-item-form', false)
+            ->assertSee('Cookware')
+            ->assertSee('Utensils')
+            ->assertSee('Dinnerware');
+    }
+
+    public function test_inventory_item_rejects_a_subcategory_from_another_category(): void
+    {
+        $admin = $this->userWithRole('admin');
+        $food = InventoryCategory::query()->where('key', 'food')->firstOrFail();
+        $subcategory = InventorySubcategory::query()
+            ->whereHas('category', fn ($query) => $query->where('key', 'kitchen_supplies'))
+            ->firstOrFail();
+
+        $response = $this->actingAs($admin)->post(route('inventory.store'), [
+            'name' => 'Invalid Subcategory Item',
+            'category' => $food->key,
+            'subcategory_selection' => $subcategory->key,
+            'unit' => 'piece',
+            'initial_quantity' => 1,
+            'minimum_reserve_quantity' => 0,
+            'storage_location' => 'Main Storage',
+            'status' => 'active',
+        ]);
+
+        $response->assertSessionHasErrors('subcategory_selection');
+        $this->assertDatabaseMissing('inventory_items', ['name' => 'Invalid Subcategory Item']);
+    }
+
+    public function test_inventory_item_rejects_an_inactive_subcategory(): void
+    {
+        $admin = $this->userWithRole('admin');
+        $subcategory = InventorySubcategory::query()->where('key', 'cookware')->firstOrFail();
+        $subcategory->update(['is_active' => false]);
+
+        $response = $this->actingAs($admin)->post(route('inventory.store'), [
+            'name' => 'Inactive Subcategory Item',
+            'category' => 'kitchen_supplies',
+            'subcategory_selection' => $subcategory->key,
+            'unit' => 'piece',
+            'initial_quantity' => 1,
+            'minimum_reserve_quantity' => 0,
+            'storage_location' => 'Main Storage',
+            'status' => 'active',
+        ]);
+
+        $response->assertSessionHasErrors('subcategory_selection');
+        $this->assertDatabaseMissing('inventory_items', ['name' => 'Inactive Subcategory Item']);
+    }
+
+    public function test_inventory_item_can_be_created_without_a_subcategory(): void
+    {
+        $response = $this->actingAs($this->userWithRole('admin'))->post(route('inventory.store'), [
+            'name' => 'Uncategorized School Item',
+            'category' => 'school_supplies',
+            'unit' => 'piece',
+            'initial_quantity' => 1,
+            'minimum_reserve_quantity' => 0,
+            'storage_location' => 'Main Storage',
+            'status' => 'active',
+        ]);
+
+        $response->assertRedirect(route('inventory.index'));
+        $this->assertDatabaseHas('inventory_items', [
+            'name' => 'Uncategorized School Item',
+            'inventory_subcategory_id' => null,
+        ]);
+    }
+
+    public function test_admin_can_create_and_reuse_custom_category_and_subcategory(): void
+    {
+        $admin = $this->userWithRole('admin');
+        $payload = [
+            'name' => 'Custom Kitchen Item',
+            'category' => '__other__',
+            'custom_category' => '  Outdoor Cooking  ',
+            'subcategory_selection' => '__other__',
+            'custom_subcategory' => '  Portable Stoves  ',
+            'unit' => 'piece',
+            'initial_quantity' => 1,
+            'minimum_reserve_quantity' => 0,
+            'storage_location' => 'Main Storage',
+            'status' => 'active',
+        ];
+
+        $this->actingAs($admin)->post(route('inventory.store'), $payload)->assertRedirect(route('inventory.index'));
+        $category = InventoryCategory::query()->where('label', 'Outdoor Cooking')->firstOrFail();
+        $subcategory = InventorySubcategory::query()->where('label', 'Portable Stoves')->firstOrFail();
+
+        $this->actingAs($admin)->post(route('inventory.store'), [...$payload, 'name' => 'Second Custom Kitchen Item'])
+            ->assertRedirect(route('inventory.index'));
+
+        $this->assertSame(1, InventoryCategory::query()->whereRaw('LOWER(label) = ?', ['outdoor cooking'])->count());
+        $this->assertSame(1, InventorySubcategory::query()->where('inventory_category_id', $category->id)->whereRaw('LOWER(label) = ?', ['portable stoves'])->count());
+        $this->assertDatabaseHas('inventory_items', ['name' => 'Custom Kitchen Item', 'category' => $category->key, 'inventory_subcategory_id' => $subcategory->id]);
+    }
+
+    public function test_non_admin_cannot_create_custom_inventory_classifications(): void
+    {
+        $response = $this->actingAs($this->userWithRole('secretary'))->post(route('inventory.store'), [
+            'name' => 'Unauthorized Custom Item',
+            'category' => '__other__',
+            'custom_category' => 'Restricted Category',
+            'subcategory_selection' => '__other__',
+            'custom_subcategory' => 'Restricted Subcategory',
+            'unit' => 'piece',
+            'initial_quantity' => 1,
+            'minimum_reserve_quantity' => 0,
+            'storage_location' => 'Main Storage',
+            'status' => 'active',
+        ]);
+
+        $response->assertSessionHasErrors('custom_category');
+        $this->assertDatabaseMissing('inventory_categories', ['label' => 'Restricted Category']);
+    }
+
+    public function test_existing_inventory_item_without_subcategory_remains_visible(): void
+    {
+        $item = InventoryItem::query()->create([
+            'name' => 'Legacy Inventory Item',
+            'category' => 'food',
+            'unit' => 'piece',
+            'quantity' => 1,
+            'current_quantity' => 1,
+            'minimum_reserve_quantity' => 0,
+            'storage_location' => 'Main Storage',
+            'status' => config('inventory.defaults.status'),
+            'received_at' => now(),
+        ]);
+
+        $this->actingAs($this->userWithRole('admin'))
+            ->get(route('inventory.show', $item))
+            ->assertOk()
+            ->assertSee('Food')
+            ->assertDontSee('Food ·');
+    }
+
     public function test_deactivated_category_is_rejected_for_inventory_item_creation(): void
     {
         $admin = $this->userWithRole('admin');
@@ -265,6 +410,146 @@ class InventoryCategoryManagementTest extends TestCase
         ]);
 
         $response->assertSessionHasErrors('category');
+    }
+
+    public function test_inventory_subcategories_are_seeded_from_config(): void
+    {
+        $food = InventoryCategory::query()->where('key', 'food')->firstOrFail();
+
+        $this->assertDatabaseHas('inventory_subcategories', [
+            'inventory_category_id' => $food->id,
+            'key' => 'rice_grains',
+            'label' => 'Rice & Grains',
+            'is_active' => true,
+        ]);
+    }
+
+    public function test_admin_can_create_update_and_delete_a_subcategory(): void
+    {
+        $admin = $this->userWithRole('admin');
+        $category = InventoryCategory::query()->where('key', 'other')->firstOrFail();
+
+        $this->actingAs($admin)->post(route('inventory.subcategories.store'), [
+            'inventory_category_id' => $category->id,
+            'key' => 'custom_subcategory',
+            'label' => 'Custom Subcategory',
+            'is_active' => '1',
+        ])->assertRedirect(route('inventory.categories.index'));
+
+        $subcategory = InventorySubcategory::query()->where('key', 'custom_subcategory')->firstOrFail();
+
+        $this->actingAs($admin)->patch(route('inventory.subcategories.update', $subcategory), [
+            'inventory_category_id' => $category->id,
+            'key' => 'custom_subcategory',
+            'label' => 'Renamed Subcategory',
+            'is_active' => '0',
+        ])->assertRedirect(route('inventory.categories.index'));
+
+        $this->assertDatabaseHas('inventory_subcategories', [
+            'id' => $subcategory->id,
+            'label' => 'Renamed Subcategory',
+            'is_active' => false,
+        ]);
+
+        $this->actingAs($admin)->delete(route('inventory.subcategories.destroy', $subcategory))
+            ->assertRedirect(route('inventory.categories.index'));
+
+        $this->assertDatabaseMissing('inventory_subcategories', ['id' => $subcategory->id]);
+    }
+    public function test_referenced_subcategory_can_be_deactivated_but_not_renamed(): void
+    {
+        $admin = $this->userWithRole('admin');
+        $food = InventoryCategory::query()->where('key', 'food')->firstOrFail();
+        $subcategory = InventorySubcategory::query()
+            ->where('inventory_category_id', $food->id)
+            ->where('key', 'rice_grains')
+            ->firstOrFail();
+
+        $this->createContributionItem($admin, 'food', 'rice_grains');
+
+        $this->actingAs($admin)->patch(route('inventory.subcategories.update', $subcategory), [
+            'inventory_category_id' => $food->id,
+            'key' => 'rice_grains',
+            'label' => 'Rice and Grains',
+            'is_active' => '0',
+        ])->assertRedirect(route('inventory.categories.index'));
+
+        $this->assertDatabaseHas('inventory_subcategories', [
+            'id' => $subcategory->id,
+            'key' => 'rice_grains',
+            'label' => 'Rice and Grains',
+            'is_active' => false,
+        ]);
+
+        $this->actingAs($admin)->patch(route('inventory.subcategories.update', $subcategory->fresh()), [
+            'inventory_category_id' => $food->id,
+            'key' => 'renamed_rice',
+            'label' => 'Renamed Rice',
+            'is_active' => '1',
+        ])->assertSessionHasErrors('key');
+
+        $this->assertDatabaseMissing('inventory_subcategories', [
+            'id' => $subcategory->id,
+            'key' => 'renamed_rice',
+        ]);
+    }
+
+    public function test_referenced_subcategory_cannot_be_moved_or_deleted(): void
+    {
+        $admin = $this->userWithRole('admin');
+        $food = InventoryCategory::query()->where('key', 'food')->firstOrFail();
+        $kitchen = InventoryCategory::query()->where('key', 'kitchen_supplies')->firstOrFail();
+        $subcategory = InventorySubcategory::query()
+            ->where('inventory_category_id', $food->id)
+            ->where('key', 'rice_grains')
+            ->firstOrFail();
+
+        $this->createContributionItem($admin, 'food', 'rice_grains');
+
+        $this->actingAs($admin)->patch(route('inventory.subcategories.update', $subcategory), [
+            'inventory_category_id' => $kitchen->id,
+            'key' => 'rice_grains',
+            'label' => 'Rice & Grains',
+            'is_active' => '1',
+        ])->assertSessionHasErrors('key');
+
+        $this->actingAs($admin)->delete(route('inventory.subcategories.destroy', $subcategory))
+            ->assertSessionHasErrors('key');
+
+        $this->assertDatabaseHas('inventory_subcategories', [
+            'id' => $subcategory->id,
+            'inventory_category_id' => $food->id,
+            'key' => 'rice_grains',
+        ]);
+    }
+
+    private function createContributionItem(User $user, string $category, string $subcategory): void
+    {
+        $donor = Donor::query()->create([
+            'donor_type' => 'individual',
+            'full_name' => 'Reference Donor',
+            'address' => 'Main Street',
+            'contact_number' => '09170000000',
+            'email' => 'reference@example.com',
+            'status' => config('donors.defaults.status'),
+        ]);
+
+        $contribution = Contribution::query()->create([
+            'donor_id' => $donor->id,
+            'created_by' => $user->id,
+            'type' => 'in_kind',
+            'status' => config('donations.default_status.in_kind'),
+            'received_at' => now(),
+        ]);
+
+        $contribution->items()->create([
+            'name' => 'Referenced Item',
+            'category' => $category,
+            'subcategory' => $subcategory,
+            'quantity' => 1,
+            'unit' => 'piece',
+            'condition' => 'new',
+        ]);
     }
 
     private function userWithRole(string $role): User

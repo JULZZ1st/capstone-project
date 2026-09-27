@@ -53,5 +53,12 @@
         <button type="button" class="inline-flex items-center justify-center rounded-md bg-blue-700 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-800" data-dialog-open="edit-donor-modal-{{ $donor->id }}">
             Edit Profile
         </button>
+        <form method="POST" action="{{ route('donors.destroy', $donor) }}" onsubmit="return confirm('Remove this donor? If they have donation history, the profile will be deactivated instead of permanently deleted.')">
+            @csrf
+            @method('DELETE')
+            <button type="submit" class="inline-flex items-center justify-center rounded-md border border-red-300 px-3 py-2 text-sm font-semibold text-red-700 hover:bg-red-50">
+                Remove
+            </button>
+        </form>
     </div>
 </article>

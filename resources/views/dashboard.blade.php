@@ -65,7 +65,7 @@
                     <span class="text-sm text-slate-600">Total cash disbursed</span>
                     <span class="text-sm font-semibold text-slate-950">{{ $money($dashboard['disbursements']['total_disbursed']) }}</span>
                 </div>
-                @if ($actionItems['pending_cash_count'] === 0 && $actionItems['unreconciled_ledger_count'] === 0)
+                @if ($actionItems['pending_cash_count'] === 0 && $actionItems['unreconciled_ledger_count'] === 0 && $actionItems['bank_withdrawals_awaiting_reconciliation'] === 0)
                     <x-dashboard.empty-state icon="alert-triangle" message="No treasurer action items right now." action="{{ route('bank-reconciliation.index') }}" action-label="View Today" />
                 @else
                     <dl class="space-y-3">
@@ -77,6 +77,18 @@
                             <dt class="text-sm text-slate-600">Bank ledger entries awaiting review</dt>
                             <dd class="text-sm font-semibold text-slate-950">{{ number_format($actionItems['unreconciled_ledger_count']) }}</dd>
                         </div>
+                        <a href="{{ route('bank-reconciliation.index', ['tab' => 'outgoing']) }}" class="flex items-center justify-between gap-4 rounded-xl bg-slate-50 px-3 py-2.5 transition hover:bg-slate-100">
+                            <span class="text-sm text-slate-600">Bank Withdrawals Awaiting Reconciliation</span>
+                            <span class="text-sm font-semibold text-slate-950">{{ number_format($actionItems['bank_withdrawals_awaiting_reconciliation']) }}</span>
+                        </a>
+                        <a href="{{ route('bank-reconciliation.index', ['tab' => 'outgoing']) }}" class="flex items-center justify-between gap-4 rounded-xl bg-slate-50 px-3 py-2.5 transition hover:bg-slate-100">
+                            <span class="text-sm text-slate-600">Discrepancies Requiring Review</span>
+                            <span class="text-sm font-semibold text-slate-950">{{ number_format($actionItems['discrepancies_requiring_review']) }}</span>
+                        </a>
+                        <a href="{{ route('bank-reconciliation.index', ['tab' => 'outgoing']) }}" class="flex items-center justify-between gap-4 rounded-xl bg-slate-50 px-3 py-2.5 transition hover:bg-slate-100">
+                            <span class="text-sm text-slate-600">Pending Liquidation / Unresolved Difference</span>
+                            <span class="text-sm font-semibold text-slate-950">{{ $money($actionItems['unresolved_difference_amount']) }}</span>
+                        </a>
                         @if ($actionItems['latest_reconciliation'])
                             <div class="rounded-xl bg-emerald-50 px-3 py-2.5 text-sm text-emerald-800">
                                 Latest reconciliation: {{ $actionItems['latest_reconciliation']->matched_at->format('Y-m-d') }} for {{ $money($actionItems['latest_reconciliation']->amount) }}.

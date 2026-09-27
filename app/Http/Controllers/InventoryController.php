@@ -9,8 +9,12 @@ use App\Models\InventoryCategory;
 use App\Models\InventoryItem;
 use App\Models\InventoryUnit;
 use App\Services\Inventory\CreateInventoryItem;
+use App\Services\Inventory\ResolveInventoryClassification;
 use App\Services\Inventory\InventoryAlertQuery;
+use App\Services\Reports\InventoryReportBuilder;
+use App\Services\Reports\InventoryReportPdfExporter;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\View\View;
 
@@ -25,6 +29,7 @@ class InventoryController extends Controller
                 'id',
                 'name',
                 'category',
+                'inventory_subcategory_id',
                 'description',
                 'unit',
                 'current_quantity',
@@ -37,6 +42,7 @@ class InventoryController extends Controller
                 'updated_at',
                 'status',
             ])
+            ->with('subcategory:id,key,label')
             ->search($filters['search'] ?? null)
             ->category($filters['category'] ?? null)
             ->status($filters['status'] ?? null)
@@ -59,14 +65,27 @@ class InventoryController extends Controller
             'filters' => $filters,
             'alerts' => $alertQuery->get(),
             'stockSummary' => $stockSummary,
-            'categories' => InventoryCategory::query()->active()->orderBy('label')->get(),
+            'categories' => InventoryCategory::query()
+                ->active()
+                ->with(['subcategories' => fn ($query) => $query->active()->orderBy('label')])
+                ->orderBy('label')
+                ->get(),
             'units' => InventoryUnit::query()->active()->orderBy('label')->get(),
         ]);
     }
 
-    public function store(StoreInventoryItemRequest $request, CreateInventoryItem $creator): RedirectResponse
+    public function exportPdf(InventoryIndexRequest $request, InventoryReportBuilder $builder, InventoryReportPdfExporter $exporter): Response
     {
-        $item = $creator->handle($request->validated(), $request->user());
+        $report = $builder->build($request->validated());
+
+        $filename = sprintf('inventory-summary-report-%s.pdf', now()->toDateString());
+
+        return $exporter->handle($report, $filename);
+    }
+
+    public function store(StoreInventoryItemRequest $request, CreateInventoryItem $creator, ResolveInventoryClassification $resolver): RedirectResponse
+    {
+        $item = $creator->handle($request->validated(), $request->user(), $resolver);
 
         return redirect()
             ->route('inventory.index')
@@ -81,6 +100,7 @@ class InventoryController extends Controller
         $inventoryItem->load([
             'creator:id,first_name,last_name,name',
             'updater:id,first_name,last_name,name',
+            'subcategory:id,key,label',
             'stockMovements' => fn ($query) => $query
                 ->with('creator:id,first_name,last_name,name')
                 ->latest()
@@ -90,9 +110,16 @@ class InventoryController extends Controller
         return view('inventory.show', compact('inventoryItem'));
     }
 
-    public function update(UpdateInventoryItemRequest $request, InventoryItem $inventoryItem): RedirectResponse
+    public function update(UpdateInventoryItemRequest $request, InventoryItem $inventoryItem, ResolveInventoryClassification $resolver): RedirectResponse
     {
-        $inventoryItem->update($request->validated() + [
+        $data = $request->validated();
+        $category = $resolver->category($request->user(), $data['category'], $data['custom_category'] ?? null);
+        $subcategory = $resolver->subcategory($request->user(), $category, $data['subcategory_selection'] ?? null, $data['custom_subcategory'] ?? null);
+
+        $inventoryItem->update([
+            ...$data,
+            'category' => $category->key,
+            'inventory_subcategory_id' => $subcategory?->id,
             'updated_by' => $request->user()->id,
         ]);
 

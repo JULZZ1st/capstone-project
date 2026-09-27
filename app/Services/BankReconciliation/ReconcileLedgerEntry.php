@@ -4,6 +4,7 @@ namespace App\Services\BankReconciliation;
 
 use App\Models\BankLedgerEntry;
 use App\Models\Contribution;
+use App\Models\SecurityActivityEvent;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -33,6 +34,14 @@ class ReconcileLedgerEntry
                 'matched_at' => now(),
                 'status' => 'reconciled',
             ])->save();
+
+            SecurityActivityEvent::query()->create([
+                'actor_id' => $user->id,
+                'action' => 'bank_reconciliation_matched',
+                'summary' => "{$user->name} reconciled bank ledger entry #{$entry->id} with contribution #{$contribution->id}.",
+                'metadata' => ['bank_ledger_entry_id' => $entry->id, 'contribution_id' => $contribution->id, 'amount' => $entry->amount],
+                'occurred_at' => now(),
+            ]);
 
             return $entry;
         });

@@ -12,7 +12,7 @@
         <table class="min-w-full divide-y divide-slate-200 text-sm">
             <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                 <tr>
-                    <th class="px-5 py-3">Referencing</th>
+                    <th class="px-5 py-3">Receipt No.</th>
                     <th class="px-4 py-3">Donor</th>
                     <th class="px-4 py-3">Type</th>
                     <th class="hidden px-4 py-3 md:table-cell">Campaign</th>

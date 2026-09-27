@@ -20,11 +20,12 @@ class DonationManagementTest extends TestCase
         $response->assertSee('Total Cash Ledger');
     }
 
-    public function test_donor_can_be_created(): void
+    public function test_individual_donor_can_be_created_with_first_and_last_name(): void
     {
         $response = $this->actingAs(User::factory()->create())->post('/donors', [
-            'donor_type' => config('donors.defaults.type'),
-            'full_name' => 'Maria Santos',
+            'donor_type' => 'individual',
+            'first_name' => 'Maria',
+            'last_name' => 'Santos',
             'address' => 'Brgy. San Isidro',
             'contact_number' => '09171234567',
             'email' => 'maria@example.com',
@@ -33,16 +34,189 @@ class DonationManagementTest extends TestCase
 
         $response->assertRedirect(route('donors.index'));
         $this->assertDatabaseHas('donors', [
+            'donor_type' => 'individual',
+            'first_name' => 'Maria',
+            'last_name' => 'Santos',
             'full_name' => 'Maria Santos',
-            'donor_type' => config('donors.defaults.type'),
             'email' => 'maria@example.com',
+            'contact_person' => null,
+            'status' => config('donors.defaults.status'),
         ]);
     }
 
-    public function test_donor_management_search_filters_cards(): void
+    public function test_organization_donor_can_be_created_with_organization_name_and_contact_person(): void
+    {
+        $response = $this->actingAs(User::factory()->create())->post('/donors', [
+            'donor_type' => 'organization',
+            'organization_name' => 'Helping Hands Org',
+            'contact_person' => 'Ana Reyes',
+            'address' => 'Brgy. Mabini',
+            'contact_number' => '09170000000',
+            'email' => 'help@example.com',
+        ]);
+
+        $response->assertRedirect(route('donors.index'));
+        $this->assertDatabaseHas('donors', [
+            'donor_type' => 'organization',
+            'first_name' => null,
+            'last_name' => null,
+            'full_name' => 'Helping Hands Org',
+            'contact_person' => 'Ana Reyes',
+            'email' => 'help@example.com',
+        ]);
+    }
+
+    public function test_create_donor_modal_uses_conditional_name_fields(): void
+    {
+        $individual = $this->actingAs(User::factory()->create())->get(route('donors.index'));
+
+        $individual->assertOk();
+        $individual->assertSee('First Name');
+        $individual->assertSee('Last Name');
+        $individual->assertSee('data-individual-name-field', false);
+        $individual->assertDontSee('name="status"', false);
+
+        $organization = $this->actingAs(User::factory()->create())
+            ->withSession([
+                '_old_input' => [
+                    '_modal' => 'create',
+                    'donor_type' => 'organization',
+                ],
+            ])
+            ->get(route('donors.index'));
+
+        $organization->assertOk();
+        $organization->assertSee('Organization Name');
+        $organization->assertSee('Contact Person');
+        $organization->assertSee('data-organization-name-field', false);
+        $organization->assertSee('data-contact-person-field', false);
+    }
+
+    public function test_individual_name_fields_are_required_for_individual_donors(): void
+    {
+        $this->actingAs(User::factory()->create())->post(route('donors.store'), [
+            'donor_type' => 'individual',
+            'address' => 'Brgy. San Isidro',
+            'contact_number' => '09171234568',
+        ])->assertSessionHasErrors(['first_name', 'last_name'])
+            ->assertSessionDoesntHaveErrors('organization_name');
+    }
+
+    public function test_organization_name_is_required_for_organization_donors(): void
+    {
+        $this->actingAs(User::factory()->create())->post(route('donors.store'), [
+            'donor_type' => 'organization',
+            'address' => 'Brgy. San Isidro',
+            'contact_number' => '09171234568',
+        ])->assertSessionHasErrors('organization_name')
+            ->assertSessionDoesntHaveErrors(['first_name', 'last_name']);
+    }
+
+    public function test_create_donor_defaults_status_to_active_for_new_donors(): void
+    {
+        $this->actingAs(User::factory()->create())->post(route('donors.store'), [
+            'donor_type' => 'individual',
+            'first_name' => 'Default',
+            'last_name' => 'Donor',
+            'address' => 'Brgy. San Isidro',
+            'contact_number' => '09171234568',
+            'email' => null,
+            'status' => 'inactive',
+        ])->assertRedirect(route('donors.index'));
+
+        $this->assertDatabaseHas('donors', [
+            'full_name' => 'Default Donor',
+            'status' => config('donors.defaults.status'),
+        ]);
+    }
+
+    public function test_likely_duplicate_individual_donor_warns_before_creating_another_record(): void
     {
         Donor::query()->create([
             'donor_type' => 'individual',
+            'first_name' => 'Maria',
+            'last_name' => 'Santos',
+            'full_name' => 'Maria Santos',
+            'address' => 'Brgy. San Isidro',
+            'contact_number' => '0917-123-4567',
+            'email' => 'maria@example.com',
+            'status' => config('donors.defaults.status'),
+        ]);
+
+        $this->actingAs(User::factory()->create())->post(route('donors.store'), [
+            '_modal' => 'create',
+            'donor_type' => 'individual',
+            'first_name' => '  maria ',
+            'last_name' => ' santos  ',
+            'address' => 'Another address',
+            'contact_number' => '09171234567',
+            'email' => 'MARIA@example.com',
+        ])->assertRedirect(route('donors.index'))
+            ->assertSessionHas('warning')
+            ->assertSessionHas('duplicate_donor_detected', true);
+
+        $this->assertSame(1, Donor::query()->count());
+    }
+
+    public function test_likely_duplicate_organization_donor_warns_before_creating_another_record(): void
+    {
+        Donor::query()->create([
+            'donor_type' => 'organization',
+            'full_name' => 'Helping Hands Org',
+            'address' => 'Brgy. Mabini',
+            'contact_number' => '09170000000',
+            'email' => 'help@example.com',
+            'status' => config('donors.defaults.status'),
+        ]);
+
+        $this->actingAs(User::factory()->create())->post(route('donors.store'), [
+            '_modal' => 'create',
+            'donor_type' => 'organization',
+            'organization_name' => ' helping   hands org ',
+            'contact_person' => 'Ana Reyes',
+            'address' => 'Another address',
+            'contact_number' => '09170000000',
+        ])->assertRedirect(route('donors.index'))
+            ->assertSessionHas('warning')
+            ->assertSessionHas('duplicate_donor_detected', true);
+
+        $this->assertSame(1, Donor::query()->count());
+    }
+
+    public function test_confirmed_likely_duplicate_can_be_created(): void
+    {
+        Donor::query()->create([
+            'donor_type' => 'individual',
+            'first_name' => 'Maria',
+            'last_name' => 'Santos',
+            'full_name' => 'Maria Santos',
+            'address' => 'Brgy. San Isidro',
+            'contact_number' => '09171234567',
+            'email' => 'maria@example.com',
+            'status' => config('donors.defaults.status'),
+        ]);
+
+        $this->actingAs(User::factory()->create())->post(route('donors.store'), [
+            '_modal' => 'create',
+            '_confirm_duplicate' => '1',
+            'donor_type' => 'individual',
+            'first_name' => 'Maria',
+            'last_name' => 'Santos',
+            'address' => 'Another address',
+            'contact_number' => '09171234567',
+            'email' => 'maria@example.com',
+        ])->assertRedirect(route('donors.index'))
+            ->assertSessionHas('success');
+
+        $this->assertSame(2, Donor::query()->count());
+    }
+
+    public function test_donor_management_search_filters_cards_by_split_names(): void
+    {
+        Donor::query()->create([
+            'donor_type' => 'individual',
+            'first_name' => 'Maria',
+            'last_name' => 'Santos',
             'full_name' => 'Maria Santos',
             'address' => 'Brgy. San Isidro',
             'contact_number' => '09171234567',
@@ -60,7 +234,7 @@ class DonationManagementTest extends TestCase
         ]);
 
         $response = $this->actingAs(User::factory()->create())->get(route('donors.index', [
-            'search' => 'Maria',
+            'search' => 'Santos',
         ]));
 
         $response->assertOk();
@@ -68,10 +242,12 @@ class DonationManagementTest extends TestCase
         $response->assertDontSee('Helping Hands Org');
     }
 
-    public function test_donor_profile_can_be_updated(): void
+    public function test_donor_profile_can_be_updated_with_existing_full_name_flow(): void
     {
         $donor = Donor::query()->create([
             'donor_type' => 'individual',
+            'first_name' => 'Maria',
+            'last_name' => 'Santos',
             'full_name' => 'Maria Santos',
             'address' => 'Brgy. San Isidro',
             'contact_number' => '09171234567',
@@ -105,6 +281,8 @@ class DonationManagementTest extends TestCase
     {
         $donor = Donor::query()->create([
             'donor_type' => 'individual',
+            'first_name' => 'Maria',
+            'last_name' => 'Santos',
             'full_name' => 'Maria Santos',
             'address' => 'Brgy. San Isidro',
             'contact_number' => '09171234567',
@@ -113,6 +291,8 @@ class DonationManagementTest extends TestCase
         ]);
         $otherDonor = Donor::query()->create([
             'donor_type' => 'individual',
+            'first_name' => 'Juan',
+            'last_name' => 'Reyes',
             'full_name' => 'Juan Reyes',
             'address' => 'Brgy. Mabini',
             'contact_number' => '09170000000',

@@ -80,6 +80,7 @@ class Contribution extends Model
         return $query
             ->where('type', 'cash')
             ->whereIn('payment_method', config('donations.electronic_payment_methods'))
+            ->where('status', 'verified')
             ->whereDoesntHave('ledgerEntry');
     }
 
@@ -108,7 +109,8 @@ class Contribution extends Model
 
         return $query->where(function ($query) use ($term) {
             $query
-                ->where('reference_number', 'like', "%{$term}%")
+                ->where('receipt_number', 'like', "%{$term}%")
+                ->orWhere('reference_number', 'like', "%{$term}%")
                 ->orWhere('notes', 'like', "%{$term}%")
                 ->orWhereHas('donor', function ($query) use ($term) {
                     $query

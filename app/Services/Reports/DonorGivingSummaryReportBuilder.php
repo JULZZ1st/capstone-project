@@ -42,7 +42,7 @@ class DonorGivingSummaryReportBuilder
             ->withSum(['contributions as total_cash_donations' => fn ($q) => $scopeToPeriod($q)->where('type', 'cash')], 'amount')
             ->withMin(['contributions as first_donation_date' => $scopeToPeriod], 'received_at')
             ->withMax(['contributions as last_donation_date' => $scopeToPeriod], 'received_at')
-            ->having('total_donation_count', '>', 0)
+            ->whereHas('contributions', $scopeToPeriod)
             ->get();
 
         $inKindTotalsByDonor = DB::table('contribution_items')
@@ -74,13 +74,13 @@ class DonorGivingSummaryReportBuilder
             ];
         });
 
-        $rows = match ($sort) {
+        $rows = (match ($sort) {
             'highest' => $rows->sortByDesc('combined_donation_value'),
             'lowest' => $rows->sortBy('combined_donation_value'),
             'most_contributions' => $rows->sortByDesc('total_donation_count'),
             'latest' => $rows->sortByDesc('last_donation_date'),
             default => $rows->sortByDesc('combined_donation_value'),
-        }->values();
+        })->values();
 
         return [
             'rows' => $rows,
@@ -99,3 +99,4 @@ class DonorGivingSummaryReportBuilder
         return $value ? Carbon::parse($value)->format('Y-m-d') : null;
     }
 }
+

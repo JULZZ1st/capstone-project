@@ -18,14 +18,14 @@
 | `summary.pending_cash_verification` | Pending Cash Verification card | `contributions` | `Contribution::where('type','cash')->where('status', config('dashboard.cash_statuses.pending'))->count()` |
 | `summary.in_kind_batches` | In-Kind Batches card | `inventory_items` | `InventoryItem::count()`, cached 300s (`dashboard.cache.safe_summary_ttl`) under key `dashboard.summary.in_kind_batches` |
 | `summary.registered_donors` | Registered Donors card | `donors` | `Donor::count()`, cached 300s under key `dashboard.summary.registered_donors` |
-| `treasurer_action_items` | Treasurer Action Items panel | `contributions`, `bank_ledger_entries` | `pending_cash_count`: pending cash contributions. `latest_reconciliation`: most recent `bank_ledger_entries` row with `status = reconciled`, ordered by `matched_at`. `unreconciled_ledger_count`: `BankLedgerEntry::needsReview()->count()` — ledger entries not yet reconciled against a contribution |
+| `treasurer_action_items` | Treasurer Action Items panel | `contributions`, `bank_ledger_entries` | `pending_cash_count`: pending cash contributions. `latest_reconciliation`: most recent reconciled ledger row, ordered by `matched_at`. `unreconciled_ledger_count`: `BankLedgerEntry::needsReview()->count()`. `bank_withdrawals_awaiting_reconciliation`: unreconciled withdrawal count. `discrepancies_requiring_review`: unreconciled withdrawals with a saved discrepancy. `unresolved_difference_amount`: sum of absolute unresolved discrepancy amounts. Each outgoing item links to `bank-reconciliation.index?tab=outgoing`. |
 | `funding_distribution` | Funding Distribution panel | `contributions`, `campaigns` | Verified cash contributions grouped by `campaign_id`, summed, ordered by total desc, capped at `config('dashboard.limits.funding_categories')` (5). Contributions with no campaign roll up under "Uncategorized" |
 | `recent_cash_awaiting_audit` | Recent Cash Donations Awaiting Audit list | `contributions`, `donors` | Pending cash contributions, eager-loaded with `donor:id,full_name`, latest `received_at` then `created_at`, limited to `config('dashboard.limits.recent_items')` (5) |
 | `system_log_activity` | System Log Activity feed | `contributions`, `inventory_items`, `cash_disbursements` | Latest N rows from each table are merged into one labeled activity stream (`Contribution logged`, `Inventory updated`, `Cash disbursed`), then re-sorted by `created_at` desc and truncated to the limit. This is derived on the fly, not a dedicated audit table |
 | `secretary_in_kind_control.status_counts` | Secretary In-Kind Control Panel — status tiles | `inventory_items` | `InventoryItem` grouped by `status`, counted |
 | `secretary_in_kind_control.recent_items` | Secretary In-Kind Control Panel — recent items | `inventory_items` | Latest items by `received_at` then `created_at`, limited |
 | `recent_donations` | Recent Donations Stream | `contributions`, `donors` | Latest `contributions` rows of either type, eager-loading `donor:id,full_name` and an `items_count` (via `withCount('items')`) to avoid N+1, limited. Cash rows show the amount; in-kind rows show item count since `amount` is null for in-kind contributions |
-| `disbursements.total_disbursed` | Cash Disbursements summary | `cash_disbursements` | `CashDisbursement::sum('amount')` (no status filter — all recorded disbursements count, since no approval workflow exists yet) |
+| `disbursements.total_disbursed` | Cash Disbursements summary | `cash_disbursements` | Sum of approved, non-voided disbursement amounts. Pending, rejected, and voided requests are excluded. |
 | `disbursements.recent` | Cash Disbursements recent activity | `cash_disbursements` | Latest disbursements by `disbursed_at` then `created_at`, limited |
 
 ## Shared Config
@@ -37,7 +37,7 @@
 
 ## Why `bank_ledger_entries` and not `contributions` alone for reconciliation status
 
-The Treasurer Action Items panel exists specifically to surface reconciliation work, which is tracked on Julius's `bank_ledger_entries` table (`status`, `matched_contribution_id`, `matched_at`) — `contributions` alone has no reconciliation state. This is a read-only query from `DashboardMetrics`; it does not write to or modify Julius's schema or services.
+The Treasurer Action Items panel exists specifically to surface reconciliation work, which is tracked on `bank_ledger_entries` (`transaction_type`, `status`, `discrepancy_amount`, `discrepancy_reason`, `reconciled_by`, and `reconciled_at`) and the withdrawal/disbursement match table. This is a read-only query from `DashboardMetrics`; it does not write to or modify reconciliation state.
 
 ## Graceful Degradation
 

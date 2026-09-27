@@ -30,8 +30,8 @@ class SystemSecurityDashboardQuery
                 'securityProfile:id,user_id,two_factor_enabled,two_factor_enforced,two_factor_verified_at,security_key_suffix',
                 'securityPermissions:id,key,name,sort_order',
             ])
-            ->where('status', config('auth_defaults.user_status'))
             ->whereHas('role', fn ($query) => $query->whereIn('name', ['admin', 'secretary', 'treasurer']))
+            ->orderByRaw("case when status = ? then 0 else 1 end", [config('auth_defaults.user_status')])
             ->orderBy('role_id')
             ->orderBy('name')
             ->get();

@@ -12,6 +12,8 @@ class Donor extends Model
 
     protected $fillable = [
         'donor_type',
+        'first_name',
+        'last_name',
         'full_name',
         'contact_person',
         'address',
@@ -39,6 +41,8 @@ class Donor extends Model
         return $query->where(function ($query) use ($term) {
             $query
                 ->where('full_name', 'like', "%{$term}%")
+                ->orWhere('first_name', 'like', "%{$term}%")
+                ->orWhere('last_name', 'like', "%{$term}%")
                 ->orWhere('email', 'like', "%{$term}%")
                 ->orWhere('contact_number', 'like', "%{$term}%")
                 ->orWhere('address', 'like', "%{$term}%")

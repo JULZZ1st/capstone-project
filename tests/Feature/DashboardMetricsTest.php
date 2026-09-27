@@ -3,8 +3,8 @@
 namespace Tests\Feature;
 
 use App\Models\BankLedgerEntry;
-use App\Models\CashTransaction;
 use App\Models\Campaign;
+use App\Models\CashTransaction;
 use App\Models\Contribution;
 use App\Models\Donation;
 use App\Models\Donor;
@@ -179,6 +179,42 @@ class DashboardMetricsTest extends TestCase
         $response->assertSee('Bank ledger entries awaiting review');
         $response->assertSeeInOrder(['Bank ledger entries awaiting review', '1']);
         $response->assertSee('Latest reconciliation');
+    }
+
+    public function test_treasurer_action_items_show_outgoing_reconciliation_work(): void
+    {
+        BankLedgerEntry::query()->create([
+            'statement_id' => 'stmt-dash-withdrawal-1',
+            'description' => 'Withdrawal awaiting review',
+            'reference_number' => 'WD-DASH-1',
+            'amount' => 10000,
+            'transaction_date' => now()->toDateString(),
+            'transaction_type' => 'withdrawal',
+            'status' => 'unreconciled',
+        ]);
+
+        BankLedgerEntry::query()->create([
+            'statement_id' => 'stmt-dash-withdrawal-2',
+            'description' => 'Withdrawal with discrepancy',
+            'reference_number' => 'WD-DASH-2',
+            'amount' => 8000,
+            'transaction_date' => now()->toDateString(),
+            'transaction_type' => 'withdrawal',
+            'status' => 'unreconciled',
+            'discrepancy_amount' => 500,
+            'discrepancy_reason' => 'Pending liquidation.',
+        ]);
+
+        $response = $this->actingAs(User::factory()->create())->get('/');
+
+        $response->assertOk()
+            ->assertSee('Bank Withdrawals Awaiting Reconciliation')
+            ->assertSee('Discrepancies Requiring Review')
+            ->assertSee('Pending Liquidation / Unresolved Difference')
+            ->assertSeeInOrder(['Bank Withdrawals Awaiting Reconciliation', '2'])
+            ->assertSeeInOrder(['Discrepancies Requiring Review', '1'])
+            ->assertSee('PHP 500.00')
+            ->assertSee(route('bank-reconciliation.index', ['tab' => 'outgoing']));
     }
 
     public function test_dashboard_totals_ignore_legacy_cash_transactions_and_donations_tables(): void

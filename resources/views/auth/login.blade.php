@@ -14,8 +14,8 @@
             <x-alert type="success" class="mb-4">{{ session('status') }}</x-alert>
         @endif
 
-        @if ($errors->has('email'))
-            <x-alert type="error" class="mb-4">{{ $errors->first('email') }}</x-alert>
+        @if ($errors->has('auth'))
+            <x-alert type="error" class="mb-4">{{ $errors->first('auth') }}</x-alert>
         @endif
 
         <form method="POST" action="{{ route('login.store') }}" class="space-y-4">

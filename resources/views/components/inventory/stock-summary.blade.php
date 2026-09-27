@@ -21,7 +21,7 @@
     </div>
     <div class="rounded-lg border border-slate-200 bg-white p-4">
         <p class="text-xs font-semibold uppercase text-slate-500">Category</p>
-        <p class="mt-2 text-base font-semibold text-slate-950">{{ $categoryLabel }}</p>
+        <p class="mt-2 text-base font-semibold text-slate-950">{{ $categoryLabel }}@if ($item->subcategory) · {{ $item->subcategory->label }} @endif</p>
         <p class="text-sm text-slate-500">{{ $item->storage_location }}</p>
     </div>
     <div class="rounded-lg border border-slate-200 bg-white p-4">

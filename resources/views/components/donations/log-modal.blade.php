@@ -1,4 +1,4 @@
-@props(['donors', 'campaigns'])
+@props(['donors', 'campaigns', 'categories', 'subcategoriesByCategory'])
 
 @php($selectedType = old('donation_type', 'cash'))
 
@@ -57,7 +57,7 @@
             </div>
 
             <x-donations.cash-fields :active="$selectedType === 'cash'" />
-            <x-donations.in-kind-fields :active="$selectedType === 'in_kind'" />
+            <x-donations.in-kind-fields :active="$selectedType === 'in_kind'" :categories="$categories" :subcategories-by-category="$subcategoriesByCategory" />
 
             <div>
                 <x-form.label for="notes">Administrative Notes</x-form.label>
