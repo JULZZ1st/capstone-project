@@ -8,16 +8,36 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('donors', function (Blueprint $table) {
-            $table->string('donor_type', 50)->default(config('donors.defaults.type'))->after('id');
-            $table->string('contact_person')->nullable()->after('full_name');
-            $table->string('preferred_contact_method', 50)->nullable()->after('contact_number');
-            $table->string('barangay_area')->nullable()->after('address');
-            $table->string('status', 50)->default(config('donors.defaults.status'))->after('barangay_area');
+        $existingIndexes = collect(Schema::getIndexes('donors'))
+            ->pluck('name')
+            ->all();
 
-            $table->index(['donor_type', 'status']);
-            $table->index('full_name');
-            $table->index('contact_number');
+        Schema::table('donors', function (Blueprint $table) use ($existingIndexes) {
+            if (! Schema::hasColumn('donors', 'donor_type')) {
+                $table->string('donor_type', 50)->default(config('donors.defaults.type'))->after('id');
+            }
+            if (! Schema::hasColumn('donors', 'contact_person')) {
+                $table->string('contact_person')->nullable()->after('full_name');
+            }
+            if (! Schema::hasColumn('donors', 'preferred_contact_method')) {
+                $table->string('preferred_contact_method', 50)->nullable()->after('contact_number');
+            }
+            if (! Schema::hasColumn('donors', 'barangay_area')) {
+                $table->string('barangay_area')->nullable()->after('address');
+            }
+            if (! Schema::hasColumn('donors', 'status')) {
+                $table->string('status', 50)->default(config('donors.defaults.status'))->after('barangay_area');
+            }
+
+            if (! in_array('donors_donor_type_status_index', $existingIndexes, true)) {
+                $table->index(['donor_type', 'status']);
+            }
+            if (! in_array('donors_full_name_index', $existingIndexes, true)) {
+                $table->index('full_name');
+            }
+            if (! in_array('donors_contact_number_index', $existingIndexes, true)) {
+                $table->index('contact_number');
+            }
         });
     }
 

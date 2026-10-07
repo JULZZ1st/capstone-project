@@ -26,6 +26,9 @@ class SystemSecurityAdministrationTest extends TestCase
         $response->assertSee('System Security Administration');
         $response->assertSee('Authorized Administrative Personnel');
         $response->assertSee('Security Activity Trail Ledger');
+        $response->assertSee('<option value="admin">Administrator</option>', false);
+        $response->assertSee('<option value="secretary">Secretary</option>', false);
+        $response->assertSee('<option value="treasurer">Treasurer</option>', false);
         $response->assertSee(SecurityPermission::query()->firstOrFail()->name);
     }
 

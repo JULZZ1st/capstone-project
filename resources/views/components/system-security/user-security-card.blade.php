@@ -56,6 +56,7 @@
         <p class="font-mono text-[10px] font-bold text-slate-700">{{ $profile?->security_key_suffix ?? '------' }}</p>
     </div>
 
+    @can('updateSecuritySettings', \App\Models\SecurityActivityEvent::class)
     <div class="mt-3 flex items-center justify-end gap-2">
         {{-- Edit button opens a small details-based panel --}}
         <details class="relative">
@@ -104,4 +105,5 @@
             <button class="rounded bg-rose-600 px-2 py-1 text-xs font-semibold text-white">Deactivate</button>
         </form>
     </div>
+    @endcan
 </article>

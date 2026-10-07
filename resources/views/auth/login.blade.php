@@ -43,9 +43,5 @@
             <x-button>Sign In</x-button>
         </form>
 
-        <p class="mt-6 text-center text-sm text-slate-600">
-            Need an account?
-            <a href="{{ route('register') }}" class="font-semibold text-blue-700 hover:text-blue-800">Sign up</a>
-        </p>
     </x-auth-card>
 @endsection

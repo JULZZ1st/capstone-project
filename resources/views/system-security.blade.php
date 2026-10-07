@@ -25,6 +25,7 @@
                     <x-slot:actions>
                         <x-system-security.status-badge :label="number_format($personnel->where('status', config('auth_defaults.user_status'))->count()).' Active Accounts'" tone="emerald" />
 
+                        @can('updateSecuritySettings', \App\Models\SecurityActivityEvent::class)
                         <details class="relative ml-2 inline-block">
                             <summary class="rounded-md bg-slate-100 px-2 py-1 text-xs font-semibold">Create Staff Account</summary>
                             <form method="POST" action="{{ route('system-security.users.store') }}" class="mt-2 w-80 rounded border border-slate-100 bg-white p-3 shadow-lg">
@@ -64,6 +65,7 @@
                                 </div>
                             </form>
                         </details>
+                        @endcan
                     </x-slot:actions>
             </x-system-security.section-header>
 

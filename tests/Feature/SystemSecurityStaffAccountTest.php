@@ -30,6 +30,58 @@ class SystemSecurityStaffAccountTest extends TestCase
         $this->assertDatabaseHas('security_activity_events', ['action' => 'staff_account_created']);
     }
 
+    public function test_admin_can_create_treasurer_account(): void
+    {
+        $admin = $this->userWithRole('admin');
+
+        $response = $this->actingAs($admin)->post(route('system-security.users.store'), [
+            'first_name' => 'New',
+            'last_name' => 'Treasurer',
+            'email' => 'new.treasurer@example.test',
+            'role' => 'treasurer',
+            'password' => 'LongPassword123!',
+            'password_confirmation' => 'LongPassword123!',
+        ]);
+
+        $response->assertRedirect(route('system-security.index'));
+        $this->assertDatabaseHas('users', [
+            'email' => 'new.treasurer@example.test',
+            'role_id' => Role::query()->where('name', 'treasurer')->value('id'),
+        ]);
+        $this->assertDatabaseHas('security_activity_events', ['action' => 'staff_account_created']);
+    }
+
+    public function test_admin_can_create_another_admin_account(): void
+    {
+        $admin = $this->userWithRole('admin');
+
+        $response = $this->actingAs($admin)->post(route('system-security.users.store'), [
+            'first_name' => 'Second',
+            'last_name' => 'Administrator',
+            'email' => 'second.admin@example.test',
+            'role' => 'admin',
+            'password' => 'LongPassword123!',
+            'password_confirmation' => 'LongPassword123!',
+        ]);
+
+        $response->assertRedirect(route('system-security.index'));
+        $this->assertDatabaseHas('users', [
+            'email' => 'second.admin@example.test',
+            'role_id' => Role::query()->where('name', 'admin')->value('id'),
+        ]);
+    }
+
+    public function test_non_admin_cannot_see_user_creation_or_role_assignment_controls(): void
+    {
+        $secretary = $this->userWithRole('secretary');
+
+        $this->actingAs($secretary)
+            ->get(route('system-security.index'))
+            ->assertOk()
+            ->assertDontSee('Create Staff Account')
+            ->assertDontSee('name="role"', false);
+    }
+
     public function test_non_admin_cannot_create_staff_account(): void
     {
         $secretary = $this->userWithRole('secretary');
@@ -44,6 +96,24 @@ class SystemSecurityStaffAccountTest extends TestCase
                 'password_confirmation' => 'LongPassword123!',
             ])
             ->assertForbidden();
+    }
+
+    public function test_treasurer_cannot_create_or_assign_an_admin_account(): void
+    {
+        $treasurer = $this->userWithRole('treasurer');
+
+        $this->actingAs($treasurer)
+            ->post(route('system-security.users.store'), [
+                'first_name' => 'Unauthorized',
+                'last_name' => 'Administrator',
+                'email' => 'unauthorized.admin@example.test',
+                'role' => 'admin',
+                'password' => 'LongPassword123!',
+                'password_confirmation' => 'LongPassword123!',
+            ])
+            ->assertForbidden();
+
+        $this->assertDatabaseMissing('users', ['email' => 'unauthorized.admin@example.test']);
     }
 
     public function test_admin_can_edit_staff_account(): void

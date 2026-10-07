@@ -26,20 +26,18 @@ class LoginTest extends TestCase
         $this->assertAuthenticatedAs($user);
     }
 
-    public function test_registered_user_can_logout_and_login_again(): void
+    public function test_user_can_logout_and_login_again(): void
     {
         $password = 'StrongPass123!';
-
-        $this->post(route('register.store'), [
-            'first_name' => 'Maria',
-            'last_name' => 'Santos',
+        $user = $this->userWithRole('secretary', [
             'email' => 'maria.santos@example.com',
-            'password' => $password,
-            'password_confirmation' => $password,
-            'terms' => '1',
-        ])->assertRedirect(route('dashboard'));
+            'password' => Hash::make($password),
+        ]);
 
-        $user = User::query()->where('email', 'maria.santos@example.com')->firstOrFail();
+        $this->post(route('login.store'), [
+            'email' => $user->email,
+            'password' => $password,
+        ])->assertRedirect(route('dashboard', absolute: false));
 
         $this->assertTrue(Hash::check($password, $user->password));
         $this->assertAuthenticatedAs($user);
@@ -55,20 +53,18 @@ class LoginTest extends TestCase
         $this->assertAuthenticatedAs($user->fresh());
     }
 
-    public function test_registered_user_can_login_again_after_session_expires(): void
+    public function test_user_can_login_again_after_session_expires(): void
     {
         $password = 'StrongPass123!';
-
-        $this->post(route('register.store'), [
-            'first_name' => 'Juan',
-            'last_name' => 'Dela Cruz',
+        $user = $this->userWithRole('secretary', [
             'email' => 'juan.delacruz@example.com',
-            'password' => $password,
-            'password_confirmation' => $password,
-            'terms' => '1',
-        ])->assertRedirect(route('dashboard'));
+            'password' => Hash::make($password),
+        ]);
 
-        $user = User::query()->where('email', 'juan.delacruz@example.com')->firstOrFail();
+        $this->post(route('login.store'), [
+            'email' => $user->email,
+            'password' => $password,
+        ])->assertRedirect(route('dashboard', absolute: false));
 
         $this->assertTrue(Hash::check($password, $user->password));
         $this->assertAuthenticatedAs($user);
@@ -98,24 +94,15 @@ class LoginTest extends TestCase
         $this->assertGuest();
     }
 
-    public function test_registered_user_wrong_password_is_rejected(): void
+    public function test_user_wrong_password_is_rejected(): void
     {
         $password = 'StrongPass123!';
-
-        $this->post(route('register.store'), [
-            'first_name' => 'Ana',
-            'last_name' => 'Reyes',
+        $user = $this->userWithRole('secretary', [
             'email' => 'ana.reyes@example.com',
-            'password' => $password,
-            'password_confirmation' => $password,
-            'terms' => '1',
-        ])->assertRedirect(route('dashboard'));
-
-        $user = User::query()->where('email', 'ana.reyes@example.com')->firstOrFail();
+            'password' => Hash::make($password),
+        ]);
 
         $this->assertTrue(Hash::check($password, $user->password));
-
-        $this->post(route('logout'))->assertRedirect(route('login'));
 
         $this->post(route('login.store'), [
             'email' => 'ana.reyes@example.com',

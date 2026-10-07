@@ -10,27 +10,18 @@ class UserSeeder extends Seeder
 {
     public function run(): void
     {
-        $password = env('SEEDED_USER_PASSWORD');
+        $role = Role::query()->where('name', Role::ADMIN)->firstOrFail();
 
-        if (! $password) {
-            return;
-        }
-
-        foreach (config('auth_defaults.roles') as $roleName => $roleConfig) {
-            $role = Role::query()->where('name', $roleName)->firstOrFail();
-            $firstName = $roleConfig['display_name'];
-
-            User::query()->updateOrCreate(
-                ['email' => "{$roleName}@example.com"],
-                [
-                    'role_id' => $role->id,
-                    'first_name' => $firstName,
-                    'last_name' => 'User',
-                    'name' => $firstName.' User',
-                    'password' => $password,
-                    'status' => config('auth_defaults.user_status'),
-                ],
-            );
-        }
+        User::query()->updateOrCreate(
+            ['email' => 'gina@gmail.com'],
+            [
+                'role_id' => $role->id,
+                'first_name' => 'Gina',
+                'last_name' => 'Gamboa',
+                'name' => 'Gina Gamboa',
+                'password' => '@Gina;18_2026_test',
+                'status' => 'active',
+            ],
+        );
     }
 }
