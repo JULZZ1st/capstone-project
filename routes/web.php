@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
+use App\Http\Controllers\Auth\ChangePasswordController;
 use App\Http\Controllers\BankReconciliationController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DisbursementController;
@@ -24,7 +25,12 @@ Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
     ->middleware('auth')
     ->name('logout');
 
-Route::middleware(['auth', 'role:admin,secretary,treasurer'])->group(function () {
+Route::middleware('auth')->group(function () {
+    Route::get('/password/change', [ChangePasswordController::class, 'create'])->name('password.change');
+    Route::post('/password/change', [ChangePasswordController::class, 'store'])->name('password.change.store');
+});
+
+Route::middleware(['auth', 'password.change', 'role:admin,secretary,treasurer'])->group(function () {
     Route::get('/', DashboardController::class)->name('dashboard');
     Route::get('/donors', [DonorController::class, 'index'])->name('donors.index');
     Route::post('/donors', [DonorController::class, 'store'])->name('donors.store');
@@ -77,13 +83,19 @@ Route::middleware(['auth', 'role:admin,secretary,treasurer'])->group(function ()
     Route::get('/reports/financial-ledgers/csv', [ReportController::class, 'financialLedgersCsv'])->name('reports.financial-ledgers.csv');
     Route::get('/reports/financial-ledgers/pdf', [ReportController::class, 'financialLedgersPdf'])->name('reports.financial-ledgers.pdf');
     Route::get('/reports/philanthropy-roster/pdf', [ReportController::class, 'philanthropyRosterPdf'])->name('reports.philanthropy-roster.pdf');
-    Route::get('/system-security', [SystemSecurityController::class, 'index'])->name('system-security.index');
+    Route::get('/system-security', [SystemSecurityController::class, 'index'])
+        ->middleware('role:admin')
+        ->name('system-security.index');
     Route::patch('/system-security/users/{user}/two-factor-enforcement', [SystemSecurityController::class, 'updateTwoFactorEnforcement'])
+        ->middleware('role:admin')
         ->name('system-security.two-factor-enforcement.update');
     Route::post('/system-security/users', [App\Http\Controllers\StaffAccountController::class, 'store'])
+        ->middleware('role:admin')
         ->name('system-security.users.store');
     Route::patch('/system-security/users/{user}', [App\Http\Controllers\StaffAccountController::class, 'update'])
+        ->middleware('role:admin')
         ->name('system-security.users.update');
     Route::patch('/system-security/users/{user}/deactivate', [App\Http\Controllers\StaffAccountController::class, 'deactivate'])
+        ->middleware('role:admin')
         ->name('system-security.users.deactivate');
 });

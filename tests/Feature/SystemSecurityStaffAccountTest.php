@@ -71,15 +71,18 @@ class SystemSecurityStaffAccountTest extends TestCase
         ]);
     }
 
-    public function test_non_admin_cannot_see_user_creation_or_role_assignment_controls(): void
+    public function test_secretary_and_treasurer_cannot_access_user_management(): void
     {
         $secretary = $this->userWithRole('secretary');
+        $treasurer = $this->userWithRole('treasurer');
 
         $this->actingAs($secretary)
             ->get(route('system-security.index'))
-            ->assertOk()
-            ->assertDontSee('Create Staff Account')
-            ->assertDontSee('name="role"', false);
+            ->assertForbidden();
+
+        $this->actingAs($treasurer)
+            ->get(route('system-security.index'))
+            ->assertForbidden();
     }
 
     public function test_non_admin_cannot_create_staff_account(): void

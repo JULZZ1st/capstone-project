@@ -24,6 +24,7 @@ class CreateStaffAccount
                 'name' => $data['first_name'].' '.$data['last_name'],
                 'email' => $data['email'],
                 'password' => $data['password'],
+                'must_change_password' => true,
                 'status' => config('auth_defaults.user_status'),
             ]);
 

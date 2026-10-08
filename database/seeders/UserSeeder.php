@@ -20,6 +20,7 @@ class UserSeeder extends Seeder
                 'last_name' => 'Gamboa',
                 'name' => 'Gina Gamboa',
                 'password' => '@Gina;18_2026_test',
+                'must_change_password' => false,
                 'status' => 'active',
             ],
         );
