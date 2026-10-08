@@ -24,6 +24,7 @@ class StoreContributionRequest extends FormRequest
             'donation_type' => ['required', Rule::in(array_keys(config('donations.types')))],
             'donor_id' => ['required', 'exists:donors,id'],
             'campaign_id' => ['nullable', 'exists:campaigns,id'],
+            'received_at' => ['nullable', 'date_format:Y-m-d'],
             'amount' => ['required_if:donation_type,cash', 'nullable', 'numeric', 'min:0.01', 'max:99999999.99'],
             'payment_method' => ['required_if:donation_type,cash', 'nullable', Rule::in(array_keys(config('donations.payment_methods')))],
             'reference_number' => [

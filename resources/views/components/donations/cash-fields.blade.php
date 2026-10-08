@@ -7,7 +7,7 @@
     @hidden(! $active)
 >
     <h3 class="text-sm font-semibold text-slate-950">Cash / Electronic Transfer</h3>
-    <div class="grid gap-4 md:grid-cols-3">
+    <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <div>
             <x-form.label for="amount">Donation Amount</x-form.label>
             <div class="relative mt-1">
@@ -38,7 +38,7 @@
             <x-form.error name="payment_method" />
         </div>
         <div data-reference-field hidden>
-            <x-form.label for="reference_number" data-reference-label>External Payment Reference No.</x-form.label>
+            <x-form.label for="reference_number" data-reference-label>Transaction / Reference Number</x-form.label>
             <input
                 id="reference_number"
                 name="reference_number"
@@ -51,6 +51,11 @@
                 @error('reference_number') aria-invalid="true" aria-describedby="reference_number-error" @enderror
             >
             <x-form.error name="reference_number" />
+        </div>
+        <div>
+            <x-form.label for="cash_received_at">Date Received</x-form.label>
+            <input id="cash_received_at" name="received_at" type="date" value="{{ old('received_at', now()->toDateString()) }}" required class="mt-1 block w-full rounded-md border-slate-300 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500">
+            <x-form.error name="received_at" />
         </div>
     </div>
 </section>

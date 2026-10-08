@@ -18,4 +18,9 @@
             <x-donations.item-row :index="$index" :row="$row" :categories="$categories" />
         @endforeach
     </div>
+    <div class="max-w-xs">
+        <x-form.label for="in_kind_received_at">Date Received</x-form.label>
+        <input id="in_kind_received_at" name="received_at" type="date" value="{{ old('received_at', now()->toDateString()) }}" required class="mt-1 block w-full rounded-md border-slate-300 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500">
+        <x-form.error name="received_at" />
+    </div>
 </section>

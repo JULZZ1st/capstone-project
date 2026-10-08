@@ -12,7 +12,7 @@ class LogContribution
 {
     public function handle(array $data, User $user, ResolveInventoryClassification $resolver): Contribution
     {
-        return DB::transaction(function () use ($data, $user) {
+        return DB::transaction(function () use ($data, $user, $resolver) {
             $type = $data['donation_type'];
 
             $contribution = Contribution::query()->create([
@@ -27,7 +27,7 @@ class LogContribution
                     ? ($data['reference_number'] ?? null)
                     : null,
                 'notes' => $data['notes'] ?? null,
-                'received_at' => now(),
+                'received_at' => $data['received_at'] ?? now(),
             ]);
 
             $contribution->forceFill([

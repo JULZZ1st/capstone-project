@@ -32,7 +32,12 @@ const updateContributionSections = (form) => {
     const type = form.querySelector('[data-contribution-type]')?.value;
 
     form.querySelectorAll('[data-contribution-section]').forEach((section) => {
-        section.hidden = section.dataset.contributionSection !== type;
+        const active = section.dataset.contributionSection === type;
+
+        section.hidden = ! active;
+        section.querySelectorAll('input, select, textarea, button').forEach((field) => {
+            field.disabled = ! active;
+        });
     });
 };
 

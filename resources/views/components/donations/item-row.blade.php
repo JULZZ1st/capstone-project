@@ -5,7 +5,7 @@
 <div class="rounded-md border border-slate-200 bg-slate-50 p-3" data-item-row>
     <div class="grid gap-3 md:grid-cols-7">
         <div class="md:col-span-2">
-            <x-form.label for="items_{{ $index }}_name">Item Name</x-form.label>
+            <x-form.label for="items_{{ $index }}_name">Item</x-form.label>
             <input id="items_{{ $index }}_name" name="items[{{ $index }}][name]" value="{{ old("items.{$index}.name", $row['name'] ?? '') }}" class="mt-1 block w-full rounded-md border-slate-300 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500">
             <x-form.error name="items.{{ $index }}.name" />
         </div>

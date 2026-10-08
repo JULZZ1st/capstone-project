@@ -23,6 +23,11 @@
                 <x-alert type="error">No active donors are available. Add a donor profile before logging a contribution.</x-alert>
             @endif
 
+            <div>
+                <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-700">Basic Information</h3>
+                <p class="mt-1 text-sm text-slate-500">Identify the donor and, if applicable, the campaign receiving the contribution.</p>
+            </div>
+
             <div class="grid gap-4 md:grid-cols-2">
                 <div>
                     <x-form.label for="donation_type">Contribution Type</x-form.label>
@@ -45,7 +50,7 @@
                 </div>
             </div>
 
-            <div>
+            <div class="md:max-w-[calc(50%-0.5rem)]">
                 <x-form.label for="campaign_id">Campaign</x-form.label>
                 <select id="campaign_id" name="campaign_id" class="mt-1 block w-full rounded-md border-slate-300 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500">
                     <option value="">No campaign</option>
@@ -60,7 +65,8 @@
             <x-donations.in-kind-fields :active="$selectedType === 'in_kind'" :categories="$categories" :subcategories-by-category="$subcategoriesByCategory" />
 
             <div>
-                <x-form.label for="notes">Administrative Notes</x-form.label>
+                <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-700">Additional Information</h3>
+                <x-form.label for="notes" class="mt-3">Notes / Remarks</x-form.label>
                 <textarea id="notes" name="notes" rows="3" class="mt-1 block w-full rounded-md border-slate-300 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500">{{ old('notes') }}</textarea>
                 <x-form.error name="notes" />
             </div>
