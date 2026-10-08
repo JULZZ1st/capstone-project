@@ -26,7 +26,10 @@ class DonationManagementTest extends TestCase
             'donor_type' => 'individual',
             'first_name' => 'Maria',
             'last_name' => 'Santos',
-            'address' => 'Brgy. San Isidro',
+            'address' => '12 Test Street',
+            'barangay' => 'San Isidro',
+            'city_municipality' => 'Quezon City',
+            'province' => 'Metro Manila',
             'contact_number' => '09171234567',
             'email' => 'maria@example.com',
             'notes' => 'Regular donor',
@@ -40,6 +43,10 @@ class DonationManagementTest extends TestCase
             'full_name' => 'Maria Santos',
             'email' => 'maria@example.com',
             'contact_person' => null,
+            'address' => '12 Test Street',
+            'barangay' => 'San Isidro',
+            'city_municipality' => 'Quezon City',
+            'province' => 'Metro Manila',
             'status' => config('donors.defaults.status'),
         ]);
     }
@@ -211,7 +218,7 @@ class DonationManagementTest extends TestCase
         $this->assertSame(2, Donor::query()->count());
     }
 
-    public function test_donor_management_search_filters_cards_by_split_names(): void
+    public function test_donor_management_search_filters_table_rows_by_split_names(): void
     {
         Donor::query()->create([
             'donor_type' => 'individual',

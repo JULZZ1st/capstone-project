@@ -9,7 +9,7 @@
             <div>
                 <a href="{{ route('donors.index') }}" class="text-sm font-semibold text-blue-700 hover:text-blue-800">Back to Donor Management</a>
                 <h2 class="mt-2 text-2xl font-semibold text-slate-950">{{ $donor->full_name }}</h2>
-                <p class="mt-1 text-sm text-slate-600">{{ $donor->address }}</p>
+                <p class="mt-1 text-sm text-slate-600">{{ config('donors.types')[$donor->donor_type] ?? ucfirst($donor->donor_type) }}</p>
             </div>
             <div class="flex gap-2">
                 <button type="button" class="inline-flex items-center justify-center rounded-md bg-blue-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-800" data-dialog-open="edit-donor-modal-{{ $donor->id }}">
@@ -25,36 +25,30 @@
             </div>
         </div>
 
-        <x-donors.history-summary :donor="$donor" />
-
-        <x-dashboard.panel title="Profile Details">
-            <dl class="grid gap-4 text-sm md:grid-cols-2">
-                <div>
-                    <dt class="text-slate-500">Email</dt>
-                    <dd class="font-medium text-slate-950">{{ $donor->email ?: 'Not provided' }}</dd>
-                </div>
-                <div>
-                    <dt class="text-slate-500">Contact Number</dt>
-                    <dd class="font-medium text-slate-950">{{ $donor->contact_number }}</dd>
-                </div>
-                <div>
-                    <dt class="text-slate-500">Contact Person</dt>
-                    <dd class="font-medium text-slate-950">{{ $donor->contact_person ?: 'Not provided' }}</dd>
-                </div>
-                <div>
-                    <dt class="text-slate-500">Preferred Contact</dt>
-                    <dd class="font-medium text-slate-950">{{ $donor->preferred_contact_method ? config('donors.contact_methods')[$donor->preferred_contact_method] : 'Not provided' }}</dd>
-                </div>
-                <div>
-                    <dt class="text-slate-500">Barangay / Area</dt>
-                    <dd class="font-medium text-slate-950">{{ $donor->barangay_area ?: 'Not provided' }}</dd>
-                </div>
-                <div>
-                    <dt class="text-slate-500">Notes</dt>
-                    <dd class="font-medium text-slate-950">{{ $donor->notes ?: 'Not provided' }}</dd>
-                </div>
-            </dl>
-        </x-dashboard.panel>
+        <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+            <div class="border-b border-slate-200 px-5 py-4">
+                <h2 class="text-sm font-bold uppercase tracking-wide text-slate-950">Profile Information</h2>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full text-sm">
+                    <tbody class="divide-y divide-slate-100">
+                        <tr><th class="w-56 bg-slate-50 px-5 py-3 text-left font-medium text-slate-500">Donor Type</th><td class="px-5 py-3 font-medium text-slate-950">{{ config('donors.types')[$donor->donor_type] ?? ucfirst($donor->donor_type) }}</td></tr>
+                        <tr><th class="bg-slate-50 px-5 py-3 text-left font-medium text-slate-500">Email</th><td class="px-5 py-3 font-medium text-slate-950">{{ $donor->email ?: 'Not provided' }}</td></tr>
+                        <tr><th class="bg-slate-50 px-5 py-3 text-left font-medium text-slate-500">Contact Number</th><td class="px-5 py-3 font-medium text-slate-950">{{ $donor->contact_number ?: 'Not provided' }}</td></tr>
+                        @if ($donor->contact_person)
+                            <tr><th class="bg-slate-50 px-5 py-3 text-left font-medium text-slate-500">Contact Person</th><td class="px-5 py-3 font-medium text-slate-950">{{ $donor->contact_person }}</td></tr>
+                        @endif
+                        <tr><th class="bg-slate-50 px-5 py-3 text-left font-medium text-slate-500">Preferred Contact Method</th><td class="px-5 py-3 font-medium text-slate-950">{{ $donor->preferred_contact_method ? config('donors.contact_methods')[$donor->preferred_contact_method] : 'Not provided' }}</td></tr>
+                        <tr><th class="bg-slate-50 px-5 py-3 text-left font-medium text-slate-500">Street / Address</th><td class="px-5 py-3 font-medium text-slate-950">{{ $donor->address ?: 'Not provided' }}</td></tr>
+                        <tr><th class="bg-slate-50 px-5 py-3 text-left font-medium text-slate-500">Barangay</th><td class="px-5 py-3 font-medium text-slate-950">{{ $donor->barangay ?: $donor->barangay_area ?: 'Not provided' }}</td></tr>
+                        <tr><th class="bg-slate-50 px-5 py-3 text-left font-medium text-slate-500">City / Municipality</th><td class="px-5 py-3 font-medium text-slate-950">{{ $donor->city_municipality ?: 'Not provided' }}</td></tr>
+                        <tr><th class="bg-slate-50 px-5 py-3 text-left font-medium text-slate-500">Province</th><td class="px-5 py-3 font-medium text-slate-950">{{ $donor->province ?: 'Not provided' }}</td></tr>
+                        <tr><th class="bg-slate-50 px-5 py-3 text-left font-medium text-slate-500">Status</th><td class="px-5 py-3 font-medium text-slate-950">{{ config('donors.statuses')[$donor->status] ?? ucfirst($donor->status) }}</td></tr>
+                        <tr><th class="bg-slate-50 px-5 py-3 text-left font-medium text-slate-500">Notes</th><td class="whitespace-pre-line px-5 py-3 font-medium text-slate-950">{{ $donor->notes ?: 'Not provided' }}</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
 
         <x-dashboard.panel title="Donation History">
             <div class="overflow-x-auto">

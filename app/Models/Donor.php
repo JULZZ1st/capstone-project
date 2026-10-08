@@ -17,6 +17,9 @@ class Donor extends Model
         'full_name',
         'contact_person',
         'address',
+        'barangay',
+        'city_municipality',
+        'province',
         'barangay_area',
         'contact_number',
         'preferred_contact_method',
@@ -47,6 +50,9 @@ class Donor extends Model
                 ->orWhere('contact_number', 'like', "%{$term}%")
                 ->orWhere('address', 'like', "%{$term}%")
                 ->orWhere('contact_person', 'like', "%{$term}%")
+                ->orWhere('barangay', 'like', "%{$term}%")
+                ->orWhere('city_municipality', 'like', "%{$term}%")
+                ->orWhere('province', 'like', "%{$term}%")
                 ->orWhere('barangay_area', 'like', "%{$term}%");
         });
     }

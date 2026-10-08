@@ -331,10 +331,10 @@ const updateDonorCreateForm = (form) => {
     }
 };
 
-document.querySelectorAll('[data-donor-create-form]').forEach(updateDonorCreateForm);
+document.querySelectorAll('[data-donor-form]').forEach(updateDonorCreateForm);
 
 document.addEventListener('change', (event) => {
     if (event.target.matches('[data-donor-type]')) {
-        updateDonorCreateForm(event.target.closest('[data-donor-create-form]'));
+        updateDonorCreateForm(event.target.closest('[data-donor-form]'));
     }
 });

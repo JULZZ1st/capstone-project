@@ -24,10 +24,12 @@ class StoreDonorRequest extends FormRequest
             'email' => ['nullable', 'string', config('donors.email_rule'), 'max:255'],
             'contact_number' => ['required', 'string', 'max:30'],
             'address' => ['required', 'string', 'max:500'],
+            'barangay' => ['nullable', 'string', 'max:255'],
+            'city_municipality' => ['nullable', 'string', 'max:255'],
+            'province' => ['nullable', 'string', 'max:255'],
             'contact_person' => ['nullable', 'string', 'max:255'],
             'preferred_contact_method' => ['nullable', Rule::in(array_keys(config('donors.contact_methods')))],
             'status' => ['nullable', Rule::in(array_keys(config('donors.statuses')))],
-            'barangay_area' => ['nullable', 'string', 'max:255'],
             'notes' => ['nullable', 'string', 'max:2000'],
             '_confirm_duplicate' => ['nullable', 'boolean'],
         ];
@@ -64,10 +66,12 @@ class StoreDonorRequest extends FormRequest
             'email' => $this->nullableLower('email'),
             'contact_number' => trim((string) $this->input('contact_number')),
             'address' => trim((string) $this->input('address')),
+            'barangay' => $this->nullableTrim('barangay') ?? $this->nullableTrim('barangay_area'),
+            'city_municipality' => $this->nullableTrim('city_municipality'),
+            'province' => $this->nullableTrim('province'),
             'contact_person' => $donorType === 'organization' ? $this->nullableTrim('contact_person') : null,
             'preferred_contact_method' => $this->nullableLower('preferred_contact_method'),
             'status' => Str::lower(trim((string) $this->input('status', config('donors.defaults.status')))),
-            'barangay_area' => $this->nullableTrim('barangay_area'),
             'notes' => $this->nullableTrim('notes'),
         ]);
     }

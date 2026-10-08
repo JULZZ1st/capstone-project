@@ -36,14 +36,58 @@
                 :action-label="$search !== '' || $selectedType ? 'Clear filters' : null"
             />
         @else
-            <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                @foreach ($donors as $donor)
-                    <div>
-                        <x-donors.card :donor="$donor" />
-                        <x-donors.edit-modal :donor="$donor" :open="$errors->any() && $modal === 'edit-'.$donor->id" />
-                    </div>
-                @endforeach
+            <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+                <div class="overflow-x-auto">
+                    <table class="min-w-[920px] w-full text-left text-sm">
+                        <caption class="sr-only">Registered donors</caption>
+                        <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                            <tr>
+                                <th scope="col" class="px-4 py-3 font-semibold">Donor Name</th>
+                                <th scope="col" class="px-4 py-3 font-semibold">Donor Type</th>
+                                <th scope="col" class="px-4 py-3 font-semibold">Contact Number</th>
+                                <th scope="col" class="px-4 py-3 font-semibold">Email</th>
+                                <th scope="col" class="px-4 py-3 font-semibold">Barangay</th>
+                                <th scope="col" class="px-4 py-3 font-semibold">City / Municipality</th>
+                                <th scope="col" class="px-4 py-3 font-semibold">Status</th>
+                                <th scope="col" class="px-4 py-3 text-right font-semibold">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            @foreach ($donors as $donor)
+                                <tr class="align-top hover:bg-slate-50/70">
+                                    <td class="px-4 py-3">
+                                        <div class="font-semibold text-slate-950">{{ $donor->full_name }}</div>
+                                        <div class="mt-0.5 text-xs text-slate-500">{{ $donor->address }}</div>
+                                    </td>
+                                    <td class="px-4 py-3 whitespace-nowrap text-slate-700">{{ config('donors.types')[$donor->donor_type] ?? ucfirst($donor->donor_type) }}</td>
+                                    <td class="px-4 py-3 whitespace-nowrap text-slate-700">{{ $donor->contact_number ?: 'Not provided' }}</td>
+                                    <td class="max-w-48 break-words px-4 py-3 text-slate-700">{{ $donor->email ?: 'Not provided' }}</td>
+                                    <td class="px-4 py-3 text-slate-700">{{ $donor->barangay ?: $donor->barangay_area ?: 'Not provided' }}</td>
+                                    <td class="px-4 py-3 text-slate-700">{{ $donor->city_municipality ?: 'Not provided' }}</td>
+                                    <td class="px-4 py-3 whitespace-nowrap">
+                                        <span class="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">{{ config('donors.statuses')[$donor->status] ?? ucfirst($donor->status) }}</span>
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        <div class="flex justify-end gap-2 whitespace-nowrap">
+                                            <a href="{{ route('donors.show', $donor) }}" class="rounded-md border border-slate-300 px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-white">View</a>
+                                            <button type="button" class="rounded-md bg-blue-700 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-blue-800" data-dialog-open="edit-donor-modal-{{ $donor->id }}">Edit</button>
+                                            <form method="POST" action="{{ route('donors.destroy', $donor) }}" onsubmit="return confirm('Remove this donor? If they have donation history, the profile will be deactivated instead of permanently deleted.')">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="rounded-md border border-red-300 px-2.5 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-50">Remove</button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
             </section>
+
+            @foreach ($donors as $donor)
+                <x-donors.edit-modal :donor="$donor" :open="$errors->any() && $modal === 'edit-'.$donor->id" />
+            @endforeach
 
             <div>
                 {{ $donors->links() }}
