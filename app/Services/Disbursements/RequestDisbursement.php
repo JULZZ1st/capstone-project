@@ -27,7 +27,7 @@ class RequestDisbursement
                 'user_id' => $user->id,
                 'actor_id' => $user->id,
                 'action' => 'disbursement_requested',
-                'summary' => "{$user->name} requested a cash disbursement of {$disbursement->amount}.",
+                'summary' => "{$user->name} created a fund request for {$disbursement->amount}.",
                 'metadata' => [
                     'disbursement_id' => $disbursement->id,
                     'purpose' => $disbursement->purpose,

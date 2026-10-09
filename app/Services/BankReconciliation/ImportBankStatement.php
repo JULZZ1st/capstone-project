@@ -98,7 +98,7 @@ class ImportBankStatement
 
         $sharedStrings = [];
         if (($xml = $zip->getFromName('xl/sharedStrings.xml')) !== false) {
-            foreach (new SimpleXMLElement($xml)->si as $string) {
+            foreach ((new SimpleXMLElement($xml))->si as $string) {
                 $sharedStrings[] = (string) ($string->t ?? implode('', array_map('strval', $string->r->t ?? [])));
             }
         }

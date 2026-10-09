@@ -16,7 +16,7 @@ class VoidDisbursement
             $disbursement = CashDisbursement::query()->lockForUpdate()->findOrFail($disbursement->id);
 
             if ($disbursement->status !== 'approved' || $disbursement->isVoided()) {
-                throw ValidationException::withMessages(['disbursement' => 'Only approved, active disbursements can be voided.']);
+                throw ValidationException::withMessages(['disbursement' => 'Only approved, active fund requests can be cancelled.']);
             }
 
             $disbursement->forceFill(['voided_at' => now(), 'voided_by' => $actor->id, 'void_reason' => $reason])->save();
@@ -24,7 +24,7 @@ class VoidDisbursement
                 'user_id' => $disbursement->requested_by,
                 'actor_id' => $actor->id,
                 'action' => 'disbursement_voided',
-                'summary' => "{$actor->name} voided cash disbursement #{$disbursement->id}.",
+                'summary' => "{$actor->name} cancelled fund request #{$disbursement->id}.",
                 'metadata' => ['disbursement_id' => $disbursement->id, 'amount' => $disbursement->amount, 'reason' => $reason],
                 'occurred_at' => now(),
             ]);

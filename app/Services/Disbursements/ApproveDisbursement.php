@@ -16,11 +16,11 @@ class ApproveDisbursement
             $disbursement = CashDisbursement::query()->lockForUpdate()->findOrFail($disbursement->id);
 
             if (! $disbursement->isPending()) {
-                throw ValidationException::withMessages(['disbursement' => 'Only pending disbursements can be approved.']);
+                throw ValidationException::withMessages(['disbursement' => 'Only pending fund requests can be approved.']);
             }
 
             if ((int) $disbursement->requested_by === (int) $approver->id) {
-                throw ValidationException::withMessages(['disbursement' => 'The requester cannot approve their own disbursement.']);
+                throw ValidationException::withMessages(['disbursement' => 'The requester cannot approve their own fund request.']);
             }
 
             $disbursement->forceFill(['status' => 'approved', 'approved_by' => $approver->id, 'approved_at' => now()])->save();
@@ -36,7 +36,7 @@ class ApproveDisbursement
             'user_id' => $disbursement->requested_by,
             'actor_id' => $actor->id,
             'action' => $action,
-            'summary' => "{$actor->name} approved cash disbursement #{$disbursement->id}.",
+            'summary' => "{$actor->name} approved fund request #{$disbursement->id}.",
             'metadata' => ['disbursement_id' => $disbursement->id, 'amount' => $disbursement->amount],
             'occurred_at' => now(),
         ]);

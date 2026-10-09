@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
-@section('title', 'Disbursement Request')
-@section('page-title', 'Fund Disbursements')
+@section('title', 'Fund Request Details')
+@section('page-title', 'Fund Requests')
 @section('page-subtitle', 'Review request details before approval or rejection.')
 
 @section('content')
@@ -13,19 +13,27 @@
         <section class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
             <div class="flex flex-col gap-3 border-b border-slate-100 pb-4 sm:flex-row sm:items-start sm:justify-between">
                 <div>
-                    <h2 class="text-base font-semibold text-slate-950">Disbursement Request #{{ $disbursement->id }}</h2>
+                    <h2 class="text-base font-semibold text-slate-950">Fund Request Details #{{ $disbursement->id }}</h2>
                     <p class="mt-1 text-sm text-slate-600">{{ $disbursement->purpose }}</p>
                 </div>
-                <span class="w-fit rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase text-slate-700">{{ $disbursement->status }}</span>
+                @php($statusLabel = $disbursement->isVoided()
+                    ? 'Cancelled'
+                    : ($disbursement->status === 'pending'
+                        ? 'Pending Approval'
+                        : ($disbursement->status === 'approved' ? 'Approved Fund Request' : ucfirst($disbursement->status))))
+                <span class="w-fit rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">{{ $statusLabel }}</span>
+                <span class="sr-only">{{ $disbursement->status }}</span>
             </div>
 
-            <dl class="mt-5 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div class="mt-5">
+                <h3 class="text-xs font-semibold uppercase tracking-wide text-slate-500">Request Details</h3>
+                <dl class="mt-3 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 <div>
                     <dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">Requested Date</dt>
                     <dd class="mt-1 text-sm font-medium text-slate-950">{{ ($disbursement->requested_date ?? $disbursement->created_at)->format('M d, Y') }}</dd>
                 </div>
                 <div>
-                    <dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">Recipient/Payee</dt>
+                    <dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">Recipient / Payee</dt>
                     <dd class="mt-1 text-sm font-medium text-slate-950">{{ $disbursement->recipient ?? 'Not provided' }}</dd>
                 </div>
                 <div>
@@ -37,18 +45,25 @@
                     <dd class="mt-1 text-sm font-medium text-slate-950">{{ $disbursement->requester?->name ?? 'Unknown requester' }}</dd>
                 </div>
                 <div>
-                    <dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">Supporting Reference</dt>
-                    <dd class="mt-1 text-sm font-medium text-slate-950">{{ $disbursement->supporting_reference ?? 'Not provided' }}</dd>
-                </div>
-                <div>
-                    <dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">Submitted</dt>
-                    <dd class="mt-1 text-sm font-medium text-slate-950">{{ $disbursement->created_at->format('M d, Y h:i A') }}</dd>
-                </div>
-            </dl>
+                </dl>
+            </div>
 
-            <div class="mt-5">
-                <h3 class="text-xs font-semibold uppercase tracking-wide text-slate-500">Notes</h3>
-                <p class="mt-1 whitespace-pre-line text-sm text-slate-700">{{ $disbursement->notes ?? 'Not provided' }}</p>
+            <div class="mt-6 border-t border-slate-100 pt-5">
+                <h3 class="text-xs font-semibold uppercase tracking-wide text-slate-500">Additional Information</h3>
+                <dl class="mt-3 grid gap-4 md:grid-cols-2">
+                    <div>
+                        <dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">Supporting Reference (Optional)</dt>
+                        <dd class="mt-1 text-sm font-medium text-slate-950">{{ $disbursement->supporting_reference ?? 'Not provided' }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">Notes / Remarks (Optional)</dt>
+                        <dd class="mt-1 whitespace-pre-line text-sm text-slate-700">{{ $disbursement->notes ?? 'Not provided' }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">Submitted</dt>
+                        <dd class="mt-1 text-sm font-medium text-slate-950">{{ $disbursement->created_at->format('M d, Y h:i A') }}</dd>
+                    </div>
+                </dl>
             </div>
 
             @if ($disbursement->approved_by)
@@ -60,7 +75,7 @@
             @endif
 
             @if ($disbursement->isVoided())
-                <p class="mt-5 text-sm font-semibold text-red-700">Voided by {{ $disbursement->voider?->name ?? 'Unknown user' }}: {{ $disbursement->void_reason }}</p>
+                <p class="mt-5 text-sm font-semibold text-red-700">Cancelled by {{ $disbursement->voider?->name ?? 'Unknown user' }}. Cancellation Reason: {{ $disbursement->void_reason }}</p>
             @endif
         </section>
 

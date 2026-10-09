@@ -53,6 +53,54 @@ class LoginTest extends TestCase
         $this->assertAuthenticatedAs($user->fresh());
     }
 
+    public function test_remember_me_uses_laravels_recaller_cookie_and_logout_clears_it(): void
+    {
+        $password = 'StrongPass123!';
+        $user = $this->userWithRole('secretary', [
+            'email' => 'remembered@example.com',
+            'password' => Hash::make($password),
+        ]);
+        $recallerName = Auth::guard('web')->getRecallerName();
+
+        $loginResponse = $this->post(route('login.store'), [
+            'email' => $user->email,
+            'password' => $password,
+            'remember' => '1',
+        ]);
+
+        $loginResponse->assertRedirect(route('dashboard', absolute: false));
+        $recallerCookie = $loginResponse->getCookie($recallerName);
+        $this->assertNotNull($recallerCookie);
+        $this->assertAuthenticatedAs($user);
+
+        $logoutResponse = $this
+            ->withCookie($recallerName, $recallerCookie->getValue())
+            ->post(route('logout'));
+
+        $logoutResponse->assertRedirect(route('login'));
+        $logoutResponse->assertCookieExpired($recallerName);
+        $this->assertGuest();
+    }
+
+    public function test_login_without_remember_me_does_not_set_a_recaller_cookie(): void
+    {
+        $password = 'StrongPass123!';
+        $user = $this->userWithRole('secretary', [
+            'email' => 'session-only@example.com',
+            'password' => Hash::make($password),
+        ]);
+        $recallerName = Auth::guard('web')->getRecallerName();
+
+        $loginResponse = $this->post(route('login.store'), [
+            'email' => $user->email,
+            'password' => $password,
+        ]);
+
+        $loginResponse->assertRedirect(route('dashboard', absolute: false));
+        $this->assertNull($loginResponse->getCookie($recallerName));
+        $this->assertAuthenticatedAs($user);
+    }
+
     public function test_user_can_login_again_after_session_expires(): void
     {
         $password = 'StrongPass123!';

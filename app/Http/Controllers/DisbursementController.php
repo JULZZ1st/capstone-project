@@ -31,7 +31,7 @@ class DisbursementController extends Controller
     public function store(StoreDisbursementRequest $request, RequestDisbursement $creator): RedirectResponse
     {
         $creator->handle($request->validated(), $request->user());
-        return redirect()->route('disbursements.index')->with('success', 'Disbursement request submitted.');
+        return redirect()->route('disbursements.index')->with('success', 'Fund request submitted.');
     }
 
     public function show(CashDisbursement $disbursement): View
@@ -49,13 +49,13 @@ class DisbursementController extends Controller
     {
         Gate::authorize('approve', $disbursement);
         $approver->handle($disbursement, request()->user());
-        return redirect()->route('disbursements.index')->with('success', 'Disbursement approved.');
+        return redirect()->route('disbursements.index')->with('success', 'Fund request approved.');
     }
 
     public function reject(RejectDisbursementRequest $request, CashDisbursement $disbursement, RejectDisbursement $rejector): RedirectResponse
     {
         $rejector->handle($disbursement, $request->validated('rejection_reason'), $request->user());
-        return redirect()->route('disbursements.index')->with('success', 'Disbursement rejected.');
+        return redirect()->route('disbursements.index')->with('success', 'Fund request rejected.');
     }
 
     public function voidContribution(VoidContributionRequest $request, Contribution $contribution, VoidContribution $voider): RedirectResponse
@@ -67,6 +67,6 @@ class DisbursementController extends Controller
     public function voidDisbursement(VoidDisbursementRequest $request, CashDisbursement $disbursement, VoidDisbursement $voider): RedirectResponse
     {
         $voider->handle($disbursement, $request->validated('void_reason'), $request->user());
-        return back()->with('success', 'Disbursement voided.');
+        return back()->with('success', 'Fund request cancelled.');
     }
 }

@@ -3,7 +3,7 @@
         ['label' => 'Dashboard', 'icon' => 'dashboard', 'route' => 'dashboard', 'active' => 'dashboard'],
         ['label' => 'Donor Management', 'icon' => 'users', 'route' => 'donors.index', 'active' => 'donors.*'],
         ['label' => 'Donations Portal', 'icon' => 'gift', 'route' => 'donations.index', 'active' => 'donations.*'],
-        ['label' => 'Fund Disbursements', 'icon' => 'banknotes', 'route' => 'disbursements.index', 'active' => 'disbursements.*'],
+        ['label' => 'Fund Requests', 'icon' => 'banknotes', 'route' => 'disbursements.index', 'active' => 'disbursements.*'],
         ['label' => 'In-Kind Inventory', 'icon' => 'archive', 'route' => 'inventory.index', 'active' => 'inventory.*'],
         ['label' => 'Bank Reconciliation', 'icon' => 'scale', 'route' => 'bank-reconciliation.index', 'active' => 'bank-reconciliation.*'],
         ['label' => 'Report Generator', 'icon' => 'document', 'route' => 'reports.index', 'active' => 'reports.*'],

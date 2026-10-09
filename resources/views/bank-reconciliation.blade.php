@@ -29,16 +29,19 @@
             </nav>
         </div>
 
-        @if (config('bank_reconciliation.audit_lockout_enabled'))
+        @can('import', App\Models\BankLedgerEntry::class)
+            @if (config('bank_reconciliation.audit_lockout_enabled'))
             <div class="flex justify-end">
                 <span class="inline-flex items-center gap-1.5 rounded-full border border-emerald-300 bg-white px-3 py-1.5 text-xs font-semibold text-emerald-700 shadow-sm">
                     Active Audit Lockout Enabled
                 </span>
             </div>
-        @endif
+            @endif
+        @endcan
 
         @if ($activeTab === 'incoming')
             @can('import', App\Models\BankLedgerEntry::class)
+                @can('import', App\Models\BankLedgerEntry::class)
                 <section class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
                     <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                         <div>
@@ -54,14 +57,14 @@
                     </div>
                     <x-form.error name="statement" />
                 </section>
-            @endcan
+                @endcan
 
-            <x-bank-reconciliation.audit-banner
-                :unreconciled-feed-count="$unreconciledFeedCount"
-                :pending-receipts-count="$pendingReceiptsCount"
-            />
+                <x-bank-reconciliation.audit-banner
+                    :unreconciled-feed-count="$unreconciledFeedCount"
+                    :pending-receipts-count="$pendingReceiptsCount"
+                />
 
-            <div class="grid gap-6 lg:grid-cols-2">
+                <div class="grid gap-6 lg:grid-cols-2">
                 <section class="rounded-lg border border-slate-200 bg-white shadow-sm">
                     <div class="flex items-center gap-2 border-b border-slate-100 px-5 py-4">
                         <span class="h-2 w-2 rounded-full bg-amber-500"></span>
@@ -97,7 +100,8 @@
                         <x-dashboard.empty-state message="No electronic receipts are awaiting bank reconciliation." class="m-5" />
                     @endforelse
                 </section>
-            </div>
+                </div>
+            @endcan
 
             <section class="rounded-lg border border-slate-200 bg-white shadow-sm">
                 <div class="border-b border-slate-100 px-5 py-4">
@@ -147,7 +151,8 @@
                 </div>
             @endcan
 
-            <section class="rounded-lg border border-slate-200 bg-white shadow-sm">
+            @can('create', App\Models\BankLedgerEntry::class)
+                <section class="rounded-lg border border-slate-200 bg-white shadow-sm">
                 <div class="flex items-center justify-between gap-3 border-b border-slate-100 px-5 py-4">
                     <div class="flex items-center gap-2">
                         <span class="h-2 w-2 rounded-full bg-rose-500"></span>
@@ -189,7 +194,7 @@
                                     <p class="mt-1 font-semibold text-slate-950">PHP {{ number_format((float) $withdrawal->amount, 2) }}</p>
                                 </div>
                                 <div>
-                                    <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Selected Disbursements Total</p>
+                                    <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Selected Fund Requests Total</p>
                                     <p class="mt-1 font-semibold text-slate-950" data-selected-total-for="{{ $withdrawal->id }}">PHP {{ number_format($selectedTotal, 2) }}</p>
                                 </div>
                                 <div>
@@ -218,7 +223,7 @@
                                                     <input type="checkbox" name="disbursement_ids[]" value="{{ $disbursement->id }}" data-disbursement-amount="{{ (float) $disbursement->amount }}" @checked($selectedIds->contains((string) $disbursement->id)) class="mt-1 rounded border-slate-300 text-blue-600 focus:ring-blue-500">
                                                     <span class="min-w-0">
                                                         <span class="block font-medium text-slate-900">{{ $disbursement->purpose }}</span>
-                                                        <span class="mt-1 block text-xs text-slate-500">{{ $disbursement->recipient ?? 'No recipient' }} - Approved {{ $disbursement->approved_at?->format('Y-m-d') ?? 'date unavailable' }}</span>
+                                                        <span class="mt-1 block text-xs text-slate-500">{{ $disbursement->recipient ?? 'No recipient' }} - Approved Fund Request {{ $disbursement->approved_at?->format('Y-m-d') ?? 'date unavailable' }}</span>
                                                         <span class="mt-1 block text-xs font-semibold text-slate-700">PHP {{ number_format((float) $disbursement->amount, 2) }}</span>
                                                     </span>
                                                 </label>
@@ -246,7 +251,7 @@
                                         </div>
                                         <x-form.error name="finalize" />
                                     @else
-                                        <x-dashboard.empty-state message="No approved unreconciled disbursements are available to match." />
+                                <x-dashboard.empty-state message="No approved unreconciled fund requests are available to match." />
                                     @endif
                                 </form>
                             @else
@@ -266,7 +271,8 @@
                     </div>
                     @endforeach
                 @endif
-            </section>
+                </section>
+            @endcan
 
             <section class="rounded-lg border border-slate-200 bg-white shadow-sm">
                 <div class="border-b border-slate-100 px-5 py-4">
@@ -323,6 +329,7 @@
             const differenceEl = document.querySelector(`[data-difference-for="${withdrawalId}"]`);
             const statusEl = document.querySelector(`[data-status-for="${withdrawalId}"]`);
             const finalizeButton = form.querySelector('[data-finalize-button]');
+            const discrepancyReason = form.querySelector('[name="discrepancy_reason"]');
             const formatter = new Intl.NumberFormat('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
             const updateTotals = () => {
@@ -339,6 +346,7 @@
                 statusEl.classList.toggle('bg-red-100', ! ready);
                 statusEl.classList.toggle('text-red-800', ! ready);
                 finalizeButton.disabled = ! ready;
+                if (discrepancyReason) discrepancyReason.required = ! ready;
             };
 
             form.addEventListener('change', updateTotals);

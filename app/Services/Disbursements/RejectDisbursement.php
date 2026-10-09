@@ -16,11 +16,11 @@ class RejectDisbursement
             $disbursement = CashDisbursement::query()->lockForUpdate()->findOrFail($disbursement->id);
 
             if (! $disbursement->isPending()) {
-                throw ValidationException::withMessages(['disbursement' => 'Only pending disbursements can be rejected.']);
+                throw ValidationException::withMessages(['disbursement' => 'Only pending fund requests can be rejected.']);
             }
 
             if ((int) $disbursement->requested_by === (int) $actor->id) {
-                throw ValidationException::withMessages(['disbursement' => 'The requester cannot reject their own disbursement.']);
+                throw ValidationException::withMessages(['disbursement' => 'The requester cannot reject their own fund request.']);
             }
 
             $disbursement->forceFill(['status' => 'rejected', 'rejected_at' => now(), 'rejection_reason' => $reason])->save();
@@ -28,7 +28,7 @@ class RejectDisbursement
                 'user_id' => $disbursement->requested_by,
                 'actor_id' => $actor->id,
                 'action' => 'disbursement_rejected',
-                'summary' => "{$actor->name} rejected cash disbursement #{$disbursement->id}.",
+                'summary' => "{$actor->name} rejected fund request #{$disbursement->id}.",
                 'metadata' => ['disbursement_id' => $disbursement->id, 'reason' => $reason],
                 'occurred_at' => now(),
             ]);

@@ -25,7 +25,7 @@
 
         <section class="rounded-lg border border-slate-200 bg-white shadow-sm">
             <div class="border-b border-slate-100 px-5 py-4">
-                <h2 class="text-xs font-semibold uppercase tracking-wide text-slate-500">Matched Disbursements</h2>
+                <h2 class="text-xs font-semibold uppercase tracking-wide text-slate-500">Matched Fund Requests</h2>
             </div>
             @forelse ($withdrawal->matchedDisbursements as $disbursement)
                 <div class="grid gap-2 border-t border-slate-100 px-5 py-4 text-sm md:grid-cols-[1fr_auto_auto] md:items-center">
@@ -34,7 +34,7 @@
                     <div><span class="inline-flex rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold uppercase text-emerald-800">{{ $withdrawal->status }}</span></div>
                 </div>
             @empty
-                <x-dashboard.empty-state message="No disbursements were matched to this withdrawal." class="m-5" />
+                <x-dashboard.empty-state message="No fund requests were matched to this withdrawal." class="m-5" />
             @endforelse
         </section>
     </div>
