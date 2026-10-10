@@ -28,6 +28,162 @@ document.addEventListener('cancel', (event) => {
     }
 }, true);
 
+const donorWizardSteps = (wizard) => Array.from(wizard.querySelectorAll('[data-wizard-step]'));
+const donorWizardForm = (target) => {
+    if (! target) {
+        return null;
+    }
+
+    const form = target.closest('[data-donor-wizard-form]');
+
+    if (form) {
+        return form.querySelector('[data-donor-form]');
+    }
+
+    return target.closest('[data-donor-form]');
+};
+
+const donorWizardControls = (wizard) => {
+    const form = wizard.closest('[data-donor-wizard-form]');
+
+    return {
+        back: form?.querySelector('[data-wizard-back]') ?? null,
+        next: form?.querySelector('[data-wizard-next]') ?? null,
+        submit: form?.querySelector('[data-wizard-submit]') ?? null,
+        error: form?.querySelector('[data-wizard-error]') ?? wizard.querySelector('[data-wizard-error]') ?? null,
+    };
+};
+
+const setDonorWizardStep = (wizard, stepIndex) => {
+    const steps = donorWizardSteps(wizard);
+    const currentIndex = Math.max(0, Math.min(stepIndex, steps.length - 1));
+    const isLastStep = currentIndex === steps.length - 1;
+    const controls = donorWizardControls(wizard);
+
+    steps.forEach((step, index) => {
+        step.hidden = index !== currentIndex;
+    });
+
+    wizard.querySelectorAll('[data-wizard-indicator]').forEach((indicator, index) => {
+        const number = indicator.querySelector('[data-wizard-number]');
+        const isCurrent = index === currentIndex;
+        const isComplete = index < currentIndex;
+
+        indicator.classList.toggle('text-blue-700', isCurrent || isComplete);
+        indicator.classList.toggle('text-slate-500', ! isCurrent && ! isComplete);
+        indicator.setAttribute('aria-current', isCurrent ? 'step' : 'false');
+        number.classList.toggle('bg-blue-700', isCurrent || isComplete);
+        number.classList.toggle('text-white', isCurrent || isComplete);
+        number.classList.toggle('bg-slate-100', ! isCurrent && ! isComplete);
+        number.classList.toggle('text-slate-500', ! isCurrent && ! isComplete);
+    });
+
+    wizard.querySelector('[data-wizard-current]').textContent = String(currentIndex + 1);
+    wizard.querySelector('[data-wizard-title]').textContent = steps[currentIndex].dataset.wizardStepTitle;
+    if (controls.back) controls.back.disabled = currentIndex === 0;
+    if (controls.next) controls.next.hidden = isLastStep;
+    if (controls.submit) controls.submit.hidden = ! isLastStep;
+    wizard.dataset.currentWizardStep = String(currentIndex);
+};
+
+const invalidDonorWizardField = (step) => Array.from(step.querySelectorAll('input, select, textarea'))
+    .find((field) => ! field.disabled && ! field.checkValidity());
+
+const validateDonorWizardStep = (wizard, step) => {
+    const invalidField = invalidDonorWizardField(step);
+    const errorMessage = donorWizardControls(wizard).error ?? wizard.querySelector('[data-wizard-error]');
+
+    if (errorMessage) {
+        errorMessage.hidden = ! invalidField;
+        if (invalidField) {
+            const invalidCount = Array.from(step.querySelectorAll('input, select, textarea')).filter((field) => ! field.disabled && ! field.checkValidity()).length;
+            errorMessage.textContent = invalidCount > 1
+                ? 'Please fill out the remaining fields.'
+                : 'Please fill out the remaining field.';
+        }
+    }
+
+    if (! invalidField) {
+        return true;
+    }
+
+    invalidField.focus();
+    invalidField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+    return false;
+};
+
+document.querySelectorAll('[data-donor-form]').forEach((wizard) => {
+    setDonorWizardStep(wizard, Number(wizard.dataset.wizardStartStep) || 0);
+});
+
+document.addEventListener('click', (event) => {
+    const nextButton = event.target.closest('[data-wizard-next]');
+    const backButton = event.target.closest('[data-wizard-back]');
+    const button = nextButton ?? backButton;
+
+    if (! button) {
+        return;
+    }
+
+    const wizard = donorWizardForm(button);
+
+    if (! wizard) {
+        return;
+    }
+
+    const steps = donorWizardSteps(wizard);
+    const currentIndex = Number(wizard.dataset.currentWizardStep) || 0;
+
+    if (nextButton && ! validateDonorWizardStep(wizard, steps[currentIndex])) {
+        return;
+    }
+
+    setDonorWizardStep(wizard, currentIndex + (nextButton ? 1 : -1));
+});
+
+document.addEventListener('submit', (event) => {
+    const form = event.target.closest('[data-donor-wizard-form]');
+
+    if (! form) {
+        return;
+    }
+
+    const wizard = form.querySelector('[data-donor-form]');
+    const steps = donorWizardSteps(wizard);
+    const invalidIndex = steps.findIndex((step) => invalidDonorWizardField(step));
+
+    if (invalidIndex !== -1) {
+        event.preventDefault();
+        setDonorWizardStep(wizard, invalidIndex);
+        validateDonorWizardStep(wizard, steps[invalidIndex]);
+    }
+});
+
+document.addEventListener('input', (event) => {
+    const wizard = donorWizardForm(event.target);
+
+    if (wizard) {
+        const error = donorWizardControls(wizard).error ?? wizard.querySelector('[data-wizard-error]');
+
+        if (error) {
+            error.hidden = true;
+        }
+    }
+});
+
+document.addEventListener('change', (event) => {
+    const wizard = donorWizardForm(event.target);
+
+    if (wizard) {
+        const error = donorWizardControls(wizard).error ?? wizard.querySelector('[data-wizard-error]');
+
+        if (error) {
+            error.hidden = true;
+        }
+    }
+});
+
 const updateContributionSections = (form) => {
     const type = form.querySelector('[data-contribution-type]')?.value;
 
