@@ -114,21 +114,42 @@ class ImportBankStatement
                 if ((string) $cell['t'] === 's') {
                     $value = $sharedStrings[(int) $value] ?? '';
                 }
-                $values[(int) preg_replace('/\D+/', '', (string) $cell['r'])] = $value;
+                $values[$this->columnIndex((string) $cell['r'])] = $value;
             }
 
             ksort($values);
-            $values = array_values($values);
+            $columnCount = max(count($headers), (int) array_key_last($values));
+            $values = array_map(
+                fn (int $column) => $values[$column] ?? null,
+                range(1, $columnCount),
+            );
             if ($headers === []) {
                 $headers = $values;
                 continue;
             }
-            $rows[] = array_combine($headers, array_pad($values, count($headers), null));
+            $rows[] = array_combine(
+                $headers,
+                array_slice(array_pad($values, count($headers), null), 0, count($headers)),
+            );
         }
 
         $zip->close();
 
         return $rows;
+    }
+
+    private function columnIndex(string $cellReference): int
+    {
+        if (preg_match('/^([A-Z]+)/i', $cellReference, $matches) !== 1) {
+            throw ValidationException::withMessages(['statement' => 'The Excel file contains an invalid cell reference.']);
+        }
+
+        $column = 0;
+        foreach (str_split(strtoupper($matches[1])) as $letter) {
+            $column = ($column * 26) + ord($letter) - ord('A') + 1;
+        }
+
+        return $column;
     }
 
     private function normalize(array $row, int $line): array

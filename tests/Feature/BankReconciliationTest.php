@@ -11,6 +11,7 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Tests\TestCase;
+use ZipArchive;
 
 class BankReconciliationTest extends TestCase
 {
@@ -49,6 +50,41 @@ class BankReconciliationTest extends TestCase
             'reference_number' => 'GC-100',
             'status' => 'unmatched',
         ]);
+    }
+
+    public function test_treasurer_can_import_xlsx_rows_with_blank_cells(): void
+    {
+        $path = tempnam(sys_get_temp_dir(), 'bank-statement-');
+        $zip = new ZipArchive();
+        $this->assertNotFalse($path);
+        $this->assertTrue($zip->open($path, ZipArchive::OVERWRITE));
+        $zip->addFromString('xl/sharedStrings.xml', <<<'XML'
+<sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><si><t>statement_id</t></si><si><t>description</t></si><si><t>reference_number</t></si><si><t>amount</t></si><si><t>transaction_date</t></si><si><t>stmt-xlsx-100</t></si><si><t>GCash deposit</t></si><si><t>2026-09-05</t></si></sst>
+XML);
+        $zip->addFromString('xl/worksheets/sheet1.xml', <<<'XML'
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData><row r="1"><c r="A1" t="s"><v>0</v></c><c r="B1" t="s"><v>1</v></c><c r="C1" t="s"><v>2</v></c><c r="D1" t="s"><v>3</v></c><c r="E1" t="s"><v>4</v></c></row><row r="2"><c r="A2" t="s"><v>5</v></c><c r="B2" t="s"><v>6</v></c><c r="D2"><v>1250.50</v></c><c r="E2" t="s"><v>7</v></c></row></sheetData></worksheet>
+XML);
+        $zip->close();
+        $xlsx = file_get_contents($path);
+        unlink($path);
+        $this->assertNotFalse($xlsx);
+
+        $response = $this->actingAs($this->userWithRole('treasurer'))->post(route('bank-reconciliation.import'), [
+            'statement' => UploadedFile::fake()->createWithContent('statement.xlsx', $xlsx),
+        ]);
+
+        $response->assertRedirect(route('bank-reconciliation.index'));
+        $this->assertDatabaseHas('bank_ledger_entries', [
+            'statement_id' => 'stmt-xlsx-100',
+            'description' => 'GCash deposit',
+            'reference_number' => null,
+            'amount' => 1250.50,
+            'payment_method' => 'gcash',
+        ]);
+        $this->assertSame(
+            '2026-09-05',
+            BankLedgerEntry::query()->where('statement_id', 'stmt-xlsx-100')->firstOrFail()->transaction_date->toDateString(),
+        );
     }
 
     public function test_duplicate_statement_ids_are_rejected_without_partial_import(): void
