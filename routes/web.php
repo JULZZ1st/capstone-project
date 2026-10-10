@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\ChangePasswordController;
+use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\BankReconciliationController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DisbursementController;
@@ -19,6 +20,8 @@ use Illuminate\Support\Facades\Route;
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthenticatedSessionController::class, 'create'])->name('login');
     Route::post('/login', [AuthenticatedSessionController::class, 'store'])->name('login.store');
+    Route::get('/register', [RegisteredUserController::class, 'create'])->name('register');
+    Route::post('/register', [RegisteredUserController::class, 'store'])->name('register.store');
 });
 
 Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
@@ -80,9 +83,12 @@ Route::middleware(['auth', 'password.change', 'role:admin,secretary,treasurer'])
     Route::patch('/contributions/{contribution}/void', [DisbursementController::class, 'voidContribution'])->name('contributions.void');
 
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
-    Route::get('/reports/financial-ledgers/csv', [ReportController::class, 'financialLedgersCsv'])->name('reports.financial-ledgers.csv');
-    Route::get('/reports/financial-ledgers/pdf', [ReportController::class, 'financialLedgersPdf'])->name('reports.financial-ledgers.pdf');
-    Route::get('/reports/philanthropy-roster/pdf', [ReportController::class, 'philanthropyRosterPdf'])->name('reports.philanthropy-roster.pdf');
+    Route::get('/reports/financial/csv', [ReportController::class, 'financialCsv'])->name('reports.financial.csv');
+    Route::get('/reports/financial/pdf', [ReportController::class, 'financialPdf'])->name('reports.financial.pdf');
+    Route::get('/reports/inventory/csv', [ReportController::class, 'inventoryCsv'])->name('reports.inventory.csv');
+    Route::get('/reports/inventory/pdf', [ReportController::class, 'inventoryPdf'])->name('reports.inventory.pdf');
+    Route::get('/reports/audit/csv', [ReportController::class, 'auditCsv'])->name('reports.audit.csv');
+    Route::get('/reports/audit/pdf', [ReportController::class, 'auditPdf'])->name('reports.audit.pdf');
     Route::get('/system-security', [SystemSecurityController::class, 'index'])
         ->middleware('role:admin')
         ->name('system-security.index');

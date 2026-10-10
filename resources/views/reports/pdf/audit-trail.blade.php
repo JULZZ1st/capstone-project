@@ -1,0 +1,4 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Audit Trail Report</title><style>body{font-family:'DejaVu Sans',sans-serif;font-size:10px;color:#1e293b}h1{font-size:16px}.subtitle{color:#64748b}table{width:100%;border-collapse:collapse}th,td{border:1px solid #cbd5e1;padding:5px;text-align:left}th{background:#f1f5f9}</style></head>
+<body><h1>Audit Trail Report</h1><p class="subtitle">Generated {{ now()->format('F d, Y H:i') }} | {{ $report['from'] ?: 'All dates' }} to {{ $report['to'] ?: 'Present' }}</p>
+<table><thead><tr><th>User</th><th>Action</th><th>Module</th><th>Date / Time</th><th>Details</th></tr></thead><tbody>@forelse($report['events'] as $event)<tr><td>{{ $event['user'] }}</td><td>{{ $event['action'] }}</td><td>{{ $event['module'] }}</td><td>{{ $event['occurred_at']?->format('Y-m-d H:i:s') }}</td><td>{{ $event['summary'] }}</td></tr>@empty<tr><td colspan="5">No audit activity found.</td></tr>@endforelse</tbody></table></body></html>

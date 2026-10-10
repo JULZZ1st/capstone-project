@@ -19,6 +19,7 @@ class StoreWithdrawalDisbursementMatchRequest extends FormRequest
         return [
             'disbursement_ids' => ['nullable', 'array'],
             'disbursement_ids.*' => ['integer', 'distinct', 'exists:cash_disbursements,id'],
+
             'discrepancy_reason' => ['nullable', 'string', 'max:5000'],
             'finalize' => ['nullable', 'boolean'],
         ];

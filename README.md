@@ -35,6 +35,10 @@ A web-based donation management system for barangay operations. It helps manage 
    ```bash
    cp .env.example .env
    ```
+   Configure `DB_HOST`, `DB_DATABASE`, `DB_USERNAME`, and `DB_PASSWORD` with the
+   centralized MySQL server used by the barangay deployment. All laptops should
+   access the same Laravel application and use that same database; do not run a
+   separate SQLite or laptop-local MySQL database for operational data.
 4. Run database migrations
    ```bash
    php artisan migrate

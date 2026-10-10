@@ -1,0 +1,76 @@
+- generic [ref=f3e2]:
+  - complementary [ref=f3e3]:
+    - generic [ref=f3e4]:
+      - generic [ref=f3e5]:
+        - paragraph [ref=f3e10]: Donation Operations
+        - button "Toggle sidebar" [expanded] [ref=f3e11] [cursor=pointer]
+      - navigation "Sidebar navigation" [ref=f3e14]:
+        - link "Dashboard" [ref=f3e15] [cursor=pointer]:
+          - /url: http://127.0.0.1:8000
+        - link "Donor Management" [ref=f3e22] [cursor=pointer]:
+          - /url: http://127.0.0.1:8000/donors
+        - link "Donations Portal" [ref=f3e29] [cursor=pointer]:
+          - /url: http://127.0.0.1:8000/donations
+        - link "Fund Requests" [ref=f3e36] [cursor=pointer]:
+          - /url: http://127.0.0.1:8000/disbursements
+        - link "In-Kind Inventory" [ref=f3e41] [cursor=pointer]:
+          - /url: http://127.0.0.1:8000/inventory
+        - link "Bank Reconciliation" [ref=f3e46] [cursor=pointer]:
+          - /url: http://127.0.0.1:8000/bank-reconciliation
+        - link "Report Generator" [ref=f3e50] [cursor=pointer]:
+          - /url: http://127.0.0.1:8000/reports
+        - link "System Administration" [ref=f3e55] [cursor=pointer]:
+          - /url: http://127.0.0.1:8000/system-security
+      - button "Logout" [ref=f3e62] [cursor=pointer]
+  - generic [ref=f3e67]:
+    - banner [ref=f3e68]:
+      - generic [ref=f3e69]:
+        - generic [ref=f3e70]:
+          - heading "Donor Management" [level=1] [ref=f3e71]
+          - paragraph [ref=f3e72]: Search, add, and maintain donor information for barangay donation records.
+        - group [ref=f3e73]:
+          - generic "Gina Gamboa Administrator G" [ref=f3e74] [cursor=pointer]:
+            - generic [ref=f3e75]:
+              - generic [ref=f3e76]: Gina Gamboa
+              - generic [ref=f3e77]: Administrator
+            - generic [ref=f3e78]: G
+    - main [ref=f3e82]:
+      - generic [ref=f3e83]: Donor profile created successfully.
+      - generic [ref=f3e84]:
+        - generic [ref=f3e85]:
+          - generic [ref=f3e86]:
+            - searchbox "Search donors..." [ref=f3e88]
+            - combobox [ref=f3e89]:
+              - option "All types" [selected]
+              - option "Individual"
+              - option "Organization"
+          - button "Add Donor Profile" [ref=f3e90] [cursor=pointer]
+        - table [ref=f3e94]:
+          - caption [ref=f3e95]: Registered donors
+          - rowgroup [ref=f3e96]:
+            - row [ref=f3e97]:
+              - columnheader "Donor Name" [ref=f3e98]
+              - columnheader "Donor Type" [ref=f3e99]
+              - columnheader "Contact Number" [ref=f3e100]
+              - columnheader "Email" [ref=f3e101]
+              - columnheader "Barangay" [ref=f3e102]
+              - columnheader "City / Municipality" [ref=f3e103]
+              - columnheader "Status" [ref=f3e104]
+              - columnheader "Actions" [ref=f3e105]
+          - rowgroup [ref=f3e106]:
+            - row [ref=f3e107]:
+              - cell "Shared Central Donor 1 Shared Street" [ref=f3e108]:
+                - generic [ref=f3e109]: Shared Central Donor
+                - generic [ref=f3e110]: 1 Shared Street
+              - cell "Individual" [ref=f3e111]
+              - cell "09171234567" [ref=f3e112]
+              - cell "shared.central.donor@example.test" [ref=f3e113]
+              - cell "Central" [ref=f3e114]
+              - cell "Manila" [ref=f3e115]
+              - cell "Active" [ref=f3e116]
+              - cell [ref=f3e118]:
+                - generic [ref=f3e119]:
+                  - link "View" [ref=f3e120] [cursor=pointer]:
+                    - /url: http://127.0.0.1:8000/donors/1
+                  - button "Edit" [ref=f3e121] [cursor=pointer]
+                  - button "Remove" [ref=f3e123] [cursor=pointer]

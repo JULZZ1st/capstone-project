@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\ChangePasswordRequest;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\View\View;
 
 class ChangePasswordController extends Controller
@@ -18,7 +17,9 @@ class ChangePasswordController extends Controller
     public function store(ChangePasswordRequest $request): RedirectResponse
     {
         $request->user()->forceFill([
-            'password' => Hash::make($request->validated('password')),
+            // User::password is cast with Laravel's `hashed` cast. Passing the
+            // plain value here lets the model hash it exactly once.
+            'password' => $request->validated('password'),
             'must_change_password' => false,
         ])->save();
 

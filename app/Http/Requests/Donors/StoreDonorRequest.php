@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Donors;
 
+use App\Models\Donor;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -10,7 +11,7 @@ class StoreDonorRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        return $this->user()?->can('create', Donor::class) ?? false;
     }
 
     public function rules(): array

@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Contribution;
 use App\Models\Donor;
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -331,5 +332,51 @@ class DonationManagementTest extends TestCase
         $response->assertOk();
         $response->assertSee('Medical support');
         $response->assertDontSee('Other donor support');
+    }
+
+    public function test_treasurer_can_view_shared_donors_but_cannot_modify_them(): void
+    {
+        $donor = Donor::query()->create([
+            'donor_type' => 'individual',
+            'first_name' => 'Shared',
+            'last_name' => 'Donor',
+            'full_name' => 'Shared Donor',
+            'address' => 'Shared Address',
+            'contact_number' => '09171234567',
+            'status' => config('donors.defaults.status'),
+        ]);
+        $treasurer = $this->userWithRole('treasurer');
+
+        $this->actingAs($treasurer)
+            ->get(route('donors.index'))
+            ->assertOk()
+            ->assertSee('Shared Donor')
+            ->assertDontSee('data-dialog-open="edit-donor-modal-'.$donor->id.'"', false);
+
+        $this->actingAs($treasurer)
+            ->patch(route('donors.update', $donor), [
+                'donor_type' => 'individual',
+                'first_name' => 'Changed',
+                'last_name' => 'Donor',
+                'address' => 'Changed Address',
+                'contact_number' => '09170000000',
+            ])
+            ->assertForbidden();
+
+        $this->actingAs($treasurer)
+            ->delete(route('donors.destroy', $donor))
+            ->assertForbidden();
+
+        $this->assertDatabaseHas('donors', ['id' => $donor->id, 'full_name' => 'Shared Donor']);
+    }
+
+    private function userWithRole(string $role): User
+    {
+        $roleModel = Role::query()->firstOrCreate(
+            ['name' => $role],
+            config("auth_defaults.roles.{$role}"),
+        );
+
+        return User::factory()->create(['role_id' => $roleModel->id]);
     }
 }

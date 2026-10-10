@@ -221,9 +221,9 @@
                 @endif
             </x-dashboard.panel>
 
-            <x-dashboard.panel title="Recent Fund Requests" subtitle="Latest outgoing cash requests recorded." icon="banknotes" tone="info">
+            <x-dashboard.panel title="Recent Cash Disbursements" subtitle="Latest outgoing cash payments recorded." icon="banknotes" tone="info">
                 @if ($dashboard['disbursements']['recent']->isEmpty())
-                    <x-dashboard.empty-state icon="banknotes" message="No fund requests have been recorded yet." action="{{ route('disbursements.index') }}" action-label="Create Fund Request" />
+                    <x-dashboard.empty-state icon="banknotes" message="No cash disbursements have been recorded yet." action="{{ route('disbursements.index') }}" action-label="Record Disbursement" />
                 @else
                     <ul class="divide-y divide-slate-100">
                         @foreach ($dashboard['disbursements']['recent'] as $disbursement)
@@ -231,7 +231,7 @@
                                 <div class="flex items-start justify-between gap-4">
                                     <div>
                                         <p class="text-sm font-medium text-slate-950">{{ $disbursement->purpose }}</p>
-                                        <p class="text-sm text-slate-600">{{ $disbursement->requester->name }} &middot; {{ $disbursement->status === 'approved' ? 'Approved Fund Request' : ucfirst($disbursement->status) }}</p>
+                                        <p class="text-sm text-slate-600">{{ $disbursement->requester->name }} &middot; {{ ucfirst($disbursement->status) }}</p>
                                     </div>
                                     <p class="text-sm font-semibold text-slate-950">{{ $money($disbursement->amount) }}</p>
                                 </div>

@@ -26,7 +26,7 @@ class BankReconciliationTest extends TestCase
         $entry = $this->ledgerEntry(['description' => 'BDO OVER THE COUNTER ICTSI FND']);
         $contribution = $this->electronicContribution(['reference_number' => $entry->reference_number]);
 
-        $response = $this->actingAs($this->userWithRole('treasurer'))->get(route('bank-reconciliation.index'));
+        $response = $this->actingAs(User::factory()->create())->get(route('bank-reconciliation.index'));
 
         $response->assertOk();
         $response->assertSee('Bank Reconciliation Workspace');
@@ -232,7 +232,7 @@ class BankReconciliationTest extends TestCase
         $this->actingAs($treasurer)
             ->get(route('bank-reconciliation.index', ['tab' => 'outgoing']))
             ->assertOk()
-            ->assertSee('Selected Fund Requests Total')
+            ->assertSee('Selected Disbursements Total')
             ->assertSee('PHP 5,000.00')
             ->assertSee('Difference')
             ->assertSee('PHP 0.00')
@@ -264,7 +264,7 @@ class BankReconciliationTest extends TestCase
             ->assertOk()
             ->assertSee('Bank Withdrawal Amount')
             ->assertSee('PHP 6,000.00')
-            ->assertSee('Selected Fund Requests Total')
+            ->assertSee('Selected Disbursements Total')
             ->assertSee('PHP 2,500.00')
             ->assertSee('Difference')
             ->assertSee('PHP 3,500.00')
@@ -355,7 +355,7 @@ class BankReconciliationTest extends TestCase
             ->assertSee('Finalized relief payout')
             ->assertSee('WD-HISTORY-001')
             ->assertSee('PHP 5,000.00')
-            ->assertSee('Matched Fund Requests')
+            ->assertSee('Matched Disbursements')
             ->assertSee('Reconciled By')
             ->assertSee('Reconciled At')
             ->assertSee($treasurer->name)
@@ -494,7 +494,7 @@ class BankReconciliationTest extends TestCase
         $contribution = $this->electronicContribution(['reference_number' => 'BDO-TRF-55419', 'amount' => 100000]);
         $this->electronicContribution(['reference_number' => 'UNRELATED-REF', 'amount' => 5000]);
 
-        $response = $this->actingAs($this->userWithRole('treasurer'))->get(route('bank-reconciliation.index'));
+        $response = $this->actingAs(User::factory()->create())->get(route('bank-reconciliation.index'));
 
         $response->assertOk();
         $response->assertSee('1 suggestion found');
@@ -510,7 +510,7 @@ class BankReconciliationTest extends TestCase
             'status' => 'pending',
         ]);
 
-        $response = $this->actingAs($this->userWithRole('treasurer'))->get(route('bank-reconciliation.index'));
+        $response = $this->actingAs(User::factory()->create())->get(route('bank-reconciliation.index'));
 
         $response->assertOk();
         $response->assertDontSee($contribution->donor->full_name);

@@ -5,6 +5,9 @@ namespace Tests\Feature;
 use App\Models\BankLedgerEntry;
 use App\Models\Contribution;
 use App\Models\Donor;
+use App\Models\InventoryItem;
+use App\Models\InventoryStockMovement;
+use App\Models\SecurityActivityEvent;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -29,7 +32,7 @@ class ReportGeneratorTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('Report Generator');
-        $response->assertSee('Barangay Treasurer Cash Audit Summary');
+        $response->assertSee('Financial Report');
         $response->assertSee('15,000');
         $response->assertSee('10,000');
         $response->assertSee('25,000');
@@ -66,54 +69,52 @@ class ReportGeneratorTest extends TestCase
         $response->assertDontSee('Check');
     }
 
-    public function test_in_kind_audits_tab_renders_a_coming_soon_placeholder(): void
+    public function test_inventory_report_shows_real_inventory_metrics(): void
     {
-        $response = $this->actingAs(User::factory()->create())
-            ->get(route('reports.index', ['tab' => 'in-kind-audits']));
-
-        $response->assertOk();
-        $response->assertSee('In-Kind Audits');
-        $response->assertSee('coming soon');
-    }
-
-    public function test_philanthropy_roster_tab_renders_the_donor_giving_summary(): void
-    {
-        $donor = Donor::query()->create([
-            'donor_type' => 'individual',
-            'full_name' => 'Philanthropy Donor',
-            'address' => 'Brgy. San Jose',
-            'contact_number' => '09171234567',
-            'email' => 'philanthropy@example.com',
-            'status' => config('donors.defaults.status'),
+        $item = InventoryItem::query()->create([
+            'name' => 'Relief Rice', 'category' => 'food', 'unit' => 'sack',
+            'quantity' => 25, 'current_quantity' => 25, 'minimum_reserve_quantity' => 10,
+            'status' => 'active', 'received_at' => '2026-06-03',
         ]);
-
-        Contribution::query()->create([
-            'donor_id' => $donor->id,
-            'type' => 'cash',
-            'status' => 'received',
-            'amount' => 5000,
-            'payment_method' => 'cash',
-            'reference_number' => 'REF-'.random_int(100000, 999999),
-            'received_at' => now(),
+        InventoryStockMovement::query()->create([
+            'inventory_item_id' => $item->id, 'movement_type' => 'stock_in', 'quantity' => 25,
+            'quantity_before' => 0, 'quantity_after' => 25, 'reason' => 'Donation received',
         ]);
 
         $response = $this->actingAs(User::factory()->create())
-            ->get(route('reports.index', ['tab' => 'philanthropy-roster', 'year' => now()->year, 'month' => now()->month]));
+            ->get(route('reports.index', ['tab' => 'inventory', 'year' => 2026, 'month' => 6]));
 
         $response->assertOk();
-        $response->assertSee('Philanthropy Roster');
-        $response->assertSee('Donor Giving Summary');
-        $response->assertSee('Philanthropy Donor');
-        $response->assertSee('5,000.00');
+        $response->assertSee('Inventory Report');
+        $response->assertSee('In-kind Received');
+        $response->assertSee('Stock-in');
+        $response->assertSee('Stock-out');
+        $response->assertSee('Current Stock');
+        $response->assertSee('Low Items');
+        $response->assertSee('Critical Items');
+        $response->assertSee('Expired Items');
+        $response->assertSee('Relief Rice');
     }
 
-    public function test_philanthropy_roster_tab_shows_empty_state_with_no_giving(): void
+    public function test_audit_report_shows_user_action_module_and_date_range(): void
     {
+        $actor = User::factory()->create(['name' => 'Audit User']);
+        SecurityActivityEvent::query()->create([
+            'actor_id' => $actor->id, 'action' => 'inventory_stock_in',
+            'summary' => 'Recorded relief stock', 'occurred_at' => '2026-06-15 10:30:00',
+        ]);
+
         $response = $this->actingAs(User::factory()->create())
-            ->get(route('reports.index', ['tab' => 'philanthropy-roster', 'year' => now()->year, 'month' => now()->month]));
+            ->get(route('reports.index', ['tab' => 'audit', 'from' => '2026-06-01', 'to' => '2026-06-30']));
 
         $response->assertOk();
-        $response->assertSee('No donor giving activity found for this period.');
+        $response->assertSee('Audit Trail Report');
+        $response->assertSee('User');
+        $response->assertSee('Action');
+        $response->assertSee('Module');
+        $response->assertSee('Date / Time');
+        $response->assertSee('Audit User');
+        $response->assertSee('Inventory');
     }
 
     public function test_authorized_user_can_download_financial_ledgers_csv(): void
@@ -122,7 +123,7 @@ class ReportGeneratorTest extends TestCase
         $this->reconcile($reconciled);
 
         $response = $this->actingAs(User::factory()->create())
-            ->get(route('reports.financial-ledgers.csv', ['year' => 2026, 'month' => 6]));
+            ->get(route('reports.financial.csv', ['year' => 2026, 'month' => 6]));
 
         $response->assertOk();
         $this->assertStringContainsString('text/csv', $response->headers->get('Content-Type'));
@@ -135,7 +136,7 @@ class ReportGeneratorTest extends TestCase
 
     public function test_guest_cannot_download_financial_ledgers_csv(): void
     {
-        $this->get(route('reports.financial-ledgers.csv'))->assertRedirect(route('login'));
+        $this->get(route('reports.financial.csv'))->assertRedirect(route('login'));
     }
 
     public function test_authorized_user_can_download_financial_ledgers_pdf(): void
@@ -144,7 +145,7 @@ class ReportGeneratorTest extends TestCase
         $this->reconcile($reconciled);
 
         $response = $this->actingAs(User::factory()->create())
-            ->get(route('reports.financial-ledgers.pdf', ['year' => 2026, 'month' => 6]));
+            ->get(route('reports.financial.pdf', ['year' => 2026, 'month' => 6]));
 
         $response->assertOk();
         $this->assertStringContainsString('application/pdf', $response->headers->get('Content-Type'));
@@ -153,40 +154,40 @@ class ReportGeneratorTest extends TestCase
 
     public function test_guest_cannot_download_financial_ledgers_pdf(): void
     {
-        $this->get(route('reports.financial-ledgers.pdf'))->assertRedirect(route('login'));
+        $this->get(route('reports.financial.pdf'))->assertRedirect(route('login'));
     }
 
-    public function test_authorized_user_can_download_philanthropy_roster_pdf(): void
+    public function test_authorized_user_can_download_inventory_and_audit_exports(): void
     {
-        $donor = Donor::query()->create([
-            'donor_type' => 'individual',
-            'full_name' => 'PDF Donor',
-            'address' => 'Brgy. San Jose',
-            'contact_number' => '09171234567',
-            'email' => 'pdf-donor@example.com',
-            'status' => config('donors.defaults.status'),
+        $item = InventoryItem::query()->create([
+            'name' => 'Export Rice', 'category' => 'food', 'unit' => 'sack',
+            'quantity' => 3, 'current_quantity' => 3, 'minimum_reserve_quantity' => 1,
+            'status' => 'active', 'received_at' => '2026-06-03',
         ]);
-        Contribution::query()->create([
-            'donor_id' => $donor->id,
-            'type' => 'cash',
-            'status' => 'received',
-            'amount' => 3000,
-            'payment_method' => 'cash',
-            'reference_number' => 'REF-'.random_int(100000, 999999),
-            'received_at' => now(),
+        InventoryStockMovement::query()->create([
+            'inventory_item_id' => $item->id, 'movement_type' => 'stock_in', 'quantity' => 3,
+            'quantity_before' => 0, 'quantity_after' => 3, 'reason' => 'Donation received',
         ]);
+        $user = $this->actingAs(User::factory()->create());
 
-        $response = $this->actingAs(User::factory()->create())
-            ->get(route('reports.philanthropy-roster.pdf', ['year' => now()->year, 'month' => now()->month]));
+        $csv = $user->get(route('reports.inventory.csv', ['year' => 2026, 'month' => 6]));
+        $csv->assertOk();
+        $this->assertStringContainsString('Export Rice', $csv->streamedContent());
 
-        $response->assertOk();
-        $this->assertStringContainsString('application/pdf', $response->headers->get('Content-Type'));
-        $this->assertStringStartsWith('%PDF', $response->getContent());
+        $pdf = $user->get(route('reports.inventory.pdf', ['year' => 2026, 'month' => 6]));
+        $pdf->assertOk();
+        $this->assertStringContainsString('application/pdf', $pdf->headers->get('Content-Type'));
+        $this->assertStringStartsWith('%PDF', $pdf->getContent());
+
+        $audit = $user->get(route('reports.audit.csv', ['from' => '2026-01-01', 'to' => '2026-12-31']));
+        $audit->assertOk();
+        $this->assertStringContainsString('User,Action,Module,Date/Time,Details', $audit->streamedContent());
     }
 
-    public function test_guest_cannot_download_philanthropy_roster_pdf(): void
+    public function test_guests_cannot_download_inventory_or_audit_exports(): void
     {
-        $this->get(route('reports.philanthropy-roster.pdf'))->assertRedirect(route('login'));
+        $this->get(route('reports.inventory.pdf'))->assertRedirect(route('login'));
+        $this->get(route('reports.audit.pdf'))->assertRedirect(route('login'));
     }
 
     private function cashContribution(array $overrides = []): Contribution

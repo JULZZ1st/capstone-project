@@ -8,6 +8,7 @@ use App\Models\Donor;
 use App\Services\Donors\RemoveDonor;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 
@@ -74,6 +75,8 @@ class DonorController extends Controller
 
     public function show(Donor $donor): View
     {
+        Gate::authorize('view', $donor);
+
         $donor->loadCount(['contributions as donations_count']);
 
         $donations = $donor->contributions()
@@ -95,6 +98,8 @@ class DonorController extends Controller
 
     public function destroy(Request $request, Donor $donor, RemoveDonor $remover): RedirectResponse
     {
+        Gate::authorize('delete', $donor);
+
         $result = $remover->handle($donor, $request->user());
 
         $message = $result === 'deactivated'

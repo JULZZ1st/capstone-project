@@ -1,0 +1,17 @@
+- main [ref=e2]:
+  - generic [ref=e3]:
+    - generic [ref=e4]:
+      - paragraph [ref=e5]: Barangay Donation Platform
+      - heading "Sign in to your account" [level=1] [ref=e6]
+      - paragraph [ref=e7]: Access donation records, inventory workflows, cash transactions, and reconciliation tools.
+    - generic [ref=e8]:
+      - generic [ref=e9]:
+        - generic [ref=e10]: Email Address
+        - textbox "Email Address" [active] [ref=e11]
+      - generic [ref=e12]:
+        - generic [ref=e13]: Password
+        - textbox "Password" [ref=e14]
+      - generic [ref=e16]:
+        - checkbox "Remember me on this device" [ref=e17]
+        - generic [ref=e18]: Remember me on this device
+      - button "Sign In" [ref=e19] [cursor=pointer]

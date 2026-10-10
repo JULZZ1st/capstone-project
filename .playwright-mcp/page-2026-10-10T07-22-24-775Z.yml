@@ -1,0 +1,111 @@
+- generic [ref=f2e2]:
+  - complementary [ref=f2e3]:
+    - generic [ref=f2e4]:
+      - generic [ref=f2e5]:
+        - paragraph [ref=f2e10]: Donation Operations
+        - button "Toggle sidebar" [expanded] [ref=f2e11] [cursor=pointer]
+      - navigation "Sidebar navigation" [ref=f2e14]:
+        - link "Dashboard" [ref=f2e15] [cursor=pointer]:
+          - /url: http://127.0.0.1:8000
+        - link "Donor Management" [ref=f2e22] [cursor=pointer]:
+          - /url: http://127.0.0.1:8000/donors
+        - link "Donations Portal" [ref=f2e29] [cursor=pointer]:
+          - /url: http://127.0.0.1:8000/donations
+        - link "Fund Requests" [ref=f2e36] [cursor=pointer]:
+          - /url: http://127.0.0.1:8000/disbursements
+        - link "In-Kind Inventory" [ref=f2e41] [cursor=pointer]:
+          - /url: http://127.0.0.1:8000/inventory
+        - link "Bank Reconciliation" [ref=f2e46] [cursor=pointer]:
+          - /url: http://127.0.0.1:8000/bank-reconciliation
+        - link "Report Generator" [ref=f2e50] [cursor=pointer]:
+          - /url: http://127.0.0.1:8000/reports
+        - link "System Administration" [ref=f2e55] [cursor=pointer]:
+          - /url: http://127.0.0.1:8000/system-security
+      - button "Logout" [ref=f2e62] [cursor=pointer]
+  - generic [ref=f2e67]:
+    - banner [ref=f2e68]:
+      - generic [ref=f2e69]:
+        - generic [ref=f2e70]:
+          - heading "Donor Management" [level=1] [ref=f2e71]
+          - paragraph [ref=f2e72]: Search, add, and maintain donor information for barangay donation records.
+        - group [ref=f2e73]:
+          - generic "Gina Gamboa Administrator G" [ref=f2e74] [cursor=pointer]:
+            - generic [ref=f2e75]:
+              - generic [ref=f2e76]: Gina Gamboa
+              - generic [ref=f2e77]: Administrator
+            - generic [ref=f2e78]: G
+    - main [ref=f2e82]:
+      - generic [ref=f2e83]:
+        - generic [ref=f2e84]:
+          - generic [ref=f2e85]:
+            - searchbox "Search donors..." [ref=f2e87]
+            - combobox [ref=f2e88]:
+              - option "All types" [selected]
+              - option "Individual"
+              - option "Organization"
+          - button "Add Donor Profile" [ref=f2e89] [cursor=pointer]
+        - generic [ref=f2e91]:
+          - paragraph [ref=f2e97]: No donors registered yet.
+          - paragraph [ref=f2e98]: Add a donor profile to get started.
+      - dialog [ref=f2e99]:
+        - generic [ref=f2e100]:
+          - generic [ref=f2e101]:
+            - generic [ref=f2e109]:
+              - heading "Add New Donor Profile" [level=2] [ref=f2e110]
+              - paragraph [ref=f2e111]: Create a donor profile for future donation records.
+            - button "Close modal" [active] [ref=f2e112] [cursor=pointer]
+          - generic [ref=f2e118]:
+            - generic [ref=f2e119]:
+              - heading "Basic Information" [level=3] [ref=f2e120]
+              - generic [ref=f2e121]:
+                - generic [ref=f2e122]:
+                  - generic [ref=f2e123]: Donor Type
+                  - combobox "Donor Type" [ref=f2e124]:
+                    - option "Individual" [selected]
+                    - option "Organization"
+                - generic [ref=f2e125]:
+                  - generic [ref=f2e126]: First Name
+                  - textbox "First Name" [ref=f2e127]
+                - generic [ref=f2e128]:
+                  - generic [ref=f2e129]: Last Name
+                  - textbox "Last Name" [ref=f2e130]
+            - generic [ref=f2e131]:
+              - heading "Contact Information" [level=3] [ref=f2e132]
+              - generic [ref=f2e133]:
+                - generic [ref=f2e134]:
+                  - generic [ref=f2e135]: Contact Number
+                  - textbox "Contact Number" [ref=f2e136]
+                - generic [ref=f2e137]:
+                  - generic [ref=f2e138]: Email
+                  - textbox "Email" [ref=f2e139]
+                - generic [ref=f2e140]:
+                  - generic [ref=f2e141]: Preferred Contact Method
+                  - combobox "Preferred Contact Method" [ref=f2e142]:
+                    - option "Not specified" [selected]
+                    - option "Phone"
+                    - option "Email"
+                    - option "SMS"
+                    - option "In Person"
+            - generic [ref=f2e143]:
+              - heading "Address" [level=3] [ref=f2e144]
+              - generic [ref=f2e145]:
+                - generic [ref=f2e146]:
+                  - generic [ref=f2e147]: Street / Address
+                  - textbox "Street / Address" [ref=f2e148]
+                - generic [ref=f2e149]:
+                  - generic [ref=f2e150]: Barangay
+                  - textbox "Barangay" [ref=f2e151]
+                - generic [ref=f2e152]:
+                  - generic [ref=f2e153]: City / Municipality
+                  - textbox "City / Municipality" [ref=f2e154]
+                - generic [ref=f2e155]:
+                  - generic [ref=f2e156]: Province
+                  - textbox "Province" [ref=f2e157]
+            - generic [ref=f2e158]:
+              - heading "Additional Information" [level=3] [ref=f2e159]
+              - generic [ref=f2e160]:
+                - generic [ref=f2e161]: Notes
+                - textbox "Notes" [ref=f2e162]
+          - generic [ref=f2e163]:
+            - button "Cancel" [ref=f2e164] [cursor=pointer]
+            - button "Save Donor Profile" [ref=f2e165] [cursor=pointer]

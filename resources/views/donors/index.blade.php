@@ -20,10 +20,12 @@
         <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-end">
             <x-donors.search-bar :search="$search" :selected-type="$selectedType" />
 
-            <x-button type="button" class="h-10 w-full shrink-0 gap-2 px-4 sm:w-auto" data-dialog-open="create-donor-modal">
-                <x-icon name="plus" class="h-4 w-4" />
-                Add Donor Profile
-            </x-button>
+            @can('create', \App\Models\Donor::class)
+                <x-button type="button" class="h-10 w-full shrink-0 gap-2 px-4 sm:w-auto" data-dialog-open="create-donor-modal">
+                    <x-icon name="plus" class="h-4 w-4" />
+                    Add Donor Profile
+                </x-button>
+            @endcan
         </div>
 
         @if ($donors->isEmpty())
@@ -70,12 +72,16 @@
                                     <td class="px-4 py-3">
                                         <div class="flex justify-end gap-2 whitespace-nowrap">
                                             <a href="{{ route('donors.show', $donor) }}" class="rounded-md border border-slate-300 px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-white">View</a>
-                                            <button type="button" class="rounded-md bg-blue-700 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-blue-800" data-dialog-open="edit-donor-modal-{{ $donor->id }}">Edit</button>
-                                            <form method="POST" action="{{ route('donors.destroy', $donor) }}" onsubmit="return confirm('Remove this donor? If they have donation history, the profile will be deactivated instead of permanently deleted.')">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="rounded-md border border-red-300 px-2.5 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-50">Remove</button>
-                                            </form>
+                                            @can('update', $donor)
+                                                <button type="button" class="rounded-md bg-blue-700 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-blue-800" data-dialog-open="edit-donor-modal-{{ $donor->id }}">Edit</button>
+                                            @endcan
+                                            @can('delete', $donor)
+                                                <form method="POST" action="{{ route('donors.destroy', $donor) }}" onsubmit="return confirm('Remove this donor? If they have donation history, the profile will be deactivated instead of permanently deleted.')">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="rounded-md border border-red-300 px-2.5 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-50">Remove</button>
+                                                </form>
+                                            @endcan
                                         </div>
                                     </td>
                                 </tr>
@@ -95,5 +101,7 @@
         @endif
     </div>
 
-    <x-donors.create-modal :open="$createModalOpen" />
+    @can('create', \App\Models\Donor::class)
+        <x-donors.create-modal :open="$createModalOpen" />
+    @endcan
 @endsection

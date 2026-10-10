@@ -71,6 +71,63 @@ class SystemSecurityStaffAccountTest extends TestCase
         ]);
     }
 
+    public function test_created_staff_accounts_complete_the_temporary_password_flow_for_each_role(): void
+    {
+        $admin = $this->userWithRole('admin');
+        $temporaryPassword = 'TemporaryPassword123!';
+        $newPassword = 'PermanentPassword456!';
+
+        foreach (['admin', 'secretary', 'treasurer'] as $role) {
+            $email = "new.{$role}@example.test";
+
+            $response = $this->actingAs($admin)->post(route('system-security.users.store'), [
+                'first_name' => 'New',
+                'last_name' => ucfirst($role),
+                'email' => $email,
+                'role' => $role,
+                'password' => $temporaryPassword,
+                'password_confirmation' => $temporaryPassword,
+            ]);
+
+            $response->assertRedirect(route('system-security.index'));
+
+            $this->assertDatabaseHas('users', [
+                'email' => $email,
+                'role_id' => Role::query()->where('name', $role)->value('id'),
+                'must_change_password' => true,
+                'status' => config('auth_defaults.user_status'),
+            ]);
+
+            $this->post(route('logout'));
+
+            $this->post(route('login.store'), [
+                'email' => $email,
+                'password' => $temporaryPassword,
+            ])->assertRedirect(route('dashboard', absolute: false));
+
+            $this->get(route('dashboard'))
+                ->assertRedirect(route('password.change'));
+
+            $this->post(route('password.change.store'), [
+                'current_password' => $temporaryPassword,
+                'password' => $newPassword,
+                'password_confirmation' => $newPassword,
+            ])->assertRedirect(route('dashboard', absolute: false));
+
+            $this->assertDatabaseHas('users', [
+                'email' => $email,
+                'must_change_password' => false,
+            ]);
+
+            $this->post(route('logout'));
+
+            $this->post(route('login.store'), [
+                'email' => $email,
+                'password' => $newPassword,
+            ])->assertRedirect(route('dashboard', absolute: false));
+        }
+    }
+
     public function test_secretary_and_treasurer_cannot_access_user_management(): void
     {
         $secretary = $this->userWithRole('secretary');

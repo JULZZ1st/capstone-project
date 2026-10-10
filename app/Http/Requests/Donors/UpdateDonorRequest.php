@@ -10,7 +10,7 @@ class UpdateDonorRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        return $this->user()?->can('update', $this->route('donor')) ?? false;
     }
 
     public function rules(): array

@@ -125,7 +125,7 @@ class DashboardMetrics
         return collect()
             ->merge($this->activityFrom(Contribution::query()->latest()->limit($limit)->get(['id', 'type as label', 'created_at']), 'Contribution logged'))
             ->merge($this->activityFrom(InventoryItem::query()->latest()->limit($limit)->get(['id', 'name as label', 'created_at']), 'Inventory updated'))
-            ->merge($this->activityFrom(CashDisbursement::query()->latest()->limit($limit)->get(['id', 'purpose as label', 'created_at']), 'Fund request'))
+            ->merge($this->activityFrom(CashDisbursement::query()->latest()->limit($limit)->get(['id', 'purpose as label', 'created_at']), 'Cash disbursed'))
             ->sortByDesc('created_at')
             ->take($limit)
             ->values();

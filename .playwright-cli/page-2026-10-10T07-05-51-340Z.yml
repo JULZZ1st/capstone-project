@@ -1,0 +1,662 @@
+- generic [ref=f22e2]:
+  - complementary [ref=f22e3]:
+    - generic [ref=f22e4]:
+      - generic [ref=f22e5]:
+        - paragraph [ref=f22e10]: Donation Operations
+        - button "Toggle sidebar" [expanded] [ref=f22e11] [cursor=pointer]
+      - navigation "Sidebar navigation" [ref=f22e14]:
+        - link "Dashboard" [ref=f22e15] [cursor=pointer]:
+          - /url: http://127.0.0.1:8000
+        - link "Donor Management" [ref=f22e22] [cursor=pointer]:
+          - /url: http://127.0.0.1:8000/donors
+        - link "Donations Portal" [ref=f22e29] [cursor=pointer]:
+          - /url: http://127.0.0.1:8000/donations
+        - link "Fund Requests" [ref=f22e36] [cursor=pointer]:
+          - /url: http://127.0.0.1:8000/disbursements
+        - link "In-Kind Inventory" [ref=f22e41] [cursor=pointer]:
+          - /url: http://127.0.0.1:8000/inventory
+        - link "Bank Reconciliation" [ref=f22e46] [cursor=pointer]:
+          - /url: http://127.0.0.1:8000/bank-reconciliation
+        - link "Report Generator" [ref=f22e50] [cursor=pointer]:
+          - /url: http://127.0.0.1:8000/reports
+        - link "System Administration" [ref=f22e55] [cursor=pointer]:
+          - /url: http://127.0.0.1:8000/system-security
+      - button "Logout" [ref=f22e62] [cursor=pointer]
+  - generic [ref=f22e67]:
+    - banner [ref=f22e68]:
+      - generic [ref=f22e69]:
+        - generic [ref=f22e70]:
+          - heading "System Security Administration" [level=1] [ref=f22e71]
+          - paragraph [ref=f22e72]: Oversee two-factor lockouts, staff permissions, and non-repudiation audit ledgers.
+        - group [ref=f22e73]:
+          - generic "Gina Gamboa Administrator G" [ref=f22e74] [cursor=pointer]:
+            - generic [ref=f22e75]:
+              - generic [ref=f22e76]: Gina Gamboa
+              - generic [ref=f22e77]: Administrator
+            - generic [ref=f22e78]: G
+    - main [ref=f22e82]:
+      - generic [ref=f22e83]:
+        - generic [ref=f22e84]:
+          - generic [ref=f22e85]:
+            - generic [ref=f22e86]: Laravel Node
+            - generic [ref=f22e87]: /
+            - generic [ref=f22e88]: "Security:"
+            - generic [ref=f22e89]: Two-Factor Verified
+          - generic [ref=f22e90]:
+            - generic [ref=f22e91]: Admin Control Console
+            - generic [ref=f22e92]: Administrator
+        - generic [ref=f22e93]:
+          - generic [ref=f22e94]:
+            - heading "Authorized Administrative Personnel" [level=2] [ref=f22e96]
+            - generic [ref=f22e97]:
+              - generic [ref=f22e98]: 11 Active Accounts
+              - group [ref=f22e99]:
+                - generic "Create Staff Account" [ref=f22e100]
+                - option "Administrator" [selected]
+                - option "Secretary"
+                - option "Treasurer"
+          - generic [ref=f22e101]:
+            - article [ref=f22e102]:
+              - generic [ref=f22e103]:
+                - generic [ref=f22e104]: BA
+                - generic [ref=f22e105]:
+                  - paragraph [ref=f22e106]: Browser Admin Created
+                  - generic [ref=f22e107]: Administrator
+              - generic [ref=f22e109]:
+                - generic [ref=f22e110]:
+                  - paragraph [ref=f22e111]: 2FA Authorization
+                  - paragraph [ref=f22e112]: TOTP Enforced
+                - button "Relax Enforce" [ref=f22e114] [cursor=pointer]
+              - generic [ref=f22e115]:
+                - paragraph [ref=f22e116]: "Access Clearance Controls:"
+                - generic [ref=f22e118]:
+                  - generic [ref=f22e119]:
+                    - checkbox "Manage Accounts & Key Permissions" [checked] [disabled] [ref=f22e120]
+                    - generic [ref=f22e121]: Manage Accounts & Key Permissions
+                  - generic [ref=f22e122]:
+                    - checkbox "Access System Audit Logs & Security Tickets" [checked] [disabled] [ref=f22e123]
+                    - generic [ref=f22e124]: Access System Audit Logs & Security Tickets
+                  - generic [ref=f22e125]:
+                    - checkbox "Register & Allocate In-Kind Supplies" [disabled] [ref=f22e126]
+                    - generic [ref=f22e127]: Register & Allocate In-Kind Supplies
+                  - generic [ref=f22e128]:
+                    - checkbox "Adjust Warehouse Stock Levels" [disabled] [ref=f22e129]
+                    - generic [ref=f22e130]: Adjust Warehouse Stock Levels
+                  - generic [ref=f22e131]:
+                    - checkbox "Record Cash / GCash Ledger Credits" [disabled] [ref=f22e132]
+                    - generic [ref=f22e133]: Record Cash / GCash Ledger Credits
+              - generic [ref=f22e134]:
+                - paragraph [ref=f22e135]: Simulated Key
+                - paragraph [ref=f22e136]: "160782"
+              - generic [ref=f22e137]:
+                - group [ref=f22e138]:
+                  - generic "Edit" [ref=f22e139]
+                  - option "Administrator" [selected]
+                  - option "Secretary"
+                  - option "Treasurer"
+                  - option "Active" [selected]
+                  - option "Deactivated"
+                - button "Deactivate" [ref=f22e141] [cursor=pointer]
+            - article [ref=f22e142]:
+              - generic [ref=f22e143]:
+                - generic [ref=f22e144]: GG
+                - generic [ref=f22e145]:
+                  - paragraph [ref=f22e146]: Gina Gamboa
+                  - generic [ref=f22e147]: Administrator
+              - generic [ref=f22e149]:
+                - generic [ref=f22e150]:
+                  - paragraph [ref=f22e151]: 2FA Authorization
+                  - paragraph [ref=f22e152]: TOTP Enforced
+                - button "Relax Enforce" [ref=f22e154] [cursor=pointer]
+              - generic [ref=f22e155]:
+                - paragraph [ref=f22e156]: "Access Clearance Controls:"
+                - generic [ref=f22e158]:
+                  - generic [ref=f22e159]:
+                    - checkbox "Manage Accounts & Key Permissions" [checked] [disabled] [ref=f22e160]
+                    - generic [ref=f22e161]: Manage Accounts & Key Permissions
+                  - generic [ref=f22e162]:
+                    - checkbox "Access System Audit Logs & Security Tickets" [checked] [disabled] [ref=f22e163]
+                    - generic [ref=f22e164]: Access System Audit Logs & Security Tickets
+                  - generic [ref=f22e165]:
+                    - checkbox "Register & Allocate In-Kind Supplies" [disabled] [ref=f22e166]
+                    - generic [ref=f22e167]: Register & Allocate In-Kind Supplies
+                  - generic [ref=f22e168]:
+                    - checkbox "Adjust Warehouse Stock Levels" [disabled] [ref=f22e169]
+                    - generic [ref=f22e170]: Adjust Warehouse Stock Levels
+                  - generic [ref=f22e171]:
+                    - checkbox "Record Cash / GCash Ledger Credits" [disabled] [ref=f22e172]
+                    - generic [ref=f22e173]: Record Cash / GCash Ledger Credits
+              - generic [ref=f22e174]:
+                - paragraph [ref=f22e175]: Simulated Key
+                - paragraph [ref=f22e176]: "912043"
+              - generic [ref=f22e177]:
+                - group [ref=f22e178]:
+                  - generic "Edit" [ref=f22e179]
+                  - option "Administrator" [selected]
+                  - option "Secretary"
+                  - option "Treasurer"
+                  - option "Active" [selected]
+                  - option "Deactivated"
+                - button "Deactivate" [ref=f22e181] [cursor=pointer]
+            - article [ref=f22e182]:
+              - generic [ref=f22e183]:
+                - generic [ref=f22e184]: MA
+                - generic [ref=f22e185]:
+                  - paragraph [ref=f22e186]: MCP Admin
+                  - generic [ref=f22e187]: Administrator
+              - generic [ref=f22e189]:
+                - generic [ref=f22e190]:
+                  - paragraph [ref=f22e191]: 2FA Authorization
+                  - paragraph [ref=f22e192]: Not Enabled
+                - button "Toggle Enforce" [ref=f22e194] [cursor=pointer]
+              - generic [ref=f22e195]:
+                - paragraph [ref=f22e196]: "Access Clearance Controls:"
+                - generic [ref=f22e198]:
+                  - generic [ref=f22e199]:
+                    - checkbox "Manage Accounts & Key Permissions" [disabled] [ref=f22e200]
+                    - generic [ref=f22e201]: Manage Accounts & Key Permissions
+                  - generic [ref=f22e202]:
+                    - checkbox "Access System Audit Logs & Security Tickets" [disabled] [ref=f22e203]
+                    - generic [ref=f22e204]: Access System Audit Logs & Security Tickets
+                  - generic [ref=f22e205]:
+                    - checkbox "Register & Allocate In-Kind Supplies" [disabled] [ref=f22e206]
+                    - generic [ref=f22e207]: Register & Allocate In-Kind Supplies
+                  - generic [ref=f22e208]:
+                    - checkbox "Adjust Warehouse Stock Levels" [disabled] [ref=f22e209]
+                    - generic [ref=f22e210]: Adjust Warehouse Stock Levels
+                  - generic [ref=f22e211]:
+                    - checkbox "Record Cash / GCash Ledger Credits" [disabled] [ref=f22e212]
+                    - generic [ref=f22e213]: Record Cash / GCash Ledger Credits
+              - generic [ref=f22e214]:
+                - paragraph [ref=f22e215]: Simulated Key
+                - paragraph [ref=f22e216]: "------"
+              - generic [ref=f22e217]:
+                - group [ref=f22e218]:
+                  - generic "Edit" [ref=f22e219]
+                  - option "Administrator" [selected]
+                  - option "Secretary"
+                  - option "Treasurer"
+                  - option "Active" [selected]
+                  - option "Deactivated"
+                - button "Deactivate" [ref=f22e221] [cursor=pointer]
+            - article [ref=f22e222]:
+              - generic [ref=f22e223]:
+                - generic [ref=f22e224]: PV
+                - generic [ref=f22e225]:
+                  - paragraph [ref=f22e226]: PW Admin Verified
+                  - generic [ref=f22e227]: Administrator
+              - generic [ref=f22e229]:
+                - generic [ref=f22e230]:
+                  - paragraph [ref=f22e231]: 2FA Authorization
+                  - paragraph [ref=f22e232]: Not Enabled
+                - button "Toggle Enforce" [ref=f22e234] [cursor=pointer]
+              - generic [ref=f22e235]:
+                - paragraph [ref=f22e236]: "Access Clearance Controls:"
+                - generic [ref=f22e238]:
+                  - generic [ref=f22e239]:
+                    - checkbox "Manage Accounts & Key Permissions" [disabled] [ref=f22e240]
+                    - generic [ref=f22e241]: Manage Accounts & Key Permissions
+                  - generic [ref=f22e242]:
+                    - checkbox "Access System Audit Logs & Security Tickets" [disabled] [ref=f22e243]
+                    - generic [ref=f22e244]: Access System Audit Logs & Security Tickets
+                  - generic [ref=f22e245]:
+                    - checkbox "Register & Allocate In-Kind Supplies" [disabled] [ref=f22e246]
+                    - generic [ref=f22e247]: Register & Allocate In-Kind Supplies
+                  - generic [ref=f22e248]:
+                    - checkbox "Adjust Warehouse Stock Levels" [disabled] [ref=f22e249]
+                    - generic [ref=f22e250]: Adjust Warehouse Stock Levels
+                  - generic [ref=f22e251]:
+                    - checkbox "Record Cash / GCash Ledger Credits" [disabled] [ref=f22e252]
+                    - generic [ref=f22e253]: Record Cash / GCash Ledger Credits
+              - generic [ref=f22e254]:
+                - paragraph [ref=f22e255]: Simulated Key
+                - paragraph [ref=f22e256]: "------"
+              - generic [ref=f22e257]:
+                - group [ref=f22e258]:
+                  - generic "Edit" [ref=f22e259]
+                  - option "Administrator" [selected]
+                  - option "Secretary"
+                  - option "Treasurer"
+                  - option "Active" [selected]
+                  - option "Deactivated"
+                - button "Deactivate" [ref=f22e261] [cursor=pointer]
+            - article [ref=f22e262]:
+              - generic [ref=f22e263]:
+                - generic [ref=f22e264]: BS
+                - generic [ref=f22e265]:
+                  - paragraph [ref=f22e266]: Browser Secretary New
+                  - generic [ref=f22e267]: Secretary
+              - generic [ref=f22e269]:
+                - generic [ref=f22e270]:
+                  - paragraph [ref=f22e271]: 2FA Authorization
+                  - paragraph [ref=f22e272]: TOTP Enforced
+                - button "Relax Enforce" [ref=f22e274] [cursor=pointer]
+              - generic [ref=f22e275]:
+                - paragraph [ref=f22e276]: "Access Clearance Controls:"
+                - generic [ref=f22e278]:
+                  - generic [ref=f22e279]:
+                    - checkbox "Manage Accounts & Key Permissions" [disabled] [ref=f22e280]
+                    - generic [ref=f22e281]: Manage Accounts & Key Permissions
+                  - generic [ref=f22e282]:
+                    - checkbox "Access System Audit Logs & Security Tickets" [disabled] [ref=f22e283]
+                    - generic [ref=f22e284]: Access System Audit Logs & Security Tickets
+                  - generic [ref=f22e285]:
+                    - checkbox "Register & Allocate In-Kind Supplies" [checked] [disabled] [ref=f22e286]
+                    - generic [ref=f22e287]: Register & Allocate In-Kind Supplies
+                  - generic [ref=f22e288]:
+                    - checkbox "Adjust Warehouse Stock Levels" [checked] [disabled] [ref=f22e289]
+                    - generic [ref=f22e290]: Adjust Warehouse Stock Levels
+                  - generic [ref=f22e291]:
+                    - checkbox "Record Cash / GCash Ledger Credits" [disabled] [ref=f22e292]
+                    - generic [ref=f22e293]: Record Cash / GCash Ledger Credits
+              - generic [ref=f22e294]:
+                - paragraph [ref=f22e295]: Simulated Key
+                - paragraph [ref=f22e296]: "409521"
+              - generic [ref=f22e297]:
+                - group [ref=f22e298]:
+                  - generic "Edit" [ref=f22e299]
+                  - option "Administrator"
+                  - option "Secretary" [selected]
+                  - option "Treasurer"
+                  - option "Active" [selected]
+                  - option "Deactivated"
+                - button "Deactivate" [ref=f22e301] [cursor=pointer]
+            - article [ref=f22e302]:
+              - generic [ref=f22e303]:
+                - generic [ref=f22e304]: BS
+                - generic [ref=f22e305]:
+                  - paragraph [ref=f22e306]: Browser Secretary Two
+                  - generic [ref=f22e307]: Secretary
+              - generic [ref=f22e309]:
+                - generic [ref=f22e310]:
+                  - paragraph [ref=f22e311]: 2FA Authorization
+                  - paragraph [ref=f22e312]: TOTP Enforced
+                - button "Relax Enforce" [ref=f22e314] [cursor=pointer]
+              - generic [ref=f22e315]:
+                - paragraph [ref=f22e316]: "Access Clearance Controls:"
+                - generic [ref=f22e318]:
+                  - generic [ref=f22e319]:
+                    - checkbox "Manage Accounts & Key Permissions" [disabled] [ref=f22e320]
+                    - generic [ref=f22e321]: Manage Accounts & Key Permissions
+                  - generic [ref=f22e322]:
+                    - checkbox "Access System Audit Logs & Security Tickets" [disabled] [ref=f22e323]
+                    - generic [ref=f22e324]: Access System Audit Logs & Security Tickets
+                  - generic [ref=f22e325]:
+                    - checkbox "Register & Allocate In-Kind Supplies" [checked] [disabled] [ref=f22e326]
+                    - generic [ref=f22e327]: Register & Allocate In-Kind Supplies
+                  - generic [ref=f22e328]:
+                    - checkbox "Adjust Warehouse Stock Levels" [checked] [disabled] [ref=f22e329]
+                    - generic [ref=f22e330]: Adjust Warehouse Stock Levels
+                  - generic [ref=f22e331]:
+                    - checkbox "Record Cash / GCash Ledger Credits" [disabled] [ref=f22e332]
+                    - generic [ref=f22e333]: Record Cash / GCash Ledger Credits
+              - generic [ref=f22e334]:
+                - paragraph [ref=f22e335]: Simulated Key
+                - paragraph [ref=f22e336]: "243695"
+              - generic [ref=f22e337]:
+                - group [ref=f22e338]:
+                  - generic "Edit" [ref=f22e339]
+                  - option "Administrator"
+                  - option "Secretary" [selected]
+                  - option "Treasurer"
+                  - option "Active" [selected]
+                  - option "Deactivated"
+                - button "Deactivate" [ref=f22e341] [cursor=pointer]
+            - article [ref=f22e342]:
+              - generic [ref=f22e343]:
+                - generic [ref=f22e344]: PS
+                - generic [ref=f22e345]:
+                  - paragraph [ref=f22e346]: Playwright Secretary
+                  - generic [ref=f22e347]: Secretary
+              - generic [ref=f22e349]:
+                - generic [ref=f22e350]:
+                  - paragraph [ref=f22e351]: 2FA Authorization
+                  - paragraph [ref=f22e352]: TOTP Enforced
+                - button "Relax Enforce" [ref=f22e354] [cursor=pointer]
+              - generic [ref=f22e355]:
+                - paragraph [ref=f22e356]: "Access Clearance Controls:"
+                - generic [ref=f22e358]:
+                  - generic [ref=f22e359]:
+                    - checkbox "Manage Accounts & Key Permissions" [disabled] [ref=f22e360]
+                    - generic [ref=f22e361]: Manage Accounts & Key Permissions
+                  - generic [ref=f22e362]:
+                    - checkbox "Access System Audit Logs & Security Tickets" [disabled] [ref=f22e363]
+                    - generic [ref=f22e364]: Access System Audit Logs & Security Tickets
+                  - generic [ref=f22e365]:
+                    - checkbox "Register & Allocate In-Kind Supplies" [checked] [disabled] [ref=f22e366]
+                    - generic [ref=f22e367]: Register & Allocate In-Kind Supplies
+                  - generic [ref=f22e368]:
+                    - checkbox "Adjust Warehouse Stock Levels" [checked] [disabled] [ref=f22e369]
+                    - generic [ref=f22e370]: Adjust Warehouse Stock Levels
+                  - generic [ref=f22e371]:
+                    - checkbox "Record Cash / GCash Ledger Credits" [disabled] [ref=f22e372]
+                    - generic [ref=f22e373]: Record Cash / GCash Ledger Credits
+              - generic [ref=f22e374]:
+                - paragraph [ref=f22e375]: Simulated Key
+                - paragraph [ref=f22e376]: "994956"
+              - generic [ref=f22e377]:
+                - group [ref=f22e378]:
+                  - generic "Edit" [ref=f22e379]
+                  - option "Administrator"
+                  - option "Secretary" [selected]
+                  - option "Treasurer"
+                  - option "Active" [selected]
+                  - option "Deactivated"
+                - button "Deactivate" [ref=f22e381] [cursor=pointer]
+            - article [ref=f22e382]:
+              - generic [ref=f22e383]:
+                - generic [ref=f22e384]: PV
+                - generic [ref=f22e385]:
+                  - paragraph [ref=f22e386]: PW secretary Verified
+                  - generic [ref=f22e387]: Secretary
+              - generic [ref=f22e389]:
+                - generic [ref=f22e390]:
+                  - paragraph [ref=f22e391]: 2FA Authorization
+                  - paragraph [ref=f22e392]: Not Enabled
+                - button "Toggle Enforce" [ref=f22e394] [cursor=pointer]
+              - generic [ref=f22e395]:
+                - paragraph [ref=f22e396]: "Access Clearance Controls:"
+                - generic [ref=f22e398]:
+                  - generic [ref=f22e399]:
+                    - checkbox "Manage Accounts & Key Permissions" [disabled] [ref=f22e400]
+                    - generic [ref=f22e401]: Manage Accounts & Key Permissions
+                  - generic [ref=f22e402]:
+                    - checkbox "Access System Audit Logs & Security Tickets" [disabled] [ref=f22e403]
+                    - generic [ref=f22e404]: Access System Audit Logs & Security Tickets
+                  - generic [ref=f22e405]:
+                    - checkbox "Register & Allocate In-Kind Supplies" [disabled] [ref=f22e406]
+                    - generic [ref=f22e407]: Register & Allocate In-Kind Supplies
+                  - generic [ref=f22e408]:
+                    - checkbox "Adjust Warehouse Stock Levels" [disabled] [ref=f22e409]
+                    - generic [ref=f22e410]: Adjust Warehouse Stock Levels
+                  - generic [ref=f22e411]:
+                    - checkbox "Record Cash / GCash Ledger Credits" [disabled] [ref=f22e412]
+                    - generic [ref=f22e413]: Record Cash / GCash Ledger Credits
+              - generic [ref=f22e414]:
+                - paragraph [ref=f22e415]: Simulated Key
+                - paragraph [ref=f22e416]: "------"
+              - generic [ref=f22e417]:
+                - group [ref=f22e418]:
+                  - generic "Edit" [ref=f22e419]
+                  - option "Administrator"
+                  - option "Secretary" [selected]
+                  - option "Treasurer"
+                  - option "Active" [selected]
+                  - option "Deactivated"
+                - button "Deactivate" [ref=f22e421] [cursor=pointer]
+            - article [ref=f22e422]:
+              - generic [ref=f22e423]:
+                - generic [ref=f22e424]: BT
+                - generic [ref=f22e425]:
+                  - paragraph [ref=f22e426]: Browser Treasurer New
+                  - generic [ref=f22e427]: Treasurer
+              - generic [ref=f22e429]:
+                - generic [ref=f22e430]:
+                  - paragraph [ref=f22e431]: 2FA Authorization
+                  - paragraph [ref=f22e432]: TOTP Enforced
+                - button "Relax Enforce" [ref=f22e434] [cursor=pointer]
+              - generic [ref=f22e435]:
+                - paragraph [ref=f22e436]: "Access Clearance Controls:"
+                - generic [ref=f22e438]:
+                  - generic [ref=f22e439]:
+                    - checkbox "Manage Accounts & Key Permissions" [disabled] [ref=f22e440]
+                    - generic [ref=f22e441]: Manage Accounts & Key Permissions
+                  - generic [ref=f22e442]:
+                    - checkbox "Access System Audit Logs & Security Tickets" [checked] [disabled] [ref=f22e443]
+                    - generic [ref=f22e444]: Access System Audit Logs & Security Tickets
+                  - generic [ref=f22e445]:
+                    - checkbox "Register & Allocate In-Kind Supplies" [disabled] [ref=f22e446]
+                    - generic [ref=f22e447]: Register & Allocate In-Kind Supplies
+                  - generic [ref=f22e448]:
+                    - checkbox "Adjust Warehouse Stock Levels" [disabled] [ref=f22e449]
+                    - generic [ref=f22e450]: Adjust Warehouse Stock Levels
+                  - generic [ref=f22e451]:
+                    - checkbox "Record Cash / GCash Ledger Credits" [checked] [disabled] [ref=f22e452]
+                    - generic [ref=f22e453]: Record Cash / GCash Ledger Credits
+              - generic [ref=f22e454]:
+                - paragraph [ref=f22e455]: Simulated Key
+                - paragraph [ref=f22e456]: "492434"
+              - generic [ref=f22e457]:
+                - group [ref=f22e458]:
+                  - generic "Edit" [ref=f22e459]
+                  - option "Administrator"
+                  - option "Secretary"
+                  - option "Treasurer" [selected]
+                  - option "Active" [selected]
+                  - option "Deactivated"
+                - button "Deactivate" [ref=f22e461] [cursor=pointer]
+            - article [ref=f22e462]:
+              - generic [ref=f22e463]:
+                - generic [ref=f22e464]: BT
+                - generic [ref=f22e465]:
+                  - paragraph [ref=f22e466]: Browser Treasurer Two
+                  - generic [ref=f22e467]: Treasurer
+              - generic [ref=f22e469]:
+                - generic [ref=f22e470]:
+                  - paragraph [ref=f22e471]: 2FA Authorization
+                  - paragraph [ref=f22e472]: TOTP Enforced
+                - button "Relax Enforce" [ref=f22e474] [cursor=pointer]
+              - generic [ref=f22e475]:
+                - paragraph [ref=f22e476]: "Access Clearance Controls:"
+                - generic [ref=f22e478]:
+                  - generic [ref=f22e479]:
+                    - checkbox "Manage Accounts & Key Permissions" [disabled] [ref=f22e480]
+                    - generic [ref=f22e481]: Manage Accounts & Key Permissions
+                  - generic [ref=f22e482]:
+                    - checkbox "Access System Audit Logs & Security Tickets" [checked] [disabled] [ref=f22e483]
+                    - generic [ref=f22e484]: Access System Audit Logs & Security Tickets
+                  - generic [ref=f22e485]:
+                    - checkbox "Register & Allocate In-Kind Supplies" [disabled] [ref=f22e486]
+                    - generic [ref=f22e487]: Register & Allocate In-Kind Supplies
+                  - generic [ref=f22e488]:
+                    - checkbox "Adjust Warehouse Stock Levels" [disabled] [ref=f22e489]
+                    - generic [ref=f22e490]: Adjust Warehouse Stock Levels
+                  - generic [ref=f22e491]:
+                    - checkbox "Record Cash / GCash Ledger Credits" [checked] [disabled] [ref=f22e492]
+                    - generic [ref=f22e493]: Record Cash / GCash Ledger Credits
+              - generic [ref=f22e494]:
+                - paragraph [ref=f22e495]: Simulated Key
+                - paragraph [ref=f22e496]: "326608"
+              - generic [ref=f22e497]:
+                - group [ref=f22e498]:
+                  - generic "Edit" [ref=f22e499]
+                  - option "Administrator"
+                  - option "Secretary"
+                  - option "Treasurer" [selected]
+                  - option "Active" [selected]
+                  - option "Deactivated"
+                - button "Deactivate" [ref=f22e501] [cursor=pointer]
+            - article [ref=f22e502]:
+              - generic [ref=f22e503]:
+                - generic [ref=f22e504]: PT
+                - generic [ref=f22e505]:
+                  - paragraph [ref=f22e506]: Playwright Treasurer
+                  - generic [ref=f22e507]: Treasurer
+              - generic [ref=f22e509]:
+                - generic [ref=f22e510]:
+                  - paragraph [ref=f22e511]: 2FA Authorization
+                  - paragraph [ref=f22e512]: TOTP Enforced
+                - button "Relax Enforce" [ref=f22e514] [cursor=pointer]
+              - generic [ref=f22e515]:
+                - paragraph [ref=f22e516]: "Access Clearance Controls:"
+                - generic [ref=f22e518]:
+                  - generic [ref=f22e519]:
+                    - checkbox "Manage Accounts & Key Permissions" [disabled] [ref=f22e520]
+                    - generic [ref=f22e521]: Manage Accounts & Key Permissions
+                  - generic [ref=f22e522]:
+                    - checkbox "Access System Audit Logs & Security Tickets" [checked] [disabled] [ref=f22e523]
+                    - generic [ref=f22e524]: Access System Audit Logs & Security Tickets
+                  - generic [ref=f22e525]:
+                    - checkbox "Register & Allocate In-Kind Supplies" [disabled] [ref=f22e526]
+                    - generic [ref=f22e527]: Register & Allocate In-Kind Supplies
+                  - generic [ref=f22e528]:
+                    - checkbox "Adjust Warehouse Stock Levels" [disabled] [ref=f22e529]
+                    - generic [ref=f22e530]: Adjust Warehouse Stock Levels
+                  - generic [ref=f22e531]:
+                    - checkbox "Record Cash / GCash Ledger Credits" [checked] [disabled] [ref=f22e532]
+                    - generic [ref=f22e533]: Record Cash / GCash Ledger Credits
+              - generic [ref=f22e534]:
+                - paragraph [ref=f22e535]: Simulated Key
+                - paragraph [ref=f22e536]: "077869"
+              - generic [ref=f22e537]:
+                - group [ref=f22e538]:
+                  - generic "Edit" [ref=f22e539]
+                  - option "Administrator"
+                  - option "Secretary"
+                  - option "Treasurer" [selected]
+                  - option "Active" [selected]
+                  - option "Deactivated"
+                - button "Deactivate" [ref=f22e541] [cursor=pointer]
+        - generic [ref=f22e542]:
+          - generic [ref=f22e543]:
+            - heading "Security Activity Trail Ledger" [level=2] [ref=f22e545]
+            - generic [ref=f22e547]:
+              - combobox [ref=f22e548]:
+                - option "All Actions" [selected]
+                - option "Admin Authenticated"
+                - option "Staff Account Created"
+              - searchbox "Search logs details..." [ref=f22e549]
+              - button "Search" [ref=f22e550] [cursor=pointer]
+          - generic [ref=f22e551]:
+            - article [ref=f22e552]:
+              - generic [ref=f22e553]:
+                - generic [ref=f22e554]:
+                  - generic [ref=f22e555]:
+                    - paragraph [ref=f22e556]: Gina Gamboa
+                    - generic [ref=f22e557]: Administrator
+                    - generic [ref=f22e558]: Staff Account Created
+                  - paragraph [ref=f22e559]: "Affected account: MCP Admin"
+                  - paragraph [ref=f22e560]: Gina Gamboa created staff account mcp.admin.20261010@example.test
+                - generic [ref=f22e561]:
+                  - paragraph [ref=f22e562]: 2026-10-10 07:03:35
+                  - paragraph [ref=f22e563]: 127.0.0.1
+            - article [ref=f22e564]:
+              - generic [ref=f22e565]:
+                - generic [ref=f22e566]:
+                  - generic [ref=f22e567]:
+                    - paragraph [ref=f22e568]: Gina Gamboa
+                    - generic [ref=f22e569]: Administrator
+                    - generic [ref=f22e570]: Staff Account Created
+                  - paragraph [ref=f22e571]: "Affected account: PW secretary Verified"
+                  - paragraph [ref=f22e572]: Gina Gamboa created staff account pw.secretary.verified@example.test
+                - generic [ref=f22e573]:
+                  - paragraph [ref=f22e574]: 2026-10-10 07:01:13
+                  - paragraph [ref=f22e575]: 127.0.0.1
+            - article [ref=f22e576]:
+              - generic [ref=f22e577]:
+                - generic [ref=f22e578]:
+                  - generic [ref=f22e579]:
+                    - paragraph [ref=f22e580]: Gina Gamboa
+                    - generic [ref=f22e581]: Administrator
+                    - generic [ref=f22e582]: Staff Account Created
+                  - paragraph [ref=f22e583]: "Affected account: PW Admin Verified"
+                  - paragraph [ref=f22e584]: Gina Gamboa created staff account pw.admin.verified@example.test
+                - generic [ref=f22e585]:
+                  - paragraph [ref=f22e586]: 2026-10-10 07:00:16
+                  - paragraph [ref=f22e587]: 127.0.0.1
+            - article [ref=f22e588]:
+              - generic [ref=f22e589]:
+                - generic [ref=f22e590]:
+                  - generic [ref=f22e591]:
+                    - paragraph [ref=f22e592]: Browser Admin Created
+                    - generic [ref=f22e593]: Administrator
+                    - generic [ref=f22e594]: Admin Authenticated
+                  - paragraph [ref=f22e595]: Authorized admin user Browser Admin Created successfully unlocked access with correct credentials and active 2FA.
+                - generic [ref=f22e596]:
+                  - paragraph [ref=f22e597]: 2026-10-07 15:19:53
+                  - paragraph [ref=f22e598]: 127.0.0.1
+            - article [ref=f22e599]:
+              - generic [ref=f22e600]:
+                - generic [ref=f22e601]:
+                  - generic [ref=f22e602]:
+                    - paragraph [ref=f22e603]: Gina Gamboa
+                    - generic [ref=f22e604]: Administrator
+                    - generic [ref=f22e605]: Staff Account Created
+                  - paragraph [ref=f22e606]: "Affected account: Browser Treasurer New"
+                  - paragraph [ref=f22e607]: Gina Gamboa created staff account playwright.treasurer.new@example.test
+                - generic [ref=f22e608]:
+                  - paragraph [ref=f22e609]: 2026-10-07 15:03:34
+                  - paragraph [ref=f22e610]: 127.0.0.1
+            - article [ref=f22e611]:
+              - generic [ref=f22e612]:
+                - generic [ref=f22e613]:
+                  - generic [ref=f22e614]:
+                    - paragraph [ref=f22e615]: Gina Gamboa
+                    - generic [ref=f22e616]: Administrator
+                    - generic [ref=f22e617]: Staff Account Created
+                  - paragraph [ref=f22e618]: "Affected account: Browser Secretary New"
+                  - paragraph [ref=f22e619]: Gina Gamboa created staff account playwright.secretary.new@example.test
+                - generic [ref=f22e620]:
+                  - paragraph [ref=f22e621]: 2026-10-07 15:03:31
+                  - paragraph [ref=f22e622]: 127.0.0.1
+            - article [ref=f22e623]:
+              - generic [ref=f22e624]:
+                - generic [ref=f22e625]:
+                  - generic [ref=f22e626]:
+                    - paragraph [ref=f22e627]: Gina Gamboa
+                    - generic [ref=f22e628]: Administrator
+                    - generic [ref=f22e629]: Staff Account Created
+                  - paragraph [ref=f22e630]: "Affected account: Browser Treasurer Two"
+                  - paragraph [ref=f22e631]: Gina Gamboa created staff account playwright.treasurer.created@example.test
+                - generic [ref=f22e632]:
+                  - paragraph [ref=f22e633]: 2026-10-07 15:03:27
+                  - paragraph [ref=f22e634]: 127.0.0.1
+            - article [ref=f22e635]:
+              - generic [ref=f22e636]:
+                - generic [ref=f22e637]:
+                  - generic [ref=f22e638]:
+                    - paragraph [ref=f22e639]: Gina Gamboa
+                    - generic [ref=f22e640]: Administrator
+                    - generic [ref=f22e641]: Staff Account Created
+                  - paragraph [ref=f22e642]: "Affected account: Browser Secretary Two"
+                  - paragraph [ref=f22e643]: Gina Gamboa created staff account playwright.secretary.created@example.test
+                - generic [ref=f22e644]:
+                  - paragraph [ref=f22e645]: 2026-10-07 15:03:23
+                  - paragraph [ref=f22e646]: 127.0.0.1
+            - article [ref=f22e647]:
+              - generic [ref=f22e648]:
+                - generic [ref=f22e649]:
+                  - generic [ref=f22e650]:
+                    - paragraph [ref=f22e651]: Gina Gamboa
+                    - generic [ref=f22e652]: Administrator
+                    - generic [ref=f22e653]: Staff Account Created
+                  - paragraph [ref=f22e654]: "Affected account: Browser Admin Created"
+                  - paragraph [ref=f22e655]: Gina Gamboa created staff account playwright.admin.created@example.test
+                - generic [ref=f22e656]:
+                  - paragraph [ref=f22e657]: 2026-10-07 14:55:14
+                  - paragraph [ref=f22e658]: 127.0.0.1
+            - article [ref=f22e659]:
+              - generic [ref=f22e660]:
+                - generic [ref=f22e661]:
+                  - generic [ref=f22e662]:
+                    - paragraph [ref=f22e663]: Gina Gamboa
+                    - generic [ref=f22e664]: Administrator
+                    - generic [ref=f22e665]: Staff Account Created
+                  - paragraph [ref=f22e666]: "Affected account: Playwright Treasurer"
+                  - paragraph [ref=f22e667]: Gina Gamboa created staff account playwright.treasurer@example.com
+                - generic [ref=f22e668]:
+                  - paragraph [ref=f22e669]: 2026-10-07 14:24:09
+                  - paragraph [ref=f22e670]: 127.0.0.1
+            - article [ref=f22e671]:
+              - generic [ref=f22e672]:
+                - generic [ref=f22e673]:
+                  - generic [ref=f22e674]:
+                    - paragraph [ref=f22e675]: Gina Gamboa
+                    - generic [ref=f22e676]: Administrator
+                    - generic [ref=f22e677]: Staff Account Created
+                  - paragraph [ref=f22e678]: "Affected account: Playwright Secretary"
+                  - paragraph [ref=f22e679]: Gina Gamboa created staff account playwright.secretary@example.com
+                - generic [ref=f22e680]:
+                  - paragraph [ref=f22e681]: 2026-10-07 14:22:26
+                  - paragraph [ref=f22e682]: 127.0.0.1
+            - article [ref=f22e683]:
+              - generic [ref=f22e684]:
+                - generic [ref=f22e685]:
+                  - generic [ref=f22e686]:
+                    - paragraph [ref=f22e687]: Gina Gamboa
+                    - generic [ref=f22e688]: Administrator
+                    - generic [ref=f22e689]: Admin Authenticated
+                  - paragraph [ref=f22e690]: Authorized admin user Gina Gamboa successfully unlocked access with correct credentials and active 2FA.
+                - generic [ref=f22e691]:
+                  - paragraph [ref=f22e692]: 2026-10-07 14:17:48
+                  - paragraph [ref=f22e693]: 127.0.0.1
