@@ -82,6 +82,8 @@ Route::middleware(['auth', 'password.change', 'role:admin,secretary,treasurer'])
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
     Route::get('/reports/financial-ledgers/csv', [ReportController::class, 'financialLedgersCsv'])->name('reports.financial-ledgers.csv');
     Route::get('/reports/financial-ledgers/pdf', [ReportController::class, 'financialLedgersPdf'])->name('reports.financial-ledgers.pdf');
+    Route::get('/reports/in-kind-audits/csv', [ReportController::class, 'inKindAuditCsv'])->name('reports.in-kind-audits.csv');
+    Route::get('/reports/in-kind-audits/pdf', [ReportController::class, 'inKindAuditPdf'])->name('reports.in-kind-audits.pdf');
     Route::get('/reports/philanthropy-roster/pdf', [ReportController::class, 'philanthropyRosterPdf'])->name('reports.philanthropy-roster.pdf');
     Route::get('/system-security', [SystemSecurityController::class, 'index'])
         ->middleware('role:admin')

@@ -5,8 +5,11 @@ namespace Tests\Feature;
 use App\Models\BankLedgerEntry;
 use App\Models\Contribution;
 use App\Models\Donor;
+use App\Models\InventoryItem;
+use App\Models\InventoryStockMovement;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class ReportGeneratorTest extends TestCase
@@ -66,14 +69,82 @@ class ReportGeneratorTest extends TestCase
         $response->assertDontSee('Check');
     }
 
-    public function test_in_kind_audits_tab_renders_a_coming_soon_placeholder(): void
+    public function test_in_kind_audits_tab_lists_monthly_stock_movements(): void
     {
+        $user = User::factory()->create();
+        $item = $this->inventoryItem();
+        $juneMovement = InventoryStockMovement::query()->create([
+            'inventory_item_id' => $item->id,
+            'created_by' => $user->id,
+            'movement_type' => 'stock_out',
+            'quantity' => 3,
+            'quantity_before' => 10,
+            'quantity_after' => 7,
+            'reason' => 'distribution',
+            'reference_number' => 'DIST-2026-06-01',
+            'remarks' => 'Family relief distribution',
+        ]);
+        DB::table('inventory_stock_movements')->where('id', $juneMovement->id)->update(['created_at' => '2026-06-12 10:30:00']);
+
+        $julyMovement = InventoryStockMovement::query()->create([
+            'inventory_item_id' => $item->id,
+            'created_by' => $user->id,
+            'movement_type' => 'stock_in',
+            'quantity' => 5,
+            'quantity_before' => 7,
+            'quantity_after' => 12,
+            'reason' => 'new_donation',
+        ]);
+        DB::table('inventory_stock_movements')->where('id', $julyMovement->id)->update(['created_at' => '2026-07-02 10:30:00']);
+
         $response = $this->actingAs(User::factory()->create())
-            ->get(route('reports.index', ['tab' => 'in-kind-audits']));
+            ->get(route('reports.index', ['tab' => 'in-kind-audits', 'year' => 2026, 'month' => 6]));
 
         $response->assertOk();
         $response->assertSee('In-Kind Audits');
-        $response->assertSee('coming soon');
+        $response->assertSee('In-Kind Stock Activity');
+        $response->assertSee('Hygiene Kits');
+        $response->assertSee('Family relief distribution');
+        $response->assertSee('DIST-2026-06-01');
+        $response->assertSee('Stock Out');
+        $response->assertDontSee('new_donation');
+        $response->assertSee('/reports/in-kind-audits/csv?year=2026&amp;month=6', false);
+        $response->assertSee('/reports/in-kind-audits/pdf?year=2026&amp;month=6', false);
+    }
+
+    public function test_authorized_user_can_download_in_kind_audit_csv_and_pdf(): void
+    {
+        $item = $this->inventoryItem();
+        $movement = InventoryStockMovement::query()->create([
+            'inventory_item_id' => $item->id,
+            'movement_type' => 'stock_in',
+            'quantity' => 25,
+            'quantity_before' => 0,
+            'quantity_after' => 25,
+            'reason' => 'new_donation',
+        ]);
+        DB::table('inventory_stock_movements')->where('id', $movement->id)->update(['created_at' => '2026-06-12 10:30:00']);
+
+        $user = User::factory()->create();
+        $csvResponse = $this->actingAs($user)
+            ->get(route('reports.in-kind-audits.csv', ['year' => 2026, 'month' => 6]));
+
+        $csvResponse->assertOk();
+        $this->assertStringContainsString('text/csv', $csvResponse->headers->get('Content-Type'));
+        $this->assertStringContainsString('Hygiene Kits', $csvResponse->streamedContent());
+
+        $pdfResponse = $this->actingAs($user)
+            ->get(route('reports.in-kind-audits.pdf', ['year' => 2026, 'month' => 6]));
+
+        $pdfResponse->assertOk();
+        $this->assertStringContainsString('application/pdf', $pdfResponse->headers->get('Content-Type'));
+        $this->assertStringStartsWith('%PDF', $pdfResponse->getContent());
+    }
+
+    public function test_guest_cannot_download_in_kind_audit_exports(): void
+    {
+        $this->get(route('reports.in-kind-audits.csv'))->assertRedirect(route('login'));
+        $this->get(route('reports.in-kind-audits.pdf'))->assertRedirect(route('login'));
     }
 
     public function test_philanthropy_roster_tab_renders_the_donor_giving_summary(): void
@@ -209,6 +280,20 @@ class ReportGeneratorTest extends TestCase
             'reference_number' => 'REF-'.random_int(100000, 999999),
             'received_at' => now(),
         ], collect($overrides)->except('donor_name')->all()));
+    }
+
+    private function inventoryItem(): InventoryItem
+    {
+        return InventoryItem::query()->create([
+            'name' => 'Hygiene Kits',
+            'category' => 'hygiene_supplies',
+            'unit' => 'pack',
+            'quantity' => 10,
+            'current_quantity' => 10,
+            'minimum_reserve_quantity' => 2,
+            'storage_location' => 'Supply Room',
+            'status' => config('inventory.defaults.status'),
+        ]);
     }
 
     private function reconcile(Contribution $contribution): BankLedgerEntry

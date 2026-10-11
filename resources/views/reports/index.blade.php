@@ -28,12 +28,21 @@
                     Download Official CSV Report
                 </a>
             </div>
+        @elseif ($tab === 'in-kind-audits')
+            <div class="flex flex-col justify-end gap-2 sm:flex-row">
+                <a href="{{ route('reports.in-kind-audits.pdf', ['year' => $year, 'month' => $month]) }}" class="inline-flex w-full items-center justify-center rounded-md bg-red-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-red-800 sm:w-auto">
+                    Download PDF Report
+                </a>
+                <a href="{{ route('reports.in-kind-audits.csv', ['year' => $year, 'month' => $month]) }}" class="inline-flex w-full items-center justify-center rounded-md bg-green-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-green-800 sm:w-auto">
+                    Download CSV Report
+                </a>
+            </div>
         @endif
 
         <x-reports.tab-nav :active="$tab" :year="$year" :month="$month" />
 
         @if ($tab === 'financial-ledgers')
-            <x-reports.month-filter :year="$year" :month="$month" />
+            <x-reports.month-filter :year="$year" :month="$month" tab="financial-ledgers" />
 
             <section class="rounded-lg border border-slate-200 bg-white shadow-sm">
                 <div class="flex flex-col gap-1 border-b border-slate-100 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
@@ -92,13 +101,17 @@
                 'search' => $search,
                 'sort' => $sort,
             ])
+        @elseif ($tab === 'in-kind-audits')
+            <x-reports.month-filter :year="$year" :month="$month" tab="in-kind-audits" />
+            @include('reports.partials.in-kind-audit', ['report' => $inKindAudit])
         @else
-            <x-dashboard.panel
-                title="In-Kind Audits"
-                subtitle="This report is coming soon."
-            >
-                <x-dashboard.empty-state message="This report category is not available yet." />
-            </x-dashboard.panel>
+            @include('reports.partials.donor-giving-summary', [
+                'donorSummary' => $donorSummary,
+                'year' => $year,
+                'month' => $month,
+                'search' => $search,
+                'sort' => $sort,
+            ])
         @endif
     </div>
 @endsection
