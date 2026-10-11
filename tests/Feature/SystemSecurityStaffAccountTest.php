@@ -69,6 +69,42 @@ class SystemSecurityStaffAccountTest extends TestCase
             'email' => 'second.admin@example.test',
             'role_id' => Role::query()->where('name', 'admin')->value('id'),
         ]);
+
+        $this->actingAs($admin)
+            ->get(route('system-security.index'))
+            ->assertOk()
+            ->assertSee('second.admin@example.test')
+            ->assertSee('2 Active Accounts');
+    }
+
+    public function test_invalid_staff_account_creation_shows_errors_and_preserves_form_values(): void
+    {
+        $admin = $this->userWithRole('admin');
+
+        $this->actingAs($admin)
+            ->from(route('system-security.index'))
+            ->post(route('system-security.users.store'), [
+                '_token' => csrf_token(),
+                '_method' => 'POST',
+                '_modal' => 'create',
+                'first_name' => 'New',
+                'last_name' => 'Admin',
+                'email' => 'invalid.admin@example.test',
+                'role' => 'admin',
+                'password' => 'short',
+                'password_confirmation' => 'short',
+            ])
+            ->assertRedirect(route('system-security.index'))
+            ->assertSessionHasErrors('password')
+            ->assertSessionHas('_old_input.first_name', 'New');
+
+        $this->actingAs($admin)
+            ->get(route('system-security.index'))
+            ->assertOk()
+            ->assertSee('id="create-staff-account-details"', false)
+            ->assertSee('open >', false)
+            ->assertSee('The password field must be at least 12 characters.', false)
+            ->assertSee('value="New"', false);
     }
 
     public function test_secretary_and_treasurer_cannot_access_user_management(): void
@@ -180,6 +216,8 @@ class SystemSecurityStaffAccountTest extends TestCase
         $indexResponse->assertOk();
         $indexResponse->assertSee($user->email);
         $indexResponse->assertSee('Deactivated');
+        $indexResponse->assertSee('This account is disabled and retained for audit history.');
+        $indexResponse->assertSee('1 Active Accounts');
 
         $response = $this->actingAs($admin)->patch(route('system-security.users.update', $user), [
             'first_name' => $user->first_name,

@@ -123,6 +123,10 @@
                                     data-purpose="{{ str_replace(['"','\\'], ['&quot;','\\\\'], $disbursement->purpose) }}"
                                     data-supporting-reference="{{ $disbursement->supporting_reference ?? '' }}"
                                     data-notes="{{ str_replace(['"','\\'], ['&quot;','\\\\'], $disbursement->notes ?? '') }}"
+                                    data-status="{{ $disbursement->status }}"
+                                    data-approval-url="{{ route('disbursements.approve', $disbursement) }}"
+                                    data-rejection-url="{{ route('disbursements.reject', $disbursement) }}"
+                                    data-can-approve="{{ auth()->user()->can('approve', $disbursement) ? 'true' : 'false' }}"
                                 >
                                     <td class="whitespace-nowrap px-5 py-4 text-slate-600">{{ ($disbursement->requested_date ?? $disbursement->created_at)->format('M d, Y') }}</td>
                                     <td class="px-5 py-4 text-slate-700">{{ $disbursement->recipient ?? 'Not provided' }}</td>
@@ -233,7 +237,26 @@
                 <button type="button" data-close-fund-request-modal class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Close</button>
                 <button type="button" id="toggle-fund-request-edit" class="rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-100">Edit</button>
                 <button type="submit" class="rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800">Save Changes</button>
+                <div id="fund-request-approval-actions" class="hidden w-full flex-wrap items-end justify-end gap-3 border-t border-slate-200 pt-3">
+                    <p id="fund-request-approval-notice" class="mr-auto hidden text-sm text-amber-700">Only a different administrator can approve this pending request.</p>
+                    <div class="flex flex-1 flex-col gap-2 sm:flex-row sm:items-end sm:justify-end">
+                        <div id="fund-request-rejection-field" class="hidden min-w-56 flex-1">
+                            <label for="modal_rejection_reason" class="mb-1 block text-xs font-semibold text-slate-600">Rejection reason</label>
+                            <textarea id="modal_rejection_reason" name="rejection_reason" form="reject-fund-request-form" rows="2" required class="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-100"></textarea>
+                        </div>
+                        <button id="reject-fund-request-button" type="submit" form="reject-fund-request-form" class="hidden rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-50">Reject Request</button>
+                        <button id="approve-fund-request-button" type="submit" form="approve-fund-request-form" class="hidden rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700">Approve Request</button>
+                    </div>
+                </div>
             </div>
+        </form>
+        <form id="approve-fund-request-form" method="POST" class="hidden">
+            @csrf
+            @method('PATCH')
+        </form>
+        <form id="reject-fund-request-form" method="POST" class="hidden">
+            @csrf
+            @method('PATCH')
         </form>
     </dialog>
 @push('scripts')
@@ -244,7 +267,14 @@
             const modal = document.getElementById('fund-request-detail-modal');
             const form = document.getElementById('fund-request-detail-form');
             const editToggle = document.getElementById('toggle-fund-request-edit');
-            const fields = form.querySelectorAll('input, textarea');
+            const fields = form.querySelectorAll('input:not([form]), textarea:not([form])');
+            const approvalActions = document.getElementById('fund-request-approval-actions');
+            const approvalNotice = document.getElementById('fund-request-approval-notice');
+            const approvalButton = document.getElementById('approve-fund-request-button');
+            const rejectionButton = document.getElementById('reject-fund-request-button');
+            const rejectionField = document.getElementById('fund-request-rejection-field');
+            const approvalForm = document.getElementById('approve-fund-request-form');
+            const rejectionForm = document.getElementById('reject-fund-request-form');
 
             if (toggleButton && createModal) {
                 toggleButton.addEventListener('click', () => {
@@ -291,6 +321,18 @@
                     document.getElementById('modal_purpose').value = row.dataset.purpose ? decodeURIComponent(escape(row.dataset.purpose)) : '';
                     document.getElementById('modal_supporting_reference').value = row.dataset.supportingReference || '';
                     document.getElementById('modal_notes').value = row.dataset.notes ? decodeURIComponent(escape(row.dataset.notes)) : '';
+                    document.getElementById('modal_rejection_reason').value = '';
+
+                    const isPending = row.dataset.status === 'pending';
+                    const canApprove = row.dataset.canApprove === 'true';
+                    approvalActions.classList.toggle('hidden', ! isPending);
+                    approvalActions.classList.toggle('flex', isPending);
+                    approvalButton.classList.toggle('hidden', ! canApprove);
+                    rejectionButton.classList.toggle('hidden', ! canApprove);
+                    rejectionField.classList.toggle('hidden', ! canApprove);
+                    approvalNotice.classList.toggle('hidden', ! isPending || canApprove);
+                    approvalForm.action = row.dataset.approvalUrl;
+                    rejectionForm.action = row.dataset.rejectionUrl;
 
                     fields.forEach((field) => {
                         field.disabled = true;
