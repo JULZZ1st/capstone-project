@@ -3,6 +3,7 @@
 namespace App\Services\BankReconciliation;
 
 use App\Models\BankLedgerEntry;
+use App\Models\BankReconciliation;
 use App\Models\SecurityActivityEvent;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
@@ -14,7 +15,11 @@ use ZipArchive;
 
 class ImportBankStatement
 {
-    public function __construct(private readonly LedgerChannelResolver $channelResolver)
+    public function __construct(
+        private readonly LedgerChannelResolver $channelResolver,
+        private readonly ReconciliationPeriodGuard $periodGuard,
+        private readonly ReconciliationPeriodService $periods,
+    )
     {
     }
 
@@ -31,6 +36,7 @@ class ImportBankStatement
         DB::transaction(function () use ($rows, &$created) {
             foreach ($rows as $index => $row) {
                 $data = $this->normalize($row, $index + 2);
+                $this->periodGuard->assertMutableDate($data['transaction_date']);
 
                 if (BankLedgerEntry::query()->where('statement_id', $data['statement_id'])->exists()) {
                     throw ValidationException::withMessages([
@@ -47,6 +53,11 @@ class ImportBankStatement
                 BankLedgerEntry::query()->create($data);
                 $created++;
             }
+
+            BankReconciliation::query()
+                ->whereIn('status', ['draft', 'ready_for_review'])
+                ->get()
+                ->each(fn (BankReconciliation $period) => $this->periods->recalculate($period));
         });
 
         if ($user !== null) {
@@ -207,15 +218,13 @@ class ImportBankStatement
 
     private function isDuplicateEntry(array $data): bool
     {
-        if (blank($data['reference_number'])) {
-            return false;
-        }
-
-        return BankLedgerEntry::query()
+        $query = BankLedgerEntry::query()
             ->where('transaction_type', $data['transaction_type'])
-            ->where('reference_number', $data['reference_number'])
             ->whereDate('transaction_date', $data['transaction_date'])
-            ->where('amount', (float) $data['amount'])
-            ->exists();
+            ->where('amount', (float) $data['amount']);
+
+        return filled($data['reference_number'])
+            ? $query->where('reference_number', $data['reference_number'])->exists()
+            : $query->where('description', $data['description'])->exists();
     }
 }

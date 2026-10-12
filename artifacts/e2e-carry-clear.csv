@@ -1,0 +1,2 @@
+statement_id,transaction_date,description,amount,transaction_type,reference_number
+E2E-CARRY-CHECK-BANK-001,2027-01-05,Cleared outstanding check,300,withdrawal,E2E-CARRY-CHECK-001

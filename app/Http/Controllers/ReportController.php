@@ -3,22 +3,24 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\Reports\ReportIndexRequest;
+use App\Models\BankReconciliation;
 use App\Services\Reports\AuditTrailReportBuilder;
 use App\Services\Reports\DonorGivingSummaryPdfExporter;
 use App\Services\Reports\DonorGivingSummaryReportBuilder;
 use App\Services\Reports\FinancialLedgerCsvExporter;
 use App\Services\Reports\FinancialLedgerPdfExporter;
 use App\Services\Reports\FinancialLedgerReportBuilder;
-use App\Services\Reports\InventoryReportBuilder;
-use App\Services\Reports\InventoryReportPdfExporter;
-use App\Services\Reports\ReportCsvExporter;
 use App\Services\Reports\InKindAuditCsvExporter;
 use App\Services\Reports\InKindAuditPdfExporter;
 use App\Services\Reports\InKindAuditReportBuilder;
+use App\Services\Reports\InventoryReportBuilder;
+use App\Services\Reports\InventoryReportPdfExporter;
+use App\Services\Reports\ReconciliationReportBuilder;
+use App\Services\Reports\ReportCsvExporter;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Response;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
-use Barryvdh\DomPDF\Facade\Pdf;
 
 class ReportController extends Controller
 {
@@ -54,6 +56,7 @@ class ReportController extends Controller
             'inKindAudit' => $tab === 'in-kind-audits'
                 ? $inKindAuditBuilder->build($request->year(), $request->month())
                 : null,
+            'reconciliationPeriods' => BankReconciliation::query()->orderByDesc('period_end')->get(),
         ]);
     }
 
@@ -188,4 +191,22 @@ class ReportController extends Controller
         $report = $builder->build($request->year(), $request->month());
         return $exporter->handle($report, sprintf('in-kind-inventory-audit-%04d-%02d.pdf', $request->year(), $request->month()));
     }
+
+    public function reconciliationCsv(ReportIndexRequest $request, ReconciliationReportBuilder $builder, ReportCsvExporter $exporter): StreamedResponse
+    {
+        $periodId = $request->periodId();
+        abort_unless($periodId, 422, 'A reconciliation period is required.');
+        $report = $builder->build($periodId);
+        $rows = $report['entries']->map(fn ($entry) => [$entry->transaction_date->format('Y-m-d'), $entry->description, $entry->transaction_type, $entry->amount, $entry->status]);
+        return $exporter->handle($rows, ['Date', 'Description', 'Type', 'Amount', 'Status'], 'bank-reconciliation-'.$report['period']->id.'.csv');
+    }
+
+    public function reconciliationPdf(ReportIndexRequest $request, ReconciliationReportBuilder $builder): Response
+    {
+        $periodId = $request->periodId();
+        abort_unless($periodId, 422, 'A reconciliation period is required.');
+        $report = $builder->build($periodId);
+        return Pdf::loadView('reports.pdf.reconciliation', compact('report'))->setPaper('a4', 'landscape')->download('bank-reconciliation-'.$report['period']->id.'.pdf');
+    }
+
 }

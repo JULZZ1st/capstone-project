@@ -5,6 +5,7 @@ namespace App\Http\Requests\BankReconciliation;
 use App\Models\BankLedgerEntry;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 class ReconcileLedgerEntryRequest extends FormRequest
 {
@@ -25,5 +26,20 @@ class ReconcileLedgerEntryRequest extends FormRequest
                     ->whereIn('payment_method', config('donations.electronic_payment_methods')),
             ],
         ];
+    }
+
+    public function after(): array
+    {
+        return [function (Validator $validator): void {
+            if ($validator->errors()->isNotEmpty()) return;
+            $entry = BankLedgerEntry::query()->find($this->integer('bank_ledger_entry_id'));
+            $contribution = \App\Models\Contribution::query()->find($this->integer('contribution_id'));
+            if (! $entry || ! in_array($entry->transaction_type, ['deposit', null], true)) {
+                $validator->errors()->add('bank_ledger_entry_id', 'Only deposit transactions can be matched to contributions.');
+            }
+            if ($entry && $contribution && bccomp((string) $entry->amount, (string) $contribution->amount, 2) !== 0) {
+                $validator->errors()->add('contribution_id', 'The bank deposit amount must exactly match the contribution amount.');
+            }
+        }];
     }
 }

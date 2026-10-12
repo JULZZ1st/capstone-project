@@ -1,0 +1,164 @@
+- generic [ref=f46e2]:
+  - complementary [ref=f46e3]:
+    - generic [ref=f46e4]:
+      - generic [ref=f46e5]:
+        - paragraph [ref=f46e10]: Donation Operations
+        - button "Toggle sidebar" [expanded] [ref=f46e11] [cursor=pointer]
+      - navigation "Sidebar navigation" [ref=f46e14]:
+        - link "Dashboard" [ref=f46e15] [cursor=pointer]:
+          - /url: http://127.0.0.1:8001
+        - link "Donor Management" [ref=f46e22] [cursor=pointer]:
+          - /url: http://127.0.0.1:8001/donors
+        - link "Donations Portal" [ref=f46e29] [cursor=pointer]:
+          - /url: http://127.0.0.1:8001/donations
+        - link "Fund Requests" [ref=f46e36] [cursor=pointer]:
+          - /url: http://127.0.0.1:8001/disbursements
+        - link "In-Kind Inventory" [ref=f46e41] [cursor=pointer]:
+          - /url: http://127.0.0.1:8001/inventory
+        - link "Bank Reconciliation" [ref=f46e46] [cursor=pointer]:
+          - /url: http://127.0.0.1:8001/bank-reconciliation
+        - link "Report Generator" [ref=f46e50] [cursor=pointer]:
+          - /url: http://127.0.0.1:8001/reports
+        - link "System Administration" [ref=f46e55] [cursor=pointer]:
+          - /url: http://127.0.0.1:8001/system-security
+      - button "Logout" [ref=f46e62] [cursor=pointer]
+  - generic [ref=f46e67]:
+    - banner [ref=f46e68]:
+      - generic [ref=f46e69]:
+        - generic [ref=f46e70]:
+          - heading "Donations Portal" [level=1] [ref=f46e71]
+          - paragraph [ref=f46e72]: Log, review, and verify cash and in-kind contributions.
+        - group [ref=f46e73]:
+          - generic "Secretary E2E Secretary S" [ref=f46e74] [cursor=pointer]:
+            - generic [ref=f46e75]:
+              - generic [ref=f46e76]: Secretary E2E
+              - generic [ref=f46e77]: Secretary
+            - generic [ref=f46e78]: S
+    - main [ref=f46e82]:
+      - generic [ref=f46e83]:
+        - generic [ref=f46e84]:
+          - article [ref=f46e85]:
+            - paragraph [ref=f46e87]: Total Contributions
+            - paragraph [ref=f46e94]: "1"
+            - paragraph [ref=f46e95]: All time.
+          - article [ref=f46e96]:
+            - paragraph [ref=f46e98]: Cash Contributions
+            - paragraph [ref=f46e102]: "1"
+            - paragraph [ref=f46e103]: All time.
+          - article [ref=f46e104]:
+            - paragraph [ref=f46e106]: In-Kind Contributions
+            - paragraph [ref=f46e111]: "0"
+            - paragraph [ref=f46e112]: All time.
+          - article [ref=f46e113]:
+            - paragraph [ref=f46e115]: Pending Verification
+            - paragraph [ref=f46e120]: "0"
+            - paragraph [ref=f46e121]: Awaiting review.
+        - text: <
+        - generic [ref=f46e122]:
+          - generic [ref=f46e125]:
+            - textbox [ref=f46e128]:
+              - /placeholder: Search donor, reference, item, notes
+            - combobox [ref=f46e130]:
+              - option "All types" [selected]
+              - option "Cash / Electronic Transfer"
+              - option "In-Kind Goods"
+            - combobox "Campaign" [ref=f46e132]:
+              - option "All campaigns" [selected]
+            - combobox [ref=f46e134]:
+              - option "All statuses" [selected]
+              - option "Pending"
+              - option "Verified"
+              - option "Received"
+              - option "Distributed"
+              - option "Cancelled"
+            - generic [ref=f46e135]:
+              - button "Filter" [ref=f46e136] [cursor=pointer]
+              - link "Reset" [ref=f46e137] [cursor=pointer]:
+                - /url: http://127.0.0.1:8001/donations
+          - button "Log New Contribution" [ref=f46e139] [cursor=pointer]
+        - table [ref=f46e143]:
+          - rowgroup [ref=f46e144]:
+            - row [ref=f46e145]:
+              - columnheader "Receipt No." [ref=f46e146]
+              - columnheader "Donor" [ref=f46e147]
+              - columnheader "Type" [ref=f46e148]
+              - columnheader "Campaign" [ref=f46e149]
+              - columnheader "Amount / Items" [ref=f46e150]
+              - columnheader "Status" [ref=f46e151]
+              - columnheader "Date Received" [ref=f46e152]
+              - columnheader "Logged by" [ref=f46e153]
+              - columnheader "Actions" [ref=f46e154]
+          - rowgroup [ref=f46e155]:
+            - row [ref=f46e156]:
+              - cell [ref=f46e157]:
+                - paragraph [ref=f46e158]: "#00001"
+                - paragraph [ref=f46e159]: "Ref: E2E-CONTRIB-001"
+              - cell [ref=f46e160]:
+                - paragraph [ref=f46e161]: E2E Fixture Donor
+                - paragraph [ref=f46e162]: "09170000002"
+              - cell "Cash / Electronic Transfer" [ref=f46e163]
+              - cell "No campaign" [ref=f46e164]
+              - cell [ref=f46e165]:
+                - paragraph [ref=f46e166]: PHP 1,000.00
+                - paragraph [ref=f46e167]: Bank Transfer
+              - cell "Verified" [ref=f46e168]
+              - cell "Oct 05, 2026" [ref=f46e170]
+              - cell "Secretary E2E" [ref=f46e171]
+              - cell [ref=f46e172]:
+                - button "View" [ref=f46e174] [cursor=pointer]
+      - dialog [ref=f46e175]:
+        - generic [ref=f46e176]:
+          - generic [ref=f46e177]:
+            - generic [ref=f46e185]:
+              - heading "Log New Contribution" [level=2] [ref=f46e186]
+              - paragraph [ref=f46e187]: Record cash or in-kind donations from active donors.
+            - button "×" [active] [ref=f46e188] [cursor=pointer]
+          - generic [ref=f46e190]:
+            - generic [ref=f46e191]:
+              - heading "Basic Information" [level=3] [ref=f46e192]
+              - paragraph [ref=f46e193]: Identify the donor and, if applicable, the campaign receiving the contribution.
+            - generic [ref=f46e194]:
+              - generic [ref=f46e195]:
+                - generic [ref=f46e196]: Contribution Type
+                - combobox "Contribution Type" [ref=f46e197]:
+                  - option "Cash / Electronic Transfer" [selected]
+                  - option "In-Kind Goods"
+              - generic [ref=f46e198]:
+                - generic [ref=f46e199]: Donor
+                - combobox "Donor" [ref=f46e200]:
+                  - option "Select donor" [selected]
+                  - option "Browser Created - 09170000003"
+                  - option "E2E Fixture Donor - 09170000002"
+            - generic [ref=f46e201]:
+              - generic [ref=f46e202]: Campaign
+              - combobox [ref=f46e203]:
+                - option "No campaign" [selected]
+            - generic [ref=f46e204]:
+              - heading "Cash / Electronic Transfer" [level=3] [ref=f46e205]
+              - generic [ref=f46e206]:
+                - generic [ref=f46e207]:
+                  - generic [ref=f46e208]: Donation Amount
+                  - generic [ref=f46e209]:
+                    - generic: PHP
+                    - spinbutton "Donation Amount" [ref=f46e210]
+                - generic [ref=f46e211]:
+                  - generic [ref=f46e212]: Payment Method
+                  - combobox "Payment Method" [ref=f46e213]:
+                    - option "Select method" [selected]
+                    - option "Cash"
+                    - option "Bank Transfer"
+                    - option "GCash"
+                    - option "Maya"
+                    - option "Check"
+                    - option "Money Order"
+                    - option "Other"
+                - generic [ref=f46e214]:
+                  - generic [ref=f46e215]: Date Received
+                  - textbox "Date Received" [ref=f46e216]: 2026-10-12
+            - generic [ref=f46e217]:
+              - heading "Additional Information" [level=3] [ref=f46e218]
+              - generic [ref=f46e219]: Notes / Remarks
+              - textbox "Notes / Remarks" [ref=f46e220]
+          - generic [ref=f46e221]:
+            - button "Cancel" [ref=f46e222] [cursor=pointer]
+            - button "Save Contribution" [ref=f46e223] [cursor=pointer]

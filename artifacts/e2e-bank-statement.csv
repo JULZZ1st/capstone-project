@@ -1,0 +1,3 @@
+statement_id,description,reference_number,amount,transaction_date,transaction_type,payment_method
+E2E-DEP-001,Verified deposit,E2E-REF-001,1000,2026-10-01,deposit,bank_transfer
+E2E-WD-001,Approved disbursement withdrawal,E2E-WD-001,300,2026-10-02,withdrawal,bank_transfer

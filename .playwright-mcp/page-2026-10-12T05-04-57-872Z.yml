@@ -1,0 +1,114 @@
+- generic [ref=f42e2]:
+  - complementary [ref=f42e3]:
+    - generic [ref=f42e4]:
+      - generic [ref=f42e5]:
+        - paragraph [ref=f42e10]: Donation Operations
+        - button "Toggle sidebar" [expanded] [ref=f42e11] [cursor=pointer]
+      - navigation "Sidebar navigation" [ref=f42e14]:
+        - link "Dashboard" [ref=f42e15] [cursor=pointer]:
+          - /url: http://127.0.0.1:8001
+        - link "Donor Management" [ref=f42e22] [cursor=pointer]:
+          - /url: http://127.0.0.1:8001/donors
+        - link "Donations Portal" [ref=f42e29] [cursor=pointer]:
+          - /url: http://127.0.0.1:8001/donations
+        - link "Fund Requests" [ref=f42e36] [cursor=pointer]:
+          - /url: http://127.0.0.1:8001/disbursements
+        - link "In-Kind Inventory" [ref=f42e41] [cursor=pointer]:
+          - /url: http://127.0.0.1:8001/inventory
+        - link "Bank Reconciliation" [ref=f42e46] [cursor=pointer]:
+          - /url: http://127.0.0.1:8001/bank-reconciliation
+        - link "Report Generator" [ref=f42e50] [cursor=pointer]:
+          - /url: http://127.0.0.1:8001/reports
+        - link "System Administration" [ref=f42e55] [cursor=pointer]:
+          - /url: http://127.0.0.1:8001/system-security
+      - button "Logout" [ref=f42e62] [cursor=pointer]
+  - generic [ref=f42e67]:
+    - banner [ref=f42e68]:
+      - generic [ref=f42e69]:
+        - generic [ref=f42e70]:
+          - heading "Donor Management" [level=1] [ref=f42e71]
+          - paragraph [ref=f42e72]: Search, add, and maintain donor information for barangay donation records.
+        - group [ref=f42e73]:
+          - generic "Secretary E2E Secretary S" [ref=f42e74] [cursor=pointer]:
+            - generic [ref=f42e75]:
+              - generic [ref=f42e76]: Secretary E2E
+              - generic [ref=f42e77]: Secretary
+            - generic [ref=f42e78]: S
+    - main [ref=f42e82]:
+      - generic [ref=f42e83]:
+        - generic [ref=f42e84]:
+          - generic [ref=f42e85]:
+            - searchbox "Search donors..." [ref=f42e87]
+            - combobox [ref=f42e88]:
+              - option "All types" [selected]
+              - option "Individual"
+              - option "Organization"
+          - button "Add Donor Profile" [ref=f42e89] [cursor=pointer]
+        - table [ref=f42e93]:
+          - caption [ref=f42e94]: Registered donors
+          - rowgroup [ref=f42e95]:
+            - row [ref=f42e96]:
+              - columnheader "Donor Name" [ref=f42e97]
+              - columnheader "Donor Type" [ref=f42e98]
+              - columnheader "Contact Number" [ref=f42e99]
+              - columnheader "Email" [ref=f42e100]
+              - columnheader "Barangay" [ref=f42e101]
+              - columnheader "City / Municipality" [ref=f42e102]
+              - columnheader "Status" [ref=f42e103]
+              - columnheader "Actions" [ref=f42e104]
+          - rowgroup [ref=f42e105]:
+            - row [ref=f42e106]:
+              - cell "E2E Fixture Donor E2E Test Address" [ref=f42e107]:
+                - generic [ref=f42e108]: E2E Fixture Donor
+                - generic [ref=f42e109]: E2E Test Address
+              - cell "Individual" [ref=f42e110]
+              - cell "09170000002" [ref=f42e111]
+              - cell "e2e.fixture@example.test" [ref=f42e112]
+              - cell "Not provided" [ref=f42e113]
+              - cell "Not provided" [ref=f42e114]
+              - cell "Active" [ref=f42e115]
+              - cell [ref=f42e117]:
+                - generic [ref=f42e118]:
+                  - link "View" [ref=f42e119] [cursor=pointer]:
+                    - /url: http://127.0.0.1:8001/donors/1
+                  - button "Edit" [ref=f42e120] [cursor=pointer]
+                  - button "Remove" [ref=f42e122] [cursor=pointer]
+      - dialog [ref=f42e123]:
+        - generic [ref=f42e124]:
+          - generic [ref=f42e125]:
+            - generic [ref=f42e133]:
+              - heading "Add New Donor Profile" [level=2] [ref=f42e134]
+              - paragraph [ref=f42e135]: Create a donor profile for future donation records.
+            - button "Close modal" [active] [ref=f42e136] [cursor=pointer]
+          - generic [ref=f42e142]:
+            - navigation "Donor profile steps" [ref=f42e143]:
+              - generic [ref=f42e144]: "1"
+              - generic [ref=f42e146]: "2"
+              - generic [ref=f42e148]: "3"
+              - generic [ref=f42e150]: "4"
+            - generic [ref=f42e152]:
+              - paragraph [ref=f42e153]: Step 1 of 4
+              - paragraph [ref=f42e154]: Basic Information
+            - alert [ref=f42e156]:
+              - generic [ref=f42e157]: "!"
+              - generic [ref=f42e158]: Please fill out the remaining field.
+            - generic [ref=f42e160]:
+              - heading "Basic Information" [level=3] [ref=f42e161]
+              - generic [ref=f42e162]:
+                - generic [ref=f42e163]:
+                  - generic [ref=f42e164]: Donor Type
+                  - combobox "Donor Type" [ref=f42e165]:
+                    - option "Individual" [selected]
+                    - option "Organization"
+                - generic [ref=f42e166]:
+                  - generic [ref=f42e167]: First Name
+                  - textbox "First Name" [ref=f42e168]
+                - generic [ref=f42e169]:
+                  - generic [ref=f42e170]: Last Name
+                  - textbox "Last Name" [ref=f42e171]
+          - generic [ref=f42e172]:
+            - button "Back" [disabled] [ref=f42e173]
+            - generic [ref=f42e174]:
+              - button "Cancel" [ref=f42e175] [cursor=pointer]
+              - button "Next" [ref=f42e176] [cursor=pointer]
+              - button "Save Donor Profile" [ref=f42e177] [cursor=pointer]

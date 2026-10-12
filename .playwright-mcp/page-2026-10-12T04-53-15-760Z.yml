@@ -1,0 +1,96 @@
+- generic [ref=f25e2]:
+  - complementary [ref=f25e3]:
+    - generic [ref=f25e4]:
+      - generic [ref=f25e5]:
+        - paragraph [ref=f25e10]: Donation Operations
+        - button "Toggle sidebar" [expanded] [ref=f25e11] [cursor=pointer]
+      - navigation "Sidebar navigation" [ref=f25e14]:
+        - link "Dashboard" [ref=f25e15] [cursor=pointer]:
+          - /url: http://127.0.0.1:8001
+        - link "Donor Management" [ref=f25e22] [cursor=pointer]:
+          - /url: http://127.0.0.1:8001/donors
+        - link "Donations Portal" [ref=f25e29] [cursor=pointer]:
+          - /url: http://127.0.0.1:8001/donations
+        - link "Fund Requests" [ref=f25e36] [cursor=pointer]:
+          - /url: http://127.0.0.1:8001/disbursements
+        - link "In-Kind Inventory" [ref=f25e41] [cursor=pointer]:
+          - /url: http://127.0.0.1:8001/inventory
+        - link "Bank Reconciliation" [ref=f25e46] [cursor=pointer]:
+          - /url: http://127.0.0.1:8001/bank-reconciliation
+        - link "Report Generator" [ref=f25e50] [cursor=pointer]:
+          - /url: http://127.0.0.1:8001/reports
+        - link "System Administration" [ref=f25e55] [cursor=pointer]:
+          - /url: http://127.0.0.1:8001/system-security
+      - button "Logout" [ref=f25e62] [cursor=pointer]
+  - generic [ref=f25e67]:
+    - banner [ref=f25e68]:
+      - generic [ref=f25e69]:
+        - generic [ref=f25e70]:
+          - heading "Donor Management" [level=1] [ref=f25e71]
+          - paragraph [ref=f25e72]: Search, add, and maintain donor information for barangay donation records.
+        - group [ref=f25e73]:
+          - generic "Secretary E2E Secretary S" [ref=f25e74] [cursor=pointer]:
+            - generic [ref=f25e75]:
+              - generic [ref=f25e76]: Secretary E2E
+              - generic [ref=f25e77]: Secretary
+            - generic [ref=f25e78]: S
+    - main [ref=f25e82]:
+      - generic [ref=f25e83]:
+        - generic [ref=f25e84]:
+          - generic [ref=f25e85]:
+            - searchbox "Search donors..." [ref=f25e87]
+            - combobox [ref=f25e88]:
+              - option "All types" [selected]
+              - option "Individual"
+              - option "Organization"
+          - button "Add Donor Profile" [ref=f25e89] [cursor=pointer]
+        - generic [ref=f25e91]:
+          - paragraph [ref=f25e97]: No donors registered yet.
+          - paragraph [ref=f25e98]: Add a donor profile to get started.
+      - dialog [ref=f25e99]:
+        - generic [ref=f25e100]:
+          - generic [ref=f25e101]:
+            - generic [ref=f25e109]:
+              - heading "Add New Donor Profile" [level=2] [ref=f25e110]
+              - paragraph [ref=f25e111]: Create a donor profile for future donation records.
+            - button "Close modal" [active] [ref=f25e112] [cursor=pointer]
+          - generic [ref=f25e118]:
+            - navigation "Donor profile steps" [ref=f25e119]:
+              - generic [ref=f25e120]:
+                - generic [ref=f25e121]: "1"
+                - generic [ref=f25e122]: Basic
+              - generic [ref=f25e123]:
+                - generic [ref=f25e124]: "2"
+                - generic [ref=f25e125]: Contact
+              - generic [ref=f25e126]:
+                - generic [ref=f25e127]: "3"
+                - generic [ref=f25e128]: Address
+              - generic [ref=f25e129]:
+                - generic [ref=f25e130]: "4"
+                - generic [ref=f25e131]: Additional
+            - generic [ref=f25e132]:
+              - paragraph [ref=f25e133]: Step 1 of 4
+              - paragraph [ref=f25e134]: Basic Information
+            - alert [ref=f25e136]:
+              - generic [ref=f25e137]: "!"
+              - generic [ref=f25e138]: Please fill out the remaining field.
+            - generic [ref=f25e140]:
+              - heading "Basic Information" [level=3] [ref=f25e141]
+              - generic [ref=f25e142]:
+                - generic [ref=f25e143]:
+                  - generic [ref=f25e144]: Donor Type
+                  - combobox "Donor Type" [ref=f25e145]:
+                    - option "Individual" [selected]
+                    - option "Organization"
+                - generic [ref=f25e146]:
+                  - generic [ref=f25e147]: First Name
+                  - textbox "First Name" [ref=f25e148]
+                - generic [ref=f25e149]:
+                  - generic [ref=f25e150]: Last Name
+                  - textbox "Last Name" [ref=f25e151]
+          - generic [ref=f25e152]:
+            - button "Back" [disabled] [ref=f25e153]
+            - generic [ref=f25e154]:
+              - button "Cancel" [ref=f25e155] [cursor=pointer]
+              - button "Next" [ref=f25e156] [cursor=pointer]
+              - button "Save Donor Profile" [ref=f25e157] [cursor=pointer]

@@ -1,0 +1,4 @@
+Date,Description,Type,Amount,Status
+2026-10-01,"Verified deposit",deposit,1000.00,reconciled
+2026-10-02,"Approved disbursement withdrawal",withdrawal,300.00,unreconciled
+2026-10-03,"Second deposit",deposit,200.00,unmatched

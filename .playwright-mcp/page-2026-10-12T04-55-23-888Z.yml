@@ -1,0 +1,171 @@
+- generic [ref=f28e2]:
+  - complementary [ref=f28e3]:
+    - generic [ref=f28e4]:
+      - generic [ref=f28e5]:
+        - paragraph [ref=f28e10]: Donation Operations
+        - button "Toggle sidebar" [expanded] [ref=f28e11] [cursor=pointer]
+      - navigation "Sidebar navigation" [ref=f28e14]:
+        - link "Dashboard" [ref=f28e15] [cursor=pointer]:
+          - /url: http://127.0.0.1:8001
+        - link "Donor Management" [ref=f28e22] [cursor=pointer]:
+          - /url: http://127.0.0.1:8001/donors
+        - link "Donations Portal" [ref=f28e29] [cursor=pointer]:
+          - /url: http://127.0.0.1:8001/donations
+        - link "Fund Requests" [ref=f28e36] [cursor=pointer]:
+          - /url: http://127.0.0.1:8001/disbursements
+        - link "In-Kind Inventory" [ref=f28e41] [cursor=pointer]:
+          - /url: http://127.0.0.1:8001/inventory
+        - link "Bank Reconciliation" [ref=f28e46] [cursor=pointer]:
+          - /url: http://127.0.0.1:8001/bank-reconciliation
+        - link "Report Generator" [ref=f28e50] [cursor=pointer]:
+          - /url: http://127.0.0.1:8001/reports
+        - link "System Administration" [ref=f28e55] [cursor=pointer]:
+          - /url: http://127.0.0.1:8001/system-security
+      - button "Logout" [ref=f28e62] [cursor=pointer]
+  - generic [ref=f28e67]:
+    - banner [ref=f28e68]:
+      - generic [ref=f28e69]:
+        - heading "Dashboard" [level=1] [ref=f28e71]
+        - group [ref=f28e72]:
+          - generic "Treasurer E2E Treasurer T" [ref=f28e73] [cursor=pointer]:
+            - generic [ref=f28e74]:
+              - generic [ref=f28e75]: Treasurer E2E
+              - generic [ref=f28e76]: Treasurer
+            - generic [ref=f28e77]: T
+    - main [ref=f28e81]:
+      - generic [ref=f28e82]:
+        - generic [ref=f28e83]:
+          - generic [ref=f28e84]:
+            - paragraph [ref=f28e85]: Monday, October 12, 2026
+            - heading "Welcome back, Treasurer!" [level=2] [ref=f28e86]: Welcome back, Treasurer! 👋
+            - paragraph [ref=f28e87]: Here's what's happening across donation operations today.
+          - link "Refresh" [ref=f28e88] [cursor=pointer]:
+            - /url: http://127.0.0.1:8001
+        - generic [ref=f28e94]:
+          - article [ref=f28e95]:
+            - paragraph [ref=f28e97]: Total Cash Ledger
+            - paragraph [ref=f28e101]: PHP 1,000.00
+            - paragraph [ref=f28e102]: Verified and approved cash entries.
+          - article [ref=f28e103]:
+            - paragraph [ref=f28e105]: Pending Cash Verification
+            - paragraph [ref=f28e110]: "0"
+            - paragraph [ref=f28e111]: Cash entries awaiting audit.
+          - article [ref=f28e112]:
+            - paragraph [ref=f28e114]: In-Kind Batches
+            - paragraph [ref=f28e119]: "0"
+            - paragraph [ref=f28e120]: Inventory records currently tracked.
+          - article [ref=f28e121]:
+            - paragraph [ref=f28e123]: Registered Donors
+            - paragraph [ref=f28e130]: "1"
+            - paragraph [ref=f28e131]: Donor profiles available.
+        - generic [ref=f28e132]:
+          - generic [ref=f28e133]:
+            - generic [ref=f28e138]:
+              - heading "Treasurer Action Items" [level=2] [ref=f28e139]
+              - paragraph [ref=f28e140]: Cash and reconciliation work needing attention.
+            - generic [ref=f28e141]:
+              - generic [ref=f28e142]: Total cash disbursed
+              - generic [ref=f28e143]: PHP 300.00
+            - generic [ref=f28e144]:
+              - generic [ref=f28e145]:
+                - term [ref=f28e146]: Pending cash verification
+                - definition [ref=f28e147]: "0"
+              - generic [ref=f28e148]:
+                - term [ref=f28e149]: Bank ledger entries awaiting review
+                - definition [ref=f28e150]: "3"
+              - link "Bank Withdrawals Awaiting Reconciliation 1" [ref=f28e151] [cursor=pointer]:
+                - /url: http://127.0.0.1:8001/bank-reconciliation?tab=outgoing
+                - generic [ref=f28e152]: Bank Withdrawals Awaiting Reconciliation
+                - generic [ref=f28e153]: "1"
+              - link "Discrepancies Requiring Review 0" [ref=f28e154] [cursor=pointer]:
+                - /url: http://127.0.0.1:8001/bank-reconciliation?tab=outgoing
+                - generic [ref=f28e155]: Discrepancies Requiring Review
+                - generic [ref=f28e156]: "0"
+              - link "Pending Liquidation / Unresolved Difference PHP 0.00" [ref=f28e157] [cursor=pointer]:
+                - /url: http://127.0.0.1:8001/bank-reconciliation?tab=outgoing
+                - generic [ref=f28e158]: Pending Liquidation / Unresolved Difference
+                - generic [ref=f28e159]: PHP 0.00
+          - generic [ref=f28e160]:
+            - generic [ref=f28e167]:
+              - heading "Campaign Contributions / Funding Distribution" [level=2] [ref=f28e168]
+              - paragraph [ref=f28e169]: Verified cash grouped by funding purpose.
+            - img "Verified cash contributions grouped by campaign" [ref=f28e171]
+            - list [ref=f28e172]:
+              - listitem [ref=f28e173]:
+                - generic [ref=f28e174]: Uncategorized
+                - generic [ref=f28e175]: PHP 1,000.00
+          - generic [ref=f28e176]:
+            - generic [ref=f28e182]:
+              - heading "Recent Cash Donations Awaiting Audit" [level=2] [ref=f28e183]
+              - paragraph [ref=f28e184]: Latest pending cash entries.
+            - generic [ref=f28e185]:
+              - paragraph [ref=f28e190]: No cash donations awaiting audit.
+              - link "View Pending" [ref=f28e191] [cursor=pointer]:
+                - /url: http://127.0.0.1:8001/donations
+                - text: View Pending
+                - generic [aria-hidden] [ref=f28e192]: →
+          - generic [ref=f28e193]:
+            - generic [ref=f28e199]:
+              - heading "System Log Activity" [level=2] [ref=f28e200]
+              - paragraph [ref=f28e201]: Recent operational records derived from current tables.
+            - list [ref=f28e202]:
+              - listitem [ref=f28e203]:
+                - generic [ref=f28e210]:
+                  - paragraph [ref=f28e211]: Contribution logged
+                  - paragraph [ref=f28e212]: cash
+                  - paragraph [ref=f28e213]: 39 seconds ago
+              - listitem [ref=f28e214]:
+                - generic [ref=f28e219]:
+                  - paragraph [ref=f28e220]: Cash disbursed
+                  - paragraph [ref=f28e221]: E2E approved disbursement E2E-DISB-001
+                  - paragraph [ref=f28e222]: 39 seconds ago
+              - listitem [ref=f28e223]:
+                - generic [ref=f28e228]:
+                  - paragraph [ref=f28e229]: Cash disbursed
+                  - paragraph [ref=f28e230]: E2E approved disbursement E2E-DISB-002
+                  - paragraph [ref=f28e231]: 39 seconds ago
+          - generic [ref=f28e232]:
+            - generic [ref=f28e238]:
+              - heading "Secretary In-Kind Control Panel" [level=2] [ref=f28e239]
+              - paragraph [ref=f28e240]: Inventory status and recent in-kind records.
+            - generic [ref=f28e241]:
+              - generic [ref=f28e242]:
+                - heading "Inventory by status" [level=3] [ref=f28e243]
+                - paragraph [ref=f28e249]: No inventory records yet.
+              - generic [ref=f28e250]:
+                - heading "Recent in-kind records" [level=3] [ref=f28e251]
+                - generic [ref=f28e252]:
+                  - paragraph [ref=f28e257]: No in-kind donations recorded yet.
+                  - link "View Inventory" [ref=f28e258] [cursor=pointer]:
+                    - /url: http://127.0.0.1:8001/inventory
+                    - text: View Inventory
+                    - generic [aria-hidden] [ref=f28e259]: →
+          - generic [ref=f28e260]:
+            - generic [ref=f28e265]:
+              - heading "Recent Donations Stream" [level=2] [ref=f28e266]
+              - paragraph [ref=f28e267]: Latest donation records with donor context.
+            - list [ref=f28e268]:
+              - listitem [ref=f28e269]:
+                - generic [ref=f28e270]: E
+                - generic [ref=f28e271]:
+                  - generic [ref=f28e272]:
+                    - paragraph [ref=f28e273]: E2E Fixture Donor
+                    - paragraph [ref=f28e274]: Cash / Electronic Transfer
+                  - paragraph [ref=f28e275]: PHP 1,000.00
+          - generic [ref=f28e276]:
+            - generic [ref=f28e282]:
+              - heading "Recent Cash Disbursements" [level=2] [ref=f28e283]
+              - paragraph [ref=f28e284]: Latest outgoing cash payments recorded.
+            - list [ref=f28e285]:
+              - listitem [ref=f28e286]:
+                - generic [ref=f28e287]:
+                  - generic [ref=f28e288]:
+                    - paragraph [ref=f28e289]: E2E approved disbursement E2E-DISB-001
+                    - paragraph [ref=f28e290]: Secretary E2E · Approved
+                  - paragraph [ref=f28e291]: PHP 150.00
+              - listitem [ref=f28e292]:
+                - generic [ref=f28e293]:
+                  - generic [ref=f28e294]:
+                    - paragraph [ref=f28e295]: E2E approved disbursement E2E-DISB-002
+                    - paragraph [ref=f28e296]: Secretary E2E · Approved
+                  - paragraph [ref=f28e297]: PHP 150.00

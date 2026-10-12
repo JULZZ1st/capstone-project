@@ -10,12 +10,12 @@
             'financial' => 'Financial Report',
             'inventory' => 'Inventory Report',
             'audit' => 'Audit Trail Report',
+            'reconciliation' => 'Reconciliation Report',
             'financial-ledgers' => 'Financial Ledgers',
             'in-kind-audits' => 'In-Kind Audits',
             'philanthropy-roster' => 'Philanthropy Roster',
         ];
     @endphp
-
     <div class="space-y-5">
         <nav class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3" aria-label="Report types">
             @foreach ($tabs as $key => $label)
@@ -71,6 +71,11 @@
             @elseif ($tab === 'inventory')
                 <a href="{{ route('reports.inventory.pdf', ['year' => $year, 'month' => $month]) }}" class="rounded-md bg-red-700 px-3 py-2 text-xs font-semibold text-white">Download PDF</a>
                 <a href="{{ route('reports.inventory.csv', ['year' => $year, 'month' => $month]) }}" class="rounded-md bg-emerald-700 px-3 py-2 text-xs font-semibold text-white">Download CSV</a>
+            @elseif ($tab === 'reconciliation')
+                @if ($reconciliationPeriods->isNotEmpty())
+                    <a href="{{ route('reports.reconciliation.pdf', ['period_id' => request('period_id', $reconciliationPeriods->first()->id)]) }}" class="rounded-md bg-red-700 px-3 py-2 text-xs font-semibold text-white">Download PDF</a>
+                    <a href="{{ route('reports.reconciliation.csv', ['period_id' => request('period_id', $reconciliationPeriods->first()->id)]) }}" class="rounded-md bg-emerald-700 px-3 py-2 text-xs font-semibold text-white">Download CSV</a>
+                @endif
             @elseif ($tab === 'audit')
                 <a href="{{ route('reports.audit.pdf', ['from' => $from, 'to' => $to]) }}" class="rounded-md bg-red-700 px-3 py-2 text-xs font-semibold text-white">Download PDF</a>
                 <a href="{{ route('reports.audit.csv', ['from' => $from, 'to' => $to]) }}" class="rounded-md bg-emerald-700 px-3 py-2 text-xs font-semibold text-white">Download CSV</a>
@@ -156,6 +161,28 @@
                         </tbody>
                     </table>
                 </div>
+            </section>
+        @elseif ($tab === 'reconciliation')
+            <section class="space-y-4 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+                @if ($reconciliationPeriods->isNotEmpty())
+                    <form method="GET" action="{{ route('reports.index') }}" class="flex flex-wrap items-end gap-3">
+                        <input type="hidden" name="tab" value="reconciliation">
+                        <div>
+                            <label for="reconciliation-period" class="block text-xs font-semibold uppercase text-slate-500">Period</label>
+                            <select id="reconciliation-period" name="period_id" class="mt-1 rounded-md border-slate-300 text-sm">
+                                @foreach ($reconciliationPeriods as $periodOption)
+                                    <option value="{{ $periodOption->id }}" @selected((int) request('period_id', $reconciliationPeriods->first()->id) === $periodOption->id)>
+                                        {{ $periodOption->period_start?->format('Y-m-d') }} – {{ $periodOption->period_end?->format('Y-m-d') }} ({{ str_replace('_', ' ', $periodOption->status) }})
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <x-button class="w-auto">Apply</x-button>
+                    </form>
+                    <p class="text-sm text-slate-600">Select a period above to download the complete reconciliation report, including balances, movements, outstanding items, and differences.</p>
+                @else
+                    <p class="text-sm text-slate-600">No reconciliation periods are available.</p>
+                @endif
             </section>
         @elseif ($tab === 'financial-ledgers')
             <x-reports.month-filter :year="$year" :month="$month" tab="financial-ledgers" />

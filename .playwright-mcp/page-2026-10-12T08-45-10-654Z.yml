@@ -1,0 +1,263 @@
+- generic [ref=f4e2]:
+  - complementary [ref=f4e3]:
+    - generic [ref=f4e4]:
+      - generic [ref=f4e5]:
+        - paragraph [ref=f4e10]: Donation Operations
+        - button "Toggle sidebar" [expanded] [ref=f4e11] [cursor=pointer]
+      - navigation "Sidebar navigation" [ref=f4e14]:
+        - link "Dashboard" [ref=f4e15] [cursor=pointer]:
+          - /url: http://127.0.0.1:8001
+        - link "Donor Management" [ref=f4e22] [cursor=pointer]:
+          - /url: http://127.0.0.1:8001/donors
+        - link "Donations Portal" [ref=f4e29] [cursor=pointer]:
+          - /url: http://127.0.0.1:8001/donations
+        - link "Fund Requests" [ref=f4e36] [cursor=pointer]:
+          - /url: http://127.0.0.1:8001/disbursements
+        - link "In-Kind Inventory" [ref=f4e41] [cursor=pointer]:
+          - /url: http://127.0.0.1:8001/inventory
+        - link "Bank Reconciliation" [ref=f4e46] [cursor=pointer]:
+          - /url: http://127.0.0.1:8001/bank-reconciliation
+        - link "Report Generator" [ref=f4e50] [cursor=pointer]:
+          - /url: http://127.0.0.1:8001/reports
+        - link "System Administration" [ref=f4e55] [cursor=pointer]:
+          - /url: http://127.0.0.1:8001/system-security
+      - button "Logout" [ref=f4e62] [cursor=pointer]
+  - generic [ref=f4e67]:
+    - banner [ref=f4e68]:
+      - generic [ref=f4e69]:
+        - generic [ref=f4e70]:
+          - heading "Bank Reconciliation Workspace" [level=1] [ref=f4e71]
+          - paragraph [ref=f4e72]: Audit bank transactions against registered community donations.
+        - group [ref=f4e73]:
+          - generic "Treasurer E2E Treasurer T" [ref=f4e74] [cursor=pointer]:
+            - generic [ref=f4e75]:
+              - generic [ref=f4e76]: Treasurer E2E
+              - generic [ref=f4e77]: Treasurer
+            - generic [ref=f4e78]: T
+    - main [ref=f4e82]:
+      - generic [ref=f4e83]: Bank withdrawal entry recorded for review.
+      - generic [ref=f4e84]:
+        - generic [ref=f4e85]: Bank withdrawal entry recorded for review.
+        - navigation "Bank reconciliation sections" [ref=f4e87]:
+          - link "Incoming Funds" [ref=f4e88] [cursor=pointer]:
+            - /url: http://127.0.0.1:8001/bank-reconciliation?tab=incoming
+          - link "Outgoing Funds" [ref=f4e89] [cursor=pointer]:
+            - /url: http://127.0.0.1:8001/bank-reconciliation?tab=outgoing
+        - generic [ref=f4e90]: Active Audit Lockout Enabled
+        - generic [ref=f4e92]:
+          - generic [ref=f4e93]:
+            - generic [ref=f4e94]:
+              - heading "Reconciliation Period" [level=2] [ref=f4e95]
+              - paragraph [ref=f4e96]: Create a period using raw bank balances. Movement totals and the financial ledger balance are calculated from stored records.
+            - generic [ref=f4e97]:
+              - textbox "Period start" [ref=f4e98]
+              - textbox "Period end" [ref=f4e99]
+              - spinbutton "Opening balance" [ref=f4e100]
+              - spinbutton "Bank ending balance" [ref=f4e101]
+              - button "Create Period" [ref=f4e102] [cursor=pointer]
+          - generic [ref=f4e103]:
+            - generic [ref=f4e104]:
+              - paragraph [ref=f4e105]: Latest period
+              - paragraph [ref=f4e106]: Nov 01, 2026 – Nov 30, 2026
+              - text: draft
+            - generic [ref=f4e107]:
+              - paragraph [ref=f4e108]: Bank movements
+              - paragraph [ref=f4e109]: In PHP 1,000.00 / Out PHP 0.00
+            - generic [ref=f4e110]:
+              - paragraph [ref=f4e111]: Financial ledger ending
+              - paragraph [ref=f4e112]: PHP 21,700.00
+            - generic [ref=f4e113]:
+              - paragraph [ref=f4e114]: Raw bank ending
+              - paragraph [ref=f4e115]: PHP 21,700.00
+            - generic [ref=f4e116]:
+              - paragraph [ref=f4e117]: Difference
+              - paragraph [ref=f4e118]: PHP 0.00
+          - button "Submit for Review" [ref=f4e121] [cursor=pointer]
+          - generic [ref=f4e122]:
+            - heading "Record discrepancy" [level=3] [ref=f4e123]
+            - generic [ref=f4e124]:
+              - combobox [ref=f4e125]:
+                - option "Discrepancy type" [selected]
+                - option "Unmatched amount"
+                - option "Bank charge"
+                - option "Interest"
+                - option "Outstanding check"
+                - option "Deposit in transit"
+                - option "Recording error"
+              - combobox [ref=f4e126]:
+                - option "Classification" [selected]
+                - option "Accounting adjustment"
+                - option "Timing difference"
+              - spinbutton "Amount" [ref=f4e127]
+              - textbox "Evidence/reference" [ref=f4e128]
+              - textbox "Explanation" [ref=f4e129]
+              - combobox [ref=f4e130]:
+                - option "Unresolved" [selected]
+                - option "Resolved"
+                - option "Accounted"
+              - spinbutton "Signed adjustment (accounting only)" [ref=f4e131]
+              - generic [ref=f4e132]:
+                - checkbox "Carry forward timing item" [ref=f4e133]
+                - text: Carry forward timing item
+              - button "Save discrepancy" [ref=f4e134] [cursor=pointer]
+        - generic [ref=f4e135]:
+          - generic [ref=f4e136]:
+            - heading "Record Bank Withdrawal" [level=2] [ref=f4e137]
+            - generic [ref=f4e138]:
+              - generic [ref=f4e139]:
+                - generic [ref=f4e140]: Transaction Date
+                - textbox "Transaction Date" [ref=f4e141]
+              - generic [ref=f4e142]:
+                - generic [ref=f4e143]: Reference Number
+                - textbox "Reference Number" [ref=f4e144]
+              - generic [ref=f4e145]:
+                - generic [ref=f4e146]: Description
+                - textbox "Description" [ref=f4e147]
+              - generic [ref=f4e148]:
+                - generic [ref=f4e149]: Amount
+                - spinbutton "Amount" [ref=f4e150]
+              - button "Record Withdrawal" [ref=f4e152] [cursor=pointer]
+          - generic [ref=f4e153]:
+            - heading "Import Withdrawals" [level=2] [ref=f4e154]
+            - paragraph [ref=f4e155]: CSV or XLSX rows with transaction_type set to withdrawal are added for outgoing review.
+            - generic [ref=f4e156]:
+              - button "Choose File" [ref=f4e157]
+              - button "Import Statement" [ref=f4e158] [cursor=pointer]
+        - generic [ref=f4e159]:
+          - generic [ref=f4e160]:
+            - heading "Bank Withdrawals to Review" [level=2] [ref=f4e163]
+            - generic [ref=f4e164]: 2 entries
+          - generic [ref=f4e165]:
+            - generic [ref=f4e166]:
+              - generic [ref=f4e167]:
+                - paragraph [ref=f4e168]: Transaction Date
+                - paragraph [ref=f4e169]: 2026-10-08
+              - generic [ref=f4e170]:
+                - paragraph [ref=f4e171]: Reference Number
+                - paragraph [ref=f4e172]: E2E-BROWSER-WD-001
+              - generic [ref=f4e173]:
+                - paragraph [ref=f4e174]: Description
+                - paragraph [ref=f4e175]: Browser withdrawal for two approved disbursements
+              - generic [ref=f4e176]:
+                - paragraph [ref=f4e177]: Amount
+                - paragraph [ref=f4e178]: PHP 300.00
+              - generic [ref=f4e179]:
+                - paragraph [ref=f4e180]: Transaction Type
+                - paragraph [ref=f4e181]: withdrawal
+              - generic [ref=f4e182]:
+                - paragraph [ref=f4e183]: Status
+                - generic [ref=f4e184]: unreconciled
+            - generic [ref=f4e185]:
+              - generic [ref=f4e186]:
+                - generic [ref=f4e187]:
+                  - paragraph [ref=f4e188]: Bank Withdrawal Amount
+                  - paragraph [ref=f4e189]: PHP 300.00
+                - generic [ref=f4e190]:
+                  - paragraph [ref=f4e191]: Selected Disbursements Total
+                  - paragraph [ref=f4e192]: PHP 300.00
+                - generic [ref=f4e193]:
+                  - paragraph [ref=f4e194]: Difference
+                  - paragraph [ref=f4e195]: PHP 0.00
+                  - generic [ref=f4e196]: Ready to Reconcile
+              - generic [ref=f4e197]:
+                - generic [ref=f4e198]:
+                  - generic [ref=f4e199]:
+                    - checkbox "E2E browser approved disbursement E2E Browser Payee - Approved 2026-10-12 PHP 300.00" [ref=f4e200]
+                    - generic [ref=f4e201]:
+                      - generic [ref=f4e202]: E2E browser approved disbursement
+                      - generic [ref=f4e203]: E2E Browser Payee - Approved 2026-10-12
+                      - generic [ref=f4e204]: PHP 300.00
+                  - generic [ref=f4e205]:
+                    - checkbox "E2E approved disbursement E2E-DISB-001 E2E Recipient - Approved 2026-10-06 PHP 150.00" [checked] [ref=f4e206]
+                    - generic [ref=f4e207]:
+                      - generic [ref=f4e208]: E2E approved disbursement E2E-DISB-001
+                      - generic [ref=f4e209]: E2E Recipient - Approved 2026-10-06
+                      - generic [ref=f4e210]: PHP 150.00
+                  - generic [ref=f4e211]:
+                    - checkbox "E2E approved disbursement E2E-DISB-002 E2E Recipient - Approved 2026-10-06 PHP 150.00" [checked] [ref=f4e212]
+                    - generic [ref=f4e213]:
+                      - generic [ref=f4e214]: E2E approved disbursement E2E-DISB-002
+                      - generic [ref=f4e215]: E2E Recipient - Approved 2026-10-06
+                      - generic [ref=f4e216]: PHP 150.00
+                - generic [ref=f4e217]:
+                  - generic [ref=f4e218]: Explanation / Reason
+                  - textbox "Explanation / Reason Explanation / Reason" [active] [ref=f4e219]
+                - generic [ref=f4e220]:
+                  - button "Save Match Selection" [ref=f4e221] [cursor=pointer]
+                  - button "Confirm Reconciliation" [ref=f4e222] [cursor=pointer]
+          - generic [ref=f4e223]:
+            - generic [ref=f4e224]:
+              - generic [ref=f4e225]:
+                - paragraph [ref=f4e226]: Transaction Date
+                - paragraph [ref=f4e227]: 2026-10-02
+              - generic [ref=f4e228]:
+                - paragraph [ref=f4e229]: Reference Number
+                - paragraph [ref=f4e230]: E2E-WD-001
+              - generic [ref=f4e231]:
+                - paragraph [ref=f4e232]: Description
+                - paragraph [ref=f4e233]: Approved disbursement withdrawal
+              - generic [ref=f4e234]:
+                - paragraph [ref=f4e235]: Amount
+                - paragraph [ref=f4e236]: PHP 300.00
+              - generic [ref=f4e237]:
+                - paragraph [ref=f4e238]: Transaction Type
+                - paragraph [ref=f4e239]: withdrawal
+              - generic [ref=f4e240]:
+                - paragraph [ref=f4e241]: Status
+                - generic [ref=f4e242]: unreconciled
+            - generic [ref=f4e243]:
+              - generic [ref=f4e244]:
+                - generic [ref=f4e245]:
+                  - paragraph [ref=f4e246]: Bank Withdrawal Amount
+                  - paragraph [ref=f4e247]: PHP 300.00
+                - generic [ref=f4e248]:
+                  - paragraph [ref=f4e249]: Selected Disbursements Total
+                  - paragraph [ref=f4e250]: PHP 0.00
+                - generic [ref=f4e251]:
+                  - paragraph [ref=f4e252]: Difference
+                  - paragraph [ref=f4e253]: PHP 300.00
+                  - generic [ref=f4e254]: Discrepancy
+              - generic [ref=f4e255]:
+                - generic [ref=f4e256]:
+                  - generic [ref=f4e257]:
+                    - checkbox "E2E browser approved disbursement E2E Browser Payee - Approved 2026-10-12 PHP 300.00" [ref=f4e258]
+                    - generic [ref=f4e259]:
+                      - generic [ref=f4e260]: E2E browser approved disbursement
+                      - generic [ref=f4e261]: E2E Browser Payee - Approved 2026-10-12
+                      - generic [ref=f4e262]: PHP 300.00
+                  - generic [ref=f4e263]:
+                    - checkbox "E2E approved disbursement E2E-DISB-001 E2E Recipient - Approved 2026-10-06 PHP 150.00" [ref=f4e264]
+                    - generic [ref=f4e265]:
+                      - generic [ref=f4e266]: E2E approved disbursement E2E-DISB-001
+                      - generic [ref=f4e267]: E2E Recipient - Approved 2026-10-06
+                      - generic [ref=f4e268]: PHP 150.00
+                  - generic [ref=f4e269]:
+                    - checkbox "E2E approved disbursement E2E-DISB-002 E2E Recipient - Approved 2026-10-06 PHP 150.00" [ref=f4e270]
+                    - generic [ref=f4e271]:
+                      - generic [ref=f4e272]: E2E approved disbursement E2E-DISB-002
+                      - generic [ref=f4e273]: E2E Recipient - Approved 2026-10-06
+                      - generic [ref=f4e274]: PHP 150.00
+                - generic [ref=f4e275]:
+                  - generic [ref=f4e276]: Explanation / Reason
+                  - textbox [ref=f4e277]
+                - generic [ref=f4e278]:
+                  - button "Save Match Selection" [ref=f4e279] [cursor=pointer]
+                  - button "Confirm Reconciliation" [disabled] [ref=f4e280]
+        - generic [ref=f4e281]:
+          - heading "Reconciliation History" [level=2] [ref=f4e283]
+          - table [ref=f4e285]:
+            - rowgroup [ref=f4e286]:
+              - row [ref=f4e287]:
+                - columnheader "Date" [ref=f4e288]
+                - columnheader "Bank Reference" [ref=f4e289]
+                - columnheader "Type" [ref=f4e290]
+                - columnheader "Bank Amount" [ref=f4e291]
+                - columnheader "Matched Amount" [ref=f4e292]
+                - columnheader "Difference" [ref=f4e293]
+                - columnheader "Status" [ref=f4e294]
+                - columnheader "Reconciled By" [ref=f4e295]
+                - columnheader [ref=f4e296]
+            - rowgroup [ref=f4e297]:
+              - row [ref=f4e298]:
+                - cell [ref=f4e299]:
+                  - paragraph [ref=f4e306]: No reconciled withdrawals yet.

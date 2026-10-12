@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class BankLedgerEntry extends Model
 {
@@ -14,6 +15,7 @@ class BankLedgerEntry extends Model
 
     protected $fillable = [
         'statement_id',
+        'duplicate_fingerprint',
         'description',
         'reference_number',
         'amount',
@@ -72,6 +74,11 @@ class BankLedgerEntry extends Model
         )->withTimestamps();
     }
 
+    public function clearedDiscrepancy(): HasOne
+    {
+        return $this->hasOne(ReconciliationDiscrepancy::class, 'cleared_bank_ledger_entry_id');
+    }
+
     public function scopeNeedsReview($query)
     {
         return $query->where('status', '!=', 'reconciled');
@@ -79,7 +86,11 @@ class BankLedgerEntry extends Model
 
     public function scopeIncoming($query)
     {
-        return $query->where('transaction_type', 'deposit');
+        // Older manually-created rows may predate transaction_type; treat null as
+        // the historical default deposit instead of silently hiding them.
+        return $query->where(function ($query) {
+            $query->where('transaction_type', 'deposit')->orWhereNull('transaction_type');
+        });
     }
 
     public function scopeWithdrawalsToReview($query)

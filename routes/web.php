@@ -68,6 +68,13 @@ Route::middleware(['auth', 'password.change', 'role:admin,secretary,treasurer'])
         ->name('inventory.adjustments.store');
 
     Route::get('/bank-reconciliation', [BankReconciliationController::class, 'index'])->name('bank-reconciliation.index');
+    Route::post('/bank-reconciliation/periods', [BankReconciliationController::class, 'createPeriod'])->name('bank-reconciliation.periods.store');
+    Route::patch('/bank-reconciliation/periods/{period}', [BankReconciliationController::class, 'updatePeriod'])->name('bank-reconciliation.periods.update');
+    Route::post('/bank-reconciliation/periods/{period}/discrepancies', [BankReconciliationController::class, 'createDiscrepancy'])->name('bank-reconciliation.discrepancies.store');
+    Route::post('/bank-reconciliation/periods/{period}/submit', [BankReconciliationController::class, 'submitPeriod'])->name('bank-reconciliation.periods.submit');
+    Route::post('/bank-reconciliation/periods/{period}/approve', [BankReconciliationController::class, 'approvePeriod'])->name('bank-reconciliation.periods.approve');
+    Route::post('/bank-reconciliation/periods/{period}/reject', [BankReconciliationController::class, 'rejectPeriod'])->name('bank-reconciliation.periods.reject');
+    Route::post('/bank-reconciliation/periods/{period}/reopen', [BankReconciliationController::class, 'reopenPeriod'])->name('bank-reconciliation.periods.reopen');
     Route::post('/bank-reconciliation/import', [BankReconciliationController::class, 'import'])->name('bank-reconciliation.import');
     Route::post('/bank-reconciliation/withdrawals', [BankReconciliationController::class, 'storeWithdrawal'])->name('bank-reconciliation.withdrawals.store');
     Route::post('/bank-reconciliation/withdrawals/{withdrawal}/matches', [BankReconciliationController::class, 'storeWithdrawalMatches'])->name('bank-reconciliation.withdrawals.matches.store');
@@ -91,6 +98,8 @@ Route::middleware(['auth', 'password.change', 'role:admin,secretary,treasurer'])
     Route::get('/reports/audit/pdf', [ReportController::class, 'auditPdf'])->name('reports.audit.pdf');
     Route::get('/reports/financial-ledgers/csv', [ReportController::class, 'financialLedgersCsv'])->name('reports.financial-ledgers.csv');
     Route::get('/reports/financial-ledgers/pdf', [ReportController::class, 'financialLedgersPdf'])->name('reports.financial-ledgers.pdf');
+    Route::get('/reports/reconciliation/csv', [ReportController::class, 'reconciliationCsv'])->name('reports.reconciliation.csv');
+    Route::get('/reports/reconciliation/pdf', [ReportController::class, 'reconciliationPdf'])->name('reports.reconciliation.pdf');
     Route::get('/reports/in-kind-audits/csv', [ReportController::class, 'inKindAuditCsv'])->name('reports.in-kind-audits.csv');
     Route::get('/reports/in-kind-audits/pdf', [ReportController::class, 'inKindAuditPdf'])->name('reports.in-kind-audits.pdf');
     Route::get('/reports/philanthropy-roster/pdf', [ReportController::class, 'philanthropyRosterPdf'])->name('reports.philanthropy-roster.pdf');
