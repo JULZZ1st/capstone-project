@@ -339,6 +339,21 @@ class ReportGeneratorTest extends TestCase
         $this->get(route('reports.audit.pdf'))->assertRedirect(route('login'));
     }
 
+    private function inventoryItem(): InventoryItem
+    {
+        return InventoryItem::query()->create([
+            'name' => 'Hygiene Kits',
+            'category' => 'food',
+            'unit' => 'pack',
+            'quantity' => 20,
+            'current_quantity' => 20,
+            'minimum_reserve_quantity' => 5,
+            'storage_location' => 'Main Storage',
+            'status' => config('inventory.defaults.status'),
+            'received_at' => now(),
+        ]);
+    }
+
     private function cashContribution(array $overrides = []): Contribution
     {
         $donor = Donor::query()->create([
@@ -359,20 +374,6 @@ class ReportGeneratorTest extends TestCase
             'reference_number' => 'REF-'.random_int(100000, 999999),
             'received_at' => now(),
         ], collect($overrides)->except('donor_name')->all()));
-    }
-
-    private function inventoryItem(): InventoryItem
-    {
-        return InventoryItem::query()->create([
-            'name' => 'Hygiene Kits',
-            'category' => 'hygiene_supplies',
-            'unit' => 'pack',
-            'quantity' => 10,
-            'current_quantity' => 10,
-            'minimum_reserve_quantity' => 2,
-            'storage_location' => 'Supply Room',
-            'status' => config('inventory.defaults.status'),
-        ]);
     }
 
     private function reconcile(Contribution $contribution): BankLedgerEntry

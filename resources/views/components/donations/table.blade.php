@@ -1,12 +1,6 @@
 @props(['contributions'])
 
 <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-    <div class="flex items-center justify-between gap-3 border-b border-slate-200 px-5 py-4">
-        <h2 class="text-base font-semibold text-slate-950">Contributions</h2>
-        <span class="shrink-0 text-sm text-slate-500">
-            Showing {{ $contributions->count() }} of {{ $contributions->total() }} {{ \Illuminate\Support\Str::plural('contribution', $contributions->total()) }}
-        </span>
-    </div>
 
     <div class="overflow-x-auto">
         <table class="min-w-full divide-y divide-slate-200 text-sm">
@@ -23,6 +17,7 @@
                     <th class="px-5 py-3 text-right">Actions</th>
                 </tr>
             </thead>
+
             <tbody class="divide-y divide-slate-100 bg-white">
                 @foreach ($contributions as $contribution)
                     <x-donations.table-row :contribution="$contribution" />
@@ -36,4 +31,5 @@
             {{ $contributions->links() }}
         </div>
     @endif
+
 </div>

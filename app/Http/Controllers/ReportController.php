@@ -177,9 +177,7 @@ class ReportController extends Controller
         InKindAuditCsvExporter $exporter
     ): StreamedResponse {
         $report = $builder->build($request->year(), $request->month());
-        $filename = sprintf('in-kind-inventory-audit-%04d-%02d.csv', $request->year(), $request->month());
-
-        return $exporter->handle($report['movements'], $filename);
+        return $exporter->handle($report['movements'], sprintf('in-kind-inventory-audit-%04d-%02d.csv', $request->year(), $request->month()));
     }
 
     public function inKindAuditPdf(
@@ -188,8 +186,6 @@ class ReportController extends Controller
         InKindAuditPdfExporter $exporter
     ): Response {
         $report = $builder->build($request->year(), $request->month());
-        $filename = sprintf('in-kind-inventory-audit-%04d-%02d.pdf', $request->year(), $request->month());
-
-        return $exporter->handle($report, $filename);
+        return $exporter->handle($report, sprintf('in-kind-inventory-audit-%04d-%02d.pdf', $request->year(), $request->month()));
     }
 }

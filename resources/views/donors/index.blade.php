@@ -8,15 +8,6 @@
     @php
         $modal = old('_modal');
         $createModalOpen = ($errors->any() && $modal === 'create') || session('duplicate_donor_detected');
-        $errorFieldsByStep = [
-            ['donor_type', 'status', 'organization_name', 'first_name', 'last_name'],
-            ['contact_number', 'email', 'contact_person', 'preferred_contact_method'],
-            ['address', 'barangay', 'city_municipality', 'province'],
-            ['notes'],
-        ];
-        $errorFields = collect($errors->keys());
-        $wizardStartStep = collect($errorFieldsByStep)->search(fn ($fields) => $errorFields->intersect($fields)->isNotEmpty());
-        $wizardStartStep = $wizardStartStep === false ? 0 : $wizardStartStep;
     @endphp
 
     <div class="space-y-6">
@@ -48,10 +39,10 @@
             />
         @else
             <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-                <div class="max-h-[70vh] overflow-auto">
+                <div class="overflow-x-auto">
                     <table class="min-w-[920px] w-full text-left text-sm">
                         <caption class="sr-only">Registered donors</caption>
-                        <thead class="sticky top-0 z-10 bg-slate-50 text-xs uppercase tracking-wide text-slate-500 shadow-[0_1px_0_0_rgba(226,232,240,1)]">
+                        <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                             <tr>
                                 <th scope="col" class="px-4 py-3 font-semibold">Donor Name</th>
                                 <th scope="col" class="px-4 py-3 font-semibold">Donor Type</th>
@@ -97,8 +88,7 @@
             </section>
 
             @foreach ($donors as $donor)
-                <x-donors.edit-modal :donor="$donor" :open="$errors->any() && $modal === 'edit-'.$donor->id" :start-step="$errors->any() && $modal === 'edit-'.$donor->id ? $wizardStartStep : 0" />
-                <x-donors.remove-modal :donor="$donor" />
+                <x-donors.edit-modal :donor="$donor" :open="$errors->any() && $modal === 'edit-'.$donor->id" />
             @endforeach
 
             <div>

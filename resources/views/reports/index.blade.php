@@ -84,7 +84,6 @@
                 <a href="{{ route('reports.philanthropy-roster.pdf', ['year' => $year, 'month' => $month, 'search' => $search, 'sort' => $sort]) }}" class="rounded-md bg-red-700 px-3 py-2 text-xs font-semibold text-white">Download PDF</a>
             @endif
         </div>
-
         @if ($tab === 'financial')
             <section class="space-y-5 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
                 <div class="flex flex-wrap items-center justify-between gap-2">
