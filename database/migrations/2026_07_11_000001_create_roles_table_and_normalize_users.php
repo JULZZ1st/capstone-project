@@ -42,7 +42,11 @@ return new class extends Migration
             ->get()
             ->each(function (object $user): void {
                 $nameParts = preg_split('/\s+/', trim((string) $user->name), 2);
-                $roleId = DB::table('roles')->where('name', $user->role)->value('id')
+                $roleName = match ($user->role) {
+                    'administrator', 'captain' => 'admin',
+                    default => $user->role,
+                };
+                $roleId = DB::table('roles')->where('name', $roleName)->value('id')
                     ?? DB::table('roles')->where('name', config('auth_defaults.default_role'))->value('id');
 
                 DB::table('users')->where('id', $user->id)->update([

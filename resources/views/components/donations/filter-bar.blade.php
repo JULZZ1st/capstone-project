@@ -1,9 +1,9 @@
 @props(['filters', 'campaigns'])
 
-<form method="GET" action="{{ route('donations.index') }}" class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+<form method="GET" action="{{ route('donations.index') }}" class="p-5">
     <div class="grid gap-3 lg:grid-cols-[minmax(0,1fr)_160px_180px_160px_auto]">
         <div>
-            <x-form.label for="search">Search</x-form.label>
+            <x-form.label for="search"></x-form.label>
             <div class="relative mt-1.5">
                 <x-icon name="search" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                 <input
@@ -17,7 +17,7 @@
         </div>
 
         <div>
-            <x-form.label for="type">Type</x-form.label>
+            <x-form.label for="type"></x-form.label>
             <select id="type" name="type" class="mt-1.5 block w-full rounded-lg border-slate-300 py-2.5 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500">
                 <option value="">All types</option>
                 @foreach (config('donations.types') as $value => $label)
@@ -27,7 +27,7 @@
         </div>
 
         <div>
-            <x-form.label for="campaign_id">Campaign</x-form.label>
+            <x-form.label for="campaign_id"></x-form.label>
             <select id="campaign_id" name="campaign_id" class="mt-1.5 block w-full rounded-lg border-slate-300 py-2.5 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500">
                 <option value="">All campaigns</option>
                 @foreach ($campaigns as $campaign)
@@ -37,7 +37,7 @@
         </div>
 
         <div>
-            <x-form.label for="status">Status</x-form.label>
+            <x-form.label for="status"></x-form.label>
             <select id="status" name="status" class="mt-1.5 block w-full rounded-lg border-slate-300 py-2.5 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500">
                 <option value="">All statuses</option>
                 @foreach (config('donations.statuses') as $value => $status)
