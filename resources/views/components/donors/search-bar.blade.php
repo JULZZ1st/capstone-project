@@ -16,7 +16,7 @@
     <select
         id="type"
         name="type"
-        class="h-10 rounded-md border-slate-300 bg-white px-3 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:w-40"
+        class="h-10 rounded-md border-slate-300 bg-white px-3 pr-10 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:w-40"
         onchange="this.form.submit()"
     >
         <option value="">All types</option>

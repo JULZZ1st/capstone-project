@@ -16,9 +16,11 @@ class ReportIndexRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'tab' => ['nullable', Rule::in(['financial', 'inventory', 'audit'])],
+            'tab' => ['nullable', Rule::in(['financial', 'inventory', 'audit', 'financial-ledgers', 'in-kind-audits', 'philanthropy-roster'])],
             'year' => ['nullable', 'integer', 'min:2000', 'max:2100'],
             'month' => ['nullable', 'integer', 'min:1', 'max:12'],
+            'search' => ['nullable', 'string', 'max:255'],
+            'sort' => ['nullable', Rule::in(['highest', 'lowest', 'most_contributions', 'latest'])],
             'from' => ['nullable', 'date'],
             'to' => ['nullable', 'date', 'after_or_equal:from'],
         ];
@@ -46,7 +48,7 @@ class ReportIndexRequest extends FormRequest
 
     public function sort(): ?string
     {
-        return null;
+        return $this->validated('sort');
     }
 
     public function from(): ?string

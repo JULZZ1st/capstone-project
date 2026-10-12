@@ -8,6 +8,15 @@
     @php
         $modal = old('_modal');
         $createModalOpen = ($errors->any() && $modal === 'create') || session('duplicate_donor_detected');
+        $errorFieldsByStep = [
+            ['donor_type', 'status', 'organization_name', 'first_name', 'last_name'],
+            ['contact_number', 'email', 'contact_person', 'preferred_contact_method'],
+            ['address', 'barangay', 'city_municipality', 'province'],
+            ['notes'],
+        ];
+        $errorFields = collect($errors->keys());
+        $wizardStartStep = collect($errorFieldsByStep)->search(fn ($fields) => $errorFields->intersect($fields)->isNotEmpty());
+        $wizardStartStep = $wizardStartStep === false ? 0 : $wizardStartStep;
     @endphp
 
     <div class="space-y-6">
@@ -39,10 +48,10 @@
             />
         @else
             <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-                <div class="overflow-x-auto">
+                <div class="max-h-[70vh] overflow-auto">
                     <table class="min-w-[920px] w-full text-left text-sm">
                         <caption class="sr-only">Registered donors</caption>
-                        <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                        <thead class="sticky top-0 z-10 bg-slate-50 text-xs uppercase tracking-wide text-slate-500 shadow-[0_1px_0_0_rgba(226,232,240,1)]">
                             <tr>
                                 <th scope="col" class="px-4 py-3 font-semibold">Donor Name</th>
                                 <th scope="col" class="px-4 py-3 font-semibold">Donor Type</th>
@@ -76,11 +85,7 @@
                                                 <button type="button" class="rounded-md bg-blue-700 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-blue-800" data-dialog-open="edit-donor-modal-{{ $donor->id }}">Edit</button>
                                             @endcan
                                             @can('delete', $donor)
-                                                <form method="POST" action="{{ route('donors.destroy', $donor) }}" onsubmit="return confirm('Remove this donor? If they have donation history, the profile will be deactivated instead of permanently deleted.')">
-                                                    @csrf
-                                                    @method('DELETE')
-                                                    <button type="submit" class="rounded-md border border-red-300 px-2.5 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-50">Remove</button>
-                                                </form>
+                                                <button type="button" class="rounded-md border border-red-300 px-2.5 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-50" data-dialog-open="remove-donor-modal-{{ $donor->id }}">Remove</button>
                                             @endcan
                                         </div>
                                     </td>
@@ -92,7 +97,8 @@
             </section>
 
             @foreach ($donors as $donor)
-                <x-donors.edit-modal :donor="$donor" :open="$errors->any() && $modal === 'edit-'.$donor->id" />
+                <x-donors.edit-modal :donor="$donor" :open="$errors->any() && $modal === 'edit-'.$donor->id" :start-step="$errors->any() && $modal === 'edit-'.$donor->id ? $wizardStartStep : 0" />
+                <x-donors.remove-modal :donor="$donor" />
             @endforeach
 
             <div>
@@ -102,6 +108,6 @@
     </div>
 
     @can('create', \App\Models\Donor::class)
-        <x-donors.create-modal :open="$createModalOpen" />
+        <x-donors.create-modal :open="$createModalOpen" :start-step="$createModalOpen ? $wizardStartStep : 0" />
     @endcan
 @endsection

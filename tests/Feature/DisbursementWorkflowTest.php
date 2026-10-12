@@ -130,6 +130,28 @@ class DisbursementWorkflowTest extends TestCase
             ->assertSee('Reject');
     }
 
+    public function test_admin_can_approve_another_users_pending_request_from_request_history(): void
+    {
+        $requester = $this->userWithRole('treasurer');
+        $admin = $this->userWithRole('admin');
+        CashDisbursement::query()->create([
+            'amount' => 1250,
+            'purpose' => 'Emergency supplies',
+            'requested_by' => $requester->id,
+            'status' => 'pending',
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('disbursements.index'))
+            ->assertOk()
+            ->assertSee('Approve Request')
+            ->assertSee('data-can-approve="true"', false)
+            ->assertSee('id="modal_rejection_reason"', false)
+            ->assertSee('form="reject-fund-request-form"', false)
+            ->assertSee('id="approve-fund-request-form"', false)
+            ->assertSee('id="reject-fund-request-form"', false);
+    }
+
     public function test_non_admin_cannot_approve_or_reject_server_side(): void
     {
         $requester = $this->userWithRole('treasurer');

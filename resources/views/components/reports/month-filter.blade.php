@@ -1,7 +1,7 @@
-@props(['year', 'month'])
+@props(['year', 'month', 'tab' => 'financial-ledgers'])
 
 <form method="GET" action="{{ route('reports.index') }}" class="flex flex-wrap items-end gap-3 rounded-lg border border-slate-200 bg-white p-4">
-    <input type="hidden" name="tab" value="financial-ledgers">
+    <input type="hidden" name="tab" value="{{ $tab }}">
 
     <div>
         <label for="report-month" class="block text-xs font-semibold uppercase text-slate-500">Month</label>

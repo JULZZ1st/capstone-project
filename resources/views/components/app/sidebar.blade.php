@@ -11,7 +11,7 @@
     ];
 @endphp
 
-<aside id="app-sidebar" class="border-b border-white/5 bg-gradient-to-b from-[#111c40] to-[#0a1024] text-white lg:sticky lg:top-0 lg:h-screen lg:w-64 lg:shrink-0 lg:overflow-hidden lg:border-b-0 transition-width">
+<aside id="app-sidebar" class="border-b border-slate-700/60 bg-gradient-to-b from-[#0f1d46] via-[#0f1c3a] to-[#0a1024] text-white shadow-[0_20px_45px_rgba(15,23,42,0.28)] lg:sticky lg:top-0 lg:h-screen lg:w-64 lg:shrink-0 lg:overflow-hidden lg:border-b-0 transition-width">
     <style>
         /* Smooth width transition and label hiding when collapsed. Avoid display:none to keep transitions smooth. */
         .transition-width { transition: width 200ms ease; }
@@ -22,42 +22,37 @@
         .sidebar-logo-text { display: inline-block; transition: opacity 180ms ease, max-width 180ms ease; overflow: hidden; }
 
         @media (min-width: 1024px) {
-            /* keep sidebar viewport-pinned while preserving the absolute toggle positioning context */
             #app-sidebar { position: sticky; top: 0; }
-            /* ensure toggle remains visible and clickable when sidebar is narrow */
-            #sidebar-toggle { position: absolute; top: 0.6rem; right: 0.6rem; z-index: 60; }
-            /* collapse to icon-only width */
-            #app-sidebar.collapsed { width: 5rem; }
+            #sidebar-toggle { position: absolute; top: 0.7rem; right: 0.7rem; z-index: 60; }
+            #app-sidebar.collapsed { width: 5.25rem; }
             #app-sidebar.collapsed .sidebar-label { opacity: 0; max-width: 0; }
             #app-sidebar.collapsed .sidebar-logo-text { opacity: 0; max-width: 0; }
-            /* rotate the chevron when collapsed */
             #app-sidebar.collapsed #sidebar-toggle svg { transform: rotate(180deg); }
             #app-sidebar .nav-item { white-space: nowrap; }
         }
     </style>
 
     <div class="flex h-full flex-col">
-        <div class="flex items-center gap-3 border-b border-white/10 px-5 py-5">
-            <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-500/15 text-blue-300 ring-1 ring-inset ring-blue-400/20">
+        <div class="flex items-center gap-3 border-b border-white/10 px-4 py-4">
+            <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-sky-400 to-indigo-500 text-white shadow-lg shadow-blue-500/20 ring-1 ring-inset ring-white/15">
                 <x-icon name="heart" class="h-5 w-5" />
             </span>
             <div class="min-w-0">
-                <p class="truncate text-base font-bold text-white sidebar-logo-text">Donation Operations</p>
+                <p class="truncate text-base font-semibold tracking-tight text-slate-100 sidebar-logo-text">Donation Operations</p>
             </div>
 
-            {{-- collapse/expand button on the right of the header --}}
-            <button id="sidebar-toggle" type="button" title="Toggle sidebar" class="ml-auto rounded-md bg-white/5 p-1 text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/10">
+            <button id="sidebar-toggle" type="button" aria-label="Toggle sidebar" title="Toggle sidebar" class="ml-auto flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-slate-800/70 text-slate-200 shadow-sm transition hover:border-sky-300/40 hover:bg-slate-700/80 hover:text-white focus:outline-none focus:ring-2 focus:ring-sky-400/40">
                 <x-icon name="chevron-left" class="h-4 w-4" />
             </button>
         </div>
 
-        <nav class="flex-1 space-y-1 overflow-y-auto px-3 py-4" aria-label="Sidebar navigation">
+        <nav class="flex-1 space-y-1.5 overflow-y-auto px-3 py-4" aria-label="Sidebar navigation">
             @foreach ($items as $item)
                 @php($isActive = request()->routeIs($item['active']))
                 <a
                     href="{{ route($item['route']) }}"
                     title="{{ $item['label'] }}"
-                    class="nav-item group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition {{ $isActive ? 'bg-blue-600 text-white shadow-md shadow-blue-950/40' : 'text-slate-300 hover:bg-white/5 hover:text-white' }}"
+                    class="nav-item group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 ease-out {{ $isActive ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-[0_10px_25px_rgba(59,130,246,0.28)] ring-1 ring-inset ring-blue-300/40' : 'text-slate-300 hover:bg-white/6 hover:text-white' }}"
                     @if ($isActive) aria-current="page" @endif
                 >
                     <x-icon :name="$item['icon']" class="h-5 w-5 shrink-0 {{ $isActive ? 'text-white' : 'text-slate-400 group-hover:text-white' }}" />

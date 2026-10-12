@@ -63,7 +63,7 @@
 - **Purpose:** Track in-kind goods received, current stock levels, and alerts for low/critical/out-of-stock/expiring items.
 - **Access:** View — all three roles. Create/update/adjust stock — Admin & Secretary. Archive — Admin only. Treasurer is explicitly **blocked** from stock adjustments (tested).
 - **Main functionality:** `InventoryController` (index/store/show/update/exportPdf) + `InventoryStockAdjustmentController` for movements. Stock status (`adequate`/`low_stock`/`critical_stock`/`out_of_stock`/`expired`) computed live via `InventoryItem::stockStatus()`. PDF export via `InventoryReportPdfExporter`.
-- **Connects to:** In-kind contribution items feed initial stock; category/subcategory reference data classifies items; stock movements are the audit trail feeding the (currently placeholder) In-Kind Audits report.
+- **Connects to:** In-kind contribution items feed initial stock; category/subcategory reference data classifies items; stock movements feed the monthly In-Kind Audits report and its CSV/PDF exports.
 - **Status:** **Complete.** Tested in `tests/Feature/InventoryManagementTest.php` (13 tests), including "stock-out cannot go below zero" and audit-log recording of adjustments.
 - **Manually check before the meeting:** Confirm stock-out correctly blocks over-withdrawal; confirm PDF export downloads and its numbers match the on-screen stock summary.
 - **Remaining issues:** `current_quantity` is a stored, mutable column updated only through `AdjustInventoryStock` — worth confirming no other code path writes to it directly (a drift risk if it did, though none was found).
@@ -132,13 +132,13 @@
 - **Remaining issues:** **Login, logout, and registration events are not currently written to the audit log** — only business-transaction actions are captured. Worth deciding whether authentication events should also be audited, given this is presented as a security/administration feature.
 
 ### Reports / PDF Export
-- **Purpose:** Generate and export structured reports: Financial Ledgers, Philanthropy Roster (donor giving summary), and (planned) In-Kind Audits.
+- **Purpose:** Generate and export structured reports: Financial Ledgers, Philanthropy Roster (donor giving summary), and In-Kind Audits.
 - **Access:** View/export — all three roles.
-- **Main functionality:** `ReportController` (index with tabs, `financialLedgersCsv`, `financialLedgersPdf`, `philanthropyRosterPdf`). Financial Ledgers and Philanthropy Roster tabs are fully built, with CSV and PDF export for both. In-Kind Audits tab is a literal, self-acknowledged placeholder ("This report is coming soon.") with its own test confirming that's intentional.
+- **Main functionality:** `ReportController` provides Financial Ledgers, Philanthropy Roster, and In-Kind Audits. The In-Kind Audits report reads the inventory stock-movement trail, filters by month, and exports CSV/PDF with quantities before/after, reason, reference, remarks, and recorder.
 - **Connects to:** Reads Contributions, Cash Disbursements, Bank Ledger Entries, Inventory (for the separate inventory PDF export reachable from the Inventory page itself).
-- **Status:** **Mostly Complete, Needs Verification on PDF test coverage.** PDF export for all three report types (financial ledger, philanthropy roster, inventory) is real, wired, and produces downloadable files — this directly contradicts the "Planned"/"outstanding" status still recorded in `PROJECT_REQUIREMENTS.md` (A12/S12) and `TEAM_TASK_ASSIGNMENT.md`. However, only the **inventory** PDF export route has a feature test; the financial-ledger and philanthropy-roster PDF routes do not.
+- **Status:** **Complete.** Financial ledger, philanthropy roster, inventory summary, and in-kind audit PDF exports are wired. CSV exports are available for financial ledger and in-kind audit reports.
 - **Manually check before the meeting:** Download all three PDF types live and visually confirm they render correctly (headers, totals, no missing fonts/layout breaks) — since two of the three have no automated test as a safety net.
-- **Remaining issues:** Add feature tests for the two untested PDF routes before confidently claiming "PDF export: done" in front of the panel. In-Kind Audits tab remains a placeholder — decide whether to build it or explicitly scope it out for this milestone.
+- **Remaining issues:** Visually inspect the exported PDFs with representative data before the demo.
 
 ---
 
@@ -193,7 +193,7 @@ Statuses below reflect **actual code**, cross-checked against `PROJECT_REQUIREME
    Pick a pending, unreconciled cash contribution → void it with a reason → confirm it shows "Voided" (not removed) in the Donation Portal and Ledger → System Security → Audit Logs → confirm a `contribution_voided` entry appears with the correct actor and timestamp. Repeat for an approved disbursement (`disbursement_voided`).
 
 6. **Generate/export reports**
-   Reports → Financial Ledgers tab → filter by month → export CSV, then export PDF, and compare totals → switch to Philanthropy Roster tab → confirm donor giving summary renders → export that PDF too → note that the In-Kind Audits tab is an intentional "coming soon" placeholder, not a bug.
+   Reports → Financial Ledgers tab → filter by month → export CSV, then export PDF, and compare totals → switch to Philanthropy Roster tab → confirm donor giving summary renders → export that PDF too → switch to In-Kind Audits, filter by month, and review/export the inventory movement history.
 
 ---
 
@@ -229,7 +229,7 @@ Statuses below reflect **actual code**, cross-checked against `PROJECT_REQUIREME
 
 3. **Should public self-service staff registration remain available?** `/register` is currently open to anyone, unauthenticated, and immediately creates an active **Secretary** account with no approval step — this exists in parallel with a fully-built, Admin-only staff account creation flow (`StaffAccountController`). For a back-office system like this, having both an open self-registration path *and* an admin-gated one is worth a direct decision: keep both, restrict `/register` to invite-only, or remove it entirely in favor of Admin-created accounts.
 
-4. **What is the intended scope of PDF reports?** Currently three PDF report types exist: Financial Ledger, Philanthropy Roster (donor giving summary), and an Inventory summary/valuation report (reachable from the Inventory page, not the main Reports page). The In-Kind Audits tab on the Reports page remains an intentional placeholder. Confirm whether that's the full intended report set for this milestone, or whether In-Kind Audits (or additional report types) are expected before defense.
+4. **What is the intended scope of PDF reports?** Current report PDFs cover Financial Ledger, Philanthropy Roster, Inventory Summary, and In-Kind Movement Audit. Confirm whether this is the full intended report set or whether additional report types are expected before defense.
 
 ---
 
@@ -253,7 +253,7 @@ Statuses below reflect **actual code**, cross-checked against `PROJECT_REQUIREME
 **Pages/modules found (12):** Dashboard; Donation Portal/Contributions; Donor Management; In-Kind Inventory; Categories & Subcategories; Stock-In/Stock-Out; Financial Ledger; Cash Disbursements & Approval; Bank Reconciliation; Staff Account Management/System Security; Audit Logs; Reports/PDF Export. (Authentication — Login/Logout/Register — also reviewed as a supporting module.)
 
 **Incomplete or questionable requirements:**
-- In-Kind Audits report tab — genuine, self-acknowledged placeholder ("coming soon").
+- In-Kind Audits report tab — implemented with monthly movement history and CSV/PDF export.
 - Financial-ledger and philanthropy-roster PDF export routes — implemented but untested (only inventory PDF has a test).
 - No demo/sample-data seeder for donors, contributions, or inventory.
 - Donor module has no dedicated policy class — access control is coarser here than everywhere else.

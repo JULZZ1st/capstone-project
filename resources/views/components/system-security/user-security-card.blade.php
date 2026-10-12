@@ -21,6 +21,7 @@
             <x-system-security.status-badge :label="$user->roleDisplayName()" tone="emerald" class="mt-1" />
             @if($isDeactivated)
                 <p class="mt-1 text-xs font-semibold text-rose-700">Deactivated</p>
+                <p class="mt-1 text-xs text-slate-500">This account is disabled and retained for audit history. Use Edit to reactivate it.</p>
             @endif
         </div>
     </div>
@@ -99,11 +100,13 @@
             </form>
         </details>
 
-        <form method="POST" action="{{ route('system-security.users.deactivate', $user) }}" onsubmit="return confirm('Are you sure you want to deactivate this account? This will disable the account and may prevent access.')">
-            @csrf
-            @method('PATCH')
-            <button class="rounded bg-rose-600 px-2 py-1 text-xs font-semibold text-white">Deactivate</button>
-        </form>
+        @unless($isDeactivated)
+            <form method="POST" action="{{ route('system-security.users.deactivate', $user) }}" onsubmit="return confirm('Are you sure you want to deactivate this account? This will disable the account and may prevent access.')">
+                @csrf
+                @method('PATCH')
+                <button class="rounded bg-rose-600 px-2 py-1 text-xs font-semibold text-white">Deactivate</button>
+            </form>
+        @endunless
     </div>
     @endcan
 </article>

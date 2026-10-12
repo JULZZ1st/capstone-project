@@ -53,6 +53,41 @@ class DonorManagementTest extends TestCase
         $this->assertDatabaseHas('donors', ['id' => $donor->id]);
     }
 
+    public function test_donor_list_has_sticky_table_header_and_centered_remove_confirmation(): void
+    {
+        $admin = $this->userWithRole('admin');
+        $donor = $this->donor();
+
+        $response = $this->actingAs($admin)->get(route('donors.index'));
+
+        $response->assertOk();
+        $response->assertSee('Donor Name');
+        $response->assertSee('City / Municipality');
+        $response->assertSee('sticky top-0', false);
+        $response->assertSee('data-dialog-open="remove-donor-modal-'.$donor->id.'"', false);
+        $response->assertSee('If donation history exists, the profile is deactivated instead of permanently deleted.');
+        $response->assertDontSee('onsubmit="return confirm(', false);
+    }
+
+    public function test_create_and_edit_forms_render_four_wizard_steps(): void
+    {
+        $admin = $this->userWithRole('admin');
+        $donor = $this->donor();
+
+        $response = $this->actingAs($admin)->get(route('donors.index'));
+
+        $response->assertOk();
+        $response->assertSee('Donor profile steps');
+        $response->assertSee('data-wizard-step-title="Basic Information"', false);
+        $response->assertSee('data-wizard-step-title="Contact Information"', false);
+        $response->assertSee('data-wizard-step-title="Address"', false);
+        $response->assertSee('data-wizard-step-title="Additional Information"', false);
+        $response->assertSee('data-dialog-open="edit-donor-modal-'.$donor->id.'"', false);
+        $response->assertSee('data-wizard-next', false);
+        $response->assertSee('data-wizard-submit', false);
+        $response->assertSee('data-wizard-error', false);
+    }
+
     private function donor(): Donor
     {
         return Donor::query()->create([
