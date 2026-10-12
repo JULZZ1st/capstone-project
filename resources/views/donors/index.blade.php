@@ -102,6 +102,6 @@
     </div>
 
     @can('create', \App\Models\Donor::class)
-        <x-donors.create-modal :open="$createModalOpen" />
+        <x-donors.create-modal :open="$createModalOpen" :start-step="$createModalOpen ? $wizardStartStep : 0" />
     @endcan
 @endsection

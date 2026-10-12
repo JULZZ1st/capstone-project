@@ -89,6 +89,8 @@ Route::middleware(['auth', 'password.change', 'role:admin,secretary,treasurer'])
     Route::get('/reports/inventory/pdf', [ReportController::class, 'inventoryPdf'])->name('reports.inventory.pdf');
     Route::get('/reports/audit/csv', [ReportController::class, 'auditCsv'])->name('reports.audit.csv');
     Route::get('/reports/audit/pdf', [ReportController::class, 'auditPdf'])->name('reports.audit.pdf');
+    Route::get('/reports/in-kind-audits/csv', [ReportController::class, 'inKindAuditCsv'])->name('reports.in-kind-audits.csv');
+    Route::get('/reports/in-kind-audits/pdf', [ReportController::class, 'inKindAuditPdf'])->name('reports.in-kind-audits.pdf');
     Route::get('/system-security', [SystemSecurityController::class, 'index'])
         ->middleware('role:admin')
         ->name('system-security.index');
