@@ -5,15 +5,23 @@ namespace App\Services\Disbursements;
 use App\Models\Contribution;
 use App\Models\SecurityActivityEvent;
 use App\Models\User;
+use App\Services\BankReconciliation\ReconciliationPeriodGuard;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class VoidContribution
 {
+    public function __construct(private readonly ReconciliationPeriodGuard $periodGuard)
+    {
+    }
+
     public function handle(Contribution $contribution, string $reason, User $actor): Contribution
     {
         return DB::transaction(function () use ($contribution, $reason, $actor) {
             $contribution = Contribution::query()->lockForUpdate()->findOrFail($contribution->id);
+            if ($contribution->received_at) {
+                $this->periodGuard->assertMutableDate($contribution->received_at->toDateString());
+            }
 
             if (! $contribution->isCash() || $contribution->status !== 'pending' || $contribution->isVoided() || $contribution->ledgerEntry()->exists()) {
                 throw ValidationException::withMessages(['contribution' => 'Only pending, unreconciled cash contributions can be voided.']);

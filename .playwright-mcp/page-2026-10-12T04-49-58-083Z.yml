@@ -1,0 +1,148 @@
+- generic [ref=f21e2]:
+  - complementary [ref=f21e3]:
+    - generic [ref=f21e4]:
+      - generic [ref=f21e5]:
+        - paragraph [ref=f21e10]: Donation Operations
+        - button "Toggle sidebar" [expanded] [ref=f21e11] [cursor=pointer]
+      - navigation "Sidebar navigation" [ref=f21e14]:
+        - link "Dashboard" [ref=f21e15] [cursor=pointer]:
+          - /url: http://127.0.0.1:8001
+        - link "Donor Management" [ref=f21e22] [cursor=pointer]:
+          - /url: http://127.0.0.1:8001/donors
+        - link "Donations Portal" [ref=f21e29] [cursor=pointer]:
+          - /url: http://127.0.0.1:8001/donations
+        - link "Fund Requests" [ref=f21e36] [cursor=pointer]:
+          - /url: http://127.0.0.1:8001/disbursements
+        - link "In-Kind Inventory" [ref=f21e41] [cursor=pointer]:
+          - /url: http://127.0.0.1:8001/inventory
+        - link "Bank Reconciliation" [ref=f21e46] [cursor=pointer]:
+          - /url: http://127.0.0.1:8001/bank-reconciliation
+        - link "Report Generator" [ref=f21e50] [cursor=pointer]:
+          - /url: http://127.0.0.1:8001/reports
+        - link "System Administration" [ref=f21e55] [cursor=pointer]:
+          - /url: http://127.0.0.1:8001/system-security
+      - button "Logout" [ref=f21e62] [cursor=pointer]
+  - generic [ref=f21e67]:
+    - banner [ref=f21e68]:
+      - generic [ref=f21e69]:
+        - heading "Dashboard" [level=1] [ref=f21e71]
+        - group [ref=f21e72]:
+          - generic "Secretary E2E Secretary S" [ref=f21e73] [cursor=pointer]:
+            - generic [ref=f21e74]:
+              - generic [ref=f21e75]: Secretary E2E
+              - generic [ref=f21e76]: Secretary
+            - generic [ref=f21e77]: S
+    - main [ref=f21e81]:
+      - generic [ref=f21e82]:
+        - generic [ref=f21e83]:
+          - generic [ref=f21e84]:
+            - paragraph [ref=f21e85]: Monday, October 12, 2026
+            - heading "Welcome back, Secretary!" [level=2] [ref=f21e86]: Welcome back, Secretary! 👋
+            - paragraph [ref=f21e87]: Here's what's happening across donation operations today.
+          - link "Refresh" [ref=f21e88] [cursor=pointer]:
+            - /url: http://127.0.0.1:8001
+        - generic [ref=f21e94]:
+          - article [ref=f21e95]:
+            - paragraph [ref=f21e97]: Total Cash Ledger
+            - paragraph [ref=f21e101]: PHP 0.00
+            - paragraph [ref=f21e102]: Verified and approved cash entries.
+          - article [ref=f21e103]:
+            - paragraph [ref=f21e105]: Pending Cash Verification
+            - paragraph [ref=f21e110]: "0"
+            - paragraph [ref=f21e111]: Cash entries awaiting audit.
+          - article [ref=f21e112]:
+            - paragraph [ref=f21e114]: In-Kind Batches
+            - paragraph [ref=f21e119]: "0"
+            - paragraph [ref=f21e120]: Inventory records currently tracked.
+          - article [ref=f21e121]:
+            - paragraph [ref=f21e123]: Registered Donors
+            - paragraph [ref=f21e130]: "0"
+            - paragraph [ref=f21e131]: Donor profiles available.
+        - generic [ref=f21e132]:
+          - generic [ref=f21e133]:
+            - generic [ref=f21e138]:
+              - heading "Treasurer Action Items" [level=2] [ref=f21e139]
+              - paragraph [ref=f21e140]: Cash and reconciliation work needing attention.
+            - generic [ref=f21e141]:
+              - generic [ref=f21e142]: Total cash disbursed
+              - generic [ref=f21e143]: PHP 0.00
+            - generic [ref=f21e144]:
+              - generic [ref=f21e145]:
+                - term [ref=f21e146]: Pending cash verification
+                - definition [ref=f21e147]: "0"
+              - generic [ref=f21e148]:
+                - term [ref=f21e149]: Bank ledger entries awaiting review
+                - definition [ref=f21e150]: "3"
+              - link "Bank Withdrawals Awaiting Reconciliation 1" [ref=f21e151] [cursor=pointer]:
+                - /url: http://127.0.0.1:8001/bank-reconciliation?tab=outgoing
+                - generic [ref=f21e152]: Bank Withdrawals Awaiting Reconciliation
+                - generic [ref=f21e153]: "1"
+              - link "Discrepancies Requiring Review 0" [ref=f21e154] [cursor=pointer]:
+                - /url: http://127.0.0.1:8001/bank-reconciliation?tab=outgoing
+                - generic [ref=f21e155]: Discrepancies Requiring Review
+                - generic [ref=f21e156]: "0"
+              - link "Pending Liquidation / Unresolved Difference PHP 0.00" [ref=f21e157] [cursor=pointer]:
+                - /url: http://127.0.0.1:8001/bank-reconciliation?tab=outgoing
+                - generic [ref=f21e158]: Pending Liquidation / Unresolved Difference
+                - generic [ref=f21e159]: PHP 0.00
+          - generic [ref=f21e160]:
+            - generic [ref=f21e167]:
+              - heading "Campaign Contributions / Funding Distribution" [level=2] [ref=f21e168]
+              - paragraph [ref=f21e169]: Verified cash grouped by funding purpose.
+            - generic [ref=f21e170]:
+              - paragraph [ref=f21e176]: No funding distribution available yet.
+              - link "View Campaigns" [ref=f21e177] [cursor=pointer]:
+                - /url: http://127.0.0.1:8001/donations
+                - text: View Campaigns
+                - generic [aria-hidden] [ref=f21e178]: →
+          - generic [ref=f21e179]:
+            - generic [ref=f21e185]:
+              - heading "Recent Cash Donations Awaiting Audit" [level=2] [ref=f21e186]
+              - paragraph [ref=f21e187]: Latest pending cash entries.
+            - generic [ref=f21e188]:
+              - paragraph [ref=f21e193]: No cash donations awaiting audit.
+              - link "View Pending" [ref=f21e194] [cursor=pointer]:
+                - /url: http://127.0.0.1:8001/donations
+                - text: View Pending
+                - generic [aria-hidden] [ref=f21e195]: →
+          - generic [ref=f21e196]:
+            - generic [ref=f21e202]:
+              - heading "System Log Activity" [level=2] [ref=f21e203]
+              - paragraph [ref=f21e204]: Recent operational records derived from current tables.
+            - paragraph [ref=f21e210]: No recent system activity.
+          - generic [ref=f21e211]:
+            - generic [ref=f21e217]:
+              - heading "Secretary In-Kind Control Panel" [level=2] [ref=f21e218]
+              - paragraph [ref=f21e219]: Inventory status and recent in-kind records.
+            - generic [ref=f21e220]:
+              - generic [ref=f21e221]:
+                - heading "Inventory by status" [level=3] [ref=f21e222]
+                - paragraph [ref=f21e228]: No inventory records yet.
+              - generic [ref=f21e229]:
+                - heading "Recent in-kind records" [level=3] [ref=f21e230]
+                - generic [ref=f21e231]:
+                  - paragraph [ref=f21e236]: No in-kind donations recorded yet.
+                  - link "View Inventory" [ref=f21e237] [cursor=pointer]:
+                    - /url: http://127.0.0.1:8001/inventory
+                    - text: View Inventory
+                    - generic [aria-hidden] [ref=f21e238]: →
+          - generic [ref=f21e239]:
+            - generic [ref=f21e244]:
+              - heading "Recent Donations Stream" [level=2] [ref=f21e245]
+              - paragraph [ref=f21e246]: Latest donation records with donor context.
+            - generic [ref=f21e247]:
+              - paragraph [ref=f21e251]: No donations recorded yet.
+              - link "View Donations" [ref=f21e252] [cursor=pointer]:
+                - /url: http://127.0.0.1:8001/donations
+                - text: View Donations
+                - generic [aria-hidden] [ref=f21e253]: →
+          - generic [ref=f21e254]:
+            - generic [ref=f21e260]:
+              - heading "Recent Cash Disbursements" [level=2] [ref=f21e261]
+              - paragraph [ref=f21e262]: Latest outgoing cash payments recorded.
+            - generic [ref=f21e263]:
+              - paragraph [ref=f21e268]: No cash disbursements have been recorded yet.
+              - link "Record Disbursement" [ref=f21e269] [cursor=pointer]:
+                - /url: http://127.0.0.1:8001/disbursements
+                - text: Record Disbursement
+                - generic [aria-hidden] [ref=f21e270]: →

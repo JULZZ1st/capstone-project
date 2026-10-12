@@ -4,6 +4,7 @@ namespace App\Services\Reports;
 
 use App\Models\CashDisbursement;
 use App\Models\Contribution;
+use App\Models\BankLedgerEntry;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
@@ -34,9 +35,17 @@ class FinancialLedgerReportBuilder
             ->orderByDesc('created_at')
             ->get();
 
+        $bankEntries = BankLedgerEntry::query()
+            ->whereBetween('transaction_date', [$periodStart->toDateString(), $periodEnd->toDateString()])
+            ->get();
+
         return [
             'period' => $periodStart,
-            'summary' => $this->summarize($contributions, $disbursements),
+            'summary' => array_merge($this->summarize($contributions, $disbursements), [
+                'bank_cleared_total' => (float) $bankEntries->where('status', 'reconciled')->sum('amount'),
+                'bank_unmatched_total' => (float) $bankEntries->whereIn('status', ['unmatched', 'unreconciled'])->sum('amount'),
+                'bank_voided_total' => (float) $bankEntries->where('status', 'voided')->sum('amount'),
+            ]),
             'wire_sources' => $this->wireSourceBreakdown($contributions),
             'ledger' => $this->ledgerRows($contributions, $disbursements),
         ];

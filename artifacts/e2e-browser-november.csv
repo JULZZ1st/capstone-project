@@ -1,0 +1,2 @@
+statement_id,transaction_date,description,amount,transaction_type,reference_number
+E2E-BROWSER-DEP-001,2026-11-05,Browser contribution deposit,1000,deposit,E2E-BROWSER-CONTRIB-001

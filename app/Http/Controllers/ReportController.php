@@ -12,10 +12,14 @@ use App\Services\Reports\ReportCsvExporter;
 use App\Services\Reports\InKindAuditCsvExporter;
 use App\Services\Reports\InKindAuditPdfExporter;
 use App\Services\Reports\InKindAuditReportBuilder;
+use App\Services\Reports\DonorGivingSummaryReportBuilder;
+use App\Services\Reports\DonorGivingSummaryPdfExporter;
 use Illuminate\Http\Response;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Barryvdh\DomPDF\Facade\Pdf;
+use App\Services\Reports\ReconciliationReportBuilder;
+use App\Models\BankReconciliation;
 
 class ReportController extends Controller
 {
@@ -24,7 +28,8 @@ class ReportController extends Controller
         FinancialLedgerReportBuilder $builder,
         InventoryReportBuilder $inventoryBuilder,
         AuditTrailReportBuilder $auditBuilder,
-        InKindAuditReportBuilder $inKindAuditBuilder
+        InKindAuditReportBuilder $inKindAuditBuilder,
+        DonorGivingSummaryReportBuilder $donorSummaryBuilder
     ): View {
         $tab = $request->tab();
 
@@ -38,6 +43,8 @@ class ReportController extends Controller
             'inventoryReport' => $tab === 'inventory' ? $inventoryBuilder->build(['year' => $request->year(), 'month' => $request->month()]) : null,
             'auditReport' => $tab === 'audit' ? $auditBuilder->build($request->from(), $request->to()) : null,
             'inKindAudit' => $tab === 'in-kind-audits' ? $inKindAuditBuilder->build($request->year(), $request->month()) : null,
+            'donorSummary' => $tab === 'philanthropy-roster' ? $donorSummaryBuilder->build(['year' => $request->year(), 'month' => $request->month(), 'search' => $request->search(), 'sort' => $request->sort()]) : null,
+            'reconciliationPeriods' => BankReconciliation::query()->orderByDesc('period_end')->get(),
         ]);
     }
 
@@ -133,5 +140,28 @@ class ReportController extends Controller
     ): Response {
         $report = $builder->build($request->year(), $request->month());
         return $exporter->handle($report, sprintf('in-kind-inventory-audit-%04d-%02d.pdf', $request->year(), $request->month()));
+    }
+
+    public function reconciliationCsv(ReportIndexRequest $request, ReconciliationReportBuilder $builder, ReportCsvExporter $exporter): StreamedResponse
+    {
+        $periodId = $request->periodId();
+        abort_unless($periodId, 422, 'A reconciliation period is required.');
+        $report = $builder->build($periodId);
+        $rows = $report['entries']->map(fn ($entry) => [$entry->transaction_date->format('Y-m-d'), $entry->description, $entry->transaction_type, $entry->amount, $entry->status]);
+        return $exporter->handle($rows, ['Date', 'Description', 'Type', 'Amount', 'Status'], 'bank-reconciliation-'.$report['period']->id.'.csv');
+    }
+
+    public function reconciliationPdf(ReportIndexRequest $request, ReconciliationReportBuilder $builder): Response
+    {
+        $periodId = $request->periodId();
+        abort_unless($periodId, 422, 'A reconciliation period is required.');
+        $report = $builder->build($periodId);
+        return Pdf::loadView('reports.pdf.reconciliation', compact('report'))->setPaper('a4', 'landscape')->download('bank-reconciliation-'.$report['period']->id.'.pdf');
+    }
+
+    public function philanthropyRosterPdf(ReportIndexRequest $request, DonorGivingSummaryReportBuilder $builder, DonorGivingSummaryPdfExporter $exporter): Response
+    {
+        $report = $builder->build(['year' => $request->year(), 'month' => $request->month(), 'search' => $request->search(), 'sort' => $request->sort()]);
+        return $exporter->handle($report, sprintf('philanthropy-roster-%04d-%02d.pdf', $request->year(), $request->month()));
     }
 }

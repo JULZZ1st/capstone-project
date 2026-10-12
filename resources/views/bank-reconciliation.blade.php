@@ -37,6 +37,81 @@
             </div>
         @endif
 
+        @can('create', App\Models\BankLedgerEntry::class)
+            <section class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+                <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                    <div>
+                        <h2 class="text-base font-semibold text-slate-950">Reconciliation Period</h2>
+                        <p class="mt-1 text-sm text-slate-500">Create a period using raw bank balances. Movement totals and the financial ledger balance are calculated from stored records.</p>
+                    </div>
+                    <form method="POST" action="{{ route('bank-reconciliation.periods.store') }}" class="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+                        @csrf
+                        <input name="period_start" type="date" required class="rounded-md border-slate-300 text-sm" aria-label="Period start">
+                        <input name="period_end" type="date" required class="rounded-md border-slate-300 text-sm" aria-label="Period end">
+                        <input name="opening_balance" type="number" step="0.01" min="0" required placeholder="Opening balance" class="rounded-md border-slate-300 text-sm">
+                        <input name="bank_ending_balance" type="number" step="0.01" min="0" placeholder="Bank ending balance" class="rounded-md border-slate-300 text-sm">
+                        <x-button class="sm:col-span-2 lg:col-span-1">Create Period</x-button>
+                    </form>
+                </div>
+                @if ($latestReconciliationPeriod)
+                    @can('update', $latestReconciliationPeriod)
+                        <form method="POST" action="{{ route('bank-reconciliation.periods.update', $latestReconciliationPeriod) }}" class="mt-4 grid gap-2 border-t border-slate-100 pt-4 sm:grid-cols-3">
+                            @csrf @method('PATCH')
+                            <input name="opening_balance" type="number" step="0.01" min="0" required value="{{ $latestReconciliationPeriod->opening_balance }}" aria-label="Draft opening balance" class="rounded-md border-slate-300 text-sm">
+                            <input name="bank_ending_balance" type="number" step="0.01" min="0" required value="{{ $latestReconciliationPeriod->bank_ending_balance }}" aria-label="Draft bank ending balance" class="rounded-md border-slate-300 text-sm">
+                            <x-button>Save Draft Balances</x-button>
+                        </form>
+                    @endcan
+                    <div class="mt-4 grid gap-3 border-t border-slate-100 pt-4 text-sm sm:grid-cols-2 lg:grid-cols-5">
+                        <div><p class="text-xs text-slate-500">Latest period</p><p class="font-semibold text-slate-900">{{ $latestReconciliationPeriod->period_start?->format('M d, Y') }} – {{ $latestReconciliationPeriod->period_end?->format('M d, Y') }}</p><span class="text-xs font-semibold uppercase text-slate-500">{{ str_replace('_', ' ', $latestReconciliationPeriod->status) }}</span></div>
+                        <div><p class="text-xs text-slate-500">Bank movements</p><p class="font-semibold text-slate-900">In PHP {{ number_format((float) $latestReconciliationPeriod->calculated_bank_cash_in, 2) }} / Out PHP {{ number_format((float) $latestReconciliationPeriod->calculated_bank_cash_out, 2) }}</p></div>
+                        <div><p class="text-xs text-slate-500">Financial ledger ending</p><p class="font-semibold text-slate-900">PHP {{ number_format((float) $latestReconciliationPeriod->financial_ledger_ending_balance, 2) }}</p></div>
+                        <div><p class="text-xs text-slate-500">Raw bank ending</p><p class="font-semibold text-slate-900">{{ $latestReconciliationPeriod->bank_ending_balance === null ? 'Not entered' : 'PHP '.number_format((float) $latestReconciliationPeriod->bank_ending_balance, 2) }}</p></div>
+                        <div><p class="text-xs text-slate-500">Difference</p><p class="font-semibold {{ (float) $latestReconciliationPeriod->reconciliation_difference === 0.0 ? 'text-emerald-700' : 'text-amber-700' }}">{{ $latestReconciliationPeriod->reconciliation_difference === null ? 'Not calculated' : 'PHP '.number_format((float) $latestReconciliationPeriod->reconciliation_difference, 2) }}</p></div>
+                    </div>
+                    <div class="mt-3 flex flex-wrap gap-2 border-t border-slate-100 pt-3">
+                        @can('submit', $latestReconciliationPeriod)
+                            <form method="POST" action="{{ route('bank-reconciliation.periods.submit', $latestReconciliationPeriod) }}">@csrf<x-button>Submit for Review</x-button></form>
+                        @endcan
+                        @can('approve', $latestReconciliationPeriod)
+                            <form method="POST" action="{{ route('bank-reconciliation.periods.approve', $latestReconciliationPeriod) }}">@csrf<x-button>Approve &amp; Lock</x-button></form>
+                            <form method="POST" action="{{ route('bank-reconciliation.periods.reject', $latestReconciliationPeriod) }}" class="flex gap-2">@csrf<input name="reason" required placeholder="Correction reason" class="rounded-md border-slate-300 text-sm"><x-button type="submit">Return for Correction</x-button></form>
+                        @endcan
+                        @can('reopen', $latestReconciliationPeriod)
+                            <form method="POST" action="{{ route('bank-reconciliation.periods.reopen', $latestReconciliationPeriod) }}" class="flex gap-2">@csrf<input name="reason" required placeholder="Reopen reason" class="rounded-md border-slate-300 text-sm"><x-button type="submit">Reopen for Correction</x-button></form>
+                        @endcan
+                    </div>
+                    <div class="mt-4 border-t border-slate-100 pt-4">
+                        <h3 class="text-sm font-semibold text-slate-900">Record discrepancy</h3>
+                        <form method="POST" action="{{ route('bank-reconciliation.discrepancies.store', $latestReconciliationPeriod) }}" class="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                            @csrf
+                            <select name="type" required class="rounded-md border-slate-300 text-sm"><option value="">Discrepancy type</option><option value="unmatched_amount">Unmatched amount</option><option value="bank_charge">Bank charge</option><option value="interest">Interest</option><option value="outstanding_check">Outstanding check</option><option value="deposit_in_transit">Deposit in transit</option><option value="recording_error">Recording error</option></select>
+                            <select name="classification" required class="rounded-md border-slate-300 text-sm"><option value="">Classification</option><option value="accounting_adjustment">Accounting adjustment</option><option value="timing_difference">Timing difference</option></select>
+                            <input name="amount" type="number" step="0.01" min="0.01" required placeholder="Amount" class="rounded-md border-slate-300 text-sm">
+                            <input name="evidence_reference" required placeholder="Evidence/reference" class="rounded-md border-slate-300 text-sm">
+                            <textarea name="explanation" required placeholder="Explanation" class="rounded-md border-slate-300 text-sm sm:col-span-2"></textarea>
+                            <select name="resolution_status" required class="rounded-md border-slate-300 text-sm"><option value="unresolved">Unresolved</option><option value="resolved">Resolved</option><option value="accounted">Accounted</option></select>
+                            <input name="adjustment_amount" type="number" step="0.01" placeholder="Signed adjustment (accounting only)" class="rounded-md border-slate-300 text-sm">
+                            <label class="flex items-center gap-2 text-sm text-slate-600"><input name="carry_forward" type="checkbox" value="1"> Carry forward timing item</label>
+                            <x-button class="sm:col-span-2 lg:col-span-1">Save discrepancy</x-button>
+                        </form>
+                        @if ($latestReconciliationPeriod->discrepancies->isNotEmpty())
+                            <div class="mt-3 space-y-2 text-sm">
+                                @foreach ($latestReconciliationPeriod->discrepancies as $discrepancy)
+                                    <div class="rounded border border-slate-200 p-2"><span class="font-semibold">{{ ucwords(str_replace('_', ' ', $discrepancy->type)) }}</span> — PHP {{ number_format((float) $discrepancy->amount, 2) }} — {{ ucfirst($discrepancy->resolution_status) }}<span class="block text-xs text-slate-500">{{ $discrepancy->explanation }}</span></div>
+                                @endforeach
+                            </div>
+                        @endif
+                    </div>
+                @endif
+                <x-form.error name="period_start" />
+                <x-form.error name="period_end" />
+                <x-form.error name="opening_balance" />
+                <x-form.error name="bank_ending_balance" />
+                <x-form.error name="period" />
+            </section>
+        @endcan
+
         @if ($activeTab === 'incoming')
             @can('import', App\Models\BankLedgerEntry::class)
                 <section class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
@@ -323,6 +398,7 @@
             const differenceEl = document.querySelector(`[data-difference-for="${withdrawalId}"]`);
             const statusEl = document.querySelector(`[data-status-for="${withdrawalId}"]`);
             const finalizeButton = form.querySelector('[data-finalize-button]');
+            const discrepancyReason = form.querySelector('[name="discrepancy_reason"]');
             const formatter = new Intl.NumberFormat('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
             const updateTotals = () => {
@@ -338,7 +414,12 @@
                 statusEl.classList.toggle('text-emerald-800', ready);
                 statusEl.classList.toggle('bg-red-100', ! ready);
                 statusEl.classList.toggle('text-red-800', ! ready);
-                finalizeButton.disabled = ! ready;
+                if (finalizeButton) {
+                    finalizeButton.disabled = ! ready;
+                }
+                if (discrepancyReason) {
+                    discrepancyReason.required = ! ready;
+                }
             };
 
             form.addEventListener('change', updateTotals);

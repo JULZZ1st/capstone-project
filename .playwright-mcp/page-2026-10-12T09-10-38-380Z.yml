@@ -1,0 +1,63 @@
+- generic [ref=f43e2]:
+  - complementary [ref=f43e3]:
+    - generic [ref=f43e4]:
+      - generic [ref=f43e5]:
+        - paragraph [ref=f43e10]: Donation Operations
+        - button "Toggle sidebar" [expanded] [ref=f43e11] [cursor=pointer]
+      - navigation "Sidebar navigation" [ref=f43e14]:
+        - link "Dashboard" [ref=f43e15] [cursor=pointer]:
+          - /url: http://127.0.0.1:8001
+        - link "Donor Management" [ref=f43e22] [cursor=pointer]:
+          - /url: http://127.0.0.1:8001/donors
+        - link "Donations Portal" [ref=f43e29] [cursor=pointer]:
+          - /url: http://127.0.0.1:8001/donations
+        - link "Fund Requests" [ref=f43e36] [cursor=pointer]:
+          - /url: http://127.0.0.1:8001/disbursements
+        - link "In-Kind Inventory" [ref=f43e41] [cursor=pointer]:
+          - /url: http://127.0.0.1:8001/inventory
+        - link "Bank Reconciliation" [ref=f43e46] [cursor=pointer]:
+          - /url: http://127.0.0.1:8001/bank-reconciliation
+        - link "Report Generator" [ref=f43e50] [cursor=pointer]:
+          - /url: http://127.0.0.1:8001/reports
+        - link "System Administration" [ref=f43e55] [cursor=pointer]:
+          - /url: http://127.0.0.1:8001/system-security
+      - button "Logout" [ref=f43e62] [cursor=pointer]
+  - generic [ref=f43e67]:
+    - banner [ref=f43e68]:
+      - generic [ref=f43e69]:
+        - generic [ref=f43e70]:
+          - heading "Report Generator" [level=1] [ref=f43e71]
+          - paragraph [ref=f43e72]: Compact operational reports built from current system records.
+        - group [ref=f43e73]:
+          - generic "Treasurer E2E Treasurer T" [ref=f43e74] [cursor=pointer]:
+            - generic [ref=f43e75]:
+              - generic [ref=f43e76]: Treasurer E2E
+              - generic [ref=f43e77]: Treasurer
+            - generic [ref=f43e78]: T
+    - main [ref=f43e82]:
+      - generic [ref=f43e83]:
+        - navigation "Report types" [ref=f43e84]:
+          - link "Financial Report" [ref=f43e85] [cursor=pointer]:
+            - /url: http://127.0.0.1:8001/reports?tab=financial&year=2026&month=10
+          - link "Inventory Report" [ref=f43e86] [cursor=pointer]:
+            - /url: http://127.0.0.1:8001/reports?tab=inventory&year=2026&month=10
+          - link "Audit Trail Report" [ref=f43e87] [cursor=pointer]:
+            - /url: http://127.0.0.1:8001/reports?tab=audit
+          - link "Reconciliation Report" [ref=f43e88] [cursor=pointer]:
+            - /url: http://127.0.0.1:8001/reports?tab=reconciliation&year=2026&month=10
+        - generic [ref=f43e89]:
+          - link "Download PDF" [ref=f43e90] [cursor=pointer]:
+            - /url: http://127.0.0.1:8001/reports/reconciliation/pdf?period_id=4
+          - link "Download CSV" [ref=f43e91] [cursor=pointer]:
+            - /url: http://127.0.0.1:8001/reports/reconciliation/csv?period_id=4
+        - generic [ref=f43e92]:
+          - generic [ref=f43e93]:
+            - generic [ref=f43e94]:
+              - generic [ref=f43e95]: Period
+              - combobox [ref=f43e96]:
+                - option "2027-01-01 – 2027-01-31 (draft)" [selected]
+                - option "2026-12-01 – 2026-12-31 (approved locked)"
+                - option "2026-11-01 – 2026-11-30 (approved locked)"
+                - option "2026-10-01 – 2026-10-31 (draft)"
+            - button "Apply" [ref=f43e97] [cursor=pointer]
+          - paragraph [ref=f43e98]: Select a period above to download the complete reconciliation report, including balances, movements, outstanding items, and differences.

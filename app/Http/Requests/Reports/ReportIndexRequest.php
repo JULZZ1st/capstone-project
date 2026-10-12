@@ -16,11 +16,14 @@ class ReportIndexRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'tab' => ['nullable', Rule::in(['financial', 'inventory', 'audit'])],
+            'tab' => ['nullable', Rule::in(['financial', 'inventory', 'audit', 'reconciliation', 'philanthropy-roster', 'in-kind-audits'])],
             'year' => ['nullable', 'integer', 'min:2000', 'max:2100'],
             'month' => ['nullable', 'integer', 'min:1', 'max:12'],
             'from' => ['nullable', 'date'],
             'to' => ['nullable', 'date', 'after_or_equal:from'],
+            'period_id' => ['nullable', 'integer', 'exists:bank_reconciliations,id'],
+            'search' => ['nullable', 'string', 'max:100'],
+            'sort' => ['nullable', 'string', 'max:50'],
         ];
     }
 
@@ -46,7 +49,7 @@ class ReportIndexRequest extends FormRequest
 
     public function sort(): ?string
     {
-        return null;
+        return $this->validated('sort');
     }
 
     public function from(): ?string
@@ -58,4 +61,6 @@ class ReportIndexRequest extends FormRequest
     {
         return $this->validated('to');
     }
+
+    public function periodId(): ?int { return $this->validated('period_id') ? (int) $this->validated('period_id') : null; }
 }

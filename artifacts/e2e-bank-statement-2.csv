@@ -1,0 +1,2 @@
+statement_id,description,reference_number,amount,transaction_date,transaction_type,payment_method
+E2E-DEP-002,Second deposit,E2E-REF-002,200,2026-10-03,deposit,bank_transfer

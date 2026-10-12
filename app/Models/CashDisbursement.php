@@ -27,6 +27,8 @@ class CashDisbursement extends Model
         'voided_at',
         'voided_by',
         'void_reason',
+        'created_at',
+        'updated_at',
     ];
 
     protected function casts(): array

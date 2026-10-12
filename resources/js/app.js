@@ -87,7 +87,9 @@ const setDonorWizardStep = (wizard, stepIndex) => {
 };
 
 const invalidDonorWizardField = (step) => Array.from(step.querySelectorAll('input, select, textarea'))
-    .find((field) => ! field.disabled && ! field.checkValidity());
+    .find((field) => ! field.disabled
+        && ! field.closest('[data-wizard-step]')?.hidden
+        && ! field.checkValidity());
 
 const validateDonorWizardStep = (wizard, step) => {
     const invalidField = invalidDonorWizardField(step);
@@ -133,7 +135,10 @@ document.addEventListener('click', (event) => {
     }
 
     const steps = donorWizardSteps(wizard);
-    const currentIndex = Number(wizard.dataset.currentWizardStep) || 0;
+    const visibleIndex = steps.findIndex((step) => ! step.hidden);
+    const currentIndex = Number.isInteger(Number(wizard.dataset.currentWizardStep))
+        ? Number(wizard.dataset.currentWizardStep)
+        : Math.max(0, visibleIndex);
 
     if (nextButton && ! validateDonorWizardStep(wizard, steps[currentIndex])) {
         return;

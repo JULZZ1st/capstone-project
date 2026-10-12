@@ -1,0 +1,130 @@
+- generic [ref=f13e2]:
+  - complementary [ref=f13e3]:
+    - generic [ref=f13e4]:
+      - generic [ref=f13e5]:
+        - paragraph [ref=f13e10]: Donation Operations
+        - button "Toggle sidebar" [expanded] [ref=f13e11] [cursor=pointer]
+      - navigation "Sidebar navigation" [ref=f13e14]:
+        - link "Dashboard" [ref=f13e15] [cursor=pointer]:
+          - /url: http://127.0.0.1:8001
+        - link "Donor Management" [ref=f13e22] [cursor=pointer]:
+          - /url: http://127.0.0.1:8001/donors
+        - link "Donations Portal" [ref=f13e29] [cursor=pointer]:
+          - /url: http://127.0.0.1:8001/donations
+        - link "Fund Requests" [ref=f13e36] [cursor=pointer]:
+          - /url: http://127.0.0.1:8001/disbursements
+        - link "In-Kind Inventory" [ref=f13e41] [cursor=pointer]:
+          - /url: http://127.0.0.1:8001/inventory
+        - link "Bank Reconciliation" [ref=f13e46] [cursor=pointer]:
+          - /url: http://127.0.0.1:8001/bank-reconciliation
+        - link "Report Generator" [ref=f13e50] [cursor=pointer]:
+          - /url: http://127.0.0.1:8001/reports
+        - link "System Administration" [ref=f13e55] [cursor=pointer]:
+          - /url: http://127.0.0.1:8001/system-security
+      - button "Logout" [ref=f13e62] [cursor=pointer]
+  - generic [ref=f13e67]:
+    - banner [ref=f13e68]:
+      - generic [ref=f13e69]:
+        - generic [ref=f13e70]:
+          - heading "Bank Reconciliation Workspace" [level=1] [ref=f13e71]
+          - paragraph [ref=f13e72]: Audit bank transactions against registered community donations.
+        - group [ref=f13e73]:
+          - generic "Treasurer E2E Treasurer T" [ref=f13e74] [cursor=pointer]:
+            - generic [ref=f13e75]:
+              - generic [ref=f13e76]: Treasurer E2E
+              - generic [ref=f13e77]: Treasurer
+            - generic [ref=f13e78]: T
+    - main [ref=f13e82]:
+      - generic [ref=f13e83]: Reconciliation period created and calculated from current records.
+      - generic [ref=f13e84]:
+        - generic [ref=f13e85]: Reconciliation period created and calculated from current records.
+        - navigation "Bank reconciliation sections" [ref=f13e87]:
+          - link "Incoming Funds" [ref=f13e88] [cursor=pointer]:
+            - /url: http://127.0.0.1:8001/bank-reconciliation?tab=incoming
+          - link "Outgoing Funds" [ref=f13e89] [cursor=pointer]:
+            - /url: http://127.0.0.1:8001/bank-reconciliation?tab=outgoing
+        - generic [ref=f13e90]: Active Audit Lockout Enabled
+        - generic [ref=f13e92]:
+          - generic [ref=f13e93]:
+            - generic [ref=f13e94]:
+              - heading "Reconciliation Period" [level=2] [ref=f13e95]
+              - paragraph [ref=f13e96]: Create a period using raw bank balances. Movement totals and the financial ledger balance are calculated from stored records.
+            - generic [ref=f13e97]:
+              - textbox "Period start" [ref=f13e98]
+              - textbox "Period end" [ref=f13e99]
+              - spinbutton "Opening balance" [ref=f13e100]
+              - spinbutton "Bank ending balance" [ref=f13e101]
+              - button "Create Period" [ref=f13e102] [cursor=pointer]
+          - generic [ref=f13e103]:
+            - generic [ref=f13e104]:
+              - paragraph [ref=f13e105]: Latest period
+              - paragraph [ref=f13e106]: Oct 01, 2026 – Oct 31, 2026
+              - text: draft
+            - generic [ref=f13e107]:
+              - paragraph [ref=f13e108]: Bank movements
+              - paragraph [ref=f13e109]: In PHP 0.00 / Out PHP 0.00
+            - generic [ref=f13e110]:
+              - paragraph [ref=f13e111]: Financial ledger ending
+              - paragraph [ref=f13e112]: PHP 10,000.00
+            - generic [ref=f13e113]:
+              - paragraph [ref=f13e114]: Raw bank ending
+              - paragraph [ref=f13e115]: PHP 10,700.00
+            - generic [ref=f13e116]:
+              - paragraph [ref=f13e117]: Difference
+              - paragraph [ref=f13e118]: PHP 700.00
+          - button "Submit for Review" [ref=f13e121] [cursor=pointer]
+          - generic [ref=f13e122]:
+            - heading "Record discrepancy" [level=3] [ref=f13e123]
+            - generic [ref=f13e124]:
+              - combobox [ref=f13e125]:
+                - option "Discrepancy type" [selected]
+                - option "Unmatched amount"
+                - option "Bank charge"
+                - option "Interest"
+                - option "Outstanding check"
+                - option "Deposit in transit"
+                - option "Recording error"
+              - combobox [ref=f13e126]:
+                - option "Classification" [selected]
+                - option "Accounting adjustment"
+                - option "Timing difference"
+              - spinbutton "Amount" [ref=f13e127]
+              - textbox "Evidence/reference" [ref=f13e128]
+              - textbox "Explanation" [ref=f13e129]
+              - combobox [ref=f13e130]:
+                - option "Unresolved" [selected]
+                - option "Resolved"
+                - option "Accounted"
+              - spinbutton "Signed adjustment (accounting only)" [ref=f13e131]
+              - generic [ref=f13e132]:
+                - checkbox "Carry forward timing item" [ref=f13e133]
+                - text: Carry forward timing item
+              - button "Save discrepancy" [ref=f13e134] [cursor=pointer]
+        - generic [ref=f13e136]:
+          - generic [ref=f13e137]:
+            - heading "Import Bank Statement" [level=2] [ref=f13e138]
+            - paragraph [ref=f13e139]: Upload a CSV or XLSX statement to add bank transactions for review.
+          - generic [ref=f13e140]:
+            - button "Choose File" [active] [ref=f13e141]
+            - button "Import Statement" [ref=f13e142] [cursor=pointer]
+        - generic [ref=f13e144]:
+          - generic [ref=f13e149]:
+            - paragraph [ref=f13e150]: Treasurer Audit Protocols
+            - paragraph [ref=f13e151]: Match bank entries on the left with corresponding logged donations on the right. Once verified, the donation transitions to Reconciled status and becomes permanently auditable.
+          - generic [ref=f13e152]:
+            - generic [ref=f13e153]:
+              - paragraph [ref=f13e154]: Unreconciled Feed
+              - paragraph [ref=f13e155]: 0 entries
+            - generic [ref=f13e156]:
+              - paragraph [ref=f13e157]: Pending Ledger Receipts
+              - paragraph [ref=f13e158]: 0 items
+        - generic [ref=f13e159]:
+          - generic [ref=f13e160]:
+            - heading "Bank Transactions to Review" [level=2] [ref=f13e163]
+            - paragraph [ref=f13e170]: No unreconciled bank statement entries right now.
+          - generic [ref=f13e171]:
+            - heading "Donation Receipts to Match" [level=2] [ref=f13e174]
+            - paragraph [ref=f13e181]: No electronic receipts are awaiting bank reconciliation.
+        - generic [ref=f13e182]:
+          - heading "Reconciliation History" [level=2] [ref=f13e184]
+          - paragraph [ref=f13e191]: No reconciled transactions yet.

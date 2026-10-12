@@ -1,0 +1,178 @@
+- generic [ref=f18e2]:
+  - complementary [ref=f18e3]:
+    - generic [ref=f18e4]:
+      - generic [ref=f18e5]:
+        - paragraph [ref=f18e10]: Donation Operations
+        - button "Toggle sidebar" [expanded] [ref=f18e11] [cursor=pointer]
+      - navigation "Sidebar navigation" [ref=f18e14]:
+        - link "Dashboard" [ref=f18e15] [cursor=pointer]:
+          - /url: http://127.0.0.1:8001
+        - link "Donor Management" [ref=f18e22] [cursor=pointer]:
+          - /url: http://127.0.0.1:8001/donors
+        - link "Donations Portal" [ref=f18e29] [cursor=pointer]:
+          - /url: http://127.0.0.1:8001/donations
+        - link "Fund Requests" [ref=f18e36] [cursor=pointer]:
+          - /url: http://127.0.0.1:8001/disbursements
+        - link "In-Kind Inventory" [ref=f18e41] [cursor=pointer]:
+          - /url: http://127.0.0.1:8001/inventory
+        - link "Bank Reconciliation" [ref=f18e46] [cursor=pointer]:
+          - /url: http://127.0.0.1:8001/bank-reconciliation
+        - link "Report Generator" [ref=f18e50] [cursor=pointer]:
+          - /url: http://127.0.0.1:8001/reports
+        - link "System Administration" [ref=f18e55] [cursor=pointer]:
+          - /url: http://127.0.0.1:8001/system-security
+      - button "Logout" [ref=f18e62] [cursor=pointer]
+  - generic [ref=f18e67]:
+    - banner [ref=f18e68]:
+      - generic [ref=f18e69]:
+        - generic [ref=f18e70]:
+          - heading "Bank Reconciliation Workspace" [level=1] [ref=f18e71]
+          - paragraph [ref=f18e72]: Audit bank transactions against registered community donations.
+        - group [ref=f18e73]:
+          - generic "Treasurer E2E Treasurer T" [ref=f18e74] [cursor=pointer]:
+            - generic [ref=f18e75]:
+              - generic [ref=f18e76]: Treasurer E2E
+              - generic [ref=f18e77]: Treasurer
+            - generic [ref=f18e78]: T
+    - main [ref=f18e82]:
+      - generic [ref=f18e83]:
+        - navigation "Bank reconciliation sections" [ref=f18e85]:
+          - link "Incoming Funds" [ref=f18e86] [cursor=pointer]:
+            - /url: http://127.0.0.1:8001/bank-reconciliation?tab=incoming
+          - link "Outgoing Funds" [ref=f18e87] [cursor=pointer]:
+            - /url: http://127.0.0.1:8001/bank-reconciliation?tab=outgoing
+        - generic [ref=f18e88]: Active Audit Lockout Enabled
+        - generic [ref=f18e90]:
+          - generic [ref=f18e91]:
+            - generic [ref=f18e92]:
+              - heading "Reconciliation Period" [level=2] [ref=f18e93]
+              - paragraph [ref=f18e94]: Create a period using raw bank balances. Movement totals and the financial ledger balance are calculated from stored records.
+            - generic [ref=f18e95]:
+              - textbox "Period start" [ref=f18e96]
+              - textbox "Period end" [ref=f18e97]
+              - spinbutton "Opening balance" [ref=f18e98]
+              - spinbutton "Bank ending balance" [ref=f18e99]
+              - button "Create Period" [ref=f18e100] [cursor=pointer]
+          - generic [ref=f18e101]:
+            - generic [ref=f18e102]:
+              - paragraph [ref=f18e103]: Latest period
+              - paragraph [ref=f18e104]: Oct 01, 2026 – Oct 31, 2026
+              - text: draft
+            - generic [ref=f18e105]:
+              - paragraph [ref=f18e106]: Bank movements
+              - paragraph [ref=f18e107]: In PHP 1,200.00 / Out PHP 300.00
+            - generic [ref=f18e108]:
+              - paragraph [ref=f18e109]: Financial ledger ending
+              - paragraph [ref=f18e110]: PHP 10,000.00
+            - generic [ref=f18e111]:
+              - paragraph [ref=f18e112]: Raw bank ending
+              - paragraph [ref=f18e113]: PHP 10,700.00
+            - generic [ref=f18e114]:
+              - paragraph [ref=f18e115]: Difference
+              - paragraph [ref=f18e116]: PHP 700.00
+          - button "Submit for Review" [ref=f18e119] [cursor=pointer]
+          - generic [ref=f18e120]:
+            - heading "Record discrepancy" [level=3] [ref=f18e121]
+            - generic [ref=f18e122]:
+              - combobox [ref=f18e123]:
+                - option "Discrepancy type" [selected]
+                - option "Unmatched amount"
+                - option "Bank charge"
+                - option "Interest"
+                - option "Outstanding check"
+                - option "Deposit in transit"
+                - option "Recording error"
+              - combobox [ref=f18e124]:
+                - option "Classification" [selected]
+                - option "Accounting adjustment"
+                - option "Timing difference"
+              - spinbutton "Amount" [ref=f18e125]
+              - textbox "Evidence/reference" [ref=f18e126]
+              - textbox "Explanation" [ref=f18e127]
+              - combobox [ref=f18e128]:
+                - option "Unresolved" [selected]
+                - option "Resolved"
+                - option "Accounted"
+              - spinbutton "Signed adjustment (accounting only)" [ref=f18e129]
+              - generic [ref=f18e130]:
+                - checkbox "Carry forward timing item" [ref=f18e131]
+                - text: Carry forward timing item
+              - button "Save discrepancy" [ref=f18e132] [cursor=pointer]
+        - generic [ref=f18e133]:
+          - generic [ref=f18e134]:
+            - heading "Record Bank Withdrawal" [level=2] [ref=f18e135]
+            - generic [ref=f18e136]:
+              - generic [ref=f18e137]:
+                - generic [ref=f18e138]: Transaction Date
+                - textbox "Transaction Date" [ref=f18e139]
+              - generic [ref=f18e140]:
+                - generic [ref=f18e141]: Reference Number
+                - textbox "Reference Number" [ref=f18e142]
+              - generic [ref=f18e143]:
+                - generic [ref=f18e144]: Description
+                - textbox "Description" [ref=f18e145]
+              - generic [ref=f18e146]:
+                - generic [ref=f18e147]: Amount
+                - spinbutton "Amount" [ref=f18e148]
+              - button "Record Withdrawal" [ref=f18e150] [cursor=pointer]
+          - generic [ref=f18e151]:
+            - heading "Import Withdrawals" [level=2] [ref=f18e152]
+            - paragraph [ref=f18e153]: CSV or XLSX rows with transaction_type set to withdrawal are added for outgoing review.
+            - generic [ref=f18e154]:
+              - button "Choose File" [ref=f18e155]
+              - button "Import Statement" [ref=f18e156] [cursor=pointer]
+        - generic [ref=f18e157]:
+          - generic [ref=f18e158]:
+            - heading "Bank Withdrawals to Review" [level=2] [ref=f18e161]
+            - generic [ref=f18e162]: 1 entry
+          - generic [ref=f18e163]:
+            - generic [ref=f18e164]:
+              - generic [ref=f18e165]:
+                - paragraph [ref=f18e166]: Transaction Date
+                - paragraph [ref=f18e167]: 2026-10-02
+              - generic [ref=f18e168]:
+                - paragraph [ref=f18e169]: Reference Number
+                - paragraph [ref=f18e170]: E2E-WD-001
+              - generic [ref=f18e171]:
+                - paragraph [ref=f18e172]: Description
+                - paragraph [ref=f18e173]: Approved disbursement withdrawal
+              - generic [ref=f18e174]:
+                - paragraph [ref=f18e175]: Amount
+                - paragraph [ref=f18e176]: PHP 300.00
+              - generic [ref=f18e177]:
+                - paragraph [ref=f18e178]: Transaction Type
+                - paragraph [ref=f18e179]: withdrawal
+              - generic [ref=f18e180]:
+                - paragraph [ref=f18e181]: Status
+                - generic [ref=f18e182]: unreconciled
+            - generic [ref=f18e183]:
+              - generic [ref=f18e184]:
+                - generic [ref=f18e185]:
+                  - paragraph [ref=f18e186]: Bank Withdrawal Amount
+                  - paragraph [ref=f18e187]: PHP 300.00
+                - generic [ref=f18e188]:
+                  - paragraph [ref=f18e189]: Selected Disbursements Total
+                  - paragraph [ref=f18e190]: PHP 0.00
+                - generic [ref=f18e191]:
+                  - paragraph [ref=f18e192]: Difference
+                  - paragraph [ref=f18e193]: PHP 300.00
+                  - generic [ref=f18e194]: Discrepancy
+              - paragraph [ref=f18e202]: No approved unreconciled disbursements are available to match.
+        - generic [ref=f18e203]:
+          - heading "Reconciliation History" [level=2] [ref=f18e205]
+          - table [ref=f18e207]:
+            - rowgroup [ref=f18e208]:
+              - row [ref=f18e209]:
+                - columnheader "Date" [ref=f18e210]
+                - columnheader "Bank Reference" [ref=f18e211]
+                - columnheader "Type" [ref=f18e212]
+                - columnheader "Bank Amount" [ref=f18e213]
+                - columnheader "Matched Amount" [ref=f18e214]
+                - columnheader "Difference" [ref=f18e215]
+                - columnheader "Status" [ref=f18e216]
+                - columnheader "Reconciled By" [ref=f18e217]
+                - columnheader [ref=f18e218]
+            - rowgroup [ref=f18e219]:
+              - row [ref=f18e220]:
+                - cell [ref=f18e221]:
+                  - paragraph [ref=f18e228]: No reconciled withdrawals yet.

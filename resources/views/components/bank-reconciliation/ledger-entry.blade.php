@@ -16,6 +16,14 @@
     <div class="mt-3 flex items-center justify-between gap-4">
         <p class="truncate text-xs text-slate-400">REF: {{ $entry->reference_number ?? '—' }}</p>
 
+        @if ($hasSuggestions && ! auth()->user()?->can('reconcile', $entry))
+            <span class="text-xs font-semibold text-emerald-700">
+                {{ $suggestions->count() }} {{ \Illuminate\Support\Str::plural('suggestion', $suggestions->count()) }} found:
+                {{ $suggestions->first()['contribution']->donor?->full_name }}
+                ({{ $suggestions->first()['contribution']->receipt_number }})
+            </span>
+        @endif
+
         @can('reconcile', $entry)
             <button
                 type="button"

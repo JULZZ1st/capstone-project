@@ -5,15 +5,21 @@ namespace App\Services\Disbursements;
 use App\Models\CashDisbursement;
 use App\Models\SecurityActivityEvent;
 use App\Models\User;
+use App\Services\BankReconciliation\ReconciliationPeriodGuard;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class VoidDisbursement
 {
+    public function __construct(private readonly ReconciliationPeriodGuard $periodGuard)
+    {
+    }
+
     public function handle(CashDisbursement $disbursement, string $reason, User $actor): CashDisbursement
     {
         return DB::transaction(function () use ($disbursement, $reason, $actor) {
             $disbursement = CashDisbursement::query()->lockForUpdate()->findOrFail($disbursement->id);
+            $this->periodGuard->assertMutableDate($disbursement->created_at->toDateString());
 
             if ($disbursement->status !== 'approved' || $disbursement->isVoided()) {
                 throw ValidationException::withMessages(['disbursement' => 'Only approved, active fund requests can be cancelled.']);
