@@ -13,29 +13,17 @@
         @if (session('success'))
             <x-alert type="success">{{ session('success') }}</x-alert>
         @endif
-
-        <div class="border-b border-slate-200">
-            <nav class="-mb-px flex gap-6 text-sm font-semibold" aria-label="Bank reconciliation sections">
-                <a href="{{ route('bank-reconciliation.index', ['tab' => 'incoming']) }}" @class([
-                    'border-b-2 px-1 pb-3',
-                    'border-blue-600 text-blue-700' => $activeTab === 'incoming',
-                    'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700' => $activeTab !== 'incoming',
-                ])>Incoming Funds</a>
-                <a href="{{ route('bank-reconciliation.index', ['tab' => 'outgoing']) }}" @class([
-                    'border-b-2 px-1 pb-3',
-                    'border-blue-600 text-blue-700' => $activeTab === 'outgoing',
-                    'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700' => $activeTab !== 'outgoing',
-                ])>Outgoing Funds</a>
-            </nav>
-        </div>
-
-        @if (config('bank_reconciliation.audit_lockout_enabled'))
-            <div class="flex justify-end">
-                <span class="inline-flex items-center gap-1.5 rounded-full border border-emerald-300 bg-white px-3 py-1.5 text-xs font-semibold text-emerald-700 shadow-sm">
-                    Active Audit Lockout Enabled
-                </span>
-            </div>
-        @endif
+        
+<div class="border-b border-slate-200 pb-4">
+    <nav class="flex flex-wrap gap-3" aria-label="Bank reconciliation sections">
+        @foreach (['incoming' => '↓ Incoming Funds', 'outgoing' => '↑ Outgoing Funds'] as $tab => $label)
+            <a href="{{ route('bank-reconciliation.index', ['tab' => $tab]) }}"
+               class="inline-flex items-center justify-center rounded-lg border px-5 py-3 text-sm font-semibold transition {{ $activeTab === $tab ? 'border-blue-600 bg-blue-600 text-white shadow-md' : 'border-slate-200 bg-white text-slate-600 hover:border-blue-300 hover:bg-blue-50' }}">
+                {{ $label }}
+            </a>
+        @endforeach
+    </nav>
+</div>
 
         @can('create', App\Models\BankLedgerEntry::class)
             <section class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
