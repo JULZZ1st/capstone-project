@@ -1,0 +1,54 @@
+- generic [ref=f19e2]:
+  - complementary [ref=f19e3]:
+    - generic [ref=f19e4]:
+      - generic [ref=f19e5]:
+        - paragraph [ref=f19e10]: Donation Operations
+        - button "Toggle sidebar" [expanded] [ref=f19e11] [cursor=pointer]
+      - navigation "Sidebar navigation" [ref=f19e14]:
+        - link "Dashboard" [ref=f19e15] [cursor=pointer]:
+          - /url: http://127.0.0.1:8002
+        - link "Donor Management" [ref=f19e22] [cursor=pointer]:
+          - /url: http://127.0.0.1:8002/donors
+        - link "Donations Portal" [ref=f19e29] [cursor=pointer]:
+          - /url: http://127.0.0.1:8002/donations
+        - link "Fund Requests" [ref=f19e36] [cursor=pointer]:
+          - /url: http://127.0.0.1:8002/disbursements
+        - link "In-Kind Inventory" [ref=f19e41] [cursor=pointer]:
+          - /url: http://127.0.0.1:8002/inventory
+        - link "Bank Reconciliation" [ref=f19e46] [cursor=pointer]:
+          - /url: http://127.0.0.1:8002/bank-reconciliation
+        - link "Report Generator" [ref=f19e50] [cursor=pointer]:
+          - /url: http://127.0.0.1:8002/reports
+        - link "System Administration" [ref=f19e55] [cursor=pointer]:
+          - /url: http://127.0.0.1:8002/system-security
+      - button "Logout" [ref=f19e62] [cursor=pointer]
+  - generic [ref=f19e67]:
+    - banner [ref=f19e68]:
+      - generic [ref=f19e69]:
+        - generic [ref=f19e70]:
+          - heading "Fund Requests" [level=1] [ref=f19e71]
+          - paragraph [ref=f19e72]: Submit and review cash requests with maker-checker approval.
+        - group [ref=f19e73]:
+          - generic "Admin A Administrator A" [ref=f19e74] [cursor=pointer]:
+            - generic [ref=f19e75]:
+              - generic [ref=f19e76]: Admin A
+              - generic [ref=f19e77]: Administrator
+            - generic [ref=f19e78]: A
+    - main [ref=f19e82]:
+      - generic [ref=f19e84]:
+        - generic [ref=f19e85]:
+          - heading "Request history" [level=2] [ref=f19e86]
+          - button "Create Fund Request" [ref=f19e87] [cursor=pointer]
+        - table [ref=f19e89]:
+          - rowgroup [ref=f19e90]:
+            - row [ref=f19e91]:
+              - columnheader "Date" [ref=f19e92]
+              - columnheader "Recipient / Payee" [ref=f19e93]
+              - columnheader "Purpose" [ref=f19e94]
+              - columnheader "Amount" [ref=f19e95]
+              - columnheader "Requested By" [ref=f19e96]
+              - columnheader "Status" [ref=f19e97]
+              - columnheader "Action" [ref=f19e98]
+          - rowgroup [ref=f19e99]:
+            - row [ref=f19e100]:
+              - cell "No fund requests have been submitted." [ref=f19e101]

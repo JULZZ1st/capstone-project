@@ -25,7 +25,7 @@
     </nav>
 </div>
 
-        @can('create', App\Models\BankLedgerEntry::class)
+        @can('prepare', App\Models\BankReconciliation::class)
             <section class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
                 <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                     <div>

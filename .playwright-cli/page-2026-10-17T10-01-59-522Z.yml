@@ -1,0 +1,17 @@
+- main [ref=f6e2]:
+  - generic [ref=f6e3]:
+    - generic [ref=f6e4]:
+      - paragraph [ref=f6e5]: Password update required
+      - heading "Set a new password" [level=1] [ref=f6e6]
+      - paragraph [ref=f6e7]: Use your temporary password, then choose a new password for future sign-ins.
+    - generic [ref=f6e8]:
+      - generic [ref=f6e9]:
+        - generic [ref=f6e10]: Current / temporary password
+        - textbox "Current / temporary password" [ref=f6e11]
+      - generic [ref=f6e12]:
+        - generic [ref=f6e13]: New password
+        - textbox "New password" [ref=f6e14]
+      - generic [ref=f6e15]:
+        - generic [ref=f6e16]: Confirm new password
+        - textbox "Confirm new password" [ref=f6e17]
+      - button "Save New Password" [ref=f6e18] [cursor=pointer]

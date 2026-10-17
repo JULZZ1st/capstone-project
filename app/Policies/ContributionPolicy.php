@@ -9,12 +9,12 @@ class ContributionPolicy
 {
     public function viewAny(User $user): bool
     {
-        return $user->hasRole(['admin', 'secretary', 'treasurer']);
+        return $this->active($user) && $user->hasRole(['admin', 'secretary', 'treasurer']);
     }
 
     public function view(User $user, Contribution $contribution): bool
     {
-        return $this->viewAny($user);
+        return $this->viewAny($user) && $this->sameWorkspace($user, $contribution);
     }
 
     public function create(User $user): bool
@@ -25,11 +25,12 @@ class ContributionPolicy
     public function update(User $user, Contribution $contribution): bool
     {
         if ($user->hasRole('admin')) {
-            return true;
+            return $this->sameWorkspace($user, $contribution);
         }
 
         return $contribution->isEditable()
             && (int) $contribution->created_by === (int) $user->id
+            && $this->sameWorkspace($user, $contribution)
             && $user->hasRole(['secretary', 'treasurer']);
     }
 
@@ -37,15 +38,20 @@ class ContributionPolicy
     {
         return $contribution->isCash()
             && $contribution->status === 'pending'
+            && $this->sameWorkspace($user, $contribution)
             && $user->hasRole(['admin', 'treasurer']);
     }
 
     public function void(User $user, Contribution $contribution): bool
     {
-        return $user->hasRole('admin')
+        return $this->sameWorkspace($user, $contribution)
+            && $user->hasRole('admin')
             && $contribution->isCash()
             && $contribution->status === 'pending'
             && ! $contribution->isVoided()
             && ! $contribution->ledgerEntry()->exists();
     }
+
+    private function active(User $user): bool { return app(\App\Support\Workspaces\WorkspaceAuthorizer::class)->hasActiveWorkspace(); }
+    private function sameWorkspace(User $user, Contribution $contribution): bool { return app(\App\Support\Workspaces\WorkspaceAuthorizer::class)->canAccessRecord($user, $contribution); }
 }

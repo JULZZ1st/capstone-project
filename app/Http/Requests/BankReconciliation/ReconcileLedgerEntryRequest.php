@@ -6,6 +6,7 @@ use App\Models\BankLedgerEntry;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
+use App\Support\Workspaces\WorkspaceValidationRules;
 
 class ReconcileLedgerEntryRequest extends FormRequest
 {
@@ -17,10 +18,10 @@ class ReconcileLedgerEntryRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'bank_ledger_entry_id' => ['required', Rule::exists('bank_ledger_entries', 'id')->where('status', 'unmatched')],
+            'bank_ledger_entry_id' => ['required', WorkspaceValidationRules::exists('bank_ledger_entries')->where('status', 'unmatched')],
             'contribution_id' => [
                 'required',
-                Rule::exists('contributions', 'id')
+                WorkspaceValidationRules::exists('contributions')
                     ->where('type', 'cash')
                     ->where('status', 'verified')
                     ->whereIn('payment_method', config('donations.electronic_payment_methods')),

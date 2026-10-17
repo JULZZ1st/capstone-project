@@ -9,37 +9,41 @@ class InventoryItemPolicy
 {
     public function viewAny(User $user): bool
     {
-        return $user->hasRole(['admin', 'secretary', 'treasurer']);
+        return $this->active($user) && $user->hasRole(['admin', 'secretary', 'treasurer']);
     }
 
     public function view(User $user, InventoryItem $inventoryItem): bool
     {
-        return $this->viewAny($user);
+        return $this->viewAny($user) && $this->sameWorkspace($user, $inventoryItem);
     }
 
     public function create(User $user): bool
     {
-        return $user->hasRole(['admin', 'secretary']);
+        return $this->active($user) && $user->hasRole(['admin', 'secretary']);
     }
 
     public function update(User $user, InventoryItem $inventoryItem): bool
     {
-        return $user->hasRole(['admin', 'secretary']);
+        return $this->active($user) && $this->sameWorkspace($user, $inventoryItem) && $user->hasRole(['admin', 'secretary']);
     }
 
     public function adjustStock(User $user, InventoryItem $inventoryItem): bool
     {
         return $inventoryItem->status === config('inventory.defaults.status')
+            && $this->sameWorkspace($user, $inventoryItem)
             && $user->hasRole(['admin', 'secretary']);
     }
 
     public function audit(User $user, InventoryItem $inventoryItem): bool
     {
-        return $user->hasRole(['admin', 'secretary']);
+        return $this->active($user) && $this->sameWorkspace($user, $inventoryItem) && $user->hasRole(['admin', 'secretary']);
     }
 
     public function archive(User $user, InventoryItem $inventoryItem): bool
     {
-        return $user->hasRole('admin');
+        return $this->active($user) && $this->sameWorkspace($user, $inventoryItem) && $user->hasRole('admin');
     }
+
+    private function active(User $user): bool { return app(\App\Support\Workspaces\WorkspaceAuthorizer::class)->hasActiveWorkspace(); }
+    private function sameWorkspace(User $user, InventoryItem $item): bool { return app(\App\Support\Workspaces\WorkspaceAuthorizer::class)->canAccessRecord($user, $item); }
 }

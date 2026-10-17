@@ -50,7 +50,6 @@
                                     <div>
                                         <label class="block text-[11px] text-slate-500">Role</label>
                                         <select name="role" required class="mt-1 w-full rounded border px-2 py-1 text-sm">
-                                            <option value="admin" @selected(old('role') === 'admin')>Administrator</option>
                                             <option value="secretary" @selected(old('role') === 'secretary')>Secretary</option>
                                             <option value="treasurer" @selected(old('role') === 'treasurer')>Treasurer</option>
                                         </select>

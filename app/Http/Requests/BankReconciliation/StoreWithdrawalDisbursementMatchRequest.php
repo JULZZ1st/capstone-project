@@ -6,6 +6,7 @@ use App\Models\BankLedgerEntry;
 use App\Models\CashDisbursement;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
+use App\Support\Workspaces\WorkspaceValidationRules;
 
 class StoreWithdrawalDisbursementMatchRequest extends FormRequest
 {
@@ -18,7 +19,7 @@ class StoreWithdrawalDisbursementMatchRequest extends FormRequest
     {
         return [
             'disbursement_ids' => ['nullable', 'array'],
-            'disbursement_ids.*' => ['integer', 'distinct', 'exists:cash_disbursements,id'],
+            'disbursement_ids.*' => ['integer', 'distinct', WorkspaceValidationRules::exists('cash_disbursements')],
 
             'discrepancy_reason' => ['nullable', 'string', 'max:5000'],
             'finalize' => ['nullable', 'boolean'],

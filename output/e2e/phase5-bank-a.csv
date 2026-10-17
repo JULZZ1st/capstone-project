@@ -1,0 +1,2 @@
+statement_id,transaction_date,description,reference_number,amount,transaction_type,payment_method
+PH5-A-001,2026-10-17,Workspace A deposit,PH5-REF-A-001,100.00,deposit,bank_transfer

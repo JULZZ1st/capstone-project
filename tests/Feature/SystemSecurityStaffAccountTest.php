@@ -16,7 +16,9 @@ class SystemSecurityStaffAccountTest extends TestCase
     {
         $admin = $this->userWithRole('admin');
 
-        $response = $this->actingAs($admin)->post(route('system-security.users.store'), [
+        $response = $this->actingAs($admin)
+            ->from(route('system-security.index'))
+            ->post(route('system-security.users.store'), [
             'first_name' => 'New',
             'last_name' => 'Staff',
             'email' => 'new.staff@example.test',
@@ -34,7 +36,9 @@ class SystemSecurityStaffAccountTest extends TestCase
     {
         $admin = $this->userWithRole('admin');
 
-        $response = $this->actingAs($admin)->post(route('system-security.users.store'), [
+        $response = $this->actingAs($admin)
+            ->from(route('system-security.index'))
+            ->post(route('system-security.users.store'), [
             'first_name' => 'New',
             'last_name' => 'Treasurer',
             'email' => 'new.treasurer@example.test',
@@ -51,11 +55,13 @@ class SystemSecurityStaffAccountTest extends TestCase
         $this->assertDatabaseHas('security_activity_events', ['action' => 'staff_account_created']);
     }
 
-    public function test_admin_can_create_another_admin_account(): void
+    public function test_workspace_admin_cannot_create_another_admin_account(): void
     {
         $admin = $this->userWithRole('admin');
 
-        $response = $this->actingAs($admin)->post(route('system-security.users.store'), [
+        $response = $this->actingAs($admin)
+            ->from(route('system-security.index'))
+            ->post(route('system-security.users.store'), [
             'first_name' => 'Second',
             'last_name' => 'Administrator',
             'email' => 'second.admin@example.test',
@@ -64,17 +70,9 @@ class SystemSecurityStaffAccountTest extends TestCase
             'password_confirmation' => 'LongPassword123!',
         ]);
 
-        $response->assertRedirect(route('system-security.index'));
-        $this->assertDatabaseHas('users', [
-            'email' => 'second.admin@example.test',
-            'role_id' => Role::query()->where('name', 'admin')->value('id'),
-        ]);
-
-        $this->actingAs($admin)
-            ->get(route('system-security.index'))
-            ->assertOk()
-            ->assertSee('second.admin@example.test')
-            ->assertSee('2 Active Accounts');
+        $response->assertRedirect(route('system-security.index'))
+            ->assertSessionHasErrors('role');
+        $this->assertDatabaseMissing('users', ['email' => 'second.admin@example.test']);
     }
 
     public function test_invalid_staff_account_creation_shows_errors_and_preserves_form_values(): void
@@ -113,7 +111,7 @@ class SystemSecurityStaffAccountTest extends TestCase
         $temporaryPassword = 'TemporaryPassword123!';
         $newPassword = 'PermanentPassword456!';
 
-        foreach (['admin', 'secretary', 'treasurer'] as $role) {
+        foreach (['secretary', 'treasurer'] as $role) {
             $email = "new.{$role}@example.test";
 
             $response = $this->actingAs($admin)->post(route('system-security.users.store'), [
@@ -244,10 +242,10 @@ class SystemSecurityStaffAccountTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_admin_can_deactivate_staff_account_but_not_last_admin(): void
+    public function test_workspace_admin_can_deactivate_staff_but_not_an_admin_account(): void
     {
         $admin = $this->userWithRole('admin');
-        $other = $this->userWithRole('admin');
+        $other = $this->userWithRole('secretary');
 
         // Deactivate non-last admin should work
         $response = $this->actingAs($admin)->patch(route('system-security.users.deactivate', $other));
@@ -255,10 +253,10 @@ class SystemSecurityStaffAccountTest extends TestCase
         $response->assertRedirect(route('system-security.index'));
         $this->assertDatabaseHas('security_activity_events', ['action' => 'staff_account_deactivated']);
 
-        // Attempt to deactivate the last remaining admin should fail (deactivate $admin now)
+        // Admin accounts are outside the workspace Admin staff-management scope.
         $this->actingAs($admin)
             ->patch(route('system-security.users.deactivate', $admin))
-            ->assertStatus(422);
+            ->assertForbidden();
     }
 
     public function test_deactivated_account_remains_visible_and_can_be_reactivated(): void
@@ -274,7 +272,7 @@ class SystemSecurityStaffAccountTest extends TestCase
         $indexResponse->assertSee($user->email);
         $indexResponse->assertSee('Deactivated');
         $indexResponse->assertSee('This account is disabled and retained for audit history.');
-        $indexResponse->assertSee('1 Active Accounts');
+        $indexResponse->assertSee('0 Active Accounts');
 
         $response = $this->actingAs($admin)->patch(route('system-security.users.update', $user), [
             'first_name' => $user->first_name,

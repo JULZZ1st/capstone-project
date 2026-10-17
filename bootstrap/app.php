@@ -14,6 +14,10 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'role' => \App\Http\Middleware\EnsureRole::class,
             'password.change' => \App\Http\Middleware\EnsurePasswordChanged::class,
+            'workspace' => \App\Http\Middleware\ResolveActiveWorkspace::class,
+            'workspace.required' => \App\Http\Middleware\RequireActiveWorkspace::class,
+            'workspace.models' => \App\Http\Middleware\EnsureWorkspaceRouteModels::class,
+            'platform.superadmin' => \App\Http\Middleware\RequirePlatformSuperAdmin::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

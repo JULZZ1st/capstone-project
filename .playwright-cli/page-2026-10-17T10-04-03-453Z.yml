@@ -1,0 +1,98 @@
+- generic [ref=f8e2]:
+  - complementary [ref=f8e3]:
+    - generic [ref=f8e4]:
+      - generic [ref=f8e5]:
+        - paragraph [ref=f8e10]: Donation Operations
+        - button "Toggle sidebar" [expanded] [ref=f8e11] [cursor=pointer]
+      - navigation "Sidebar navigation" [ref=f8e14]:
+        - link "Dashboard" [ref=f8e15] [cursor=pointer]:
+          - /url: http://127.0.0.1:8002
+        - link "Donor Management" [ref=f8e22] [cursor=pointer]:
+          - /url: http://127.0.0.1:8002/donors
+        - link "Donations Portal" [ref=f8e29] [cursor=pointer]:
+          - /url: http://127.0.0.1:8002/donations
+        - link "Fund Requests" [ref=f8e36] [cursor=pointer]:
+          - /url: http://127.0.0.1:8002/disbursements
+        - link "In-Kind Inventory" [ref=f8e41] [cursor=pointer]:
+          - /url: http://127.0.0.1:8002/inventory
+        - link "Bank Reconciliation" [ref=f8e46] [cursor=pointer]:
+          - /url: http://127.0.0.1:8002/bank-reconciliation
+        - link "Report Generator" [ref=f8e50] [cursor=pointer]:
+          - /url: http://127.0.0.1:8002/reports
+        - link "System Administration" [ref=f8e55] [cursor=pointer]:
+          - /url: http://127.0.0.1:8002/system-security
+      - button "Logout" [ref=f8e62] [cursor=pointer]
+  - generic [ref=f8e67]:
+    - banner [ref=f8e68]:
+      - generic [ref=f8e69]:
+        - generic [ref=f8e70]:
+          - heading "System Security Administration" [level=1] [ref=f8e71]
+          - paragraph [ref=f8e72]: Oversee two-factor lockouts, staff permissions, and non-repudiation audit ledgers.
+        - group [ref=f8e73]:
+          - generic "Admin A Administrator A" [ref=f8e74] [cursor=pointer]:
+            - generic [ref=f8e75]:
+              - generic [ref=f8e76]: Admin A
+              - generic [ref=f8e77]: Administrator
+            - generic [ref=f8e78]: A
+    - main [ref=f8e82]:
+      - generic [ref=f8e83]:
+        - generic [ref=f8e84]:
+          - generic [ref=f8e85]:
+            - generic [ref=f8e86]: Laravel Node
+            - generic [ref=f8e87]: /
+            - generic [ref=f8e88]: "Security:"
+            - generic [ref=f8e89]: Two-Factor Verified
+          - generic [ref=f8e90]:
+            - generic [ref=f8e91]: Admin Control Console
+            - generic [ref=f8e92]: Administrator
+        - generic [ref=f8e93]:
+          - generic [ref=f8e94]:
+            - heading "Authorized Administrative Personnel" [level=2] [ref=f8e96]
+            - generic [ref=f8e97]:
+              - generic [ref=f8e98]: 0 Active Accounts
+              - group [ref=f8e99]:
+                - generic "Create Staff Account" [active] [ref=f8e100]
+                - generic [ref=f8e133]:
+                  - generic [ref=f8e134]:
+                    - generic [ref=f8e135]: First name
+                    - textbox [ref=f8e136]
+                  - generic [ref=f8e137]:
+                    - generic [ref=f8e138]: Last name
+                    - textbox [ref=f8e139]
+                  - generic [ref=f8e140]:
+                    - generic [ref=f8e141]: Email
+                    - textbox [ref=f8e142]
+                  - generic [ref=f8e143]:
+                    - generic [ref=f8e144]: Role
+                    - combobox [ref=f8e145]:
+                      - option "Secretary" [selected]
+                      - option "Treasurer"
+                  - generic [ref=f8e146]:
+                    - generic [ref=f8e147]: Initial password
+                    - textbox [ref=f8e148]
+                  - generic [ref=f8e149]:
+                    - generic [ref=f8e150]: Confirm password
+                    - textbox [ref=f8e151]
+                  - button "Create" [ref=f8e153] [cursor=pointer]
+          - paragraph [ref=f8e109]: No authorized administrative personnel were found.
+        - generic [ref=f8e110]:
+          - generic [ref=f8e111]:
+            - heading "Security Activity Trail Ledger" [level=2] [ref=f8e113]
+            - generic [ref=f8e115]:
+              - combobox [ref=f8e116]:
+                - option "All Actions" [selected]
+                - option "Workspace Created"
+              - searchbox "Search logs details..." [ref=f8e117]
+              - button "Search" [ref=f8e118] [cursor=pointer]
+          - article [ref=f8e120]:
+            - generic [ref=f8e121]:
+              - generic [ref=f8e122]:
+                - generic [ref=f8e123]:
+                  - paragraph [ref=f8e124]: Gina Gamboa
+                  - generic [ref=f8e125]: Administrator
+                  - generic [ref=f8e126]: Workspace Created
+                - paragraph [ref=f8e127]: "Affected account: Admin A"
+                - paragraph [ref=f8e128]: Gina Gamboa created workspace Workspace A and assigned admin.a@example.test
+              - generic [ref=f8e129]:
+                - paragraph [ref=f8e130]: 2026-10-17 09:59:11
+                - paragraph [ref=f8e131]: 127.0.0.1

@@ -23,6 +23,7 @@ class User extends Authenticatable
      */
     protected $fillable = [
         'role_id',
+        'is_super_admin',
         'first_name',
         'last_name',
         'name',
@@ -52,11 +53,29 @@ class User extends Authenticatable
         'last_login_at' => 'datetime',
         'password' => 'hashed',
         'must_change_password' => 'boolean',
+        'is_super_admin' => 'boolean',
     ];
 
     public function role(): BelongsTo
     {
         return $this->belongsTo(Role::class);
+    }
+
+    public function workspaceMemberships(): HasMany
+    {
+        return $this->hasMany(WorkspaceMembership::class);
+    }
+
+    public function workspaces(): BelongsToMany
+    {
+        return $this->belongsToMany(Workspace::class, 'workspace_memberships')
+            ->withPivot(['role_id', 'status', 'created_by'])
+            ->withTimestamps();
+    }
+
+    public function isSuperAdmin(): bool
+    {
+        return (bool) $this->is_super_admin;
     }
 
     public function createdContributions(): HasMany

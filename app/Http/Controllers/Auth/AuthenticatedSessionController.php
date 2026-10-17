@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
+use App\Models\Workspace;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -24,6 +25,33 @@ class AuthenticatedSessionController extends Controller
         $request->user()->forceFill([
             'last_login_at' => now(),
         ])->save();
+
+        // Preserve Gina's existing legacy-workspace access after login while
+        // keeping Super Admin operational access tied to an authorized context.
+        if ($request->user()->isSuperAdmin() && ! $request->session()->has('active_workspace_id')) {
+            $legacyWorkspace = $request->user()->workspaceMemberships()
+                ->with('workspace')
+                ->where('status', 'active')
+                ->whereHas('workspace', fn ($query) => $query->where('slug', 'legacy')->where('status', 'active'))
+                ->first()?->workspace;
+
+            if ($legacyWorkspace instanceof Workspace) {
+                $request->session()->put('active_workspace_id', $legacyWorkspace->getKey());
+            }
+        } elseif (! $request->user()->isSuperAdmin()) {
+            // A browser session can survive an account switch in some session
+            // drivers. Never carry another user's workspace into this login.
+            $workspace = $request->user()->workspaceMemberships()
+                ->with('workspace')
+                ->where('status', 'active')
+                ->whereHas('workspace', fn ($query) => $query->where('status', 'active'))
+                ->latest('id')
+                ->first()?->workspace;
+
+            $workspace instanceof Workspace
+                ? $request->session()->put('active_workspace_id', $workspace->getKey())
+                : $request->session()->forget('active_workspace_id');
+        }
 
         return redirect()->intended(route('dashboard', absolute: false));
     }

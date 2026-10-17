@@ -8,7 +8,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class SecurityActivityEvent extends Model
 {
+    use Concerns\WorkspaceScoped;
     protected $fillable = [
+        'workspace_id',
         'user_id',
         'actor_id',
         'action',

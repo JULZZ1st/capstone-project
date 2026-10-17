@@ -8,6 +8,7 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use App\Support\Workspaces\WorkspaceValidationRules;
 
 class StoreContributionRequest extends FormRequest
 {
@@ -22,8 +23,8 @@ class StoreContributionRequest extends FormRequest
 
         return [
             'donation_type' => ['required', Rule::in(array_keys(config('donations.types')))],
-            'donor_id' => ['required', 'exists:donors,id'],
-            'campaign_id' => ['nullable', 'exists:campaigns,id'],
+            'donor_id' => ['required', WorkspaceValidationRules::exists('donors')],
+            'campaign_id' => ['nullable', WorkspaceValidationRules::exists('campaigns')],
             'received_at' => ['nullable', 'date_format:Y-m-d'],
             'amount' => ['required_if:donation_type,cash', 'nullable', 'numeric', 'min:0.01', 'max:99999999.99'],
             'payment_method' => ['required_if:donation_type,cash', 'nullable', Rule::in(array_keys(config('donations.payment_methods')))],
@@ -32,7 +33,7 @@ class StoreContributionRequest extends FormRequest
                 'nullable',
                 'string',
                 'max:100',
-                Rule::unique('contributions', 'reference_number')->where(fn ($query) => $query->where('payment_method', $this->input('payment_method'))),
+                WorkspaceValidationRules::unique('contributions', 'reference_number')->where(fn ($query) => $query->where('payment_method', $this->input('payment_method'))),
             ],
             'notes' => ['nullable', 'string', 'max:2000'],
             'items' => $isInKind ? ['required', 'array', 'min:1'] : ['array'],

@@ -8,8 +8,10 @@ use Illuminate\Database\Eloquent\Model;
 class InventoryUnit extends Model
 {
     use HasFactory;
+    use Concerns\WorkspaceScoped;
 
     protected $fillable = [
+        'workspace_id',
         'key',
         'label',
         'is_active',

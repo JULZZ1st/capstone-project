@@ -1,0 +1,60 @@
+- generic [ref=f33e2]:
+  - complementary [ref=f33e3]:
+    - generic [ref=f33e4]:
+      - generic [ref=f33e5]:
+        - paragraph [ref=f33e10]: Donation Operations
+        - button "Toggle sidebar" [expanded] [ref=f33e11] [cursor=pointer]
+      - navigation "Sidebar navigation" [ref=f33e14]:
+        - link "Dashboard" [ref=f33e15] [cursor=pointer]:
+          - /url: http://127.0.0.1:8002
+        - link "Donor Management" [ref=f33e22] [cursor=pointer]:
+          - /url: http://127.0.0.1:8002/donors
+        - link "Donations Portal" [ref=f33e29] [cursor=pointer]:
+          - /url: http://127.0.0.1:8002/donations
+        - link "Fund Requests" [ref=f33e36] [cursor=pointer]:
+          - /url: http://127.0.0.1:8002/disbursements
+        - link "In-Kind Inventory" [ref=f33e41] [cursor=pointer]:
+          - /url: http://127.0.0.1:8002/inventory
+        - link "Bank Reconciliation" [ref=f33e46] [cursor=pointer]:
+          - /url: http://127.0.0.1:8002/bank-reconciliation
+        - link "Report Generator" [ref=f33e50] [cursor=pointer]:
+          - /url: http://127.0.0.1:8002/reports
+        - link "System Administration" [ref=f33e55] [cursor=pointer]:
+          - /url: http://127.0.0.1:8002/system-security
+      - button "Logout" [ref=f33e62] [cursor=pointer]
+  - generic [ref=f33e67]:
+    - banner [ref=f33e68]:
+      - generic [ref=f33e69]:
+        - generic [ref=f33e70]:
+          - heading "Bank Reconciliation Workspace" [level=1] [ref=f33e71]
+          - paragraph [ref=f33e72]: Audit bank transactions against registered community donations.
+        - group [ref=f33e73]:
+          - generic "Admin A Administrator A" [ref=f33e74] [cursor=pointer]:
+            - generic [ref=f33e75]:
+              - generic [ref=f33e76]: Admin A
+              - generic [ref=f33e77]: Administrator
+            - generic [ref=f33e78]: A
+    - main [ref=f33e82]:
+      - generic [ref=f33e83]:
+        - navigation "Bank reconciliation sections" [ref=f33e85]:
+          - link "↓ Incoming Funds" [ref=f33e86] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/bank-reconciliation?tab=incoming
+          - link "↑ Outgoing Funds" [ref=f33e87] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/bank-reconciliation?tab=outgoing
+        - generic [ref=f33e89]:
+          - generic [ref=f33e90]:
+            - heading "Import Bank Statement" [level=2] [ref=f33e91]
+            - paragraph [ref=f33e92]: Upload a CSV or XLSX statement to add bank transactions for review.
+          - generic [ref=f33e93]:
+            - button "Choose File" [ref=f33e94]
+            - button "Import Statement" [ref=f33e95] [cursor=pointer]
+        - generic [ref=f33e96]:
+          - generic [ref=f33e97]:
+            - heading "Bank Transactions to Review" [level=2] [ref=f33e100]
+            - paragraph [ref=f33e107]: No unreconciled bank statement entries right now.
+          - generic [ref=f33e108]:
+            - heading "Donation Receipts to Match" [level=2] [ref=f33e111]
+            - paragraph [ref=f33e118]: No electronic receipts are awaiting bank reconciliation.
+        - generic [ref=f33e119]:
+          - heading "Reconciliation History" [level=2] [ref=f33e121]
+          - paragraph [ref=f33e128]: No reconciled transactions yet.

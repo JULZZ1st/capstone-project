@@ -5,6 +5,7 @@ namespace App\Http\Requests\Reports;
 use App\Models\Contribution;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use App\Support\Workspaces\WorkspaceValidationRules;
 
 class ReportIndexRequest extends FormRequest
 {
@@ -23,7 +24,7 @@ class ReportIndexRequest extends FormRequest
             'sort' => ['nullable', Rule::in(['highest', 'lowest', 'most_contributions', 'latest'])],
             'from' => ['nullable', 'date'],
             'to' => ['nullable', 'date', 'after_or_equal:from'],
-            'period_id' => ['nullable', 'integer', 'exists:bank_reconciliations,id'],
+            'period_id' => ['nullable', 'integer', WorkspaceValidationRules::exists('bank_reconciliations')],
         ];
     }
 

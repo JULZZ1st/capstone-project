@@ -5,6 +5,7 @@ namespace App\Services\SystemSecurity;
 use App\Models\SecurityActivityEvent;
 use App\Models\SecurityPermission;
 use App\Models\User;
+use App\Support\Workspaces\WorkspaceContext;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 
@@ -30,7 +31,11 @@ class SystemSecurityDashboardQuery
                 'securityProfile:id,user_id,two_factor_enabled,two_factor_enforced,two_factor_verified_at,security_key_suffix',
                 'securityPermissions:id,key,name,sort_order',
             ])
-            ->whereHas('role', fn ($query) => $query->whereIn('name', ['admin', 'secretary', 'treasurer']))
+            ->whereHas('role', fn ($query) => $query->whereIn('name', auth()->user()?->isSuperAdmin() ? ['admin', 'secretary', 'treasurer'] : ['secretary', 'treasurer']))
+            ->whereHas('workspaceMemberships', function ($query): void {
+                $query->where('workspace_id', app(WorkspaceContext::class)->requireId())
+                    ->where('status', 'active');
+            })
             ->orderByRaw("case when status = ? then 0 else 1 end", [config('auth_defaults.user_status')])
             ->orderBy('role_id')
             ->orderBy('name')

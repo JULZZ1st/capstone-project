@@ -11,8 +11,10 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 class Contribution extends Model
 {
     use HasFactory;
+    use Concerns\WorkspaceScoped;
 
     protected $fillable = [
+        'workspace_id',
         'donor_id',
         'campaign_id',
         'created_by',
