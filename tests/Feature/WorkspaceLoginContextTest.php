@@ -14,6 +14,68 @@ class WorkspaceLoginContextTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_super_admin_without_active_workspace_is_sent_to_workspace_management(): void
+    {
+        $role = Role::query()->firstOrCreate(['name' => 'admin'], ['display_name' => 'Administrator']);
+        $gina = User::factory()->create([
+            'email' => 'gina.no-context@example.test',
+            'role_id' => $role->id,
+            'password' => Hash::make('PermanentPassword456!'),
+            'is_super_admin' => true,
+        ]);
+
+        $this->post(route('login.store'), [
+            'email' => $gina->email,
+            'password' => 'PermanentPassword456!',
+        ])->assertRedirect(route('workspaces.index', absolute: false));
+
+        $this->assertAuthenticatedAs($gina);
+        $this->assertNull(session('active_workspace_id'));
+    }
+
+    public function test_super_admin_with_stale_workspace_context_is_sent_to_workspace_management(): void
+    {
+        $role = Role::query()->firstOrCreate(['name' => 'admin'], ['display_name' => 'Administrator']);
+        $gina = User::factory()->create([
+            'email' => 'gina.stale-context@example.test',
+            'role_id' => $role->id,
+            'password' => Hash::make('PermanentPassword456!'),
+            'is_super_admin' => true,
+        ]);
+
+        $this->withSession(['active_workspace_id' => 999999])
+            ->post(route('login.store'), [
+                'email' => $gina->email,
+                'password' => 'PermanentPassword456!',
+            ])->assertRedirect(route('workspaces.index', absolute: false));
+
+        $this->assertNull(session('active_workspace_id'));
+    }
+
+    public function test_super_admin_with_authorized_active_workspace_is_sent_to_dashboard(): void
+    {
+        $role = Role::query()->firstOrCreate(['name' => 'admin'], ['display_name' => 'Administrator']);
+        $gina = User::factory()->create([
+            'email' => 'gina.active-context@example.test',
+            'role_id' => $role->id,
+            'password' => Hash::make('PermanentPassword456!'),
+            'is_super_admin' => true,
+        ]);
+        $workspace = Workspace::query()->create([
+            'name' => 'Authorized Workspace',
+            'slug' => 'authorized-workspace',
+            'status' => 'active',
+        ]);
+
+        $this->withSession(['active_workspace_id' => $workspace->id])
+            ->post(route('login.store'), [
+                'email' => $gina->email,
+                'password' => 'PermanentPassword456!',
+            ])->assertRedirect(route('dashboard', absolute: false));
+
+        $this->assertSame($workspace->id, session('active_workspace_id'));
+    }
+
     public function test_non_super_admin_login_replaces_stale_workspace_context(): void
     {
         $role = Role::query()->firstOrCreate(['name' => 'admin'], ['display_name' => 'Administrator']);

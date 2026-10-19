@@ -13,9 +13,11 @@ return new class extends Migration
         }
 
         foreach (DB::table('legacy_donors')->orderBy('id')->get() as $donor) {
+            $fullName = trim((string) $donor->full_name);
+
             DB::table('donors')->insertOrIgnore([
                 'id' => $donor->id,
-                'full_name' => $donor->name ?: 'Unknown donor',
+                'full_name' => $fullName !== '' ? $fullName : 'Unknown donor',
                 'address' => $donor->address ?? '',
                 'contact_number' => $donor->contact_number ?? '',
                 'email' => null,
