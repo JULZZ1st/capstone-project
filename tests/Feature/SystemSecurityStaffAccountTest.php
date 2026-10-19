@@ -227,6 +227,33 @@ class SystemSecurityStaffAccountTest extends TestCase
         $this->assertDatabaseHas('security_activity_events', ['action' => 'staff_account_updated']);
     }
 
+    public function test_workspace_admin_cannot_modify_another_admin_account(): void
+    {
+        $admin = $this->userWithRole('admin');
+        $otherAdmin = User::factory()->create([
+            'role_id' => Role::query()->where('name', 'admin')->value('id'),
+        ]);
+
+        $this->actingAs($admin)
+            ->patch(route('system-security.users.update', $otherAdmin), [
+                'first_name' => 'Edited',
+                'last_name' => 'Admin',
+                'email' => 'edited-admin@example.test',
+                'role' => 'secretary',
+            ])
+            ->assertForbidden();
+
+        $this->assertDatabaseHas('users', [
+            'id' => $otherAdmin->id,
+            'email' => $otherAdmin->email,
+            'role_id' => Role::query()->where('name', 'admin')->value('id'),
+        ]);
+        $this->assertDatabaseMissing('security_activity_events', [
+            'user_id' => $otherAdmin->id,
+            'action' => 'staff_account_updated',
+        ]);
+    }
+
     public function test_non_admin_cannot_edit_staff_account(): void
     {
         $secretary = $this->userWithRole('secretary');

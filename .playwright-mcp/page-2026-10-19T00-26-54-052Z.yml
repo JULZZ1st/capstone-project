@@ -1,0 +1,98 @@
+- generic [ref=f65e2]:
+  - complementary [ref=f65e3]:
+    - generic [ref=f65e4]:
+      - generic [ref=f65e5]:
+        - paragraph [ref=f65e10]: Donation Operations
+        - button "Toggle sidebar" [expanded] [ref=f65e11] [cursor=pointer]
+      - navigation "Sidebar navigation" [ref=f65e14]:
+        - link "Workspace Management" [ref=f65e15] [cursor=pointer]:
+          - /url: http://127.0.0.1:8001/workspaces
+        - link "Dashboard" [ref=f65e22] [cursor=pointer]:
+          - /url: http://127.0.0.1:8001
+        - link "Donor Management" [ref=f65e29] [cursor=pointer]:
+          - /url: http://127.0.0.1:8001/donors
+        - link "Donations Portal" [ref=f65e36] [cursor=pointer]:
+          - /url: http://127.0.0.1:8001/donations
+        - link "Fund Requests" [ref=f65e43] [cursor=pointer]:
+          - /url: http://127.0.0.1:8001/disbursements
+        - link "In-Kind Inventory" [ref=f65e48] [cursor=pointer]:
+          - /url: http://127.0.0.1:8001/inventory
+        - link "Bank Reconciliation" [ref=f65e53] [cursor=pointer]:
+          - /url: http://127.0.0.1:8001/bank-reconciliation
+        - link "Report Generator" [ref=f65e57] [cursor=pointer]:
+          - /url: http://127.0.0.1:8001/reports
+        - link "System Administration" [ref=f65e62] [cursor=pointer]:
+          - /url: http://127.0.0.1:8001/system-security
+      - button "Logout" [ref=f65e69] [cursor=pointer]
+  - generic [ref=f65e74]:
+    - banner [ref=f65e75]:
+      - generic [ref=f65e76]:
+        - generic [ref=f65e77]:
+          - heading "Workspace Management" [level=1] [ref=f65e78]
+          - paragraph [ref=f65e79]: Create isolated workspaces and assign one Admin to each workspace.
+        - group [ref=f65e80]:
+          - generic "Gina Gamboa Administrator G" [ref=f65e81] [cursor=pointer]:
+            - generic [ref=f65e82]:
+              - generic [ref=f65e83]: Gina Gamboa
+              - generic [ref=f65e84]: Administrator
+            - generic [ref=f65e85]: G
+    - main [ref=f65e89]:
+      - generic [ref=f65e90]: Workspace Repair Plan Workspace B created with its Admin account.
+      - generic [ref=f65e91]:
+        - generic [ref=f65e92]: Workspace Repair Plan Workspace B created with its Admin account.
+        - generic [ref=f65e93]:
+          - generic [ref=f65e94]:
+            - generic [ref=f65e95]:
+              - heading "Workspaces and assigned Admins" [level=2] [ref=f65e96]
+              - paragraph [ref=f65e97]: Platform-level controls. Operational records still require an authorized active workspace.
+            - generic [ref=f65e98]: 3 workspaces
+          - generic [ref=f65e99]:
+            - generic [ref=f65e101]:
+              - generic [ref=f65e102]:
+                - generic [ref=f65e103]: Legacy Workspace
+                - generic [ref=f65e104]: Active
+              - paragraph [ref=f65e105]: legacy · 12 active member(s)
+              - paragraph [ref=f65e106]: "Admin: gina@gmail.com"
+            - generic [ref=f65e107]:
+              - generic [ref=f65e108]:
+                - generic [ref=f65e109]:
+                  - generic [ref=f65e110]: Repair Plan Workspace A
+                  - generic [ref=f65e111]: Active
+                - paragraph [ref=f65e112]: repair-plan-a · 1 active member(s)
+                - paragraph [ref=f65e113]: "Admin: repair-admin-a@example.com"
+              - button "Deactivate" [ref=f65e115] [cursor=pointer]
+            - generic [ref=f65e116]:
+              - generic [ref=f65e117]:
+                - generic [ref=f65e118]:
+                  - generic [ref=f65e119]: Repair Plan Workspace B
+                  - generic [ref=f65e120]: Active
+                - paragraph [ref=f65e121]: repair-plan-b · 1 active member(s)
+                - paragraph [ref=f65e122]: "Admin: repair-admin-b@example.com"
+              - button "Deactivate" [ref=f65e124] [cursor=pointer]
+        - generic [ref=f65e125]:
+          - generic [ref=f65e126]:
+            - heading "Create Workspace and Admin" [level=2] [ref=f65e127]
+            - paragraph [ref=f65e128]: The Admin receives a temporary password and must change it at first login.
+          - generic [ref=f65e129]:
+            - generic [ref=f65e130]:
+              - generic [ref=f65e131]: Workspace name
+              - textbox "Workspace name" [ref=f65e132]
+            - generic [ref=f65e133]:
+              - generic [ref=f65e134]: Workspace slug (optional)
+              - textbox "Workspace slug (optional)" [ref=f65e135]
+            - generic [ref=f65e136]:
+              - generic [ref=f65e137]: Admin first name
+              - textbox "Admin first name" [ref=f65e138]
+            - generic [ref=f65e139]:
+              - generic [ref=f65e140]: Admin last name
+              - textbox "Admin last name" [ref=f65e141]
+            - generic [ref=f65e142]:
+              - generic [ref=f65e143]: Admin email
+              - textbox "Admin email" [ref=f65e144]
+            - generic [ref=f65e145]:
+              - generic [ref=f65e146]: Temporary password
+              - textbox "Temporary password" [ref=f65e147]
+            - generic [ref=f65e148]:
+              - generic [ref=f65e149]: Confirm password
+              - textbox "Confirm password" [ref=f65e150]
+            - button "Create workspace" [ref=f65e152] [cursor=pointer]

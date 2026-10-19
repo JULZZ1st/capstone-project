@@ -1,0 +1,79 @@
+- generic [ref=f102e2]:
+  - complementary [ref=f102e3]:
+    - generic [ref=f102e4]:
+      - generic [ref=f102e5]:
+        - paragraph [ref=f102e10]: Donation Operations
+        - button "Toggle sidebar" [expanded] [ref=f102e11] [cursor=pointer]
+      - navigation "Sidebar navigation" [ref=f102e14]:
+        - link "Workspace Management" [ref=f102e15] [cursor=pointer]:
+          - /url: http://127.0.0.1:8004/workspaces
+        - link "Dashboard" [ref=f102e22] [cursor=pointer]:
+          - /url: http://127.0.0.1:8004
+        - link "Donor Management" [ref=f102e29] [cursor=pointer]:
+          - /url: http://127.0.0.1:8004/donors
+        - link "Donations Portal" [ref=f102e36] [cursor=pointer]:
+          - /url: http://127.0.0.1:8004/donations
+        - link "Fund Requests" [ref=f102e43] [cursor=pointer]:
+          - /url: http://127.0.0.1:8004/disbursements
+        - link "In-Kind Inventory" [ref=f102e48] [cursor=pointer]:
+          - /url: http://127.0.0.1:8004/inventory
+        - link "Bank Reconciliation" [ref=f102e53] [cursor=pointer]:
+          - /url: http://127.0.0.1:8004/bank-reconciliation
+        - link "Report Generator" [ref=f102e57] [cursor=pointer]:
+          - /url: http://127.0.0.1:8004/reports
+        - link "System Administration" [ref=f102e62] [cursor=pointer]:
+          - /url: http://127.0.0.1:8004/system-security
+      - button "Logout" [ref=f102e69] [cursor=pointer]
+  - generic [ref=f102e74]:
+    - banner [ref=f102e75]:
+      - generic [ref=f102e76]:
+        - generic [ref=f102e77]:
+          - heading "Workspace Management" [level=1] [ref=f102e78]
+          - paragraph [ref=f102e79]: Create isolated workspaces and assign one Admin to each workspace.
+        - group [ref=f102e80]:
+          - generic "Gina Gamboa Administrator G" [ref=f102e81] [cursor=pointer]:
+            - generic [ref=f102e82]:
+              - generic [ref=f102e83]: Gina Gamboa
+              - generic [ref=f102e84]: Administrator
+            - generic [ref=f102e85]: G
+    - main [ref=f102e89]:
+      - generic [ref=f102e90]:
+        - generic [ref=f102e91]:
+          - generic [ref=f102e92]:
+            - generic [ref=f102e93]:
+              - heading "Workspaces and assigned Admins" [level=2] [ref=f102e94]
+              - paragraph [ref=f102e95]: Platform-level controls. Operational records still require an authorized active workspace.
+            - generic [ref=f102e96]: 1 workspaces
+          - generic [ref=f102e99]:
+            - generic [ref=f102e100]:
+              - generic [ref=f102e101]: Legacy Workspace
+              - generic [ref=f102e102]: Active
+            - paragraph [ref=f102e103]: legacy · 12 active member(s)
+            - paragraph [ref=f102e104]: "Admin: gina@gmail.com"
+        - generic [ref=f102e105]:
+          - generic [ref=f102e106]:
+            - heading "Create Workspace and Admin" [level=2] [ref=f102e107]
+            - paragraph [ref=f102e108]: The Admin receives a temporary password and must change it at first login.
+          - generic [ref=f102e109]:
+            - generic [ref=f102e110]:
+              - generic [ref=f102e111]: Workspace name
+              - textbox "Workspace name" [ref=f102e112]
+            - generic [ref=f102e113]:
+              - generic [ref=f102e114]: Workspace slug (optional)
+              - textbox "Workspace slug (optional)" [ref=f102e115]
+            - generic [ref=f102e116]:
+              - generic [ref=f102e117]: Admin first name
+              - textbox "Admin first name" [ref=f102e118]
+            - generic [ref=f102e119]:
+              - generic [ref=f102e120]: Admin last name
+              - textbox "Admin last name" [ref=f102e121]
+            - generic [ref=f102e122]:
+              - generic [ref=f102e123]: Admin email
+              - textbox "Admin email" [ref=f102e124]
+            - generic [ref=f102e125]:
+              - generic [ref=f102e126]: Temporary password
+              - textbox "Temporary password" [ref=f102e127]
+            - generic [ref=f102e128]:
+              - generic [ref=f102e129]: Confirm password
+              - textbox "Confirm password" [ref=f102e130]
+            - button "Create workspace" [ref=f102e132] [cursor=pointer]

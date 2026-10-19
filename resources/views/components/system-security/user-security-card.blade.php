@@ -81,7 +81,6 @@
                     <div>
                         <label class="block text-[11px] text-slate-500">Role</label>
                         <select name="role" required class="mt-1 w-full rounded border px-2 py-1 text-sm">
-                            <option value="admin" {{ $user->roleName() === 'admin' ? 'selected' : '' }}>Administrator</option>
                             <option value="secretary" {{ $user->roleName() === 'secretary' ? 'selected' : '' }}>Secretary</option>
                             <option value="treasurer" {{ $user->roleName() === 'treasurer' ? 'selected' : '' }}>Treasurer</option>
                         </select>

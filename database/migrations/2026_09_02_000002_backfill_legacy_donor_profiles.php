@@ -40,20 +40,64 @@ return new class extends Migration
             }
         });
 
+        $legacyHasStructuredProfile = Schema::hasColumn('legacy_donors', 'donor_type')
+            || Schema::hasColumn('legacy_donors', 'first_name')
+            || Schema::hasColumn('legacy_donors', 'last_name');
+
         foreach (DB::table('legacy_donors')->orderBy('id')->get() as $legacyDonor) {
             $legacyName = trim((string) ($legacyDonor->full_name ?? ''));
-            $organization = trim((string) ($legacyDonor->contact_person ?? ''));
-            $contactName = $legacyName !== '' ? $legacyName : ($organization !== '' ? $organization : 'Donor');
-            $displayName = $organization !== '' ? $organization : $legacyName;
-            $nameParts = preg_split('/\s+/', $contactName, 2);
+            $donor = DB::table('donors')->where('id', $legacyDonor->id)->first();
 
-            DB::table('donors')->where('id', $legacyDonor->id)->update([
-                'full_name' => $displayName !== '' ? $displayName : 'Unknown donor',
-                'first_name' => $nameParts[0] ?: 'Donor',
-                'last_name' => $nameParts[1] ?? '',
-                'contact_person' => $organization !== '' ? $legacyName : null,
-                'donor_type' => $organization !== '' ? 'organization' : 'individual',
-            ]);
+            if (! $donor) {
+                continue;
+            }
+
+            $firstName = trim((string) ($legacyDonor->first_name ?? ''));
+            $lastName = trim((string) ($legacyDonor->last_name ?? ''));
+            $legacyContactPerson = trim((string) ($legacyDonor->contact_person ?? ''));
+            $organization = $legacyHasStructuredProfile ? '' : $legacyContactPerson;
+            $contactName = $legacyName !== ''
+                ? $legacyName
+                : trim($firstName.' '.$lastName);
+            $nameParts = preg_split('/\s+/', $contactName, 2) ?: [];
+            $updates = [];
+            $donorName = trim((string) ($donor->full_name ?? ''));
+
+            if (in_array($donorName, ['', 'Unknown donor'], true)) {
+                $updates['full_name'] = $organization !== ''
+                    ? $organization
+                    : ($legacyName !== '' ? $legacyName : ($contactName !== '' ? $contactName : 'Unknown donor'));
+            } elseif ($organization !== '' && $donorName === $contactName) {
+                $updates['full_name'] = $organization;
+            }
+            if (trim((string) ($donor->first_name ?? '')) === '') {
+                $updates['first_name'] = $firstName !== '' ? $firstName : ($nameParts[0] ?? 'Donor');
+            }
+            if (trim((string) ($donor->last_name ?? '')) === '') {
+                $updates['last_name'] = $lastName !== '' ? $lastName : ($nameParts[1] ?? '');
+            }
+            if (($donor->contact_person ?? null) === null || trim((string) $donor->contact_person) === '') {
+                if ($organization !== '') {
+                    $updates['contact_person'] = $contactName !== '' ? $contactName : null;
+                } elseif ($legacyContactPerson !== '') {
+                    $updates['contact_person'] = $legacyContactPerson;
+                }
+            }
+            if (trim((string) ($donor->donor_type ?? '')) === '') {
+                $updates['donor_type'] = $organization !== ''
+                    ? 'organization'
+                    : (trim((string) ($legacyDonor->donor_type ?? '')) ?: 'individual');
+            } elseif (
+                $organization !== ''
+                && trim((string) $donor->donor_type) === 'individual'
+                && $donorName === $contactName
+            ) {
+                $updates['donor_type'] = 'organization';
+            }
+
+            if ($updates !== []) {
+                DB::table('donors')->where('id', $legacyDonor->id)->update($updates);
+            }
         }
     }
 
