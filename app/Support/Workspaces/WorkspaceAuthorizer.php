@@ -5,8 +5,8 @@ namespace App\Support\Workspaces;
 use App\Models\User;
 use App\Models\Workspace;
 use App\Support\Workspaces\WorkspaceContext;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Authorization\AuthorizationException;
 
 class WorkspaceAuthorizer
 {

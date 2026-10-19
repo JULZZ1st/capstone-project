@@ -59,6 +59,61 @@ class WorkspaceManagementTest extends TestCase
         ])->assertForbidden();
     }
 
+    public function test_super_admin_without_active_workspace_is_redirected_to_workspace_management(): void
+    {
+        $adminRole = Role::query()->firstOrCreate(['name' => 'admin'], ['display_name' => 'Administrator']);
+        $superAdmin = User::factory()->create([
+            'role_id' => $adminRole->id,
+            'is_super_admin' => true,
+        ]);
+
+        $this->actingAs($superAdmin)
+            ->get(route('dashboard'))
+            ->assertRedirect(route('workspaces.index'))
+            ->assertSessionHas('error', 'Select an active workspace to continue.');
+    }
+
+    public function test_super_admin_can_select_an_active_workspace(): void
+    {
+        $adminRole = Role::query()->firstOrCreate(['name' => 'admin'], ['display_name' => 'Administrator']);
+        $superAdmin = User::factory()->create([
+            'role_id' => $adminRole->id,
+            'is_super_admin' => true,
+        ]);
+        $workspace = Workspace::query()->create([
+            'name' => 'Workspace A',
+            'slug' => 'workspace-a',
+            'status' => 'active',
+        ]);
+
+        $this->actingAs($superAdmin)
+            ->post(route('workspaces.select', $workspace))
+            ->assertRedirect(route('dashboard'))
+            ->assertSessionHas('active_workspace_id', $workspace->id);
+
+        $this->get(route('dashboard'))->assertOk();
+    }
+
+    public function test_super_admin_cannot_select_an_inactive_workspace(): void
+    {
+        $adminRole = Role::query()->firstOrCreate(['name' => 'admin'], ['display_name' => 'Administrator']);
+        $superAdmin = User::factory()->create([
+            'role_id' => $adminRole->id,
+            'is_super_admin' => true,
+        ]);
+        $workspace = Workspace::query()->create([
+            'name' => 'Inactive Workspace',
+            'slug' => 'inactive-workspace',
+            'status' => 'inactive',
+        ]);
+
+        $this->actingAs($superAdmin)
+            ->post(route('workspaces.select', $workspace))
+            ->assertForbidden();
+
+        $this->assertNull(session('active_workspace_id'));
+    }
+
     public function test_workspace_admin_cannot_create_another_admin_from_staff_console(): void
     {
         $admin = $this->userWithRole('admin');
