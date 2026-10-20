@@ -16,7 +16,7 @@ class RequireActiveWorkspace
     public function handle(Request $request, Closure $next): Response
     {
         if (! $this->context->hasWorkspace()) {
-            if ($request->user()?->isSuperAdmin() && $request->routeIs('dashboard')) {
+            if ($request->user()?->isSuperAdmin() && $request->isMethod('GET') && $request->routeIs('dashboard')) {
                 return redirect()
                     ->route('workspaces.index')
                     ->with('error', 'Select an active workspace to continue.');

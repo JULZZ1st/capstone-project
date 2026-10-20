@@ -83,6 +83,7 @@
                 @endif
             </section>
 
+            @if (auth()->user()->can('verify', $contribution) || auth()->user()->can('void', $contribution) || auth()->user()->can('update', $contribution))
             <aside class="rounded-lg border border-slate-200 bg-white p-5">
                 <h2 class="text-base font-semibold text-slate-950">Update Record</h2>
                 @can('verify', $contribution)
@@ -127,6 +128,7 @@
                     <p class="mt-4 text-sm text-slate-500">This contribution is not editable for your role or its current status.</p>
                 @endcan
             </aside>
+            @endif
         </div>
     </div>
 @endsection

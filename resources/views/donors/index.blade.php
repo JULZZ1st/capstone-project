@@ -88,8 +88,12 @@
             </section>
 
             @foreach ($donors as $donor)
-                <x-donors.edit-modal :donor="$donor" :open="$errors->any() && $modal === 'edit-'.$donor->id" />
-                <x-donors.remove-modal :donor="$donor" />
+                @can('update', $donor)
+                    <x-donors.edit-modal :donor="$donor" :open="$errors->any() && $modal === 'edit-'.$donor->id" />
+                @endcan
+                @can('delete', $donor)
+                    <x-donors.remove-modal :donor="$donor" />
+                @endcan
             @endforeach
 
             <div>

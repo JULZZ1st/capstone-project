@@ -278,17 +278,20 @@
                 Close
             </button>
 
-            <button
-                type="button"
-                class="rounded-md bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800"
-                onclick="document.getElementById('{{ $updateModalId }}').showModal()"
-            >
-                Update Record
-            </button>
+            @can('update', $contribution)
+                <button
+                    type="button"
+                    class="rounded-md bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800"
+                    onclick="document.getElementById('{{ $updateModalId }}').showModal()"
+                >
+                    Update Record
+                </button>
+            @endcan
         </div>
     </div>
 </dialog>
 
+@can('update', $contribution)
 <dialog
     id="{{ $updateModalId }}"
     class="w-[min(520px,calc(100vw-2rem))] rounded-2xl p-0 shadow-xl backdrop:bg-slate-950/50"
@@ -373,3 +376,4 @@
         </div>
     </form>
 </dialog>
+@endcan
