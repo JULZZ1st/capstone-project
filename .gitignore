@@ -73,3 +73,6 @@ desktop.ini
 # Local development tooling
 Homestead.json
 Homestead.yaml
+/.agents/
+/.playwright-cli/
+/.playwright-mcp/
