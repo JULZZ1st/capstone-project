@@ -9,6 +9,9 @@
         @if (session('success'))
             <div class="rounded border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{{ session('success') }}</div>
         @endif
+        @if (session('error'))
+            <div class="rounded border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">{{ session('error') }}</div>
+        @endif
         <section class="rounded-xl border border-slate-200 bg-white shadow-sm">
             <div class="flex flex-col gap-3 border-b border-slate-100 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
                 <div><h2 class="font-semibold text-slate-900">Workspaces and assigned Admins</h2><p class="text-xs text-slate-500">Platform-level controls. Operational records still require an authorized active workspace.</p></div>
@@ -22,12 +25,20 @@
                             <p class="mt-1 text-xs text-slate-500">{{ $workspace->slug }} · {{ $workspace->active_member_count }} active member(s)</p>
                             <p class="mt-1 text-sm text-slate-700">Admin: {{ $workspace->memberships->first(fn ($membership) => $membership->role?->name === 'admin')?->user?->email ?? 'Not assigned' }}</p>
                         </div>
-                        @if ($workspace->slug !== 'legacy')
-                            <form method="POST" action="{{ route('workspaces.toggle', $workspace) }}">
-                                @csrf @method('PATCH')
-                                <button class="rounded border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">{{ $workspace->isActive() ? 'Deactivate' : 'Activate' }}</button>
-                            </form>
-                        @endif
+                        <div class="flex flex-wrap gap-2">
+                            @if ($workspace->isActive())
+                                <form method="POST" action="{{ route('workspaces.select', $workspace) }}">
+                                    @csrf
+                                    <button class="rounded bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-700">Open workspace</button>
+                                </form>
+                            @endif
+                            @if ($workspace->slug !== 'legacy')
+                                <form method="POST" action="{{ route('workspaces.toggle', $workspace) }}">
+                                    @csrf @method('PATCH')
+                                    <button class="rounded border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">{{ $workspace->isActive() ? 'Deactivate' : 'Activate' }}</button>
+                                </form>
+                            @endif
+                        </div>
                     </div>
                 @endforeach
             </div>

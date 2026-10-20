@@ -15,7 +15,15 @@ class RequireActiveWorkspace
 
     public function handle(Request $request, Closure $next): Response
     {
-        abort_unless($this->context->hasWorkspace(), 403, 'An authorized active workspace is required.');
+        if (! $this->context->hasWorkspace()) {
+            if ($request->user()?->isSuperAdmin() && $request->isMethod('GET')) {
+                return redirect()
+                    ->route('workspaces.index')
+                    ->with('error', 'Select an active workspace to continue.');
+            }
+
+            abort(403, 'An authorized active workspace is required.');
+        }
 
         return $next($request);
     }
