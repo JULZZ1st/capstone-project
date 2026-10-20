@@ -37,6 +37,7 @@ Route::middleware(['auth', 'password.change', 'role:admin', 'platform.superadmin
     ->group(function () {
         Route::get('/', [WorkspaceManagementController::class, 'index'])->name('index');
         Route::post('/', [WorkspaceManagementController::class, 'store'])->name('store');
+        Route::post('/{workspace}/select', [WorkspaceManagementController::class, 'select'])->name('select');
         Route::patch('/{workspace}/toggle', [WorkspaceManagementController::class, 'toggle'])->name('toggle');
     });
 
