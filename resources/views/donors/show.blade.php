@@ -12,16 +12,20 @@
                 <p class="mt-1 text-sm text-slate-600">{{ config('donors.types')[$donor->donor_type] ?? ucfirst($donor->donor_type) }}</p>
             </div>
             <div class="flex gap-2">
-                <button type="button" class="inline-flex items-center justify-center rounded-md bg-blue-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-800" data-dialog-open="edit-donor-modal-{{ $donor->id }}">
-                    Edit Profile
-                </button>
-                <form method="POST" action="{{ route('donors.destroy', $donor) }}" onsubmit="return confirm('Remove this donor? If they have donation history, the profile will be deactivated instead of permanently deleted.')">
-                    @csrf
-                    @method('DELETE')
-                    <button type="submit" class="inline-flex items-center justify-center rounded-md border border-red-300 px-4 py-2.5 text-sm font-semibold text-red-700 hover:bg-red-50">
-                        Remove
+                @can('update', $donor)
+                    <button type="button" class="inline-flex items-center justify-center rounded-md bg-blue-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-800" data-dialog-open="edit-donor-modal-{{ $donor->id }}">
+                        Edit Profile
                     </button>
-                </form>
+                @endcan
+                @can('delete', $donor)
+                    <form method="POST" action="{{ route('donors.destroy', $donor) }}" onsubmit="return confirm('Remove this donor? If they have donation history, the profile will be deactivated instead of permanently deleted.')">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit" class="inline-flex items-center justify-center rounded-md border border-red-300 px-4 py-2.5 text-sm font-semibold text-red-700 hover:bg-red-50">
+                            Remove
+                        </button>
+                    </form>
+                @endcan
             </div>
         </div>
 
@@ -89,5 +93,7 @@
         </x-dashboard.panel>
     </div>
 
-    <x-donors.edit-modal :donor="$donor" :open="$errors->any() && old('_modal') === 'edit-'.$donor->id" />
+    @can('update', $donor)
+        <x-donors.edit-modal :donor="$donor" :open="$errors->any() && old('_modal') === 'edit-'.$donor->id" />
+    @endcan
 @endsection

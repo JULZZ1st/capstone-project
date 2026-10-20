@@ -6,14 +6,20 @@
 
 @section('content')
     <div class="space-y-6">
+        @php
+            $canApproveAny = $disbursements->contains(fn ($disbursement) => auth()->user()->can('approve', $disbursement));
+        @endphp
 
         <section class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
             <div class="flex items-center justify-between gap-3 border-b border-slate-100 px-5 py-4">
                 <h2 class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Request history</h2>
-                <button type="button" id="toggle-fund-request-form" aria-haspopup="dialog" aria-controls="create-fund-request-modal" class="inline-flex items-center justify-center rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-200">
-                    Create Fund Request
-                </button>
+                @can('create', \App\Models\CashDisbursement::class)
+                    <button type="button" id="toggle-fund-request-form" aria-haspopup="dialog" aria-controls="create-fund-request-modal" class="inline-flex items-center justify-center rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-200">
+                        Create Fund Request
+                    </button>
+                @endcan
             </div>
+            @can('create', \App\Models\CashDisbursement::class)
             <dialog id="create-fund-request-modal" data-reopen="{{ old('_modal') === 'create' ? 'true' : 'false' }}" class="m-auto w-[calc(100%-2rem)] max-w-3xl overflow-hidden rounded-xl border-0 p-0 shadow-2xl backdrop:bg-slate-950/55">
                 <div class="flex max-h-[86vh] flex-col bg-white">
                     <div class="flex shrink-0 items-start justify-between gap-4 border-b border-slate-200 px-4 py-3 sm:px-6">
@@ -93,6 +99,7 @@
                 </form>
                 </div>
             </dialog>
+            @endcan
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-slate-100 text-sm">
                         <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -182,7 +189,7 @@
             <div class="flex shrink-0 items-start justify-between gap-4 border-b border-slate-200 px-4 py-3 sm:px-6">
             <div>
                 <h2 class="text-xl font-semibold text-slate-900">Fund Request Details</h2>
-                <p class="mt-1 text-sm text-slate-500">Review and update the selected request.</p>
+                <p class="mt-1 text-sm text-slate-500">Review the selected request.</p>
             </div>
             <button type="button" data-close-fund-request-modal class="flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Close modal">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
@@ -235,8 +242,7 @@
 
             <div class="flex shrink-0 flex-wrap justify-end gap-3 border-t border-slate-200 bg-slate-50/90 px-4 py-3 sm:px-6">
                 <button type="button" data-close-fund-request-modal class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Close</button>
-                <button type="button" id="toggle-fund-request-edit" class="rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-100">Edit</button>
-                <button type="submit" class="rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800">Save Changes</button>
+                @if ($canApproveAny)
                 <div id="fund-request-approval-actions" class="hidden w-full flex-wrap items-end justify-end gap-3 border-t border-slate-200 pt-3">
                     <p id="fund-request-approval-notice" class="mr-auto hidden text-sm text-amber-700">Only a different administrator can approve this pending request.</p>
                     <div class="flex flex-1 flex-col gap-2 sm:flex-row sm:items-end sm:justify-end">
@@ -248,6 +254,7 @@
                         <button id="approve-fund-request-button" type="submit" form="approve-fund-request-form" class="hidden rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700">Approve Request</button>
                     </div>
                 </div>
+                @endif
             </div>
         </form>
         <form id="approve-fund-request-form" method="POST" class="hidden">
@@ -266,7 +273,6 @@
             const createModal = document.getElementById('create-fund-request-modal');
             const modal = document.getElementById('fund-request-detail-modal');
             const form = document.getElementById('fund-request-detail-form');
-            const editToggle = document.getElementById('toggle-fund-request-edit');
             const fields = form.querySelectorAll('input:not([form]), textarea:not([form])');
             const approvalActions = document.getElementById('fund-request-approval-actions');
             const approvalNotice = document.getElementById('fund-request-approval-notice');
@@ -286,27 +292,16 @@
                 createModal.showModal();
             }
 
-            document.querySelectorAll('[data-close-create-fund-request]').forEach((button) => {
-                button.addEventListener('click', () => createModal.close());
-            });
-
-            createModal.addEventListener('click', (event) => {
-                if (event.target === createModal) {
-                    createModal.close();
-                }
-            });
-
-            const activateEditMode = () => {
-                fields.forEach((field) => {
-                    field.removeAttribute('readonly');
-                    field.disabled = false;
+            if (createModal) {
+                document.querySelectorAll('[data-close-create-fund-request]').forEach((button) => {
+                    button.addEventListener('click', () => createModal.close());
                 });
-                editToggle.textContent = 'Editing';
-                editToggle.disabled = true;
-            };
 
-            if (editToggle) {
-                editToggle.addEventListener('click', activateEditMode);
+                createModal.addEventListener('click', (event) => {
+                    if (event.target === createModal) {
+                        createModal.close();
+                    }
+                });
             }
 
             document.querySelectorAll('[data-open-fund-request-modal]').forEach((button) => {
@@ -321,26 +316,29 @@
                     document.getElementById('modal_purpose').value = row.dataset.purpose ? decodeURIComponent(escape(row.dataset.purpose)) : '';
                     document.getElementById('modal_supporting_reference').value = row.dataset.supportingReference || '';
                     document.getElementById('modal_notes').value = row.dataset.notes ? decodeURIComponent(escape(row.dataset.notes)) : '';
-                    document.getElementById('modal_rejection_reason').value = '';
+                    const rejectionReason = document.getElementById('modal_rejection_reason');
+                    if (rejectionReason) {
+                        rejectionReason.value = '';
+                    }
 
                     const isPending = row.dataset.status === 'pending';
                     const canApprove = row.dataset.canApprove === 'true';
-                    approvalActions.classList.toggle('hidden', ! isPending);
-                    approvalActions.classList.toggle('flex', isPending);
-                    approvalButton.classList.toggle('hidden', ! canApprove);
-                    rejectionButton.classList.toggle('hidden', ! canApprove);
-                    rejectionField.classList.toggle('hidden', ! canApprove);
-                    approvalNotice.classList.toggle('hidden', ! isPending || canApprove);
-                    approvalForm.action = row.dataset.approvalUrl;
-                    rejectionForm.action = row.dataset.rejectionUrl;
+                     if (approvalActions) {
+                         approvalActions.classList.toggle('hidden', ! isPending);
+                         approvalActions.classList.toggle('flex', isPending);
+                         approvalButton.classList.toggle('hidden', ! canApprove);
+                         rejectionButton.classList.toggle('hidden', ! canApprove);
+                         rejectionField.classList.toggle('hidden', ! canApprove);
+                         approvalNotice.classList.toggle('hidden', ! isPending || canApprove);
+                         approvalForm.action = row.dataset.approvalUrl;
+                         rejectionForm.action = row.dataset.rejectionUrl;
+                     }
 
                     fields.forEach((field) => {
                         field.disabled = true;
                         field.setAttribute('readonly', 'readonly');
                     });
 
-                    editToggle.disabled = false;
-                    editToggle.textContent = 'Edit';
                     modal.showModal();
                 });
             });

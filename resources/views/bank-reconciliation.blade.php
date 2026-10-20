@@ -25,21 +25,23 @@
     </nav>
 </div>
 
-        @can('prepare', App\Models\BankReconciliation::class)
+        @can('viewAny', App\Models\BankLedgerEntry::class)
             <section class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
                 <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                     <div>
                         <h2 class="text-base font-semibold text-slate-950">Reconciliation Period</h2>
                         <p class="mt-1 text-sm text-slate-500">Create a period using raw bank balances. Movement totals and the financial ledger balance are calculated from stored records.</p>
                     </div>
-                    <form method="POST" action="{{ route('bank-reconciliation.periods.store') }}" class="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
-                        @csrf
-                        <input name="period_start" type="date" required class="rounded-md border-slate-300 text-sm" aria-label="Period start">
-                        <input name="period_end" type="date" required class="rounded-md border-slate-300 text-sm" aria-label="Period end">
-                        <input name="opening_balance" type="number" step="0.01" min="0" required placeholder="Opening balance" class="rounded-md border-slate-300 text-sm">
-                        <input name="bank_ending_balance" type="number" step="0.01" min="0" placeholder="Bank ending balance" class="rounded-md border-slate-300 text-sm">
-                        <x-button class="sm:col-span-2 lg:col-span-1">Create Period</x-button>
-                    </form>
+                    @can('prepare', App\Models\BankReconciliation::class)
+                        <form method="POST" action="{{ route('bank-reconciliation.periods.store') }}" class="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+                            @csrf
+                            <input name="period_start" type="date" required class="rounded-md border-slate-300 text-sm" aria-label="Period start">
+                            <input name="period_end" type="date" required class="rounded-md border-slate-300 text-sm" aria-label="Period end">
+                            <input name="opening_balance" type="number" step="0.01" min="0" required placeholder="Opening balance" class="rounded-md border-slate-300 text-sm">
+                            <input name="bank_ending_balance" type="number" step="0.01" min="0" placeholder="Bank ending balance" class="rounded-md border-slate-300 text-sm">
+                            <x-button class="sm:col-span-2 lg:col-span-1">Create Period</x-button>
+                        </form>
+                    @endcan
                 </div>
                 @if ($latestReconciliationPeriod)
                     @can('update', $latestReconciliationPeriod)
@@ -69,20 +71,23 @@
                             <form method="POST" action="{{ route('bank-reconciliation.periods.reopen', $latestReconciliationPeriod) }}" class="flex gap-2">@csrf<input name="reason" required placeholder="Reopen reason" class="rounded-md border-slate-300 text-sm"><x-button type="submit">Reopen for Correction</x-button></form>
                         @endcan
                     </div>
+                    @if (auth()->user()->can('create', App\Models\BankLedgerEntry::class) || $latestReconciliationPeriod->discrepancies->isNotEmpty())
                     <div class="mt-4 border-t border-slate-100 pt-4">
                         <h3 class="text-sm font-semibold text-slate-900">Record discrepancy</h3>
-                        <form method="POST" action="{{ route('bank-reconciliation.discrepancies.store', $latestReconciliationPeriod) }}" class="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-                            @csrf
-                            <select name="type" required class="rounded-md border-slate-300 text-sm"><option value="">Discrepancy type</option><option value="unmatched_amount">Unmatched amount</option><option value="bank_charge">Bank charge</option><option value="interest">Interest</option><option value="outstanding_check">Outstanding check</option><option value="deposit_in_transit">Deposit in transit</option><option value="recording_error">Recording error</option></select>
-                            <select name="classification" required class="rounded-md border-slate-300 text-sm"><option value="">Classification</option><option value="accounting_adjustment">Accounting adjustment</option><option value="timing_difference">Timing difference</option></select>
-                            <input name="amount" type="number" step="0.01" min="0.01" required placeholder="Amount" class="rounded-md border-slate-300 text-sm">
-                            <input name="evidence_reference" required placeholder="Evidence/reference" class="rounded-md border-slate-300 text-sm">
-                            <textarea name="explanation" required placeholder="Explanation" class="rounded-md border-slate-300 text-sm sm:col-span-2"></textarea>
-                            <select name="resolution_status" required class="rounded-md border-slate-300 text-sm"><option value="unresolved">Unresolved</option><option value="resolved">Resolved</option><option value="accounted">Accounted</option></select>
-                            <input name="adjustment_amount" type="number" step="0.01" placeholder="Signed adjustment (accounting only)" class="rounded-md border-slate-300 text-sm">
-                            <label class="flex items-center gap-2 text-sm text-slate-600"><input name="carry_forward" type="checkbox" value="1"> Carry forward timing item</label>
-                            <x-button class="sm:col-span-2 lg:col-span-1">Save discrepancy</x-button>
-                        </form>
+                        @can('create', App\Models\BankLedgerEntry::class)
+                            <form method="POST" action="{{ route('bank-reconciliation.discrepancies.store', $latestReconciliationPeriod) }}" class="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                                @csrf
+                                <select name="type" required class="rounded-md border-slate-300 text-sm"><option value="">Discrepancy type</option><option value="unmatched_amount">Unmatched amount</option><option value="bank_charge">Bank charge</option><option value="interest">Interest</option><option value="outstanding_check">Outstanding check</option><option value="deposit_in_transit">Deposit in transit</option><option value="recording_error">Recording error</option></select>
+                                <select name="classification" required class="rounded-md border-slate-300 text-sm"><option value="">Classification</option><option value="accounting_adjustment">Accounting adjustment</option><option value="timing_difference">Timing difference</option></select>
+                                <input name="amount" type="number" step="0.01" min="0.01" required placeholder="Amount" class="rounded-md border-slate-300 text-sm">
+                                <input name="evidence_reference" required placeholder="Evidence/reference" class="rounded-md border-slate-300 text-sm">
+                                <textarea name="explanation" required placeholder="Explanation" class="rounded-md border-slate-300 text-sm sm:col-span-2"></textarea>
+                                <select name="resolution_status" required class="rounded-md border-slate-300 text-sm"><option value="unresolved">Unresolved</option><option value="resolved">Resolved</option><option value="accounted">Accounted</option></select>
+                                <input name="adjustment_amount" type="number" step="0.01" placeholder="Signed adjustment (accounting only)" class="rounded-md border-slate-300 text-sm">
+                                <label class="flex items-center gap-2 text-sm text-slate-600"><input name="carry_forward" type="checkbox" value="1"> Carry forward timing item</label>
+                                <x-button class="sm:col-span-2 lg:col-span-1">Save discrepancy</x-button>
+                            </form>
+                        @endcan
                         @if ($latestReconciliationPeriod->discrepancies->isNotEmpty())
                             <div class="mt-3 space-y-2 text-sm">
                                 @foreach ($latestReconciliationPeriod->discrepancies as $discrepancy)
@@ -91,6 +96,7 @@
                             </div>
                         @endif
                     </div>
+                    @endif
                 @endif
                 <x-form.error name="period_start" />
                 <x-form.error name="period_end" />
