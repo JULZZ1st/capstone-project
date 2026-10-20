@@ -22,6 +22,7 @@ class DonorController extends Controller
         $donors = Donor::query()
             ->select([
                 'id',
+                'workspace_id',
                 'donor_type',
                 'first_name',
                 'last_name',

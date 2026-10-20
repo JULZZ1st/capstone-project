@@ -3,6 +3,8 @@
 namespace App\Http\Requests\SystemSecurity;
 
 use App\Models\SecurityActivityEvent;
+use App\Support\Workspaces\WorkspaceAuthorizer;
+use App\Support\Workspaces\WorkspaceContext;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rules\Password;
 
@@ -10,7 +12,12 @@ class CreateStaffAccountRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->can('updateSecuritySettings', SecurityActivityEvent::class) ?? false;
+        $user = $this->user();
+
+        return $user !== null
+            && app(WorkspaceContext::class)->hasWorkspace()
+            && $user->can('updateSecuritySettings', SecurityActivityEvent::class)
+            && app(WorkspaceAuthorizer::class)->canManageMembers($user, app(WorkspaceContext::class)->get());
     }
 
     public function rules(): array
@@ -21,7 +28,7 @@ class CreateStaffAccountRequest extends FormRequest
             'first_name' => ['required', 'string', 'max:100'],
             'last_name' => ['required', 'string', 'max:100'],
             'email' => ['required', 'string', $emailRule, 'max:255', 'unique:users,email'],
-            'role' => ['required', 'string', 'in:admin,secretary,treasurer'],
+            'role' => ['required', 'string', 'in:secretary,treasurer'],
             'password' => ['required', 'confirmed', Password::min(12)],
         ];
     }

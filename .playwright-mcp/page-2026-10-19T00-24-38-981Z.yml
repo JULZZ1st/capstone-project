@@ -1,0 +1,530 @@
+- generic [ref=f57e2]:
+  - banner [ref=f57e3]:
+    - generic [ref=f57e5]:
+      - generic [ref=f57e6]: Internal Server Error
+      - button [ref=f57e13] [cursor=pointer]
+  - main [ref=f57e16]:
+    - generic [ref=f57e17]:
+      - generic [ref=f57e19]:
+        - generic [ref=f57e20]:
+          - generic [ref=f57e21]: Illuminate\Database\QueryException
+          - generic [ref=f57e22]: "SQLSTATE[42S02]: Base table or view not found: 1146 Table 'barangay_donation_e2e_20261012.workspace_memberships' doesn't exist (Connection: mysql, SQL: select * from `workspace_memberships` where `workspace_memberships`.`user_id` = 2 and `workspace_memberships`.`user_id` is not null and `status` = active and exists (select * from `workspaces` where `workspace_memberships`.`workspace_id` = `workspaces`.`id` and `status` = active) order by `id` desc limit 1)"
+        - generic [ref=f57e23]:
+          - generic [ref=f57e24]: GET 127.0.0.1:8001
+          - generic [ref=f57e26]: PHP 8.2.33 — Laravel 11.57.0
+      - generic [ref=f57e29]:
+        - generic [ref=f57e31]:
+          - button "Expand vendor frames" [ref=f57e33] [cursor=pointer]:
+            - generic [ref=f57e34]: Expand
+            - generic [ref=f57e35]: vendor frames
+          - generic [ref=f57e41]:
+            - button "Illuminate\\Database\\Connection :825 runQueryCallback" [ref=f57e42] [cursor=pointer]:
+              - generic [ref=f57e44]:
+                - generic [ref=f57e46]:
+                  - generic [ref=f57e47]: Illuminate\Database\Connection
+                  - generic [ref=f57e48]: :825
+                - generic [ref=f57e49]: runQueryCallback
+            - button "Illuminate\\Database\\Connection :779 run" [ref=f57e50] [cursor=pointer]:
+              - generic [ref=f57e52]:
+                - generic [ref=f57e54]:
+                  - generic [ref=f57e55]: Illuminate\Database\Connection
+                  - generic [ref=f57e56]: :779
+                - generic [ref=f57e57]: run
+            - button "Illuminate\\Database\\Connection :398 select" [ref=f57e58] [cursor=pointer]:
+              - generic [ref=f57e60]:
+                - generic [ref=f57e62]:
+                  - generic [ref=f57e63]: Illuminate\Database\Connection
+                  - generic [ref=f57e64]: :398
+                - generic [ref=f57e65]: select
+            - button "Illuminate\\Database\\Query\\Builder :3106 runSelect" [ref=f57e66] [cursor=pointer]:
+              - generic [ref=f57e68]:
+                - generic [ref=f57e70]:
+                  - generic [ref=f57e71]: Illuminate\Database\Query\Builder
+                  - generic [ref=f57e72]: :3106
+                - generic [ref=f57e73]: runSelect
+            - 'button "Illuminate\\Database\\Query\\Builder :3091 Illuminate\\Database\\Query\\{closure}" [ref=f57e74] [cursor=pointer]':
+              - generic [ref=f57e76]:
+                - generic [ref=f57e78]:
+                  - generic [ref=f57e79]: Illuminate\Database\Query\Builder
+                  - generic [ref=f57e80]: :3091
+                - generic [ref=f57e81]: "Illuminate\\Database\\Query\\{closure}"
+            - button "Illuminate\\Database\\Query\\Builder :3676 onceWithColumns" [ref=f57e82] [cursor=pointer]:
+              - generic [ref=f57e84]:
+                - generic [ref=f57e86]:
+                  - generic [ref=f57e87]: Illuminate\Database\Query\Builder
+                  - generic [ref=f57e88]: :3676
+                - generic [ref=f57e89]: onceWithColumns
+            - button "Illuminate\\Database\\Query\\Builder :3090 get" [ref=f57e90] [cursor=pointer]:
+              - generic [ref=f57e92]:
+                - generic [ref=f57e94]:
+                  - generic [ref=f57e95]: Illuminate\Database\Query\Builder
+                  - generic [ref=f57e96]: :3090
+                - generic [ref=f57e97]: get
+            - button "Illuminate\\Database\\Eloquent\\Builder :811 getModels" [ref=f57e98] [cursor=pointer]:
+              - generic [ref=f57e100]:
+                - generic [ref=f57e102]:
+                  - generic [ref=f57e103]: Illuminate\Database\Eloquent\Builder
+                  - generic [ref=f57e104]: :811
+                - generic [ref=f57e105]: getModels
+            - button "Illuminate\\Database\\Eloquent\\Builder :793 get" [ref=f57e106] [cursor=pointer]:
+              - generic [ref=f57e108]:
+                - generic [ref=f57e110]:
+                  - generic [ref=f57e111]: Illuminate\Database\Eloquent\Builder
+                  - generic [ref=f57e112]: :793
+                - generic [ref=f57e113]: get
+            - button "Illuminate\\Database\\Concerns\\BuildsQueries :343 first" [ref=f57e114] [cursor=pointer]:
+              - generic [ref=f57e116]:
+                - generic [ref=f57e118]:
+                  - generic [ref=f57e119]: Illuminate\Database\Concerns\BuildsQueries
+                  - generic [ref=f57e120]: :343
+                - generic [ref=f57e121]: first
+            - button "Illuminate\\Support\\Traits\\ForwardsCalls :23 forwardCallTo" [ref=f57e122] [cursor=pointer]:
+              - generic [ref=f57e124]:
+                - generic [ref=f57e126]:
+                  - generic [ref=f57e127]: Illuminate\Support\Traits\ForwardsCalls
+                  - generic [ref=f57e128]: :23
+                - generic [ref=f57e129]: forwardCallTo
+            - button "Illuminate\\Support\\Traits\\ForwardsCalls :52 forwardDecoratedCallTo" [ref=f57e130] [cursor=pointer]:
+              - generic [ref=f57e132]:
+                - generic [ref=f57e134]:
+                  - generic [ref=f57e135]: Illuminate\Support\Traits\ForwardsCalls
+                  - generic [ref=f57e136]: :52
+                - generic [ref=f57e137]: forwardDecoratedCallTo
+            - button "Illuminate\\Database\\Eloquent\\Relations\\Relation :538 __call" [ref=f57e138] [cursor=pointer]:
+              - generic [ref=f57e140]:
+                - generic [ref=f57e142]:
+                  - generic [ref=f57e143]: Illuminate\Database\Eloquent\Relations\Relation
+                  - generic [ref=f57e144]: :538
+                - generic [ref=f57e145]: __call
+            - button "C:\\Users\\GinaGamboa\\donation\\capstone-project\\app\\Http\\Middleware\\ResolveActiveWorkspace.php :51 handle" [ref=f57e146] [cursor=pointer]:
+              - generic [ref=f57e148]:
+                - generic [ref=f57e150]:
+                  - generic [ref=f57e151]: C:\Users\GinaGamboa\donation\capstone-project\app\Http\Middleware\ResolveActiveWorkspace.php
+                  - generic [ref=f57e152]: :51
+                - generic [ref=f57e153]: handle
+            - 'button "Illuminate\\Pipeline\\Pipeline :209 Illuminate\\Pipeline\\{closure}" [ref=f57e154] [cursor=pointer]':
+              - generic [ref=f57e156]:
+                - generic [ref=f57e158]:
+                  - generic [ref=f57e159]: Illuminate\Pipeline\Pipeline
+                  - generic [ref=f57e160]: :209
+                - generic [ref=f57e161]: "Illuminate\\Pipeline\\{closure}"
+            - button "App\\Http\\Middleware\\EnsureRole :22 handle" [ref=f57e162] [cursor=pointer]:
+              - generic [ref=f57e164]:
+                - generic [ref=f57e166]:
+                  - generic [ref=f57e167]: App\Http\Middleware\EnsureRole
+                  - generic [ref=f57e168]: :22
+                - generic [ref=f57e169]: handle
+            - 'button "Illuminate\\Pipeline\\Pipeline :209 Illuminate\\Pipeline\\{closure}" [ref=f57e170] [cursor=pointer]':
+              - generic [ref=f57e172]:
+                - generic [ref=f57e174]:
+                  - generic [ref=f57e175]: Illuminate\Pipeline\Pipeline
+                  - generic [ref=f57e176]: :209
+                - generic [ref=f57e177]: "Illuminate\\Pipeline\\{closure}"
+            - button "C:\\Users\\GinaGamboa\\donation\\capstone-project\\app\\Http\\Middleware\\EnsurePasswordChanged.php :17 handle" [ref=f57e178] [cursor=pointer]:
+              - generic [ref=f57e180]:
+                - generic [ref=f57e182]:
+                  - generic [ref=f57e183]: C:\Users\GinaGamboa\donation\capstone-project\app\Http\Middleware\EnsurePasswordChanged.php
+                  - generic [ref=f57e184]: :17
+                - generic [ref=f57e185]: handle
+            - 'button "Illuminate\\Pipeline\\Pipeline :209 Illuminate\\Pipeline\\{closure}" [ref=f57e186] [cursor=pointer]':
+              - generic [ref=f57e188]:
+                - generic [ref=f57e190]:
+                  - generic [ref=f57e191]: Illuminate\Pipeline\Pipeline
+                  - generic [ref=f57e192]: :209
+                - generic [ref=f57e193]: "Illuminate\\Pipeline\\{closure}"
+            - button "Illuminate\\Routing\\Middleware\\SubstituteBindings :51 handle" [ref=f57e194] [cursor=pointer]:
+              - generic [ref=f57e196]:
+                - generic [ref=f57e198]:
+                  - generic [ref=f57e199]: Illuminate\Routing\Middleware\SubstituteBindings
+                  - generic [ref=f57e200]: :51
+                - generic [ref=f57e201]: handle
+            - 'button "Illuminate\\Pipeline\\Pipeline :209 Illuminate\\Pipeline\\{closure}" [ref=f57e202] [cursor=pointer]':
+              - generic [ref=f57e204]:
+                - generic [ref=f57e206]:
+                  - generic [ref=f57e207]: Illuminate\Pipeline\Pipeline
+                  - generic [ref=f57e208]: :209
+                - generic [ref=f57e209]: "Illuminate\\Pipeline\\{closure}"
+            - button "Illuminate\\Auth\\Middleware\\Authenticate :64 handle" [ref=f57e210] [cursor=pointer]:
+              - generic [ref=f57e212]:
+                - generic [ref=f57e214]:
+                  - generic [ref=f57e215]: Illuminate\Auth\Middleware\Authenticate
+                  - generic [ref=f57e216]: :64
+                - generic [ref=f57e217]: handle
+            - 'button "Illuminate\\Pipeline\\Pipeline :209 Illuminate\\Pipeline\\{closure}" [ref=f57e218] [cursor=pointer]':
+              - generic [ref=f57e220]:
+                - generic [ref=f57e222]:
+                  - generic [ref=f57e223]: Illuminate\Pipeline\Pipeline
+                  - generic [ref=f57e224]: :209
+                - generic [ref=f57e225]: "Illuminate\\Pipeline\\{closure}"
+            - button "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken :88 handle" [ref=f57e226] [cursor=pointer]:
+              - generic [ref=f57e228]:
+                - generic [ref=f57e230]:
+                  - generic [ref=f57e231]: Illuminate\Foundation\Http\Middleware\VerifyCsrfToken
+                  - generic [ref=f57e232]: :88
+                - generic [ref=f57e233]: handle
+            - 'button "Illuminate\\Pipeline\\Pipeline :209 Illuminate\\Pipeline\\{closure}" [ref=f57e234] [cursor=pointer]':
+              - generic [ref=f57e236]:
+                - generic [ref=f57e238]:
+                  - generic [ref=f57e239]: Illuminate\Pipeline\Pipeline
+                  - generic [ref=f57e240]: :209
+                - generic [ref=f57e241]: "Illuminate\\Pipeline\\{closure}"
+            - button "Illuminate\\View\\Middleware\\ShareErrorsFromSession :49 handle" [ref=f57e242] [cursor=pointer]:
+              - generic [ref=f57e244]:
+                - generic [ref=f57e246]:
+                  - generic [ref=f57e247]: Illuminate\View\Middleware\ShareErrorsFromSession
+                  - generic [ref=f57e248]: :49
+                - generic [ref=f57e249]: handle
+            - 'button "Illuminate\\Pipeline\\Pipeline :209 Illuminate\\Pipeline\\{closure}" [ref=f57e250] [cursor=pointer]':
+              - generic [ref=f57e252]:
+                - generic [ref=f57e254]:
+                  - generic [ref=f57e255]: Illuminate\Pipeline\Pipeline
+                  - generic [ref=f57e256]: :209
+                - generic [ref=f57e257]: "Illuminate\\Pipeline\\{closure}"
+            - button "Illuminate\\Session\\Middleware\\StartSession :121 handleStatefulRequest" [ref=f57e258] [cursor=pointer]:
+              - generic [ref=f57e260]:
+                - generic [ref=f57e262]:
+                  - generic [ref=f57e263]: Illuminate\Session\Middleware\StartSession
+                  - generic [ref=f57e264]: :121
+                - generic [ref=f57e265]: handleStatefulRequest
+            - button "Illuminate\\Session\\Middleware\\StartSession :64 handle" [ref=f57e266] [cursor=pointer]:
+              - generic [ref=f57e268]:
+                - generic [ref=f57e270]:
+                  - generic [ref=f57e271]: Illuminate\Session\Middleware\StartSession
+                  - generic [ref=f57e272]: :64
+                - generic [ref=f57e273]: handle
+            - 'button "Illuminate\\Pipeline\\Pipeline :209 Illuminate\\Pipeline\\{closure}" [ref=f57e274] [cursor=pointer]':
+              - generic [ref=f57e276]:
+                - generic [ref=f57e278]:
+                  - generic [ref=f57e279]: Illuminate\Pipeline\Pipeline
+                  - generic [ref=f57e280]: :209
+                - generic [ref=f57e281]: "Illuminate\\Pipeline\\{closure}"
+            - button "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse :37 handle" [ref=f57e282] [cursor=pointer]:
+              - generic [ref=f57e284]:
+                - generic [ref=f57e286]:
+                  - generic [ref=f57e287]: Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse
+                  - generic [ref=f57e288]: :37
+                - generic [ref=f57e289]: handle
+            - 'button "Illuminate\\Pipeline\\Pipeline :209 Illuminate\\Pipeline\\{closure}" [ref=f57e290] [cursor=pointer]':
+              - generic [ref=f57e292]:
+                - generic [ref=f57e294]:
+                  - generic [ref=f57e295]: Illuminate\Pipeline\Pipeline
+                  - generic [ref=f57e296]: :209
+                - generic [ref=f57e297]: "Illuminate\\Pipeline\\{closure}"
+            - button "Illuminate\\Cookie\\Middleware\\EncryptCookies :75 handle" [ref=f57e298] [cursor=pointer]:
+              - generic [ref=f57e300]:
+                - generic [ref=f57e302]:
+                  - generic [ref=f57e303]: Illuminate\Cookie\Middleware\EncryptCookies
+                  - generic [ref=f57e304]: :75
+                - generic [ref=f57e305]: handle
+            - 'button "Illuminate\\Pipeline\\Pipeline :209 Illuminate\\Pipeline\\{closure}" [ref=f57e306] [cursor=pointer]':
+              - generic [ref=f57e308]:
+                - generic [ref=f57e310]:
+                  - generic [ref=f57e311]: Illuminate\Pipeline\Pipeline
+                  - generic [ref=f57e312]: :209
+                - generic [ref=f57e313]: "Illuminate\\Pipeline\\{closure}"
+            - button "Illuminate\\Pipeline\\Pipeline :127 then" [ref=f57e314] [cursor=pointer]:
+              - generic [ref=f57e316]:
+                - generic [ref=f57e318]:
+                  - generic [ref=f57e319]: Illuminate\Pipeline\Pipeline
+                  - generic [ref=f57e320]: :127
+                - generic [ref=f57e321]: then
+            - button "Illuminate\\Routing\\Router :807 runRouteWithinStack" [ref=f57e322] [cursor=pointer]:
+              - generic [ref=f57e324]:
+                - generic [ref=f57e326]:
+                  - generic [ref=f57e327]: Illuminate\Routing\Router
+                  - generic [ref=f57e328]: :807
+                - generic [ref=f57e329]: runRouteWithinStack
+            - button "Illuminate\\Routing\\Router :786 runRoute" [ref=f57e330] [cursor=pointer]:
+              - generic [ref=f57e332]:
+                - generic [ref=f57e334]:
+                  - generic [ref=f57e335]: Illuminate\Routing\Router
+                  - generic [ref=f57e336]: :786
+                - generic [ref=f57e337]: runRoute
+            - button "Illuminate\\Routing\\Router :750 dispatchToRoute" [ref=f57e338] [cursor=pointer]:
+              - generic [ref=f57e340]:
+                - generic [ref=f57e342]:
+                  - generic [ref=f57e343]: Illuminate\Routing\Router
+                  - generic [ref=f57e344]: :750
+                - generic [ref=f57e345]: dispatchToRoute
+            - button "Illuminate\\Routing\\Router :739 dispatch" [ref=f57e346] [cursor=pointer]:
+              - generic [ref=f57e348]:
+                - generic [ref=f57e350]:
+                  - generic [ref=f57e351]: Illuminate\Routing\Router
+                  - generic [ref=f57e352]: :739
+                - generic [ref=f57e353]: dispatch
+            - 'button "Illuminate\\Foundation\\Http\\Kernel :201 Illuminate\\Foundation\\Http\\{closure}" [ref=f57e354] [cursor=pointer]':
+              - generic [ref=f57e356]:
+                - generic [ref=f57e358]:
+                  - generic [ref=f57e359]: Illuminate\Foundation\Http\Kernel
+                  - generic [ref=f57e360]: :201
+                - generic [ref=f57e361]: "Illuminate\\Foundation\\Http\\{closure}"
+            - 'button "Illuminate\\Pipeline\\Pipeline :170 Illuminate\\Pipeline\\{closure}" [ref=f57e362] [cursor=pointer]':
+              - generic [ref=f57e364]:
+                - generic [ref=f57e366]:
+                  - generic [ref=f57e367]: Illuminate\Pipeline\Pipeline
+                  - generic [ref=f57e368]: :170
+                - generic [ref=f57e369]: "Illuminate\\Pipeline\\{closure}"
+            - button "Illuminate\\Foundation\\Http\\Middleware\\TransformsRequest :21 handle" [ref=f57e370] [cursor=pointer]:
+              - generic [ref=f57e372]:
+                - generic [ref=f57e374]:
+                  - generic [ref=f57e375]: Illuminate\Foundation\Http\Middleware\TransformsRequest
+                  - generic [ref=f57e376]: :21
+                - generic [ref=f57e377]: handle
+            - button "Illuminate\\Foundation\\Http\\Middleware\\ConvertEmptyStringsToNull :31 handle" [ref=f57e378] [cursor=pointer]:
+              - generic [ref=f57e380]:
+                - generic [ref=f57e382]:
+                  - generic [ref=f57e383]: Illuminate\Foundation\Http\Middleware\ConvertEmptyStringsToNull
+                  - generic [ref=f57e384]: :31
+                - generic [ref=f57e385]: handle
+            - 'button "Illuminate\\Pipeline\\Pipeline :209 Illuminate\\Pipeline\\{closure}" [ref=f57e386] [cursor=pointer]':
+              - generic [ref=f57e388]:
+                - generic [ref=f57e390]:
+                  - generic [ref=f57e391]: Illuminate\Pipeline\Pipeline
+                  - generic [ref=f57e392]: :209
+                - generic [ref=f57e393]: "Illuminate\\Pipeline\\{closure}"
+            - button "Illuminate\\Foundation\\Http\\Middleware\\TransformsRequest :21 handle" [ref=f57e394] [cursor=pointer]:
+              - generic [ref=f57e396]:
+                - generic [ref=f57e398]:
+                  - generic [ref=f57e399]: Illuminate\Foundation\Http\Middleware\TransformsRequest
+                  - generic [ref=f57e400]: :21
+                - generic [ref=f57e401]: handle
+            - button "Illuminate\\Foundation\\Http\\Middleware\\TrimStrings :51 handle" [ref=f57e402] [cursor=pointer]:
+              - generic [ref=f57e404]:
+                - generic [ref=f57e406]:
+                  - generic [ref=f57e407]: Illuminate\Foundation\Http\Middleware\TrimStrings
+                  - generic [ref=f57e408]: :51
+                - generic [ref=f57e409]: handle
+            - 'button "Illuminate\\Pipeline\\Pipeline :209 Illuminate\\Pipeline\\{closure}" [ref=f57e410] [cursor=pointer]':
+              - generic [ref=f57e412]:
+                - generic [ref=f57e414]:
+                  - generic [ref=f57e415]: Illuminate\Pipeline\Pipeline
+                  - generic [ref=f57e416]: :209
+                - generic [ref=f57e417]: "Illuminate\\Pipeline\\{closure}"
+            - button "Illuminate\\Http\\Middleware\\ValidatePostSize :27 handle" [ref=f57e418] [cursor=pointer]:
+              - generic [ref=f57e420]:
+                - generic [ref=f57e422]:
+                  - generic [ref=f57e423]: Illuminate\Http\Middleware\ValidatePostSize
+                  - generic [ref=f57e424]: :27
+                - generic [ref=f57e425]: handle
+            - 'button "Illuminate\\Pipeline\\Pipeline :209 Illuminate\\Pipeline\\{closure}" [ref=f57e426] [cursor=pointer]':
+              - generic [ref=f57e428]:
+                - generic [ref=f57e430]:
+                  - generic [ref=f57e431]: Illuminate\Pipeline\Pipeline
+                  - generic [ref=f57e432]: :209
+                - generic [ref=f57e433]: "Illuminate\\Pipeline\\{closure}"
+            - button "Illuminate\\Foundation\\Http\\Middleware\\PreventRequestsDuringMaintenance :110 handle" [ref=f57e434] [cursor=pointer]:
+              - generic [ref=f57e436]:
+                - generic [ref=f57e438]:
+                  - generic [ref=f57e439]: Illuminate\Foundation\Http\Middleware\PreventRequestsDuringMaintenance
+                  - generic [ref=f57e440]: :110
+                - generic [ref=f57e441]: handle
+            - 'button "Illuminate\\Pipeline\\Pipeline :209 Illuminate\\Pipeline\\{closure}" [ref=f57e442] [cursor=pointer]':
+              - generic [ref=f57e444]:
+                - generic [ref=f57e446]:
+                  - generic [ref=f57e447]: Illuminate\Pipeline\Pipeline
+                  - generic [ref=f57e448]: :209
+                - generic [ref=f57e449]: "Illuminate\\Pipeline\\{closure}"
+            - button "Illuminate\\Http\\Middleware\\HandleCors :49 handle" [ref=f57e450] [cursor=pointer]:
+              - generic [ref=f57e452]:
+                - generic [ref=f57e454]:
+                  - generic [ref=f57e455]: Illuminate\Http\Middleware\HandleCors
+                  - generic [ref=f57e456]: :49
+                - generic [ref=f57e457]: handle
+            - 'button "Illuminate\\Pipeline\\Pipeline :209 Illuminate\\Pipeline\\{closure}" [ref=f57e458] [cursor=pointer]':
+              - generic [ref=f57e460]:
+                - generic [ref=f57e462]:
+                  - generic [ref=f57e463]: Illuminate\Pipeline\Pipeline
+                  - generic [ref=f57e464]: :209
+                - generic [ref=f57e465]: "Illuminate\\Pipeline\\{closure}"
+            - button "Illuminate\\Http\\Middleware\\TrustProxies :58 handle" [ref=f57e466] [cursor=pointer]:
+              - generic [ref=f57e468]:
+                - generic [ref=f57e470]:
+                  - generic [ref=f57e471]: Illuminate\Http\Middleware\TrustProxies
+                  - generic [ref=f57e472]: :58
+                - generic [ref=f57e473]: handle
+            - 'button "Illuminate\\Pipeline\\Pipeline :209 Illuminate\\Pipeline\\{closure}" [ref=f57e474] [cursor=pointer]':
+              - generic [ref=f57e476]:
+                - generic [ref=f57e478]:
+                  - generic [ref=f57e479]: Illuminate\Pipeline\Pipeline
+                  - generic [ref=f57e480]: :209
+                - generic [ref=f57e481]: "Illuminate\\Pipeline\\{closure}"
+            - button "Illuminate\\Foundation\\Http\\Middleware\\InvokeDeferredCallbacks :22 handle" [ref=f57e482] [cursor=pointer]:
+              - generic [ref=f57e484]:
+                - generic [ref=f57e486]:
+                  - generic [ref=f57e487]: Illuminate\Foundation\Http\Middleware\InvokeDeferredCallbacks
+                  - generic [ref=f57e488]: :22
+                - generic [ref=f57e489]: handle
+            - 'button "Illuminate\\Pipeline\\Pipeline :209 Illuminate\\Pipeline\\{closure}" [ref=f57e490] [cursor=pointer]':
+              - generic [ref=f57e492]:
+                - generic [ref=f57e494]:
+                  - generic [ref=f57e495]: Illuminate\Pipeline\Pipeline
+                  - generic [ref=f57e496]: :209
+                - generic [ref=f57e497]: "Illuminate\\Pipeline\\{closure}"
+            - button "Illuminate\\Pipeline\\Pipeline :127 then" [ref=f57e498] [cursor=pointer]:
+              - generic [ref=f57e500]:
+                - generic [ref=f57e502]:
+                  - generic [ref=f57e503]: Illuminate\Pipeline\Pipeline
+                  - generic [ref=f57e504]: :127
+                - generic [ref=f57e505]: then
+            - button "Illuminate\\Foundation\\Http\\Kernel :176 sendRequestThroughRouter" [ref=f57e506] [cursor=pointer]:
+              - generic [ref=f57e508]:
+                - generic [ref=f57e510]:
+                  - generic [ref=f57e511]: Illuminate\Foundation\Http\Kernel
+                  - generic [ref=f57e512]: :176
+                - generic [ref=f57e513]: sendRequestThroughRouter
+            - button "Illuminate\\Foundation\\Http\\Kernel :145 handle" [ref=f57e514] [cursor=pointer]:
+              - generic [ref=f57e516]:
+                - generic [ref=f57e518]:
+                  - generic [ref=f57e519]: Illuminate\Foundation\Http\Kernel
+                  - generic [ref=f57e520]: :145
+                - generic [ref=f57e521]: handle
+            - button "Illuminate\\Foundation\\Application :1220 handleRequest" [ref=f57e522] [cursor=pointer]:
+              - generic [ref=f57e524]:
+                - generic [ref=f57e526]:
+                  - generic [ref=f57e527]: Illuminate\Foundation\Application
+                  - generic [ref=f57e528]: :1220
+                - generic [ref=f57e529]: handleRequest
+            - button "C:\\Users\\GinaGamboa\\donation\\capstone-project\\public\\index.php :17 require_once" [ref=f57e530] [cursor=pointer]:
+              - generic [ref=f57e532]:
+                - generic [ref=f57e534]:
+                  - generic [ref=f57e535]: C:\Users\GinaGamboa\donation\capstone-project\public\index.php
+                  - generic [ref=f57e536]: :17
+                - generic [ref=f57e537]: require_once
+            - button "C:\\Users\\GinaGamboa\\donation\\capstone-project\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\resources\\server.php :23" [ref=f57e538] [cursor=pointer]:
+              - generic [ref=f57e542]:
+                - generic [ref=f57e543]: C:\Users\GinaGamboa\donation\capstone-project\vendor\laravel\framework\src\Illuminate\Foundation\resources\server.php
+                - generic [ref=f57e544]: :23
+        - generic [ref=f57e545]:
+          - generic [ref=f57e546]: C:\Users\GinaGamboa\donation\capstone-project\vendor\laravel\framework\src\Illuminate\Database\Connection.php :825
+          - code [ref=f57e551]:
+            - table [ref=f57e552]:
+              - rowgroup [ref=f57e553]:
+                - row [ref=f57e554]:
+                  - cell "820" [ref=f57e555]
+                  - cell "throw new UniqueConstraintViolationException(" [ref=f57e557]
+                - row [ref=f57e558]:
+                  - cell "821" [ref=f57e559]
+                  - cell "$this->getName(), $query, $this->prepareBindings($bindings), $e" [ref=f57e561]
+                - row [ref=f57e562]:
+                  - cell "822" [ref=f57e563]
+                  - cell ");" [ref=f57e565]
+                - row [ref=f57e566]:
+                  - cell "823" [ref=f57e567]
+                  - 'cell "}" [ref=f57e569]'
+                - row [ref=f57e570]:
+                  - cell "824" [ref=f57e571]
+                  - cell [ref=f57e573]
+                - row [ref=f57e574]:
+                  - cell "825" [ref=f57e575]
+                  - cell "throw new QueryException(" [ref=f57e577]
+                - row [ref=f57e578]:
+                  - cell "826" [ref=f57e579]
+                  - cell "$this->getName(), $query, $this->prepareBindings($bindings), $e" [ref=f57e581]
+                - row [ref=f57e582]:
+                  - cell "827" [ref=f57e583]
+                  - cell ");" [ref=f57e585]
+                - row [ref=f57e586]:
+                  - cell "828" [ref=f57e587]
+                  - 'cell "}" [ref=f57e589]'
+                - row [ref=f57e590]:
+                  - cell "829" [ref=f57e591]
+                  - 'cell "}" [ref=f57e593]'
+                - row [ref=f57e594]:
+                  - cell "830" [ref=f57e595]
+                  - cell [ref=f57e597]
+                - row [ref=f57e598]:
+                  - cell "831" [ref=f57e599]
+                  - cell "/**" [ref=f57e601]
+                - row [ref=f57e603]:
+                  - cell "832" [ref=f57e604]
+                  - cell "* Determine if the given database exception was caused by a unique constraint violation." [ref=f57e606]
+                - row [ref=f57e607]:
+                  - cell "833" [ref=f57e608]
+                  - cell "*" [ref=f57e610]
+                - row [ref=f57e611]:
+                  - cell "834" [ref=f57e612]
+                  - cell "* @param \\Exception $exception" [ref=f57e614]
+                - row [ref=f57e616]:
+                  - cell "835" [ref=f57e617]
+                  - cell "* @return bool" [ref=f57e619]
+                - row [ref=f57e621]:
+                  - cell "836" [ref=f57e622]
+                  - cell "*/" [ref=f57e624]
+        - text: 774 775 776 777 778 779 780 781 782 783 784 785 786 787 788 789 790 393 394 395 396 397 398 399 400 401 402 403 404 405 406 407 408 409 3101 3102 3103 3104 3105 3106 3107 3108 3109 3110 3111 3112 3113 3114 3115 3116 3117 3118 3086 3087 3088 3089 3090 3091 3092 3093 3094 3095 3096 3097 3098 3099 3100 3101 3102 3103 3671 3672 3673 3674 3675 3676 3677 3678 3679 3680 3681 3682 3683 3684 3685 3686 3687 3085 3086 3087 3088 3089 3090 3091 3092 3093 3094 3095 3096 3097 3098 3099 3100 3101 3102 806 807 808 809 810 811 812 813 814 815 816 817 818 819 820 821 822 788 789 790 791 792 793 794 795 796 797 798 799 800 801 802 803 804 805 338 339 340 341 342 343 344 345 346 347 348 349 350 351 352 353 354 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 533 534 535 536 537 538 539 540 541 542 543 544 545 546 547 548 549 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 204 205 206 207 208 209 210 211 212 213 214 215 216 217 218 219 220 221 17 18 19 20 21 22 23 24 204 205 206 207 208 209 210 211 212 213 214 215 216 217 218 219 220 221 12 13 14 15 16 17 18 19 204 205 206 207 208 209 210 211 212 213 214 215 216 217 218 219 220 221 46 47 48 49 50 51 52 53 204 205 206 207 208 209 210 211 212 213 214 215 216 217 218 219 220 221 59 60 61 62 63 64 65 66 67 68 69 70 71 72 73 74 75 204 205 206 207 208 209 210 211 212 213 214 215 216 217 218 219 220 221 83 84 85 86 87 88 89 90 91 92 93 94 95 96 97 98 99 100 204 205 206 207 208 209 210 211 212 213 214 215 216 217 218 219 220 221 44 45 46 47 48 49 50 51 204 205 206 207 208 209 210 211 212 213 214 215 216 217 218 219 220 221 116 117 118 119 120 121 122 123 124 125 126 127 128 129 130 131 132 59 60 61 62 63 64 65 66 67 68 69 70 71 72 73 74 75 76 204 205 206 207 208 209 210 211 212 213 214 215 216 217 218 219 220 221 32 33 34 35 36 37 38 39 40 41 42 43 44 45 204 205 206 207 208 209 210 211 212 213 214 215 216 217 218 219 220 221 70 71 72 73 74 75 76 77 78 79 80 81 82 83 84 85 86 204 205 206 207 208 209 210 211 212 213 214 215 216 217 218 219 220 221 122 123 124 125 126 127 128 129 130 131 132 133 134 135 136 137 138 139 802 803 804 805 806 807 808 809 810 811 812 813 814 815 816 817 818 819 781 782 783 784 785 786 787 788 789 790 791 792 793 794 795 796 797 798 745 746 747 748 749 750 751 752 753 754 755 756 757 758 759 760 761 734 735 736 737 738 739 740 741 742 743 744 745 746 747 748 749 750 196 197 198 199 200 201 202 203 204 205 206 207 208 209 210 211 212 213 165 166 167 168 169 170 171 172 173 174 175 176 177 178 179 180 181 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 204 205 206 207 208 209 210 211 212 213 214 215 216 217 218 219 220 221 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 204 205 206 207 208 209 210 211 212 213 214 215 216 217 218 219 220 221 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 204 205 206 207 208 209 210 211 212 213 214 215 216 217 218 219 220 221 105 106 107 108 109 110 111 112 113 114 115 116 117 118 119 120 121 204 205 206 207 208 209 210 211 212 213 214 215 216 217 218 219 220 221 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 204 205 206 207 208 209 210 211 212 213 214 215 216 217 218 219 220 221 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67 68 69 204 205 206 207 208 209 210 211 212 213 214 215 216 217 218 219 220 221 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 204 205 206 207 208 209 210 211 212 213 214 215 216 217 218 219 220 221 122 123 124 125 126 127 128 129 130 131 132 133 134 135 136 137 138 139 171 172 173 174 175 176 177 178 179 180 181 182 183 184 185 186 187 140 141 142 143 144 145 146 147 148 149 150 151 152 153 154 155 156 1215 1216 1217 1218 1219 1220 1221 1222 1223 1224 1225 1226 1227 1228 1229 1230 1231 1232 12 13 14 15 16 17 18 19 20 21 22 23
+      - generic [ref=f57e625]:
+        - generic [ref=f57e626]: Request
+        - generic [ref=f57e627]: GET /
+        - generic [ref=f57e628]: Headers
+        - generic [ref=f57e629]:
+          - generic [ref=f57e630]:
+            - generic [ref=f57e631] [cursor=pointer]: host
+            - code [ref=f57e634]: 127.0.0.1:8001
+          - generic [ref=f57e635]:
+            - generic [ref=f57e636] [cursor=pointer]: connection
+            - code [ref=f57e639]: keep-alive
+          - generic [ref=f57e640]:
+            - generic [ref=f57e641] [cursor=pointer]: upgrade-insecure-requests
+            - code [ref=f57e644]: "1"
+          - generic [ref=f57e645]:
+            - generic [ref=f57e646] [cursor=pointer]: user-agent
+            - code [ref=f57e649]: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36
+          - generic [ref=f57e650]:
+            - generic [ref=f57e651] [cursor=pointer]: accept
+            - code [ref=f57e654]: text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+          - generic [ref=f57e655]:
+            - generic [ref=f57e656] [cursor=pointer]: sec-fetch-site
+            - code [ref=f57e659]: none
+          - generic [ref=f57e660]:
+            - generic [ref=f57e661] [cursor=pointer]: sec-fetch-mode
+            - code [ref=f57e664]: navigate
+          - generic [ref=f57e665]:
+            - generic [ref=f57e666] [cursor=pointer]: sec-fetch-user
+            - code [ref=f57e669]: "?1"
+          - generic [ref=f57e670]:
+            - generic [ref=f57e671] [cursor=pointer]: sec-fetch-dest
+            - code [ref=f57e674]: document
+          - generic [ref=f57e675]:
+            - generic [ref=f57e676] [cursor=pointer]: sec-ch-ua
+            - code [ref=f57e679]: "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\""
+          - generic [ref=f57e680]:
+            - generic [ref=f57e681] [cursor=pointer]: sec-ch-ua-mobile
+            - code [ref=f57e684]: "?0"
+          - generic [ref=f57e685]:
+            - generic [ref=f57e686] [cursor=pointer]: sec-ch-ua-platform
+            - code [ref=f57e689]: "\"Windows\""
+          - generic [ref=f57e690]:
+            - generic [ref=f57e691] [cursor=pointer]: accept-encoding
+            - code [ref=f57e694]: gzip, deflate, br, zstd
+          - generic [ref=f57e695]:
+            - generic [ref=f57e696] [cursor=pointer]: accept-language
+            - code [ref=f57e699]: en-US,en;q=0.9
+          - generic [ref=f57e700]:
+            - generic [ref=f57e701] [cursor=pointer]: cookie
+            - code [ref=f57e704]: XSRF-TOKEN=eyJpdiI6InJpMThjU3dsYmh3QmhiMWg2TzJVVUE9PSIsInZhbHVlIjoid0JTSGw0dVJGdGVwVkIxdU9UeElaMGJWNGNzS0Y0UFpmVlBodDU5RTZ5ZW1vRDZiWE80SXlpcmZWNnNPZnoza0RBSGJzUWpuRkdkSUk3ZG1MNy9tSjhPK0krSzlNZUIrV0JVUzk0UWNseXVnbDl2MHNYZGp2djJlQ2RPdXp6STYiLCJtYWMiOiI3MzI4ODAzZDMzNWFmNTk2Yjg3NzM1ZWRjMTNjZTc1N2I0ZTk2YTEyZGIyMWI1NjYzY2E5MzAxMjlmZDA5MzA3IiwidGFnIjoiIn0%3D; barangay_donation_platform_e2e_session=eyJpdiI6IjRLTFY2bDYzSHM0Y2VjMDJZOHNaTGc9PSIsInZhbHVlIjoiTmpqdXlyY1BVRWpKd01XYVhnb2UrRkJ3SzVyeExFTFNNUzJ1cDloSWVGV0tyV01yeTJucCt0Y0hRdVpoYVA1TE9KRnFjWXNuNmlnMTBxaUh2UkJQaEZvdmcxcGw2d1pTdGZZc243Tzcxc2xmVlVkUVFPWEFwRmJHRHhYMkNNZVQiLCJtYWMiOiJlOWQ2YmExMjc0ODIyZWU3Mzk5MzUwMDJkYWJjYTBlODU5ZGM1Zjk0ZWEwMmUxNzQ1YTFjNTM1NDZjZDM5Y2RhIiwidGFnIjoiIn0%3D
+        - generic [ref=f57e705]: Body
+        - code [ref=f57e710]: No body data
+      - generic [ref=f57e711]:
+        - generic [ref=f57e712]: Application
+        - generic [ref=f57e713]: Routing
+        - generic [ref=f57e714]:
+          - generic [ref=f57e715]:
+            - generic [ref=f57e716] [cursor=pointer]: controller
+            - code [ref=f57e719]: App\Http\Controllers\DashboardController
+          - generic [ref=f57e720]:
+            - generic [ref=f57e721] [cursor=pointer]: route name
+            - code [ref=f57e724]: dashboard
+          - generic [ref=f57e725]:
+            - generic [ref=f57e726] [cursor=pointer]: middleware
+            - code [ref=f57e729]: web, auth, password.change, role:admin,secretary,treasurer, workspace, workspace.required, workspace.models
+        - generic [ref=f57e730]: Database Queries
+        - generic [ref=f57e731]:
+          - generic [ref=f57e732]:
+            - generic [ref=f57e733]:
+              - text: mysql
+              - generic [ref=f57e734]: (25.43 ms)
+            - code [ref=f57e737]: "select * from `users` where `id` = 2 limit 1"
+          - generic [ref=f57e738]:
+            - generic [ref=f57e739]:
+              - text: mysql
+              - generic [ref=f57e740]: (0.71 ms)
+            - code [ref=f57e743]: "select `name` from `roles` where `roles`.`id` = 3 limit 1"

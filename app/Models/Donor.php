@@ -9,8 +9,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Donor extends Model
 {
     use HasFactory;
+    use Concerns\WorkspaceScoped;
 
     protected $fillable = [
+        'workspace_id',
         'donor_type',
         'first_name',
         'last_name',

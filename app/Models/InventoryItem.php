@@ -10,8 +10,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class InventoryItem extends Model
 {
     use HasFactory;
+    use Concerns\WorkspaceScoped;
 
     protected $fillable = [
+        'workspace_id',
         'name',
         'category',
         'inventory_subcategory_id',

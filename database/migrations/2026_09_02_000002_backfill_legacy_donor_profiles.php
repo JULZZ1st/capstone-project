@@ -13,19 +13,37 @@ return new class extends Migration
         }
 
         foreach (DB::table('legacy_donors')->orderBy('id')->get() as $legacyDonor) {
-            $legacyName = trim((string) $legacyDonor->name);
-            $organization = trim((string) $legacyDonor->organization);
-            $contactName = $legacyName;
-            $displayName = $organization !== '' ? $organization : $legacyName;
-            $nameParts = preg_split('/\s+/', $contactName, 2);
+            $donor = DB::table('donors')->where('id', $legacyDonor->id)->first();
 
-            DB::table('donors')->where('id', $legacyDonor->id)->update([
-                'full_name' => $displayName ?: 'Unknown donor',
-                'first_name' => $nameParts[0] ?: 'Donor',
-                'last_name' => $nameParts[1] ?? '',
-                'contact_person' => $organization !== '' ? $legacyName : null,
-                'donor_type' => $organization !== '' ? 'organization' : 'individual',
-            ]);
+            if (! $donor) {
+                continue;
+            }
+
+            $fullName = trim((string) ($legacyDonor->full_name ?? ''));
+            $firstName = trim((string) ($legacyDonor->first_name ?? ''));
+            $lastName = trim((string) ($legacyDonor->last_name ?? ''));
+            $contactPerson = trim((string) ($legacyDonor->contact_person ?? ''));
+            $updates = [];
+
+            if (in_array(trim((string) $donor->full_name), ['', 'Unknown donor'], true)) {
+                $updates['full_name'] = $fullName !== '' ? $fullName : 'Unknown donor';
+            }
+            if (trim((string) ($donor->first_name ?? '')) === '') {
+                $updates['first_name'] = $firstName !== '' ? $firstName : 'Donor';
+            }
+            if (trim((string) ($donor->last_name ?? '')) === '') {
+                $updates['last_name'] = $lastName;
+            }
+            if (($donor->contact_person ?? null) === null && $contactPerson !== '') {
+                $updates['contact_person'] = $contactPerson;
+            }
+            if (trim((string) ($donor->donor_type ?? '')) === '') {
+                $updates['donor_type'] = $legacyDonor->donor_type ?: 'individual';
+            }
+
+            if ($updates !== []) {
+                DB::table('donors')->where('id', $legacyDonor->id)->update($updates);
+            }
         }
     }
 

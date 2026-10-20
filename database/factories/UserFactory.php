@@ -3,6 +3,8 @@
 namespace Database\Factories;
 
 use App\Models\Role;
+use App\Models\Workspace;
+use App\Support\Workspaces\WorkspaceContext;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -16,6 +18,24 @@ class UserFactory extends Factory
      * The current password being used by the factory.
      */
     protected static ?string $password;
+
+    public function configure(): static
+    {
+        return $this->afterCreating(function (\App\Models\User $user): void {
+            $workspace = Workspace::query()->firstOrCreate(
+                ['slug' => 'legacy'],
+                ['name' => 'Legacy Workspace', 'status' => 'active'],
+            );
+
+            if ($workspace !== null && $user->role_id !== null) {
+                $workspace->memberships()->updateOrCreate(
+                    ['user_id' => $user->id],
+                    ['role_id' => $user->role_id, 'status' => 'active'],
+                );
+                app(WorkspaceContext::class)->set($workspace);
+            }
+        });
+    }
 
     /**
      * Define the model's default state.

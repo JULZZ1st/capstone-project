@@ -5,12 +5,15 @@ namespace App\Services\SystemSecurity;
 use App\Models\Role;
 use App\Models\SecurityActivityEvent;
 use App\Models\User;
+use App\Support\Workspaces\WorkspaceContext;
+use App\Support\Workspaces\WorkspaceAuthorizer;
 use Illuminate\Support\Facades\DB;
 
 class CreateStaffAccount
 {
     public function handle(array $data, User $actor): User
     {
+        abort_unless(app(WorkspaceAuthorizer::class)->canManageStaffRole($actor, $data['role']), 403);
         return DB::transaction(function () use ($data, $actor): User {
             $role = Role::query()->firstOrCreate(
                 ['name' => $data['role']],
@@ -27,6 +30,16 @@ class CreateStaffAccount
                 'must_change_password' => true,
                 'status' => config('auth_defaults.user_status'),
             ]);
+
+            $workspace = app(WorkspaceContext::class)->get();
+            if ($workspace !== null) {
+                $workspace->memberships()->create([
+                    'user_id' => $user->id,
+                    'role_id' => $role->id,
+                    'status' => 'active',
+                    'created_by' => $actor->id,
+                ]);
+            }
 
             SecurityActivityEvent::query()->create([
                 'user_id' => $user->id,

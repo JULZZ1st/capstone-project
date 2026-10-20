@@ -9,8 +9,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class ContributionItem extends Model
 {
     use HasFactory;
+    use Concerns\WorkspaceScoped;
 
     protected $fillable = [
+        'workspace_id',
+        'contribution_id',
         'name',
         'category',
         'subcategory',

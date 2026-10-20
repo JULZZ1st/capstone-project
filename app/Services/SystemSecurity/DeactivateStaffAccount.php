@@ -5,6 +5,7 @@ namespace App\Services\SystemSecurity;
 use App\Models\Role;
 use App\Models\SecurityActivityEvent;
 use App\Models\User;
+use App\Support\Workspaces\WorkspaceContext;
 use Illuminate\Support\Facades\DB;
 
 class DeactivateStaffAccount
@@ -17,6 +18,10 @@ class DeactivateStaffAccount
             if ($roleName === 'admin') {
                 $activeAdmins = User::query()
                     ->whereHas('role', fn ($q) => $q->where('name', 'admin'))
+                    ->whereHas('workspaceMemberships', function ($q): void {
+                        $q->where('workspace_id', app(WorkspaceContext::class)->requireId())
+                            ->where('status', 'active');
+                    })
                     ->where('status', config('auth_defaults.user_status'))
                     ->count();
 

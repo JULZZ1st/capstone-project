@@ -1,0 +1,3 @@
+statement_id,description,reference_number,amount,transaction_date,transaction_type,payment_method
+PH5-A-DEP-001,Workspace A incoming deposit,E2E-CONTRIB-001,1000,2026-10-05,deposit,bank_transfer
+PH5-A-WD-001,Workspace A approved withdrawal,E2E-WORKSPACE-A-APPROVAL-001,275.50,2026-10-19,withdrawal,bank_transfer

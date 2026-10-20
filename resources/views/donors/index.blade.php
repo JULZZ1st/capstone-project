@@ -42,7 +42,7 @@
                 <div class="overflow-x-auto">
                     <table class="min-w-[920px] w-full text-left text-sm">
                         <caption class="sr-only">Registered donors</caption>
-                        <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                        <thead class="sticky top-0 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                             <tr>
                                 <th scope="col" class="px-4 py-3 font-semibold">Donor Name</th>
                                 <th scope="col" class="px-4 py-3 font-semibold">Donor Type</th>
@@ -89,6 +89,7 @@
 
             @foreach ($donors as $donor)
                 <x-donors.edit-modal :donor="$donor" :open="$errors->any() && $modal === 'edit-'.$donor->id" />
+                <x-donors.remove-modal :donor="$donor" />
             @endforeach
 
             <div>

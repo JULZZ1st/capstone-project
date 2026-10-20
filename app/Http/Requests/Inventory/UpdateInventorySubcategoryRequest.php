@@ -4,6 +4,7 @@ namespace App\Http\Requests\Inventory;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use App\Support\Workspaces\WorkspaceValidationRules;
 
 class UpdateInventorySubcategoryRequest extends FormRequest
 {
@@ -15,7 +16,7 @@ class UpdateInventorySubcategoryRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'inventory_category_id' => ['required', 'exists:inventory_categories,id'],
+            'inventory_category_id' => ['required', WorkspaceValidationRules::exists('inventory_categories')],
             'key' => [
                 'required',
                 'string',

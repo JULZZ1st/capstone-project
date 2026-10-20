@@ -10,8 +10,10 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 class CashDisbursement extends Model
 {
     use HasFactory;
+    use Concerns\WorkspaceScoped;
 
     protected $fillable = [
+        'workspace_id',
         'amount',
         'purpose',
         'recipient',

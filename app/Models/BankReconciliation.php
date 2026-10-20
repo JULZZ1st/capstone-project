@@ -8,8 +8,10 @@ use Illuminate\Database\Eloquent\Model;
 class BankReconciliation extends Model
 {
     use HasFactory;
+    use Concerns\WorkspaceScoped;
 
     protected $fillable = [
+        'workspace_id',
         'date',
         'period_start',
         'period_end',

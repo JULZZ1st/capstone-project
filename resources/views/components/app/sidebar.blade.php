@@ -9,6 +9,9 @@
         ['label' => 'Report Generator', 'icon' => 'document', 'route' => 'reports.index', 'active' => 'reports.*'],
         ['label' => 'System Administration', 'icon' => 'shield-check', 'route' => 'system-security.index', 'active' => 'system-security.*'],
     ];
+    if (auth()->user()?->isSuperAdmin()) {
+        array_unshift($items, ['label' => 'Workspace Management', 'icon' => 'users', 'route' => 'workspaces.index', 'active' => 'workspaces.*']);
+    }
 @endphp
 
 <aside id="app-sidebar" class="border-b border-slate-700/60 bg-gradient-to-b from-[#0f1d46] via-[#0f1c3a] to-[#0a1024] text-white shadow-[0_20px_45px_rgba(15,23,42,0.28)] lg:sticky lg:top-0 lg:h-screen lg:w-64 lg:shrink-0 lg:overflow-hidden lg:border-b-0 transition-width">

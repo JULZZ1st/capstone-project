@@ -24,6 +24,7 @@ use App\Services\BankReconciliation\ReconciliationDiscrepancyService;
 use App\Services\BankReconciliation\ReconciliationApprovalService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
+use App\Support\Workspaces\WorkspaceContext;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\View\View;
 
@@ -217,7 +218,10 @@ class BankReconciliationController extends Controller
             $disbursements = CashDisbursement::query()->whereIn('id', $disbursementIds)->lockForUpdate()->get();
             $selectedTotal = $disbursements->sum('amount');
             $difference = (float) $lockedWithdrawal->amount - (float) $selectedTotal;
-            $lockedWithdrawal->matchedDisbursements()->sync($disbursementIds);
+            $lockedWithdrawal->matchedDisbursements()->syncWithPivotValues(
+                $disbursementIds,
+                ['workspace_id' => app(WorkspaceContext::class)->requireId()],
+            );
             $lockedWithdrawal->forceFill([
                 'discrepancy_amount' => abs($difference) >= 0.005 ? $difference : null,
                 'discrepancy_reason' => abs($difference) >= 0.005 ? trim($request->input('discrepancy_reason')) : null,

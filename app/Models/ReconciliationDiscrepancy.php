@@ -6,8 +6,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ReconciliationDiscrepancy extends \Illuminate\Database\Eloquent\Model
 {
+    use Concerns\WorkspaceScoped;
     protected $fillable = [
-        'bank_reconciliation_id', 'type', 'classification', 'amount', 'explanation',
+        'workspace_id', 'bank_reconciliation_id', 'type', 'classification', 'amount', 'explanation',
         'evidence_reference', 'resolution_status', 'adjustment_amount', 'carry_forward',
         'resolved_by', 'resolved_at', 'cleared_bank_ledger_entry_id', 'cleared_at',
     ];

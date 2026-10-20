@@ -3,6 +3,7 @@
 namespace App\Services\Reports;
 
 use App\Models\Donor;
+use App\Support\Workspaces\WorkspaceContext;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -17,6 +18,7 @@ class DonorGivingSummaryReportBuilder
      */
     public function build(array $filters = []): array
     {
+        $workspaceId = app(WorkspaceContext::class)->requireId();
         $year = $filters['year'] ?? null;
         $month = $filters['month'] ?? null;
         $search = $filters['search'] ?? null;
@@ -47,6 +49,8 @@ class DonorGivingSummaryReportBuilder
 
         $inKindTotalsByDonor = DB::table('contribution_items')
             ->join('contributions', 'contributions.id', '=', 'contribution_items.contribution_id')
+            ->where('contribution_items.workspace_id', $workspaceId)
+            ->where('contributions.workspace_id', $workspaceId)
             ->whereIn('contributions.donor_id', $donors->pluck('id'))
             ->where('contributions.status', '!=', 'cancelled')
             ->whereNull('contributions.voided_at')

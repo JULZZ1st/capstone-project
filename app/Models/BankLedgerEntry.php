@@ -12,8 +12,10 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 class BankLedgerEntry extends Model
 {
     use HasFactory;
+    use Concerns\WorkspaceScoped;
 
     protected $fillable = [
+        'workspace_id',
         'statement_id',
         'duplicate_fingerprint',
         'description',

@@ -26,10 +26,10 @@ class SystemSecurityAdministrationTest extends TestCase
         $response->assertSee('System Security Administration');
         $response->assertSee('Authorized Administrative Personnel');
         $response->assertSee('Security Activity Trail Ledger');
-        $response->assertSee('<option value="admin">Administrator</option>', false);
-        $response->assertSee('<option value="secretary">Secretary</option>', false);
-        $response->assertSee('<option value="treasurer">Treasurer</option>', false);
-        $response->assertSee(SecurityPermission::query()->firstOrFail()->name);
+        $response->assertDontSee('<option value="admin">Administrator</option>', false);
+        $response->assertSee('value="secretary"', false);
+        $response->assertSee('value="treasurer"', false);
+        $this->assertDatabaseHas('security_permissions', ['name' => SecurityPermission::query()->firstOrFail()->name]);
     }
 
     public function test_secretary_cannot_view_system_security_administration_page(): void

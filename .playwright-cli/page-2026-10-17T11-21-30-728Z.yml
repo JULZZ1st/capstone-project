@@ -1,0 +1,205 @@
+- generic [ref=f10e2]:
+  - complementary [ref=f10e3]:
+    - generic [ref=f10e4]:
+      - generic [ref=f10e5]:
+        - paragraph [ref=f10e10]: Donation Operations
+        - button "Toggle sidebar" [expanded] [ref=f10e11] [cursor=pointer]
+      - navigation "Sidebar navigation" [ref=f10e14]:
+        - link "Dashboard" [ref=f10e15] [cursor=pointer]:
+          - /url: http://127.0.0.1:8002
+        - link "Donor Management" [ref=f10e22] [cursor=pointer]:
+          - /url: http://127.0.0.1:8002/donors
+        - link "Donations Portal" [ref=f10e29] [cursor=pointer]:
+          - /url: http://127.0.0.1:8002/donations
+        - link "Fund Requests" [ref=f10e36] [cursor=pointer]:
+          - /url: http://127.0.0.1:8002/disbursements
+        - link "In-Kind Inventory" [ref=f10e41] [cursor=pointer]:
+          - /url: http://127.0.0.1:8002/inventory
+        - link "Bank Reconciliation" [ref=f10e46] [cursor=pointer]:
+          - /url: http://127.0.0.1:8002/bank-reconciliation
+        - link "Report Generator" [ref=f10e50] [cursor=pointer]:
+          - /url: http://127.0.0.1:8002/reports
+        - link "System Administration" [ref=f10e55] [cursor=pointer]:
+          - /url: http://127.0.0.1:8002/system-security
+      - button "Logout" [ref=f10e62] [cursor=pointer]
+  - generic [ref=f10e67]:
+    - banner [ref=f10e68]:
+      - generic [ref=f10e69]:
+        - generic [ref=f10e70]:
+          - heading "In-Kind Inventory" [level=1] [ref=f10e71]
+          - paragraph [ref=f10e72]: Track donated goods, reserve levels, and stock movement.
+        - group [ref=f10e73]:
+          - generic "Admin A Administrator A" [ref=f10e74] [cursor=pointer]:
+            - generic [ref=f10e75]:
+              - generic [ref=f10e76]: Admin A
+              - generic [ref=f10e77]: Administrator
+            - generic [ref=f10e78]: A
+    - main [ref=f10e82]:
+      - generic [ref=f10e83]:
+        - generic [ref=f10e84]:
+          - link "Export PDF" [ref=f10e85] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/inventory/export/pdf
+          - link "Manage Categories & Units" [ref=f10e86] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/inventory/categories
+          - button "Add New Inventory Item" [ref=f10e87] [cursor=pointer]
+        - generic [ref=f10e90]:
+          - generic [ref=f10e96]:
+            - heading "Inventory Alerts" [level=2] [ref=f10e97]
+            - paragraph [ref=f10e98]: Doesn't require immediate attention right now.
+          - generic [ref=f10e99]: All items are in good condition
+        - generic [ref=f10e103]:
+          - generic [ref=f10e105]:
+            - link "All" [ref=f10e106] [cursor=pointer]:
+              - /url: http://127.0.0.1:8002/inventory
+            - link "Food" [ref=f10e107] [cursor=pointer]:
+              - /url: http://127.0.0.1:8002/inventory?category=food
+            - link "Medical Supplies" [ref=f10e108] [cursor=pointer]:
+              - /url: http://127.0.0.1:8002/inventory?category=medical_supplies
+            - link "Clothing" [ref=f10e109] [cursor=pointer]:
+              - /url: http://127.0.0.1:8002/inventory?category=clothing
+            - link "Hygiene Supplies" [ref=f10e110] [cursor=pointer]:
+              - /url: http://127.0.0.1:8002/inventory?category=hygiene_supplies
+            - link "Baby Supplies" [ref=f10e111] [cursor=pointer]:
+              - /url: http://127.0.0.1:8002/inventory?category=baby_supplies
+            - link "Shelter Materials" [ref=f10e112] [cursor=pointer]:
+              - /url: http://127.0.0.1:8002/inventory?category=shelter_materials
+            - link "School Supplies" [ref=f10e113] [cursor=pointer]:
+              - /url: http://127.0.0.1:8002/inventory?category=school_supplies
+            - link "Kitchen Supplies" [ref=f10e114] [cursor=pointer]:
+              - /url: http://127.0.0.1:8002/inventory?category=kitchen_supplies
+            - link "Water & Beverages" [ref=f10e115] [cursor=pointer]:
+              - /url: http://127.0.0.1:8002/inventory?category=water_beverages
+            - link "Disaster Relief Supplies" [ref=f10e116] [cursor=pointer]:
+              - /url: http://127.0.0.1:8002/inventory?category=disaster_relief_supplies
+            - link "Electronics" [ref=f10e117] [cursor=pointer]:
+              - /url: http://127.0.0.1:8002/inventory?category=electronics
+            - link "Furniture" [ref=f10e118] [cursor=pointer]:
+              - /url: http://127.0.0.1:8002/inventory?category=furniture
+            - link "Bedding & Linens" [ref=f10e119] [cursor=pointer]:
+              - /url: http://127.0.0.1:8002/inventory?category=bedding_linens
+            - link "Cleaning Supplies" [ref=f10e120] [cursor=pointer]:
+              - /url: http://127.0.0.1:8002/inventory?category=cleaning_supplies
+            - link "Tools & Hardware" [ref=f10e121] [cursor=pointer]:
+              - /url: http://127.0.0.1:8002/inventory?category=tools_hardware
+            - link "Personal Protective Equipment" [ref=f10e122] [cursor=pointer]:
+              - /url: http://127.0.0.1:8002/inventory?category=ppe
+            - link "Senior Care Supplies" [ref=f10e123] [cursor=pointer]:
+              - /url: http://127.0.0.1:8002/inventory?category=senior_care_supplies
+            - link "Mobility & Assistive Devices" [ref=f10e124] [cursor=pointer]:
+              - /url: http://127.0.0.1:8002/inventory?category=mobility_assistive_devices
+            - link "Animal Feed" [ref=f10e125] [cursor=pointer]:
+              - /url: http://127.0.0.1:8002/inventory?category=animal_feed
+            - link "Livelihood Supplies" [ref=f10e126] [cursor=pointer]:
+              - /url: http://127.0.0.1:8002/inventory?category=livelihood_supplies
+            - link "Toys & Recreational Items" [ref=f10e127] [cursor=pointer]:
+              - /url: http://127.0.0.1:8002/inventory?category=toys_recreational_items
+            - link "Other" [ref=f10e128] [cursor=pointer]:
+              - /url: http://127.0.0.1:8002/inventory?category=other
+          - generic [ref=f10e130]:
+            - generic [ref=f10e131]:
+              - generic [ref=f10e132]: Search Inventory
+              - textbox "Search Inventory" [ref=f10e134]:
+                - /placeholder: Search by item name, category, batch, location, or notes
+            - generic [ref=f10e135]:
+              - generic [ref=f10e136]: Item Status
+              - combobox "Item Status Status" [ref=f10e137]:
+                - option "All statuses" [selected]
+                - option "Active"
+                - option "Inactive"
+                - option "Archived"
+            - generic [ref=f10e138]:
+              - button "Search" [ref=f10e139] [cursor=pointer]
+              - link "Clear" [ref=f10e140] [cursor=pointer]:
+                - /url: http://127.0.0.1:8002/inventory
+        - generic [ref=f10e141]:
+          - article [ref=f10e142]:
+            - paragraph [ref=f10e144]: Total Items
+            - paragraph [ref=f10e149]: "0"
+            - paragraph [ref=f10e150]: All inventory items.
+          - article [ref=f10e151]:
+            - paragraph [ref=f10e153]: In Stock
+            - paragraph [ref=f10e158]: "0"
+            - paragraph [ref=f10e159]: Items available.
+          - article [ref=f10e160]:
+            - paragraph [ref=f10e162]: Low Stock
+            - paragraph [ref=f10e166]: "0"
+            - paragraph [ref=f10e167]: Below reorder level.
+          - article [ref=f10e168]:
+            - paragraph [ref=f10e170]: Out of Stock
+            - paragraph [ref=f10e176]: "0"
+            - paragraph [ref=f10e177]: No items available.
+        - generic [ref=f10e178]:
+          - heading "Inventory Items" [level=2] [ref=f10e180]
+          - generic [ref=f10e181]:
+            - paragraph [ref=f10e187]: No inventory items have been recorded yet.
+            - paragraph [ref=f10e188]: Start by adding a new inventory item.
+            - button "Add New Inventory Item" [ref=f10e190] [cursor=pointer]
+      - dialog [ref=f10e192]:
+        - generic [ref=f10e193]:
+          - generic [ref=f10e194]:
+            - generic [ref=f10e200]:
+              - heading "Add New Inventory Item" [level=2] [ref=f10e201]
+              - paragraph [ref=f10e202]: Record donated goods and reserve levels.
+            - button "Close modal" [active] [ref=f10e203] [cursor=pointer]
+          - generic [ref=f10e209]:
+            - generic [ref=f10e210]:
+              - heading "Item Information" [level=3] [ref=f10e211]
+              - generic [ref=f10e212]:
+                - generic [ref=f10e213]:
+                  - generic [ref=f10e214]: Item Name
+                  - textbox "Item Name" [ref=f10e215]
+                - generic [ref=f10e216]:
+                  - generic [ref=f10e217]: Unit
+                  - combobox "Unit" [ref=f10e218]
+                - generic [ref=f10e220]:
+                  - generic [ref=f10e221]:
+                    - generic [ref=f10e222]: Category
+                    - combobox "Category" [ref=f10e223]:
+                      - option "Select category" [selected]
+                      - option "Other"
+                  - generic [ref=f10e224]:
+                    - generic [ref=f10e225]: Subcategory
+                    - combobox "Subcategory" [disabled] [ref=f10e226]:
+                      - option "Select category first" [selected]
+            - generic [ref=f10e227]:
+              - heading "Stock Information" [level=3] [ref=f10e228]
+              - generic [ref=f10e229]:
+                - generic [ref=f10e230]:
+                  - generic [ref=f10e231]: Initial Quantity
+                  - spinbutton "Initial Quantity" [ref=f10e232]
+                - generic [ref=f10e233]:
+                  - generic [ref=f10e234]: Minimum Reserve Quantity
+                  - spinbutton "Minimum Reserve Quantity" [ref=f10e235]
+                - generic [ref=f10e236]:
+                  - generic [ref=f10e237]: Estimated Unit Value
+                  - spinbutton "Estimated Unit Value" [ref=f10e238]
+            - generic [ref=f10e239]:
+              - heading "Storage & Tracking" [level=3] [ref=f10e240]
+              - generic [ref=f10e241]:
+                - generic [ref=f10e242]:
+                  - generic [ref=f10e243]: Expiration Date
+                  - textbox "Expiration Date" [ref=f10e244]
+                - generic [ref=f10e245]:
+                  - generic [ref=f10e246]: Batch Number
+                  - textbox "Batch Number" [ref=f10e247]
+                - generic [ref=f10e248]:
+                  - generic [ref=f10e249]: Storage Location
+                  - textbox "Storage Location" [ref=f10e250]
+                - generic [ref=f10e251]:
+                  - generic [ref=f10e252]: Status
+                  - combobox [ref=f10e253]:
+                    - option "Active" [selected]
+                    - option "Inactive"
+                    - option "Archived"
+            - generic [ref=f10e254]:
+              - heading "Additional Information" [level=3] [ref=f10e255]
+              - generic [ref=f10e256]:
+                - generic [ref=f10e257]:
+                  - generic [ref=f10e258]: Description
+                  - textbox "Description" [ref=f10e259]
+                - generic [ref=f10e260]:
+                  - generic [ref=f10e261]: Notes
+                  - textbox "Notes" [ref=f10e262]
+          - generic [ref=f10e263]:
+            - button "Cancel" [ref=f10e264] [cursor=pointer]
+            - button "Save Inventory Item" [ref=f10e265] [cursor=pointer]

@@ -9,8 +9,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class BankWithdrawalDisbursementMatch extends Model
 {
     use HasFactory;
+    use Concerns\WorkspaceScoped;
 
     protected $fillable = [
+        'workspace_id',
         'bank_ledger_entry_id',
         'cash_disbursement_id',
     ];
