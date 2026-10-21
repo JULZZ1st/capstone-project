@@ -13,21 +13,25 @@ class UserSeeder extends Seeder
     {
         $role = Role::query()->where('name', Role::ADMIN)->firstOrFail();
 
-        User::query()->updateOrCreate(
-            ['email' => 'gina@gmail.com'],
-            [
-                'role_id' => $role->id,
-                'is_super_admin' => true,
-                'first_name' => 'Gina',
-                'last_name' => 'Gamboa',
-                'name' => 'Gina Gamboa',
-                'password' => '@Gina;18_2026_test',
-                'must_change_password' => false,
-                'status' => 'active',
-            ],
-        );
+        $gina = User::query()->firstOrNew(['email' => 'gina@gmail.com']);
 
-        $gina = User::query()->where('email', 'gina@gmail.com')->firstOrFail();
+        // Preserve an existing account's password and account state. The default
+        // password is only assigned when the seeded account is created for the
+        // first time in a new database.
+        if (! $gina->exists) {
+            $gina->password = '@Gina;18_2026_test';
+            $gina->must_change_password = false;
+            $gina->status = 'active';
+            $gina->first_name = 'Gina';
+            $gina->last_name = 'Gamboa';
+            $gina->name = 'Gina Gamboa';
+        }
+
+        $gina->role_id = $role->id;
+        $gina->is_super_admin = true;
+        $gina->save();
+
+        $gina->refresh();
         $workspace = Workspace::query()->firstOrCreate(
             ['slug' => 'legacy'],
             ['name' => 'Legacy Workspace', 'status' => 'active'],
