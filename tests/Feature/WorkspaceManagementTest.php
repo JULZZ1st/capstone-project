@@ -59,7 +59,7 @@ class WorkspaceManagementTest extends TestCase
         ])->assertForbidden();
     }
 
-    public function test_super_admin_without_active_workspace_is_redirected_to_workspace_management(): void
+    public function test_super_admin_without_active_workspace_cannot_open_dashboard(): void
     {
         $adminRole = Role::query()->firstOrCreate(['name' => 'admin'], ['display_name' => 'Administrator']);
         $superAdmin = User::factory()->create([
@@ -69,11 +69,10 @@ class WorkspaceManagementTest extends TestCase
 
         $this->actingAs($superAdmin)
             ->get(route('dashboard'))
-            ->assertRedirect(route('workspaces.index'))
-            ->assertSessionHas('error', 'Select an active workspace to continue.');
+            ->assertForbidden();
     }
 
-    public function test_super_admin_can_select_an_active_workspace(): void
+    public function test_super_admin_cannot_select_an_active_workspace(): void
     {
         $adminRole = Role::query()->firstOrCreate(['name' => 'admin'], ['display_name' => 'Administrator']);
         $superAdmin = User::factory()->create([
@@ -87,11 +86,10 @@ class WorkspaceManagementTest extends TestCase
         ]);
 
         $this->actingAs($superAdmin)
-            ->post(route('workspaces.select', $workspace))
-            ->assertRedirect(route('dashboard'))
-            ->assertSessionHas('active_workspace_id', $workspace->id);
+            ->post('/workspaces/'.$workspace->id.'/select')
+            ->assertNotFound();
 
-        $this->get(route('dashboard'))->assertOk();
+        $this->assertNull(session('active_workspace_id'));
     }
 
     public function test_super_admin_cannot_select_an_inactive_workspace(): void
@@ -108,8 +106,8 @@ class WorkspaceManagementTest extends TestCase
         ]);
 
         $this->actingAs($superAdmin)
-            ->post(route('workspaces.select', $workspace))
-            ->assertForbidden();
+            ->post('/workspaces/'.$workspace->id.'/select')
+            ->assertNotFound();
 
         $this->assertNull(session('active_workspace_id'));
     }

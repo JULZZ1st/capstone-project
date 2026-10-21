@@ -52,7 +52,7 @@ class WorkspaceLoginContextTest extends TestCase
         $this->assertNull(session('active_workspace_id'));
     }
 
-    public function test_super_admin_with_authorized_active_workspace_is_sent_to_dashboard(): void
+    public function test_super_admin_with_authorized_active_workspace_is_still_sent_to_management(): void
     {
         $role = Role::query()->firstOrCreate(['name' => 'admin'], ['display_name' => 'Administrator']);
         $gina = User::factory()->create([
@@ -71,9 +71,9 @@ class WorkspaceLoginContextTest extends TestCase
             ->post(route('login.store'), [
                 'email' => $gina->email,
                 'password' => 'PermanentPassword456!',
-            ])->assertRedirect(route('dashboard', absolute: false));
+            ])->assertRedirect(route('workspaces.index', absolute: false));
 
-        $this->assertSame($workspace->id, session('active_workspace_id'));
+        $this->assertNull(session('active_workspace_id'));
     }
 
     public function test_non_super_admin_login_replaces_stale_workspace_context(): void

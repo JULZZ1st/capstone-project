@@ -99,8 +99,8 @@ class SystemSecurityStaffAccountTest extends TestCase
         $this->actingAs($admin)
             ->get(route('system-security.index'))
             ->assertOk()
-            ->assertSee('id="create-staff-account-details"', false)
-            ->assertSee('open >', false)
+            ->assertSee('id="create-staff-account-modal"', false)
+            ->assertSee('open', false)
             ->assertSee('The password field must be at least 12 characters.', false)
             ->assertSee('value="New"', false);
     }

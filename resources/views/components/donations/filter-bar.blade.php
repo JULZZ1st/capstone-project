@@ -1,6 +1,6 @@
 @props(['filters', 'campaigns'])
 
-<form method="GET" action="{{ route('donations.index') }}" class="p-5">
+<form method="GET" action="{{ route('donations.index') }}" class="p-0">
     <div class="grid gap-3 lg:grid-cols-[minmax(0,1fr)_160px_180px_160px_auto]">
         <div>
             <x-form.label for="search"></x-form.label>

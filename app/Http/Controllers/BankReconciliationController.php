@@ -23,6 +23,7 @@ use App\Services\BankReconciliation\ReconciliationPeriodGuard;
 use App\Services\BankReconciliation\ReconciliationDiscrepancyService;
 use App\Services\BankReconciliation\ReconciliationApprovalService;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Support\Workspaces\WorkspaceContext;
 use Illuminate\Support\Facades\Gate;
@@ -177,6 +178,16 @@ class BankReconciliationController extends Controller
 
     public function import(ImportBankStatementRequest $request, ImportBankStatement $importer): RedirectResponse
     {
+        if ($importer->isLandbank($request->file('statement'))) {
+            $preview = $importer->previewLandbank($request->file('statement'));
+            $preview['workspace_id'] = app(WorkspaceContext::class)->requireId();
+            session(['bank_statement_preview' => $preview]);
+
+            return redirect()
+                ->route('bank-reconciliation.index', $request->input('return_tab') === 'outgoing' ? ['tab' => 'outgoing'] : [])
+                ->with('info', 'LANDBANK statement preview is ready. Review validation results and duplicate warnings before confirming.');
+        }
+
         $count = $importer->handle($request->file('statement'), $request->user());
         $routeParameters = $request->input('return_tab') === 'outgoing'
             ? ['tab' => 'outgoing']
@@ -185,6 +196,19 @@ class BankReconciliationController extends Controller
         return redirect()
             ->route('bank-reconciliation.index', $routeParameters)
             ->with('success', "{$count} bank transaction(s) imported successfully.");
+    }
+
+    public function confirmImport(Request $request, ImportBankStatement $importer): RedirectResponse
+    {
+        Gate::authorize('import', BankLedgerEntry::class);
+        $preview = session('bank_statement_preview');
+        abort_unless(is_array($preview) && ($preview['bank'] ?? null) === 'LANDBANK', 419, 'The LANDBANK statement preview has expired.');
+        abort_unless((int) ($preview['workspace_id'] ?? 0) === app(WorkspaceContext::class)->requireId(), 403, 'The LANDBANK preview belongs to a different workspace.');
+
+        $count = $importer->confirmLandbank($preview, $request->user());
+        session()->forget('bank_statement_preview');
+
+        return redirect()->route('bank-reconciliation.index')->with('success', "{$count} LANDBANK transaction(s) imported successfully.");
     }
 
     public function storeWithdrawal(StoreBankWithdrawalRequest $request, ReconciliationPeriodGuard $periodGuard): RedirectResponse
