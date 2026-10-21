@@ -48,9 +48,7 @@
             />
 
         </section>
-
-
-        <<div class="flex flex-col gap-4 lg:flex-row lg:items-center">
+        <div class="flex flex-col gap-3 lg:flex-row lg:items-end">
             <div class="min-w-0 flex-1">
                 <x-donations.filter-bar
                     :filters="$filters"
@@ -58,16 +56,18 @@
                 />
             </div>
 
-            <div class="shrink-0">
-                <x-button
-                    type="button"
-                    class="w-full gap- shadow-sm lg:w-auto"
-                    data-dialog-open="log-contribution-dialog"
-                >
-                    <x-icon name="plus" class="h-4 w-4" />
-                    Log New Contribution
-                </x-button>
-            </div>
+            @can('create', \App\Models\Contribution::class)
+                <div class="shrink-0">
+                    <x-button
+                        type="button"
+                        class="w-full gap- shadow-sm lg:w-auto"
+                        data-dialog-open="log-contribution-dialog"
+                    >
+                        <x-icon name="plus" class="h-4 w-4" />
+                        Log New Contribution
+                    </x-button>
+                </div>
+            @endcan
 
         </div>
 
@@ -112,17 +112,19 @@
                             </a>
                         @endif
 
-                        <x-button
-                            type="button"
-                            class="w-auto"
-                            data-dialog-open="log-contribution-dialog"
-                        >
-                            <x-icon
-                                name="plus"
-                                class="-ml-0.5 mr-1.5 h-4 w-4"
-                            />
-                            Log New Contribution
-                        </x-button>
+                        @can('create', \App\Models\Contribution::class)
+                            <x-button
+                                type="button"
+                                class="w-auto"
+                                data-dialog-open="log-contribution-dialog"
+                            >
+                                <x-icon
+                                    name="plus"
+                                    class="-ml-0.5 mr-1.5 h-4 w-4"
+                                />
+                                Log New Contribution
+                            </x-button>
+                        @endcan
 
                     </div>
 
@@ -136,11 +138,13 @@
 
 
     {{-- LOG CONTRIBUTION MODAL --}}
-    <x-donations.log-modal
-        :donors="$donors"
-        :campaigns="$campaigns"
-        :categories="$categories"
-        :subcategories-by-category="$subcategoriesByCategory"
-    />
+    @can('create', \App\Models\Contribution::class)
+        <x-donations.log-modal
+            :donors="$donors"
+            :campaigns="$campaigns"
+            :categories="$categories"
+            :subcategories-by-category="$subcategoriesByCategory"
+        />
+    @endcan
 
 @endsection

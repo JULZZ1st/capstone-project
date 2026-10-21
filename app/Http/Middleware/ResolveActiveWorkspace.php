@@ -27,6 +27,12 @@ class ResolveActiveWorkspace
             return $next($request);
         }
 
+        if ($user->isSuperAdmin()) {
+            $request->session()->forget('active_workspace_id');
+
+            return $next($request);
+        }
+
         $workspaceId = $request->session()->get('active_workspace_id');
         if ($workspaceId !== null) {
             $workspace = Workspace::query()->find($workspaceId);

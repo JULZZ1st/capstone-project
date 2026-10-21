@@ -2,40 +2,33 @@
 
 namespace Database\Seeders;
 
-use App\Models\Role;
 use App\Models\User;
-use App\Models\Workspace;
 use Illuminate\Database\Seeder;
 
 class UserSeeder extends Seeder
 {
     public function run(): void
     {
-        $role = Role::query()->where('name', Role::ADMIN)->firstOrFail();
+        $gina = User::query()->firstOrNew(['email' => 'gina@gmail.com']);
 
-        User::query()->updateOrCreate(
-            ['email' => 'gina@gmail.com'],
-            [
-                'role_id' => $role->id,
-                'is_super_admin' => true,
-                'first_name' => 'Gina',
-                'last_name' => 'Gamboa',
-                'name' => 'Gina Gamboa',
-                'password' => '@Gina;18_2026_test',
-                'must_change_password' => false,
-                'status' => 'active',
-            ],
-        );
+        // Preserve an existing account's password and account state. The default
+        // password is only assigned when the seeded account is created for the
+        // first time in a new database.
+        if (! $gina->exists) {
+            $gina->password = '@Gina;18_2026_test';
+            $gina->must_change_password = false;
+            $gina->status = 'active';
+            $gina->first_name = 'Gina';
+            $gina->last_name = 'Gamboa';
+            $gina->name = 'Gina Gamboa';
+        }
 
-        $gina = User::query()->where('email', 'gina@gmail.com')->firstOrFail();
-        $workspace = Workspace::query()->firstOrCreate(
-            ['slug' => 'legacy'],
-            ['name' => 'Legacy Workspace', 'status' => 'active'],
-        );
+        $gina->role_id = null;
+        $gina->is_super_admin = true;
+        $gina->save();
 
-        $workspace->memberships()->updateOrCreate(
-            ['user_id' => $gina->id],
-            ['role_id' => $role->id, 'status' => 'active'],
-        );
+        // Gina is platform-only. Remove only her legacy membership; preserve
+        // the legacy workspace and every other user's membership.
+        $gina->workspaceMemberships()->delete();
     }
 }

@@ -64,7 +64,7 @@ class WorkspaceIsolationTest extends TestCase
             ->assertDontSee('Workspace B Donor');
     }
 
-    public function test_super_admin_must_select_an_authorized_workspace_for_operational_records(): void
+    public function test_super_admin_cannot_enter_operational_records_even_with_crafted_context(): void
     {
         [$admin, $workspaceA] = $this->workspaces();
         $admin->update(['is_super_admin' => true]);
@@ -76,7 +76,19 @@ class WorkspaceIsolationTest extends TestCase
         $this->actingAs($admin)
             ->withSession(['active_workspace_id' => $workspaceA->id])
             ->get(route('donors.index'))
-            ->assertOk();
+            ->assertForbidden();
+
+        $this->actingAs($admin)
+            ->withSession(['active_workspace_id' => $workspaceA->id])
+            ->post(route('donors.store'), [
+                'donor_type' => 'individual',
+                'first_name' => 'Blocked',
+                'last_name' => 'Super Admin',
+                'full_name' => 'Blocked Super Admin',
+                'address' => 'Blocked',
+                'contact_number' => '09000000000',
+            ])
+            ->assertForbidden();
     }
 
     private function workspaces(): array

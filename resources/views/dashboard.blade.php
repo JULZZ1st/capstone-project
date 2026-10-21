@@ -59,6 +59,7 @@
         </section>
 
         <section class="grid gap-6 xl:grid-cols-2">
+            @can('viewAny', \App\Models\BankLedgerEntry::class)
             <x-dashboard.panel title="Treasurer Action Items" subtitle="Cash and reconciliation work needing attention." icon="alert-triangle" tone="warning">
                 @php($actionItems = $dashboard['treasurer_action_items'])
                 <div class="mb-3 flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2.5">
@@ -97,6 +98,7 @@
                     </dl>
                 @endif
             </x-dashboard.panel>
+            @endcan
 
             <x-dashboard.panel title="Campaign Contributions / Funding Distribution" subtitle="Verified cash grouped by funding purpose." icon="megaphone" tone="purple">
                 @if ($dashboard['funding_distribution']->isEmpty())
@@ -151,6 +153,7 @@
                 <x-dashboard.activity-list :items="$dashboard['system_log_activity']" />
             </x-dashboard.panel>
 
+            @can('create', \App\Models\InventoryItem::class)
             <x-dashboard.panel title="Secretary In-Kind Control Panel" subtitle="Inventory status and recent in-kind records." icon="clipboard-list" tone="positive">
                 <div class="grid gap-6 lg:grid-cols-2">
                     <div>
@@ -193,6 +196,7 @@
                     </div>
                 </div>
             </x-dashboard.panel>
+            @endcan
 
             <x-dashboard.panel title="Recent Donations Stream" subtitle="Latest donation records with donor context." icon="heart" tone="rose">
                 @if ($dashboard['recent_donations']->isEmpty())

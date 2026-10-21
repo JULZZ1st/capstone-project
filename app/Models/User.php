@@ -137,6 +137,10 @@ class User extends Authenticatable
 
     public function roleDisplayName(): string
     {
+        if ($this->isSuperAdmin() && $this->role_id === null) {
+            return 'Super Admin';
+        }
+
         if ($this->relationLoaded('role')) {
             return $this->getRelation('role')?->display_name ?? ucfirst((string) $this->roleName());
         }

@@ -1,15 +1,20 @@
 @php
+    $user = auth()->user();
+    $activeWorkspace = $user?->isSuperAdmin()
+        ? null
+        : app(\App\Support\Workspaces\WorkspaceContext::class)->get();
     $items = [
-        ['label' => 'Dashboard', 'icon' => 'dashboard', 'route' => 'dashboard', 'active' => 'dashboard'],
-        ['label' => 'Donor Management', 'icon' => 'users', 'route' => 'donors.index', 'active' => 'donors.*'],
-        ['label' => 'Donations Portal', 'icon' => 'gift', 'route' => 'donations.index', 'active' => 'donations.*'],
-        ['label' => 'Fund Requests', 'icon' => 'banknotes', 'route' => 'disbursements.index', 'active' => 'disbursements.*'],
-        ['label' => 'In-Kind Inventory', 'icon' => 'archive', 'route' => 'inventory.index', 'active' => 'inventory.*'],
-        ['label' => 'Bank Reconciliation', 'icon' => 'scale', 'route' => 'bank-reconciliation.index', 'active' => 'bank-reconciliation.*'],
-        ['label' => 'Report Generator', 'icon' => 'document', 'route' => 'reports.index', 'active' => 'reports.*'],
-        ['label' => 'System Administration', 'icon' => 'shield-check', 'route' => 'system-security.index', 'active' => 'system-security.*'],
+        ['label' => 'Dashboard', 'icon' => 'dashboard', 'route' => 'dashboard', 'active' => 'dashboard', 'visible' => $user?->can('viewAny', \App\Models\Donor::class)],
+        ['label' => 'Donor Management', 'icon' => 'users', 'route' => 'donors.index', 'active' => 'donors.*', 'visible' => $user?->can('viewAny', \App\Models\Donor::class)],
+        ['label' => 'Donations Portal', 'icon' => 'gift', 'route' => 'donations.index', 'active' => 'donations.*', 'visible' => $user?->can('viewAny', \App\Models\Contribution::class)],
+        ['label' => 'Fund Requests', 'icon' => 'banknotes', 'route' => 'disbursements.index', 'active' => 'disbursements.*', 'visible' => $user?->can('viewAny', \App\Models\CashDisbursement::class)],
+        ['label' => 'In-Kind Inventory', 'icon' => 'archive', 'route' => 'inventory.index', 'active' => 'inventory.*', 'visible' => $user?->can('viewAny', \App\Models\InventoryItem::class)],
+        ['label' => 'Bank Reconciliation', 'icon' => 'scale', 'route' => 'bank-reconciliation.index', 'active' => 'bank-reconciliation.*', 'visible' => $user?->can('viewAny', \App\Models\BankLedgerEntry::class)],
+        ['label' => 'Report Generator', 'icon' => 'document', 'route' => 'reports.index', 'active' => 'reports.*', 'visible' => $user?->can('viewAny', \App\Models\Donor::class)],
+        ['label' => 'System Administration', 'icon' => 'shield-check', 'route' => 'system-security.index', 'active' => 'system-security.*', 'visible' => $user?->can('updateSecuritySettings', \App\Models\SecurityActivityEvent::class)],
     ];
-    if (auth()->user()?->isSuperAdmin()) {
+    $items = array_values(array_filter($items, fn (array $item): bool => (bool) ($item['visible'] ?? true)));
+    if ($user?->isSuperAdmin()) {
         array_unshift($items, ['label' => 'Workspace Management', 'icon' => 'users', 'route' => 'workspaces.index', 'active' => 'workspaces.*']);
     }
 @endphp
@@ -23,6 +28,7 @@
 
         .sidebar-label { display: inline-block; max-width: 1000px; overflow: hidden; vertical-align: middle; transition: opacity 180ms ease, max-width 180ms ease; }
         .sidebar-logo-text { display: inline-block; transition: opacity 180ms ease, max-width 180ms ease; overflow: hidden; }
+        .sidebar-workspace-name { display: block; max-width: 14rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; transition: opacity 180ms ease, max-width 180ms ease; }
 
         @media (min-width: 1024px) {
             #app-sidebar { position: sticky; top: 0; }
@@ -30,6 +36,7 @@
             #app-sidebar.collapsed { width: 5.25rem; }
             #app-sidebar.collapsed .sidebar-label { opacity: 0; max-width: 0; }
             #app-sidebar.collapsed .sidebar-logo-text { opacity: 0; max-width: 0; }
+            #app-sidebar.collapsed .sidebar-workspace-name { opacity: 0; max-width: 0; }
             #app-sidebar.collapsed #sidebar-toggle svg { transform: rotate(180deg); }
             #app-sidebar .nav-item { white-space: nowrap; }
         }
@@ -42,6 +49,9 @@
             </span>
             <div class="min-w-0">
                 <p class="truncate text-base font-semibold tracking-tight text-slate-100 sidebar-logo-text">Donation Operations</p>
+                @if ($activeWorkspace)
+                    <p class="sidebar-workspace-name mt-0.5 text-[11px] font-medium text-sky-200/85" title="{{ $activeWorkspace->name }}">{{ $activeWorkspace->name }}</p>
+                @endif
             </div>
 
             <button id="sidebar-toggle" type="button" aria-label="Toggle sidebar" title="Toggle sidebar" class="ml-auto flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-slate-800/70 text-slate-200 shadow-sm transition hover:border-sky-300/40 hover:bg-slate-700/80 hover:text-white focus:outline-none focus:ring-2 focus:ring-sky-400/40">

@@ -26,12 +26,6 @@
                             <p class="mt-1 text-sm text-slate-700">Admin: {{ $workspace->memberships->first(fn ($membership) => $membership->role?->name === 'admin')?->user?->email ?? 'Not assigned' }}</p>
                         </div>
                         <div class="flex flex-wrap gap-2">
-                            @if ($workspace->isActive())
-                                <form method="POST" action="{{ route('workspaces.select', $workspace) }}">
-                                    @csrf
-                                    <button class="rounded bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-700">Open workspace</button>
-                                </form>
-                            @endif
                             @if ($workspace->slug !== 'legacy')
                                 <form method="POST" action="{{ route('workspaces.toggle', $workspace) }}">
                                     @csrf @method('PATCH')

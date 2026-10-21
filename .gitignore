@@ -64,6 +64,15 @@ pnpm-debug.log*
 Thumbs.db
 desktop.ini
 
+# Presentation and image artifacts
+*.png
+*.ppt
+*.pptx
+~$*.ppt*
+
 # Local development tooling
 Homestead.json
 Homestead.yaml
+/.agents/
+/.playwright-cli/
+/.playwright-mcp/

@@ -42,7 +42,7 @@
 
 </div>
 
-        @can('prepare', App\Models\BankReconciliation::class)
+        @can('viewAny', App\Models\BankLedgerEntry::class)
             <section class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
 
                 <div class="space-y-4">
@@ -50,46 +50,16 @@
                         <h2 class="text-base font-semibold text-slate-950">Reconciliation Period</h2>
                         <p class="mt-1 text-sm leading-6 text-slate-500">Create a period using raw bank balances. Movement totals and the financial ledger balance are calculated from stored records.</p>
                     </div>
-
-                    <form method="POST"
-                          action="{{ route('bank-reconciliation.periods.store') }}"
-                          class="grid w-full grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
-                        @csrf
-                        <input
-                            name="period_start"
-                            type="date"
-                            required
-                            aria-label="Period start"
-                            class="h-12 w-full min-w-0 rounded-lg border border-blue-400 bg-white px-3 text-sm text-slate-700 shadow-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
-                        >
-                        <input
-                            name="period_end"
-                            type="date"
-                            required
-                            aria-label="Period end"
-                            class="h-12 w-full min-w-0 rounded-lg border border-blue-400 bg-white px-3 text-sm text-slate-700 shadow-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
-                        >
-                        <input
-                            name="opening_balance"
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            required
-                            placeholder="Opening balance"
-                            aria-label="Opening balance"
-                            class="h-12 w-full min-w-0 rounded-lg border border-blue-400 bg-white px-3 text-sm text-slate-700 shadow-sm outline-none transition placeholder:text-slate-500 focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
-                        >
-                        <input
-                            name="bank_ending_balance"
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            placeholder="Bank ending balance"
-                            aria-label="Bank ending balance"
-                            class="h-12 w-full min-w-0 rounded-lg border border-blue-400 bg-white px-3 text-sm text-slate-700 shadow-sm outline-none transition placeholder:text-slate-500 focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
-                        >
-                        <x-button class="h-12 w-full min-w-0 justify-center whitespace-nowrap rounded-lg px-3 text-sm">Create Period</x-button>
-                    </form>
+                    @can('prepare', App\Models\BankReconciliation::class)
+                        <form method="POST" action="{{ route('bank-reconciliation.periods.store') }}" class="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+                            @csrf
+                            <input name="period_start" type="date" required class="rounded-md border-slate-300 text-sm" aria-label="Period start">
+                            <input name="period_end" type="date" required class="rounded-md border-slate-300 text-sm" aria-label="Period end">
+                            <input name="opening_balance" type="number" step="0.01" min="0" required placeholder="Opening balance" class="rounded-md border-slate-300 text-sm">
+                            <input name="bank_ending_balance" type="number" step="0.01" min="0" placeholder="Bank ending balance" class="rounded-md border-slate-300 text-sm">
+                            <x-button class="sm:col-span-2 lg:col-span-1">Create Period</x-button>
+                        </form>
+                    @endcan
                 </div>
 
                 @if ($latestReconciliationPeriod)
@@ -147,35 +117,24 @@
                         @endcan
 
                     </div>
-
+                    @if (auth()->user()->can('create', App\Models\BankLedgerEntry::class) || $latestReconciliationPeriod->discrepancies->isNotEmpty())
                     <div class="mt-4 border-t border-slate-100 pt-4">
 
                         <h3 class="text-sm font-semibold text-slate-900">Record discrepancy</h3>
-
-                        <form method="POST" action="{{ route('bank-reconciliation.discrepancies.store', $latestReconciliationPeriod) }}" class="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-
-                            @csrf
-
-                            <select name="type" required class="rounded-md border-slate-300 text-sm"><option value="">Discrepancy type</option><option value="unmatched_amount">Unmatched amount</option><option value="bank_charge">Bank charge</option><option value="interest">Interest</option><option value="outstanding_check">Outstanding check</option><option value="deposit_in_transit">Deposit in transit</option><option value="recording_error">Recording error</option></select>
-
-                            <select name="classification" required class="rounded-md border-slate-300 text-sm"><option value="">Classification</option><option value="accounting_adjustment">Accounting adjustment</option><option value="timing_difference">Timing difference</option></select>
-
-                            <input name="amount" type="number" step="0.01" min="0.01" required placeholder="Amount" class="rounded-md border-slate-300 text-sm">
-
-                            <input name="evidence_reference" required placeholder="Evidence/reference" class="rounded-md border-slate-300 text-sm">
-
-                            <textarea name="explanation" required placeholder="Explanation" class="rounded-md border-slate-300 text-sm sm:col-span-2"></textarea>
-
-                            <select name="resolution_status" required class="rounded-md border-slate-300 text-sm"><option value="unresolved">Unresolved</option><option value="resolved">Resolved</option><option value="accounted">Accounted</option></select>
-
-                            <input name="adjustment_amount" type="number" step="0.01" placeholder="Signed adjustment (accounting only)" class="rounded-md border-slate-300 text-sm">
-
-                            <label class="flex items-center gap-2 text-sm text-slate-600"><input name="carry_forward" type="checkbox" value="1"> Carry forward timing item</label>
-
-                            <x-button class="sm:col-span-2 lg:col-span-1">Save discrepancy</x-button>
-
-                        </form>
-
+                        @can('create', App\Models\BankLedgerEntry::class)
+                            <form method="POST" action="{{ route('bank-reconciliation.discrepancies.store', $latestReconciliationPeriod) }}" class="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                                @csrf
+                                <select name="type" required class="rounded-md border-slate-300 text-sm"><option value="">Discrepancy type</option><option value="unmatched_amount">Unmatched amount</option><option value="bank_charge">Bank charge</option><option value="interest">Interest</option><option value="outstanding_check">Outstanding check</option><option value="deposit_in_transit">Deposit in transit</option><option value="recording_error">Recording error</option></select>
+                                <select name="classification" required class="rounded-md border-slate-300 text-sm"><option value="">Classification</option><option value="accounting_adjustment">Accounting adjustment</option><option value="timing_difference">Timing difference</option></select>
+                                <input name="amount" type="number" step="0.01" min="0.01" required placeholder="Amount" class="rounded-md border-slate-300 text-sm">
+                                <input name="evidence_reference" required placeholder="Evidence/reference" class="rounded-md border-slate-300 text-sm">
+                                <textarea name="explanation" required placeholder="Explanation" class="rounded-md border-slate-300 text-sm sm:col-span-2"></textarea>
+                                <select name="resolution_status" required class="rounded-md border-slate-300 text-sm"><option value="unresolved">Unresolved</option><option value="resolved">Resolved</option><option value="accounted">Accounted</option></select>
+                                <input name="adjustment_amount" type="number" step="0.01" placeholder="Signed adjustment (accounting only)" class="rounded-md border-slate-300 text-sm">
+                                <label class="flex items-center gap-2 text-sm text-slate-600"><input name="carry_forward" type="checkbox" value="1"> Carry forward timing item</label>
+                                <x-button class="sm:col-span-2 lg:col-span-1">Save discrepancy</x-button>
+                            </form>
+                        @endcan
                         @if ($latestReconciliationPeriod->discrepancies->isNotEmpty())
 
                             <div class="mt-3 space-y-2 text-sm">
@@ -191,7 +150,7 @@
                         @endif
 
                     </div>
-
+                    @endif
                 @endif
 
                 <x-form.error name="period_start" />
@@ -220,7 +179,7 @@
 
                             <h2 class="text-base font-semibold text-slate-950">Import Bank Statement</h2>
 
-                            <p class="mt-1 text-sm text-slate-500">Upload a CSV or XLSX statement to add bank transactions for review.</p>
+                            <p class="mt-1 text-sm text-slate-500">Upload a LANDBANK CSV or XLSX statement. The system previews direction, validation errors, and duplicate warnings before import. PDF statements are not parsed.</p>
 
                         </div>
 
@@ -239,6 +198,63 @@
                     </div>
 
                     <x-form.error name="statement" />
+
+                    @if (session('bank_statement_preview'))
+                        @php
+                            $preview = session('bank_statement_preview');
+                        @endphp
+                        <div class="mt-5 rounded-lg border border-blue-200 bg-blue-50 p-4" data-testid="landbank-preview">
+                            <div class="flex items-start justify-between gap-4">
+                                <div>
+                                    <h3 class="font-semibold text-blue-950">LANDBANK statement preview</h3>
+                                    <p class="mt-1 text-sm text-blue-800">{{ count($preview['rows']) }} transaction row(s); beginning balance: {{ $preview['beginning_balance'] !== null ? number_format($preview['beginning_balance'], 2) : 'not found' }}, ending balance: {{ $preview['ending_balance'] !== null ? number_format($preview['ending_balance'], 2) : 'not found' }}</p>
+                                </div>
+                                @if (empty($preview['errors']))
+                                    <form method="POST" action="{{ route('bank-reconciliation.import.confirm') }}">
+                                        @csrf
+                                        <x-button>Confirm LANDBANK import</x-button>
+                                    </form>
+                                @endif
+                            </div>
+                            @if (!empty($preview['errors']))
+                                <div class="mt-3 rounded border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800">
+                                    <strong>Validation errors:</strong>
+                                    <ul class="mt-1 list-disc pl-5">
+                                        @foreach ($preview['errors'] as $error)
+                                            <li>{{ $error }}</li>
+                                        @endforeach
+                                    </ul>
+                                </div>
+                            @endif
+                            @if (!empty($preview['warnings']))
+                                <div class="mt-3 rounded border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                                    <strong>Warnings:</strong>
+                                    <ul class="mt-1 list-disc pl-5">
+                                        @foreach ($preview['warnings'] as $warning)
+                                            <li>{{ $warning }}</li>
+                                        @endforeach
+                                    </ul>
+                                </div>
+                            @endif
+                            <div class="mt-3 overflow-x-auto">
+                                <table class="min-w-full text-left text-xs">
+                                    <thead><tr class="text-slate-600"><th class="px-2 py-1">Date</th><th class="px-2 py-1">Description</th><th class="px-2 py-1">REF / Check No.</th><th class="px-2 py-1">Direction</th><th class="px-2 py-1">Amount</th><th class="px-2 py-1">Balance</th></tr></thead>
+                                    <tbody>
+                                        @foreach ($preview['rows'] as $row)
+                                            <tr class="border-t border-blue-100">
+                                                <td class="px-2 py-1">{{ $row['transaction_date'] }}</td>
+                                                <td class="px-2 py-1">{{ $row['description'] }}</td>
+                                                <td class="px-2 py-1">{{ $row['reference_number'] ?: '—' }}</td>
+                                                <td class="px-2 py-1">{{ $row['transaction_type'] }}</td>
+                                                <td class="px-2 py-1">{{ number_format((float) $row['amount'], 2) }}</td>
+                                                <td class="px-2 py-1">{{ $row['balance'] !== null ? number_format($row['balance'], 2) : '—' }}</td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    @endif
 
                 </section>
 
@@ -354,7 +370,7 @@
 
             @can('create', App\Models\BankLedgerEntry::class)
 
-                <div class="grid gap-6 lg:grid-cols-[1fr_24rem]">
+                <div class="grid gap-6">
 
                     <section class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
 
@@ -381,28 +397,6 @@
                             </div>
 
                         </form>
-
-                    </section>
-
-                    <section class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-
-                        <h2 class="text-base font-semibold text-slate-950">Import Withdrawals</h2>
-
-                        <p class="mt-1 text-sm text-slate-500">CSV or XLSX rows with transaction_type set to withdrawal are added for outgoing review.</p>
-
-                        <form method="POST" action="{{ route('bank-reconciliation.import') }}" enctype="multipart/form-data" class="mt-4 space-y-3">
-
-                            @csrf
-
-                            <input type="hidden" name="return_tab" value="outgoing">
-
-                            <input type="file" name="statement" accept=".csv,.txt,.xlsx" required class="block w-full text-sm text-slate-600">
-
-                            <x-button class="w-full">Import Statement</x-button>
-
-                        </form>
-
-                        <x-form.error name="statement" />
 
                     </section>
 

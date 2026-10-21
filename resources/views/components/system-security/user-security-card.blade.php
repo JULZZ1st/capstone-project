@@ -59,13 +59,21 @@
 
     @can('updateSecuritySettings', \App\Models\SecurityActivityEvent::class)
     <div class="mt-3 flex items-center justify-end gap-2">
-        {{-- Edit button opens a small details-based panel --}}
-        <details class="relative">
-            <summary class="rounded bg-slate-100 px-2 py-1 text-xs font-semibold">Edit</summary>
-            <form method="POST" action="{{ route('system-security.users.update', $user) }}" class="mt-2 w-80 rounded border border-slate-100 bg-white p-3 shadow-lg">
+        <button type="button" class="rounded bg-slate-100 px-2 py-1 text-xs font-semibold hover:bg-slate-200" data-dialog-open="edit-staff-account-modal-{{ $user->id }}">Edit</button>
+        <dialog id="edit-staff-account-modal-{{ $user->id }}" class="m-auto w-[calc(100%-2rem)] max-w-lg overflow-hidden rounded-xl border-0 p-0 shadow-2xl backdrop:bg-slate-950/55" @if (old('_modal') === 'edit-'.$user->id) open @endif>
+            <form method="POST" action="{{ route('system-security.users.update', $user) }}" class="flex max-h-[86vh] flex-col bg-white">
                 @csrf
                 @method('PATCH')
-                <div class="space-y-2">
+                <input type="hidden" name="_modal" value="edit-{{ $user->id }}">
+                <div class="flex shrink-0 items-start justify-between gap-4 border-b border-slate-200 px-4 py-3 sm:px-6">
+                    <div>
+                        <h2 id="edit-staff-account-title-{{ $user->id }}" class="text-lg font-semibold text-slate-950">Edit Account</h2>
+                        <p class="mt-1 truncate text-sm text-slate-500">{{ $user->email }}</p>
+                    </div>
+                    <button type="button" class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-800" data-dialog-close="edit-staff-account-modal-{{ $user->id }}" aria-label="Close modal"><x-icon name="x-circle" class="h-5 w-5" /></button>
+                </div>
+                <div class="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6">
+                    <div class="space-y-3">
                     <div>
                         <label class="block text-[11px] text-slate-500">First name</label>
                         <input name="first_name" required value="{{ old('first_name', $user->first_name) }}" class="mt-1 w-full rounded border px-2 py-1 text-sm" />
@@ -92,12 +100,14 @@
                             <option value="deactivated" {{ $isDeactivated ? 'selected' : '' }}>Deactivated</option>
                         </select>
                     </div>
-                    <div class="mt-2 flex justify-end">
-                        <button class="rounded bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white">Save</button>
                     </div>
                 </div>
+                <div class="flex shrink-0 items-center justify-end gap-2 border-t border-slate-200 bg-slate-50/90 px-4 py-3 sm:px-6">
+                    <button type="button" class="rounded-md border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50" data-dialog-close="edit-staff-account-modal-{{ $user->id }}">Cancel</button>
+                    <button class="rounded-md bg-emerald-600 px-3 py-2 text-xs font-bold text-white hover:bg-emerald-700">Save</button>
+                </div>
             </form>
-        </details>
+        </dialog>
 
         @unless($isDeactivated)
             <form method="POST" action="{{ route('system-security.users.deactivate', $user) }}" onsubmit="return confirm('Are you sure you want to deactivate this account? This will disable the account and may prevent access.')">
