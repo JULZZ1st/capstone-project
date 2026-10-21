@@ -5,9 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\Workspace\CreateWorkspaceRequest;
 use App\Models\Workspace;
 use App\Services\Workspaces\CreateWorkspaceWithAdmin;
-use App\Support\Workspaces\WorkspaceAuthorizer;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class WorkspaceManagementController extends Controller
@@ -28,14 +26,6 @@ class WorkspaceManagementController extends Controller
         $workspace = $creator->handle($request->validated(), $request->user());
 
         return redirect()->route('workspaces.index')->with('success', "Workspace {$workspace->name} created with its Admin account.");
-    }
-
-    public function select(Request $request, Workspace $workspace, WorkspaceAuthorizer $authorizer): RedirectResponse
-    {
-        $authorizer->assertCanAccess($request->user(), $workspace);
-        $request->session()->put('active_workspace_id', $workspace->getKey());
-
-        return redirect()->route('dashboard')->with('success', "Active workspace set to {$workspace->name}.");
     }
 
     public function toggle(Workspace $workspace): RedirectResponse

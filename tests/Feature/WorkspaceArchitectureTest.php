@@ -24,24 +24,23 @@ class WorkspaceArchitectureTest extends TestCase
         })->middleware(['web', 'auth', 'workspace']);
     }
 
-    public function test_gina_is_seeded_as_super_admin_without_losing_admin_access(): void
+    public function test_gina_is_seeded_as_platform_only_super_admin(): void
     {
         $this->seed();
 
         $gina = User::query()->where('email', 'gina@gmail.com')->firstOrFail();
 
         $this->assertTrue($gina->isSuperAdmin());
-        $this->assertTrue($gina->hasRole('admin'));
-        $this->assertDatabaseHas('workspace_memberships', [
-            'user_id' => $gina->id,
-            'workspace_id' => Workspace::query()->where('slug', 'legacy')->value('id'),
-            'role_id' => Role::query()->where('name', 'admin')->value('id'),
-            'status' => 'active',
-        ]);
+        $this->assertNull($gina->role_id);
+        $this->assertDatabaseMissing('workspace_memberships', ['user_id' => $gina->id]);
+        $this->assertDatabaseHas('workspaces', ['slug' => 'legacy']);
 
         $this->actingAs($gina)
-            ->withSession(['active_workspace_id' => Workspace::query()->where('slug', 'legacy')->value('id')])
-            ->get('/')
+            ->get(route('dashboard'))
+            ->assertForbidden();
+
+        $this->actingAs($gina)
+            ->get(route('workspaces.index'))
             ->assertOk();
     }
 
@@ -78,7 +77,7 @@ class WorkspaceArchitectureTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_super_admin_can_activate_an_authorized_platform_workspace(): void
+    public function test_super_admin_cannot_activate_a_workspace_context(): void
     {
         $superAdmin = User::factory()->create(['is_super_admin' => true]);
         $workspace = Workspace::query()->create(['name' => 'Managed Workspace', 'slug' => 'managed-workspace']);
@@ -87,7 +86,7 @@ class WorkspaceArchitectureTest extends TestCase
             ->withSession(['active_workspace_id' => $workspace->id])
             ->get('/__workspace-context-test')
             ->assertOk()
-            ->assertJson(['workspace_id' => $workspace->id]);
+            ->assertJson(['workspace_id' => null]);
     }
 
     public function test_staff_created_with_an_active_workspace_receives_that_membership(): void

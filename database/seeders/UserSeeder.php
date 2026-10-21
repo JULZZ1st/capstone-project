@@ -2,17 +2,13 @@
 
 namespace Database\Seeders;
 
-use App\Models\Role;
 use App\Models\User;
-use App\Models\Workspace;
 use Illuminate\Database\Seeder;
 
 class UserSeeder extends Seeder
 {
     public function run(): void
     {
-        $role = Role::query()->where('name', Role::ADMIN)->firstOrFail();
-
         $gina = User::query()->firstOrNew(['email' => 'gina@gmail.com']);
 
         // Preserve an existing account's password and account state. The default
@@ -27,19 +23,12 @@ class UserSeeder extends Seeder
             $gina->name = 'Gina Gamboa';
         }
 
-        $gina->role_id = $role->id;
+        $gina->role_id = null;
         $gina->is_super_admin = true;
         $gina->save();
 
-        $gina->refresh();
-        $workspace = Workspace::query()->firstOrCreate(
-            ['slug' => 'legacy'],
-            ['name' => 'Legacy Workspace', 'status' => 'active'],
-        );
-
-        $workspace->memberships()->updateOrCreate(
-            ['user_id' => $gina->id],
-            ['role_id' => $role->id, 'status' => 'active'],
-        );
+        // Gina is platform-only. Remove only her legacy membership; preserve
+        // the legacy workspace and every other user's membership.
+        $gina->workspaceMemberships()->delete();
     }
 }

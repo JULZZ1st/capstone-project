@@ -1,6 +1,48 @@
 import './bootstrap';
 import './charts';
 
+let toastTimer = null;
+
+const hideToast = (dialog = null) => {
+    const toast = dialog?.querySelector('[data-ui-toast]') ?? document.querySelector('[data-ui-toast]');
+
+    window.clearTimeout(toastTimer);
+    toast?.classList.add('hidden');
+};
+
+const showToast = (wizard, title, description) => {
+    const toast = wizard.closest('dialog')?.querySelector('[data-ui-toast]');
+
+    if (! toast) {
+        return;
+    }
+
+    toast.querySelector('[data-ui-toast-title]')?.replaceChildren(document.createTextNode(title));
+    toast.querySelector('[data-ui-toast-description]')?.replaceChildren(document.createTextNode(description));
+    toast.classList.remove('hidden');
+
+    window.clearTimeout(toastTimer);
+    toastTimer = window.setTimeout(() => toast.classList.add('hidden'), 4200);
+};
+
+const resetDonorWizard = (dialog) => {
+    const wizard = dialog?.querySelector('[data-donor-form]');
+
+    hideToast(dialog);
+
+    if (! wizard) {
+        return;
+    }
+
+    wizard.closest('form')?.reset();
+    wizard.querySelectorAll('input, select, textarea').forEach((field) => {
+        clearDonorWizardHighlight(field);
+        field.removeAttribute('aria-invalid');
+    });
+    setDonorWizardStep(wizard, Number(wizard.dataset.wizardStartStep) || 0);
+    updateDonorCreateForm(wizard);
+};
+
 document.addEventListener('click', (event) => {
     const openButton = event.target.closest('[data-dialog-open]');
     const closeButton = event.target.closest('[data-dialog-close]');
@@ -9,6 +51,7 @@ document.addEventListener('click', (event) => {
         const dialog = document.getElementById(openButton.dataset.dialogOpen);
 
         if (dialog instanceof HTMLDialogElement) {
+            resetDonorWizard(dialog);
             dialog.showModal();
         }
     }
@@ -17,6 +60,7 @@ document.addEventListener('click', (event) => {
         const dialog = document.getElementById(closeButton.dataset.dialogClose);
 
         if (dialog instanceof HTMLDialogElement) {
+            resetDonorWizard(dialog);
             dialog.close();
         }
     }
@@ -24,6 +68,7 @@ document.addEventListener('click', (event) => {
 
 document.addEventListener('cancel', (event) => {
     if (event.target instanceof HTMLDialogElement) {
+        resetDonorWizard(event.target);
         event.target.close();
     }
 }, true);
@@ -86,29 +131,36 @@ const setDonorWizardStep = (wizard, stepIndex) => {
     wizard.dataset.currentWizardStep = String(currentIndex);
 };
 
-const invalidDonorWizardField = (step) => Array.from(step.querySelectorAll('input, select, textarea'))
-    .find((field) => ! field.disabled
-        && ! field.closest('[data-wizard-step]')?.hidden
-        && ! field.checkValidity());
+const invalidDonorWizardFields = (step) => Array.from(step.querySelectorAll('input, select, textarea'))
+    .filter((field) => field.required && ! field.disabled && ! field.closest('[data-wizard-step]')?.hidden && ! field.checkValidity());
+
+const invalidDonorWizardField = (step) => invalidDonorWizardFields(step)[0];
+
+const clearDonorWizardHighlight = (field) => {
+    field.classList.remove('border-rose-500', 'ring-1', 'ring-rose-500');
+    field.removeAttribute('aria-invalid');
+};
 
 const validateDonorWizardStep = (wizard, step) => {
-    const invalidField = invalidDonorWizardField(step);
-    const errorMessage = donorWizardControls(wizard).error ?? wizard.querySelector('[data-wizard-error]');
+    const invalidFields = invalidDonorWizardFields(step);
+    const invalidField = invalidFields[0];
 
-    if (errorMessage) {
-        errorMessage.hidden = ! invalidField;
-        if (invalidField) {
-            const invalidCount = Array.from(step.querySelectorAll('input, select, textarea')).filter((field) => ! field.disabled && ! field.checkValidity()).length;
-            errorMessage.textContent = invalidCount > 1
-                ? 'Please fill out the remaining fields.'
-                : 'Please fill out the remaining field.';
-        }
-    }
+    step.querySelectorAll('input, select, textarea').forEach(clearDonorWizardHighlight);
+    invalidFields.forEach((field) => {
+        field.classList.add('border-rose-500', 'ring-1', 'ring-rose-500');
+        field.setAttribute('aria-invalid', 'true');
+    });
 
     if (! invalidField) {
         return true;
     }
 
+    showToast(wizard,
+        'Required field missing',
+        invalidFields.length > 1
+            ? 'Complete the highlighted required fields before continuing.'
+            : 'Complete the highlighted required field before continuing.',
+    );
     invalidField.focus();
     invalidField.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
@@ -169,11 +221,7 @@ document.addEventListener('input', (event) => {
     const wizard = donorWizardForm(event.target);
 
     if (wizard) {
-        const error = donorWizardControls(wizard).error ?? wizard.querySelector('[data-wizard-error]');
-
-        if (error) {
-            error.hidden = true;
-        }
+        clearDonorWizardHighlight(event.target);
     }
 });
 
@@ -181,11 +229,7 @@ document.addEventListener('change', (event) => {
     const wizard = donorWizardForm(event.target);
 
     if (wizard) {
-        const error = donorWizardControls(wizard).error ?? wizard.querySelector('[data-wizard-error]');
-
-        if (error) {
-            error.hidden = true;
-        }
+        clearDonorWizardHighlight(event.target);
     }
 });
 

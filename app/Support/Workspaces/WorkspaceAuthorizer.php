@@ -54,10 +54,6 @@ class WorkspaceAuthorizer
             return false;
         }
 
-        if ($user->isSuperAdmin()) {
-            return true;
-        }
-
         return $user->workspaceMemberships()
             ->where('workspace_id', $workspace->getKey())
             ->where('status', 'active')

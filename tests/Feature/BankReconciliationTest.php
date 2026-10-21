@@ -52,6 +52,57 @@ class BankReconciliationTest extends TestCase
         ]);
     }
 
+    public function test_landbank_statement_previews_running_balance_and_confirms_only_after_review(): void
+    {
+        $csv = "Account Statement,,,,,,\n".
+            "Beginning Balance,,,,,,1000.00\n".
+            "Date,Description,REF,Check No.,Debit Amount,Credit Amount,Balance\n".
+            "2026-09-05,Barangay donation,REF-001,,,500.00,1500.00\n".
+            "2026-09-06,Relief supplies,,CHK-001,200.00,,1300.00\n".
+            "Ending Balance,,,,,,1300.00\n";
+        $treasurer = $this->userWithRole('treasurer');
+
+        $this->actingAs($treasurer)->post(route('bank-reconciliation.import'), [
+            'statement' => UploadedFile::fake()->createWithContent('landbank.csv', $csv),
+        ])->assertRedirect(route('bank-reconciliation.index'))
+            ->assertSessionHas('bank_statement_preview');
+
+        $this->assertDatabaseCount('bank_ledger_entries', 0);
+        $this->actingAs($treasurer)->get(route('bank-reconciliation.index'))
+            ->assertOk()
+            ->assertSee('LANDBANK statement preview')
+            ->assertSee('withdrawal')
+            ->assertSee('REF-001');
+
+        $this->actingAs($treasurer)->post(route('bank-reconciliation.import.confirm'))
+            ->assertRedirect(route('bank-reconciliation.index'));
+
+        $this->assertDatabaseHas('bank_ledger_entries', [
+            'reference_number' => 'REF-001', 'transaction_type' => 'deposit', 'amount' => 500,
+        ]);
+        $this->assertDatabaseHas('bank_ledger_entries', [
+            'reference_number' => 'CHK-001', 'transaction_type' => 'withdrawal', 'amount' => 200,
+        ]);
+    }
+
+    public function test_landbank_import_does_not_guess_ambiguous_direction(): void
+    {
+        $csv = "Beginning Balance,,,,,,1000.00\n".
+            "Date,Description,REF,Check No.,Debit Amount,Credit Amount,Balance\n".
+            "2026-09-05,Ambiguous row,REF-AMB,,100.00,50.00,1050.00\n".
+            "Ending Balance,,,,,,1050.00\n";
+
+        $treasurer = $this->userWithRole('treasurer');
+        $this->actingAs($treasurer)->post(route('bank-reconciliation.import'), [
+            'statement' => UploadedFile::fake()->createWithContent('landbank-invalid.csv', $csv),
+        ])->assertRedirect(route('bank-reconciliation.index'));
+
+        $this->actingAs($treasurer)->get(route('bank-reconciliation.index'))
+            ->assertSee('Both debit and credit are populated')
+            ->assertDontSee('Confirm LANDBANK import');
+        $this->assertDatabaseCount('bank_ledger_entries', 0);
+    }
+
     public function test_treasurer_can_import_xlsx_rows_with_blank_cells(): void
     {
         $path = tempnam(sys_get_temp_dir(), 'bank-statement-');
