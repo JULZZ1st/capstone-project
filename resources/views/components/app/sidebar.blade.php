@@ -11,7 +11,7 @@
         ['label' => 'System Administration', 'icon' => 'shield-check', 'route' => 'system-security.index', 'active' => 'system-security.*', 'visible' => $user?->can('updateSecuritySettings', \App\Models\SecurityActivityEvent::class)],
     ];
     $items = array_values(array_filter($items, fn (array $item): bool => (bool) ($item['visible'] ?? true)));
-    if ($user?->isSuperAdmin()) {
+    if ($user?->hasRole('admin')) {
         array_unshift($items, ['label' => 'Workspace Management', 'icon' => 'users', 'route' => 'workspaces.index', 'active' => 'workspaces.*']);
     }
 @endphp

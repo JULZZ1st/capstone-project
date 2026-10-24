@@ -34,7 +34,7 @@ class ResolveActiveWorkspace
             if ($workspace === null || ! $this->authorizer->canAccess($user, $workspace)) {
                 $request->session()->forget('active_workspace_id');
 
-                if ($workspace !== null && ! $user->isSuperAdmin()) {
+                if ($workspace !== null && ! $user->hasRole('admin')) {
                     abort(403, 'You are not authorized to access this workspace.');
                 }
             } else {
@@ -42,7 +42,7 @@ class ResolveActiveWorkspace
             }
         }
 
-        if (! $this->context->hasWorkspace() && ! $user->isSuperAdmin()) {
+        if (! $this->context->hasWorkspace()) {
             $membership = $user->workspaceMemberships()
                 ->with('workspace')
                 ->where('status', 'active')

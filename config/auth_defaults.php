@@ -15,16 +15,16 @@ return [
 
     'roles' => [
         'admin' => [
-            'display_name' => 'Administrator',
-            'description' => 'Full system access and user management.',
+            'display_name' => 'Admin',
+            'description' => 'Manages all workspaces, staff accounts, and operational workflows.',
         ],
         'secretary' => [
             'display_name' => 'Secretary',
-            'description' => 'Donor records and in-kind inventory workflows.',
+            'description' => 'Manages donor and in-kind records and inventory; cannot manage staff, verify cash, or reconcile banks.',
         ],
         'treasurer' => [
             'display_name' => 'Treasurer',
-            'description' => 'Cash transactions and bank reconciliation workflows.',
+            'description' => 'Verifies cash transactions and reconciles banks; cannot manage workspaces, staff, or inventory.',
         ],
     ],
 ];

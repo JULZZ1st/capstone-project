@@ -2,9 +2,12 @@
 
 namespace Tests\Feature;
 
+use App\Models\Donor;
 use App\Models\Role;
 use App\Models\User;
 use App\Models\Workspace;
+use App\Services\Workspaces\CreateWorkspaceWithAdmin;
+use App\Support\Workspaces\WorkspaceAuthorizer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -12,16 +15,12 @@ class WorkspaceManagementTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_super_admin_can_create_workspace_and_assigned_admin(): void
+    public function test_admin_can_create_workspace_and_assigned_admin(): void
     {
         $adminRole = Role::query()->firstOrCreate(['name' => 'admin'], ['display_name' => 'Administrator']);
-        $gina = User::factory()->create([
-            'email' => 'gina@example.test',
-            'role_id' => $adminRole->id,
-            'is_super_admin' => true,
-        ]);
+        $admin = $this->admin();
 
-        $response = $this->actingAs($gina)->post(route('workspaces.store'), [
+        $response = $this->actingAs($admin)->post(route('workspaces.store'), [
             'name' => 'Workspace A',
             'slug' => 'workspace-a',
             'admin_first_name' => 'Admin',
@@ -44,81 +43,139 @@ class WorkspaceManagementTest extends TestCase
         $this->assertTrue($admin->must_change_password);
     }
 
-    public function test_regular_admin_cannot_open_or_create_platform_workspaces(): void
+    public function test_secretary_and_treasurer_cannot_manage_workspaces(): void
     {
-        $admin = $this->userWithRole('admin');
-
-        $this->actingAs($admin)->get(route('workspaces.index'))->assertForbidden();
-        $this->actingAs($admin)->post(route('workspaces.store'), [
-            'name' => 'Not Allowed',
-            'admin_first_name' => 'Admin',
-            'admin_last_name' => 'B',
-            'admin_email' => 'admin.b@example.test',
-            'admin_password' => 'TemporaryPassword123!',
-            'admin_password_confirmation' => 'TemporaryPassword123!',
-        ])->assertForbidden();
+        foreach (['secretary', 'treasurer'] as $role) {
+            $staff = $this->userWithRole($role);
+            $this->actingAs($staff)->get(route('workspaces.index'))->assertForbidden();
+            $this->post(route('workspaces.store'), [
+                'name' => 'Not Allowed',
+                'admin_first_name' => 'Admin',
+                'admin_last_name' => 'B',
+                'admin_email' => "{$role}.admin@example.test",
+                'admin_password' => 'TemporaryPassword123!',
+                'admin_password_confirmation' => 'TemporaryPassword123!',
+            ])->assertForbidden();
+        }
     }
 
-    public function test_super_admin_without_active_workspace_is_redirected_to_workspace_management(): void
+    public function test_admin_can_manage_workspaces_and_open_operational_records(): void
     {
-        $adminRole = Role::query()->firstOrCreate(['name' => 'admin'], ['display_name' => 'Administrator']);
-        $superAdmin = User::factory()->create([
-            'role_id' => $adminRole->id,
-            'is_super_admin' => true,
-        ]);
+        $admin = $this->admin();
+        $workspace = Workspace::query()->create(['name' => 'Managed Workspace', 'slug' => 'managed-workspace']);
 
-        $this->actingAs($superAdmin)
-            ->get(route('dashboard'))
-            ->assertRedirect(route('workspaces.index'))
-            ->assertSessionHas('error', 'Select an active workspace to continue.');
-    }
+        $this->actingAs($admin)
+            ->get(route('workspaces.index'))
+            ->assertOk()
+            ->assertSee('Admins manage workspaces')
+            ->assertSee('Open workspace');
 
-    public function test_super_admin_can_select_an_active_workspace(): void
-    {
-        $adminRole = Role::query()->firstOrCreate(['name' => 'admin'], ['display_name' => 'Administrator']);
-        $superAdmin = User::factory()->create([
-            'role_id' => $adminRole->id,
-            'is_super_admin' => true,
-        ]);
-        $workspace = Workspace::query()->create([
-            'name' => 'Workspace A',
-            'slug' => 'workspace-a',
-            'status' => 'active',
-        ]);
-
-        $this->actingAs($superAdmin)
-            ->post(route('workspaces.select', $workspace))
-            ->assertRedirect(route('dashboard'))
-            ->assertSessionHas('active_workspace_id', $workspace->id);
-
+        $this->post(route('workspaces.activate', $workspace))
+            ->assertRedirect(route('dashboard'));
         $this->get(route('dashboard'))->assertOk();
     }
 
-    public function test_super_admin_cannot_select_an_inactive_workspace(): void
+    public function test_admin_can_open_another_admins_workspace(): void
     {
         $adminRole = Role::query()->firstOrCreate(['name' => 'admin'], ['display_name' => 'Administrator']);
-        $superAdmin = User::factory()->create([
-            'role_id' => $adminRole->id,
-            'is_super_admin' => true,
-        ]);
+        $admin = $this->admin();
+        $anotherAdmin = User::factory()->create(['role_id' => $adminRole->id]);
         $workspace = Workspace::query()->create([
-            'name' => 'Inactive Workspace',
-            'slug' => 'inactive-workspace',
-            'status' => 'inactive',
+            'name' => 'Julius Workspace',
+            'slug' => 'julius-workspace',
+            'status' => 'active',
+        ]);
+        $workspace->memberships()->create([
+            'user_id' => $anotherAdmin->id,
+            'role_id' => $adminRole->id,
+            'status' => 'active',
         ]);
 
-        $this->actingAs($superAdmin)
-            ->post(route('workspaces.select', $workspace))
-            ->assertForbidden();
+        $this->actingAs($admin)
+            ->get(route('workspaces.index'))
+            ->assertOk()
+            ->assertSee('Open workspace');
 
-        $this->assertNull(session('active_workspace_id'));
+        $this->assertTrue(app(WorkspaceAuthorizer::class)->canAccess($admin, $workspace));
+    }
+
+    public function test_admin_can_deactivate_and_reactivate_a_workspace(): void
+    {
+        $admin = $this->admin();
+        $workspace = Workspace::query()->create(['name' => 'Toggle Workspace', 'slug' => 'toggle-workspace']);
+
+        $this->actingAs($admin)
+            ->patch(route('workspaces.toggle', $workspace))
+            ->assertRedirect(route('workspaces.index'));
+        $this->assertDatabaseHas('workspaces', ['id' => $workspace->id, 'status' => 'inactive']);
+
+        $this->patch(route('workspaces.toggle', $workspace))
+            ->assertRedirect(route('workspaces.index'));
+        $this->assertDatabaseHas('workspaces', ['id' => $workspace->id, 'status' => 'active']);
+    }
+
+    public function test_admin_can_delete_empty_workspace_without_disabling_its_assigned_admin(): void
+    {
+        $admin = $this->admin();
+        $workspace = app(CreateWorkspaceWithAdmin::class)->handle([
+            'name' => 'Empty Workspace',
+            'slug' => 'empty-workspace',
+            'admin_first_name' => 'Workspace',
+            'admin_last_name' => 'Admin',
+            'admin_email' => 'empty.admin@example.test',
+            'admin_password' => 'TemporaryPassword123!',
+        ], $admin);
+        $assignedAdmin = User::query()->where('email', 'empty.admin@example.test')->firstOrFail();
+
+        $this->assertDatabaseHas('security_activity_events', [
+            'workspace_id' => $workspace->id,
+            'action' => 'workspace_created',
+        ]);
+
+        $this->actingAs($admin)
+            ->delete(route('workspaces.destroy', $workspace))
+            ->assertRedirect(route('workspaces.index'));
+
+        $this->assertDatabaseMissing('workspaces', ['id' => $workspace->id]);
+        $this->assertDatabaseHas('users', ['id' => $assignedAdmin->id, 'status' => 'active']);
+        $this->assertDatabaseMissing('workspace_memberships', ['workspace_id' => $workspace->id]);
+        $this->assertDatabaseHas('security_activity_events', [
+            'workspace_id' => null,
+            'action' => 'workspace_created',
+        ]);
+    }
+
+    public function test_admin_cannot_delete_workspace_with_operational_records(): void
+    {
+        $admin = $this->admin();
+        $workspace = Workspace::query()->create(['name' => 'Used Workspace', 'slug' => 'used-workspace']);
+        Donor::query()->create([
+            'workspace_id' => $workspace->id,
+            'first_name' => 'Saved',
+            'last_name' => 'Donor',
+            'full_name' => 'Saved Donor',
+            'donor_type' => 'individual',
+            'status' => 'active',
+            'address' => 'Test Address',
+            'contact_number' => '09000000000',
+        ]);
+
+        $this->actingAs($admin)
+            ->from(route('workspaces.index'))
+            ->delete(route('workspaces.destroy', $workspace))
+            ->assertRedirect(route('workspaces.index'))
+            ->assertSessionHasErrors('workspace');
+
+        $this->assertDatabaseHas('workspaces', ['id' => $workspace->id]);
     }
 
     public function test_workspace_admin_cannot_create_another_admin_from_staff_console(): void
     {
         $admin = $this->userWithRole('admin');
+        $workspace = Workspace::query()->create(['name' => 'Staff Workspace', 'slug' => 'staff-workspace']);
 
         $this->actingAs($admin)
+            ->withSession(['active_workspace_id' => $workspace->id])
             ->from(route('system-security.index'))
             ->post(route('system-security.users.store'), [
                 'first_name' => 'Second',
@@ -142,5 +199,15 @@ class WorkspaceManagementTest extends TestCase
         );
 
         return User::factory()->create(['role_id' => $roleModel->id]);
+    }
+
+    private function admin(): User
+    {
+        $role = Role::query()->firstOrCreate(['name' => Role::ADMIN], [
+            'display_name' => 'Admin',
+            'description' => 'Manages all workspaces.',
+        ]);
+
+        return User::factory()->create(['role_id' => $role->id]);
     }
 }

@@ -24,7 +24,6 @@ class CreateWorkspaceWithAdmin
 
             $admin = User::query()->create([
                 'role_id' => $role->id,
-                'is_super_admin' => false,
                 'first_name' => $data['admin_first_name'],
                 'last_name' => $data['admin_last_name'],
                 'name' => $data['admin_first_name'].' '.$data['admin_last_name'],

@@ -64,14 +64,13 @@ class WorkspaceIsolationTest extends TestCase
             ->assertDontSee('Workspace B Donor');
     }
 
-    public function test_super_admin_must_select_an_authorized_workspace_for_operational_records(): void
+    public function test_admin_with_memberships_resolves_a_workspace_for_operational_records(): void
     {
         [$admin, $workspaceA] = $this->workspaces();
-        $admin->update(['is_super_admin' => true]);
 
         $this->actingAs($admin)
             ->get(route('donors.index'))
-            ->assertForbidden();
+            ->assertOk();
 
         $this->actingAs($admin)
             ->withSession(['active_workspace_id' => $workspaceA->id])

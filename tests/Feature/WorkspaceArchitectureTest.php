@@ -9,6 +9,7 @@ use App\Services\SystemSecurity\CreateStaffAccount;
 use App\Support\Workspaces\WorkspaceContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
 class WorkspaceArchitectureTest extends TestCase
@@ -24,25 +25,25 @@ class WorkspaceArchitectureTest extends TestCase
         })->middleware(['web', 'auth', 'workspace']);
     }
 
-    public function test_gina_is_seeded_as_super_admin_without_losing_admin_access(): void
+    public function test_gina_is_seeded_as_admin_with_workspace_management_access(): void
     {
         $this->seed();
 
         $gina = User::query()->where('email', 'gina@gmail.com')->firstOrFail();
 
-        $this->assertTrue($gina->isSuperAdmin());
-        $this->assertTrue($gina->hasRole('admin'));
-        $this->assertDatabaseHas('workspace_memberships', [
-            'user_id' => $gina->id,
-            'workspace_id' => Workspace::query()->where('slug', 'legacy')->value('id'),
-            'role_id' => Role::query()->where('name', 'admin')->value('id'),
-            'status' => 'active',
-        ]);
+        $this->assertTrue($gina->hasRole(Role::ADMIN));
+        $this->assertSame('Admin', $gina->roleDisplayName());
+        $this->assertDatabaseMissing('roles', ['name' => 'super_admin']);
+        $this->assertFalse(Schema::hasColumn('users', 'is_super_admin'));
+        $this->assertDatabaseMissing('workspace_memberships', ['user_id' => $gina->id]);
+        $workspace = Workspace::query()->where('slug', 'legacy')->firstOrFail();
+        $this->assertTrue(app(\App\Support\Workspaces\WorkspaceAuthorizer::class)->canAccess($gina, $workspace));
 
         $this->actingAs($gina)
-            ->withSession(['active_workspace_id' => Workspace::query()->where('slug', 'legacy')->value('id')])
-            ->get('/')
-            ->assertOk();
+            ->withSession(['active_workspace_id' => $workspace->id])
+            ->get('/__workspace-context-test')
+            ->assertOk()
+            ->assertJson(['workspace_id' => $workspace->id]);
     }
 
     public function test_membership_resolves_active_workspace_into_request_context(): void
@@ -78,12 +79,13 @@ class WorkspaceArchitectureTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_super_admin_can_activate_an_authorized_platform_workspace(): void
+    public function test_admin_can_activate_any_active_workspace_without_membership(): void
     {
-        $superAdmin = User::factory()->create(['is_super_admin' => true]);
+        $role = Role::query()->firstOrCreate(['name' => Role::ADMIN], ['display_name' => 'Admin']);
+        $admin = User::factory()->create(['role_id' => $role->id]);
         $workspace = Workspace::query()->create(['name' => 'Managed Workspace', 'slug' => 'managed-workspace']);
 
-        $this->actingAs($superAdmin)
+        $this->actingAs($admin)
             ->withSession(['active_workspace_id' => $workspace->id])
             ->get('/__workspace-context-test')
             ->assertOk()

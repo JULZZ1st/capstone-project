@@ -20,16 +20,16 @@ Code evidence: `routes/web.php`, `app/Models/Concerns/WorkspaceScoped.php`, `app
 
 ## Multi-Tenant Workflow
 
-### 1. Super Admin creates workspaces and Admins
+### 1. Admin creates workspaces and Admin accounts
 
-Gina is the platform Super Admin. She opens **Workspace Management** and creates:
+An Admin opens **Workspace Management** and creates:
 
-| Workspace | Workspace Admin |
+| Workspace | Assigned Admin |
 |---|---|
 | Workspace A | Admin A |
 | Workspace B | Admin B |
 
-The workspace creation service creates the workspace, creates the first Admin account, creates the membership connecting that Admin to the workspace, and records an audit event. The Admin receives a temporary-password account and must change the password when required by the application.
+The workspace creation service creates the workspace, creates its initial Admin account, creates the membership connecting that Admin to the workspace, and records an audit event. An Admin can open any active workspace after selecting it from Workspace Management. Admin accounts receive a temporary password and must change it when required by the application.
 
 Code evidence: `app/Http/Controllers/WorkspaceManagementController.php`, `app/Services/Workspaces/CreateWorkspaceWithAdmin.php`, `resources/views/workspaces/index.blade.php`.
 
@@ -37,12 +37,12 @@ Code evidence: `app/Http/Controllers/WorkspaceManagementController.php`, `app/Se
 
 Admin A creates Secretary A and Treasurer A from the staff/security page. Admin B creates the corresponding staff for Workspace B.
 
-An ordinary Workspace Admin can create only:
+An Admin can create only:
 
 - Secretary accounts; and
 - Treasurer accounts.
 
-The staff form does not offer Admin as a selectable role. Backend validation also accepts only `secretary` and `treasurer` for this form. Admin creation belongs to the Super Admin Workspace Management workflow.
+The staff form does not offer Admin as a selectable role. Backend validation also accepts only `secretary` and `treasurer` for this form. Admin accounts are created through Workspace Management.
 
 ### 3. Workspace isolation
 
@@ -53,42 +53,27 @@ For example:
 1. Admin A creates Donor A in Workspace A.
 2. Admin B creates Donor B in Workspace B.
 3. Admin A can search for and edit Donor A.
-4. Admin A cannot open Donor B by changing an ID in the URL. The route-model protection returns a not-found response.
+4. With Workspace A selected, the Admin cannot open Donor B by changing an ID in the URL. The route-model protection returns a not-found response.
 5. Reports, dashboard totals, inventory, contributions, disbursements, bank records, and audit records are calculated within the active workspace.
 
-The Super Admin can manage workspaces as a platform function. This does not automatically give Gina unrestricted access to operational records. Operational pages require an authorized active workspace context.
+Admins can manage workspaces and enter operational pages after selecting an active workspace. Secretary and Treasurer accounts remain restricted to their assigned workspace; workspace-scoped queries and route-model checks prevent records from crossing workspace boundaries.
 
 Code evidence: `app/Models/Concerns/WorkspaceScoped.php`, `app/Services/Workspaces/WorkspaceAuthorizer.php`, `app/Http/Middleware/EnsureWorkspaceRouteModels.php`, `app/Http/Middleware/RequireActiveWorkspace.php`, and `app/Http/Controllers/Auth/AuthenticatedSessionController.php`.
 
 ## User Roles and Responsibilities
 
-### Super Admin (Gina)
+### Admin
 
-Purpose: manage the platform’s workspaces and their initial Admin accounts.
+Purpose: manage workspaces, supervise operational records, and control staff access.
 
 Can:
 
-- sign in and change her password;
+- sign in and change a temporary password when required;
 - open Workspace Management;
-- create workspaces and Workspace Admins;
+- create workspaces and initial Admin accounts;
 - view workspace membership information needed for platform administration;
-- switch to an authorized workspace context when the application provides one; and
-- use operational pages only when an authorized active workspace has been selected.
-
-Cannot:
-
-- use the platform role as a bypass for workspace isolation;
-- automatically view every workspace’s operational data at once; or
-- use the ordinary staff form to create arbitrary platform Admins.
-
-Everyday responsibility: onboard barangays and their Admins, then leave daily donation and reconciliation work to the workspace team.
-
-### Workspace Admin
-
-Purpose: manage one workspace and supervise its records and staff.
-
-Can:
-
+- select and open any active workspace;
+- activate or deactivate workspaces;
 - use the dashboard and workspace operational pages;
 - create and manage Secretary and Treasurer accounts in the active workspace;
 - manage donors, donations, inventory, disbursements, and security settings allowed by policy;
@@ -102,10 +87,9 @@ Cannot:
 - create another Admin from the staff form;
 - approve their own disbursement request;
 - approve a reconciliation period they prepared as the same person;
-- access another workspace’s records; or
 - change locked-period financial records without the audited reopening rules.
 
-Everyday responsibility: supervise the workspace, approve controlled transactions, review reports, and maintain staff access.
+Everyday responsibility: onboard workspaces, supervise controlled transactions, review reports, and maintain staff access across workspaces.
 
 ### Secretary
 
@@ -164,19 +148,19 @@ The stories below use the implemented role boundaries and current routes and ser
 - As a user, I want to be required to change a temporary password when required, so that an initial password is not kept permanently.
 - As a user, I want to log out and invalidate my session, so that another person using the browser cannot continue as me.
 - As a user, I want stale or unauthorized workspace context cleared, so that an old session cannot expose another workspace.
-- As a Super Admin, I want to create workspace Admin accounts through Workspace Management, so that platform account creation is controlled.
-- As a Workspace Admin, I want to create Secretary and Treasurer accounts, so that daily work can be divided safely.
+- As an Admin, I want to create workspace Admin accounts through Workspace Management, so that account creation is controlled.
+- As an Admin, I want to create Secretary and Treasurer accounts, so that daily work can be divided safely.
 - As a visitor, I should not be able to publicly self-register, so that accounts are created only by authorized administrators.
 
 Evidence: `routes/web.php`, `app/Http/Controllers/Auth/AuthenticatedSessionController.php`, `app/Http/Controllers/SystemSecurityController.php`, and `tests/Feature/Auth/RegistrationTest.php`.
 
 ### Workspace management
 
-- As a Super Admin, I want to create Workspace A and its Admin, so that a new barangay can start using the system.
-- As a Super Admin, I want to create Workspace B independently, so that another barangay has its own records.
-- As a Super Admin, I want to see workspace status and membership information, so that I can manage platform onboarding.
-- As a Workspace Admin, I want to manage local staff, so that I can assign Secretary and Treasurer responsibilities.
-- As an ordinary Admin, I should not see an Admin option in the staff form, so that platform privileges cannot be delegated accidentally.
+- As an Admin, I want to create Workspace A and its Admin, so that a new barangay can start using the system.
+- As an Admin, I want to create Workspace B independently, so that another barangay has its own records.
+- As an Admin, I want to see workspace status and membership information, so that I can manage platform onboarding.
+- As an Admin, I want to manage workspace staff, so that I can assign Secretary and Treasurer responsibilities.
+- As an Admin, I should not see an Admin option in the staff form, so that platform privileges cannot be delegated accidentally.
 
 ### Dashboard
 
@@ -264,25 +248,24 @@ Evidence: `app/Http/Controllers/ReportController.php`, `app/Services/Reports/Fin
 
 ## Complete Step-by-Step Workflows
 
-### Super Admin onboarding
+### Admin workspace onboarding
 
-1. Gina signs in.
-2. If she has no authorized active workspace context, the application sends her to Workspace Management rather than an operational dashboard.
-3. Gina opens **Create Workspace**.
-4. She enters the workspace name and initial Admin details.
-5. The application creates the workspace, Admin user, membership, temporary-password state, and audit event in one transaction.
-6. Gina repeats the process for Workspace B.
-7. Gina gives each Admin the account details through the approved local process.
+1. An Admin signs in and is sent to Workspace Management.
+2. The Admin opens **Create Workspace**.
+3. The Admin enters the workspace name and initial Admin details.
+4. The application creates the workspace, Admin user, membership, temporary-password state, and audit event in one transaction.
+5. The Admin repeats the process for another workspace if needed.
+6. The Admin gives each new account its initial credentials through the approved local process.
 
 ### Admin staff creation
 
-1. Admin A signs in and is resolved into Workspace A.
+1. An Admin signs in and chooses a workspace from Workspace Management.
 2. Admin A opens the staff/security page.
 3. Admin A chooses Secretary or Treasurer; Admin is not an available staff-form option.
 4. Admin A enters the staff account details and submits the form.
 5. The application validates the role, creates the user, creates the Workspace A membership, and records the security event.
 6. The new user signs in and is automatically resolved to Workspace A.
-7. Admin B follows the same steps in Workspace B. The membership and records remain separate.
+7. The Admin may repeat the steps in another workspace. Each membership and its records remain separate.
 
 ### Cash donation processing
 
@@ -402,28 +385,23 @@ Outstanding examples:
 
 The matrix describes the normal operational permissions enforced by current policies and route middleware. A dash means the role does not have that action through the normal UI. “Manage” includes administration functions specific to that row, not unrestricted access to every record.
 
-| Module | Super Admin | Admin | Secretary | Treasurer |
-|---|---|---|---|---|
-| Authentication/account self-service | View, Edit | View, Edit | View, Edit | View, Edit |
-| Workspace management | View, Create, Edit, Manage | — | — | — |
-| Workspace staff | View, Create, Edit, Manage | View, Create, Edit, Manage staff except Admin | View own permitted pages | View own permitted pages |
-| Dashboard | View with active authorized workspace | View | View | View |
-| Donors | View when in authorized workspace | View, Create, Edit, Manage | View, Create, Edit, Manage | View |
-| Cash donations | View when in authorized workspace | View, Create, Edit, Void, Export | View, Create, Edit, Export | View, Create, Edit, Approve/verify, Export |
-| In-kind donations | View when in authorized workspace | View, Create, Edit, Export | View, Create, Edit, Export | View, Export |
-| Inventory items | View when in authorized workspace | View, Create, Edit, Manage, Export | View, Create, Edit, Export | View, Export |
-| Inventory stock movements | View when in authorized workspace | View, Create, Edit, Manage | View, Create, Edit | View |
-| Fund disbursements | View when in authorized workspace | View, Create, Approve, Reject, Void, Export | View, Create, Export | View, Create, Export |
-| Bank ledger | View when in authorized workspace | View, Create, Edit, Import, Export, Manage | View, Export | View, Create, Edit, Import, Export, Manage |
-| Incoming matching | View when in authorized workspace | View, Create/Edit, Manage | View | View, Create/Edit, Manage |
-| Outgoing withdrawal matching | View when in authorized workspace | View, Create/Edit, Manage | View | View, Create/Edit, Manage |
-| Reconciliation periods | View when in authorized workspace | View, Approve, Reject, Manage, Export | View, Export | View, Create, Edit, Submit, Export |
-| Locked-period correction | View when in authorized workspace | Manage through audited reopen | — | — |
-| Financial ledger | View, Export when in authorized workspace | View, Export | View, Export | View, Export |
-| Reports | View, Export when in authorized workspace | View, Export | View, Export where permitted | View, Export |
-| Audit history/security | View when in authorized workspace | View, Edit, Manage | View where permitted | View where permitted |
+| Module | Admin | Secretary | Treasurer |
+|---|---|---|---|
+| Authentication/account self-service | View, Edit | View, Edit | View, Edit |
+| Workspace management | View, Create, Activate/Deactivate, Delete empty workspaces | — | — |
+| Workspace staff | Create, Edit, Manage Secretary/Treasurer | View own permitted pages | View own permitted pages |
+| Dashboard | View in selected workspace | View | View |
+| Donors | View, Create, Edit, Manage | View, Create, Edit, Manage | View |
+| Cash donations | View, Create, Edit, Void, Export, Verify | View, Create, Edit, Export | View, Create, Edit, Verify, Export |
+| In-kind donations | View, Create, Edit, Export | View, Create, Edit, Export | View, Export |
+| Inventory items and stock | View, Create, Edit, Manage, Export | View, Create, Edit, Stock adjustments | View, Export |
+| Fund disbursements | View, Create, Approve, Reject, Void, Export | View, Create, Export | View, Create, Export |
+| Bank ledger and reconciliation | View, Create, Edit, Import, Match, Approve periods, Export | View, Export | View, Create, Edit, Import, Match, Submit periods, Export |
+| Locked-period correction | Manage through audited reopen | — | — |
+| Financial ledger and reports | View, Export | View, Export where permitted | View, Export |
+| Audit history/security | View, Edit settings, Manage staff | View where permitted | — |
 
-Important: platform Super Admin status does not remove the active-workspace and policy protections from operational pages.
+Admin permissions apply to any active workspace, but data remains isolated to the workspace explicitly selected for the current session. Secretary permissions focus on donor/in-kind recording and inventory; Treasurer permissions focus on cash verification and reconciliation, without workspace-management or staff-administration access. Workspaces with operational records cannot be deleted; deactivate them instead.
 
 ## Real-Life Scenarios
 
@@ -520,28 +498,28 @@ This is safer than manually comparing Excel sheets because the application:
 
 The following is a practical demonstration script. Use isolated demonstration accounts and sample data.
 
-### Part 1: Platform onboarding
+### Part 1: Workspace onboarding
 
-1. Log in as Gina Super Admin.
-2. Show that login goes to Workspace Management when no authorized active workspace is selected.
-3. Create Workspace A with Admin A.
-4. Create Workspace B with Admin B.
+1. Log in as Admin.
+2. Show that login goes to Workspace Management and that Admin can select an active workspace.
+3. Create Workspace A with its initial Admin.
+4. Create Workspace B with its initial Admin.
 5. Show both workspace records and their initial Admin memberships.
 
 Expected panel outcome: two separate workspaces with separate Admin accounts.
 
 ### Part 2: Staff and isolation
 
-1. Log in as Admin A.
+1. Open Workspace A as Admin.
 2. Open the staff/security page.
 3. Show Secretary and Treasurer options.
-4. Show that Admin is not offered in this ordinary Admin staff form.
+4. Show that Admin is not offered in the staff form.
 5. Create Secretary A and Treasurer A.
-6. Log in as Admin B and create the equivalent Workspace B staff.
+6. Open Workspace B and create the equivalent staff.
 7. Create one sample donor in each workspace.
-8. Attempt to open Workspace B’s donor while logged in as Admin A.
+8. Attempt to open Workspace B’s donor while Workspace A is selected.
 
-Expected panel outcome: Admin A sees a blocked/not-found cross-workspace request.
+Expected panel outcome: cross-workspace records remain blocked, even for an Admin.
 
 ### Part 3: Donations and inventory
 
@@ -597,7 +575,7 @@ The following features are implemented in the current code and covered by Larave
 
 - login, logout, password-change enforcement, and role-aware redirects;
 - disabled public self-registration;
-- Super Admin workspace creation and initial Admin creation;
+- Admin workspace creation and initial Admin creation;
 - workspace memberships and active-workspace resolution;
 - workspace-scoped business models and cross-workspace route protection;
 - Admin staff creation restricted to Secretary and Treasurer;
@@ -613,7 +591,7 @@ The following features are implemented in the current code and covered by Larave
 - security activity events and staff/security administration; and
 - Laravel regression coverage for authentication, workspaces, isolation, donations, inventory, disbursements, reconciliation, reports, dashboard metrics, and security.
 
-Recent full-suite evidence: 219 Laravel tests and 935 assertions passed after Phase 4 stabilization. Browser evidence includes Gina’s Workspace Management page, the ordinary Admin staff form without an Admin option, role-aware login redirects, cross-workspace blocking, and Phase 5 financial workflows on isolated E2E data.
+Recent full-suite evidence: 219 Laravel tests and 935 assertions passed after Phase 4 stabilization. Browser evidence includes Workspace Management, the staff form without an Admin option, role-aware login redirects, cross-workspace blocking, and Phase 5 financial workflows on isolated E2E data.
 
 ### Implemented but not fully browser-tested
 
@@ -633,7 +611,7 @@ For a capstone demo, use the tested CSV path and the ordinary happy-path records
 - Public registration is intentionally disabled. A registration controller and view remain in the source tree, but no public registration route is present in `routes/web.php`.
 - No automatic bank API connection is present; statements are imported manually.
 - No separate automatic notification or email approval workflow was found in the inspected application paths.
-- No general-purpose operational data access for a Super Admin without an authorized workspace context is provided.
+- Admin can manage all workspaces; Secretary and Treasurer remain limited to assigned workspaces and their operational responsibilities.
 - No evidence was found of a separate bank-charge automation workflow; bank charges must follow the supported discrepancy and ledger processes.
 - A general user-facing workspace-switch route is not exposed in the current web route list; active context is resolved from authorized session/membership state and platform management routes.
 
@@ -641,7 +619,7 @@ For a capstone demo, use the tested CSV path and the ordinary happy-path records
 
 - Every operational request must have an authorized active workspace.
 - Cross-workspace records must not be accessed by changing IDs or URLs.
-- Ordinary Admins create only Secretary and Treasurer accounts.
+- Admins create only Secretary and Treasurer accounts from the staff console.
 - A requester cannot approve their own disbursement.
 - A Treasurer cannot approve their own reconciliation submission.
 - Incoming matches require exact amounts; outgoing withdrawals must total exactly.

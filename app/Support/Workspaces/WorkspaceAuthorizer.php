@@ -2,9 +2,9 @@
 
 namespace App\Support\Workspaces;
 
+use App\Models\Role;
 use App\Models\User;
 use App\Models\Workspace;
-use App\Support\Workspaces\WorkspaceContext;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Model;
 
@@ -33,7 +33,7 @@ class WorkspaceAuthorizer
             return false;
         }
 
-        if (! $actor->isSuperAdmin() && ! $member->hasRole(['secretary', 'treasurer'])) {
+        if (! $member->hasRole(['secretary', 'treasurer'])) {
             return false;
         }
 
@@ -45,7 +45,7 @@ class WorkspaceAuthorizer
 
     public function canManageStaffRole(User $actor, string $role): bool
     {
-        return $actor->isSuperAdmin() || in_array($role, ['secretary', 'treasurer'], true);
+        return $actor->hasRole(Role::ADMIN) && in_array($role, ['secretary', 'treasurer'], true);
     }
 
     public function canAccess(User $user, Workspace $workspace): bool
@@ -54,7 +54,7 @@ class WorkspaceAuthorizer
             return false;
         }
 
-        if ($user->isSuperAdmin()) {
+        if ($user->hasRole(Role::ADMIN)) {
             return true;
         }
 
@@ -73,19 +73,11 @@ class WorkspaceAuthorizer
 
     public function canManageWorkspaces(User $user): bool
     {
-        return $user->isSuperAdmin();
+        return $user->hasRole(Role::ADMIN);
     }
 
     public function canManageMembers(User $user, Workspace $workspace): bool
     {
-        if ($user->isSuperAdmin()) {
-            return true;
-        }
-
-        return $user->workspaceMemberships()
-            ->where('workspace_id', $workspace->getKey())
-            ->where('status', 'active')
-            ->whereHas('role', fn ($query) => $query->where('name', 'admin'))
-            ->exists();
+        return $workspace->isActive() && $user->hasRole(Role::ADMIN);
     }
 }
