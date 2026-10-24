@@ -188,7 +188,7 @@
             <x-reports.month-filter :year="$year" :month="$month" tab="financial-ledgers" />
             <section class="rounded-lg border border-slate-200 bg-white shadow-sm">
                 <div class="flex flex-col gap-1 border-b border-slate-100 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div><p class="text-xs font-semibold uppercase tracking-wide text-emerald-700">Report Status: Final Auditable Ledger</p><h2 class="text-sm font-bold uppercase text-slate-950">Barangay Treasurer Cash Audit Summary</h2></div>
+                    <div><p class="text-xs font-semibold uppercase tracking-wide text-emerald-700">Report Status: Final Auditable Ledger</p><h2 class="text-sm font-bold uppercase text-slate-950">Barangay Financial Audit Summary</h2></div>
                     <p class="text-xs text-slate-400">Month Cycle: {{ $report['period']->format('F Y') }}</p>
                 </div>
                 <div class="grid gap-4 border-b border-slate-100 p-5 sm:grid-cols-3">

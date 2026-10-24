@@ -22,6 +22,13 @@
         <p class="text-xs font-medium text-slate-500">Step <span data-wizard-current>1</span> of {{ count($stepTitles) }}</p>
         <p class="text-xs font-semibold text-slate-700" data-wizard-title>{{ $stepTitles[$startStep] ?? $stepTitles[0] }}</p>
     </div>
+    <div class="px-4 pt-3 sm:px-6">
+        <div class="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-800 shadow-sm" data-wizard-error role="alert" hidden>
+            <span class="flex h-5 w-5 items-center justify-center rounded-full bg-amber-500 text-xs font-bold text-white">!</span>
+            <span>Please fill out the remaining field.</span>
+        </div>
+    </div>
+
     <div class="min-h-0 flex-1 px-4 py-3 sm:px-6 sm:py-4">
     <section data-wizard-step data-wizard-step-title="Basic Information">
         <h3 class="text-xs font-semibold uppercase tracking-wide text-slate-800">Basic Information</h3>

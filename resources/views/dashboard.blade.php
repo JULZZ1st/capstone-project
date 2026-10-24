@@ -60,14 +60,14 @@
 
         <section class="grid gap-6 xl:grid-cols-2">
             @can('viewAny', \App\Models\BankLedgerEntry::class)
-            <x-dashboard.panel title="Treasurer Action Items" subtitle="Cash and reconciliation work needing attention." icon="alert-triangle" tone="warning">
-                @php($actionItems = $dashboard['treasurer_action_items'])
+            <x-dashboard.panel title="Staff Finance Action Items" subtitle="Cash and reconciliation work needing attention." icon="alert-triangle" tone="warning">
+                @php($actionItems = $dashboard['staff_finance_action_items'])
                 <div class="mb-3 flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2.5">
                     <span class="text-sm text-slate-600">Total cash disbursed</span>
                     <span class="text-sm font-semibold text-slate-950">{{ $money($dashboard['disbursements']['total_disbursed']) }}</span>
                 </div>
                 @if ($actionItems['pending_cash_count'] === 0 && $actionItems['unreconciled_ledger_count'] === 0 && $actionItems['bank_withdrawals_awaiting_reconciliation'] === 0)
-                    <x-dashboard.empty-state icon="alert-triangle" message="No treasurer action items right now." action="{{ route('bank-reconciliation.index') }}" action-label="View Today" />
+                    <x-dashboard.empty-state icon="alert-triangle" message="No finance action items right now." action="{{ route('bank-reconciliation.index') }}" action-label="View Today" />
                 @else
                     <dl class="space-y-3">
                         <div class="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2.5">
@@ -139,7 +139,7 @@
                                 <div class="flex flex-1 items-start justify-between gap-4">
                                     <div class="min-w-0">
                                         <p class="truncate text-sm font-medium text-slate-950">{{ $contribution->donor?->full_name ?? 'Unknown donor' }}</p>
-                                        <p class="text-sm text-slate-600">{{ $contribution->paymentMethodLabel() }}</p>
+                                        <p class="text-sm text-slate-600">{{ config("donations.payment_methods.{$contribution->payment_method}") ?? 'Cash' }}</p>
                                     </div>
                                     <p class="shrink-0 text-sm font-semibold text-slate-950">{{ $money($contribution->amount) }}</p>
                                 </div>
@@ -154,11 +154,11 @@
             </x-dashboard.panel>
 
             @can('create', \App\Models\InventoryItem::class)
-            <x-dashboard.panel title="Secretary In-Kind Control Panel" subtitle="Inventory status and recent in-kind records." icon="clipboard-list" tone="positive">
+            <x-dashboard.panel title="Staff Inventory Control Panel" subtitle="Inventory status and recent in-kind records." icon="clipboard-list" tone="positive">
                 <div class="grid gap-6 lg:grid-cols-2">
                     <div>
                         <h3 class="mb-3 text-sm font-semibold text-slate-700">Inventory by status</h3>
-                        @php($statusCounts = $dashboard['secretary_in_kind_control']['status_counts'])
+                        @php($statusCounts = $dashboard['staff_in_kind_control']['status_counts'])
                         @if ($statusCounts->isEmpty())
                             <x-dashboard.empty-state icon="cube" message="No inventory records yet." />
                         @else
@@ -180,11 +180,11 @@
                     </div>
                     <div>
                         <h3 class="mb-3 text-sm font-semibold text-slate-700">Recent in-kind records</h3>
-                        @if ($dashboard['secretary_in_kind_control']['recent_items']->isEmpty())
+                        @if ($dashboard['staff_in_kind_control']['recent_items']->isEmpty())
                             <x-dashboard.empty-state icon="archive" message="No in-kind donations recorded yet." action="{{ route('inventory.index') }}" action-label="View Inventory" />
                         @else
                             <ul class="space-y-2.5">
-                                @foreach ($dashboard['secretary_in_kind_control']['recent_items'] as $item)
+                                @foreach ($dashboard['staff_in_kind_control']['recent_items'] as $item)
                                     <li class="rounded-xl bg-slate-50 px-3 py-2.5">
                                         <p class="text-sm font-medium text-slate-950">{{ $item->name }}</p>
                                         <p class="text-sm text-slate-600">{{ $item->category }} &middot; Qty {{ number_format($item->quantity) }}</p>

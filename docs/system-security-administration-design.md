@@ -110,7 +110,7 @@ Toggles a user security profile's `two_factor_enforced` value and records a `sec
 - `viewAny`: only `admin`.
 - `updateSecuritySettings`: only `admin`.
 
-The existing route middleware already restricts authenticated app access to `admin`, `secretary`, and `treasurer`; this policy tightens the security module to admin users only.
+The existing route middleware already restricts authenticated app access to `admin` and `staff`; this policy tightens the security module to admin users only.
 
 ## Blade Components
 

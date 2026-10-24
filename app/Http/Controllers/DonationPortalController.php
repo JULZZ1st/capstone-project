@@ -15,7 +15,6 @@ use App\Services\Contributions\LogContribution;
 use App\Services\Inventory\ResolveInventoryClassification;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\View\View;
 
 class DonationPortalController extends Controller
@@ -27,6 +26,7 @@ class DonationPortalController extends Controller
         $contributions = Contribution::query()
             ->select([
                 'id',
+                'workspace_id',
                 'donor_id',
                 'campaign_id',
                 'created_by',
@@ -42,7 +42,6 @@ class DonationPortalController extends Controller
                 'verified_at',
                 'created_at',
             ])
-            ->when(Schema::hasColumn('contributions', 'payment_method_name'), fn ($query) => $query->addSelect('payment_method_name'))
             ->with([
                 'donor:id,full_name,contact_number,email,status',
                 'campaign:id,name,status',

@@ -44,7 +44,7 @@
                     <div class="mt-6 rounded-md bg-slate-50 p-4">
                         <p class="text-sm font-semibold text-slate-600">Amount</p>
                         <p class="mt-1 text-2xl font-bold text-slate-950">PHP {{ number_format((float) $contribution->amount, 2) }}</p>
-                        <p class="mt-1 text-sm text-slate-500">{{ $contribution->paymentMethodLabel() }}</p>
+                        <p class="mt-1 text-sm text-slate-500">{{ config("donations.payment_methods.{$contribution->payment_method}") }}</p>
                     </div>
                 @else
                     <div class="mt-6 overflow-hidden rounded-lg border border-slate-200">

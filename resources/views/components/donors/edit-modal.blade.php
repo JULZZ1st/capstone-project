@@ -28,14 +28,5 @@
                 <x-button class="h-9 w-auto rounded-lg px-5" data-wizard-submit hidden>Update Profile</x-button>
             </div>
         </div>
-        <div data-ui-toast class="pointer-events-none fixed bottom-4 right-4 z-[200] hidden w-[min(24rem,calc(100vw-2rem))] rounded-lg border border-slate-200 bg-white p-4 text-slate-950 shadow-lg shadow-slate-950/20" role="status" aria-live="polite" aria-atomic="true">
-            <div class="flex items-start gap-3">
-                <span class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-100 text-xs font-bold text-amber-700">!</span>
-                <div class="min-w-0">
-                    <p class="text-sm font-semibold" data-ui-toast-title>Required field missing</p>
-                    <p class="mt-1 text-sm text-slate-600" data-ui-toast-description>Please complete the highlighted required field.</p>
-                </div>
-            </div>
-        </div>
     </form>
 </dialog>

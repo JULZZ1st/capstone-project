@@ -9,7 +9,7 @@ class DonorPolicy
 {
     public function viewAny(User $user): bool
     {
-        return $this->active($user) && $user->hasRole(['admin', 'secretary', 'treasurer']);
+        return $this->active($user) && $user->hasRole(['admin', 'staff']);
     }
 
     public function view(User $user, Donor $donor): bool
@@ -19,17 +19,17 @@ class DonorPolicy
 
     public function create(User $user): bool
     {
-        return $this->active($user) && $user->hasRole(['admin', 'secretary']);
+        return $this->active($user) && $user->hasRole(['admin', 'staff']);
     }
 
     public function update(User $user, Donor $donor): bool
     {
-        return $this->active($user) && $this->sameWorkspace($user, $donor) && $user->hasRole(['admin', 'secretary']);
+        return $this->active($user) && $this->sameWorkspace($user, $donor) && $user->hasRole(['admin', 'staff']);
     }
 
     public function delete(User $user, Donor $donor): bool
     {
-        return $this->active($user) && $this->sameWorkspace($user, $donor) && $user->hasRole(['admin', 'secretary']);
+        return $this->active($user) && $this->sameWorkspace($user, $donor) && $user->hasRole(['admin', 'staff']);
     }
 
     private function active(User $user): bool { return app(\App\Support\Workspaces\WorkspaceAuthorizer::class)->hasActiveWorkspace(); }

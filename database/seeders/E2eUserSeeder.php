@@ -10,7 +10,7 @@ class E2eUserSeeder extends Seeder
 {
     public function run(): void
     {
-        foreach (['admin', 'treasurer', 'secretary'] as $roleName) {
+        foreach (['admin', 'staff'] as $roleName) {
             $role = Role::query()->firstOrCreate(['name' => $roleName], config("auth_defaults.roles.{$roleName}"));
             $email = "e2e.{$roleName}@example.test";
             User::query()->updateOrCreate(['email' => $email], [

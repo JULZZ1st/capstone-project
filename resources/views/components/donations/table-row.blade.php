@@ -53,7 +53,7 @@
 
         @if ($contribution->isCash())
             <p class="text-xs text-slate-500">
-                {{ $contribution->paymentMethodLabel() }}
+                {{ config("donations.payment_methods.{$contribution->payment_method}") }}
             </p>
         @else
             <p class="text-xs text-slate-500">
@@ -85,18 +85,6 @@
                 View
             </button>
 
-            @can('verify', $contribution)
-                <form method="POST" action="{{ route('donations.verify', $contribution) }}">
-                    @csrf
-                    @method('PATCH')
-
-                    <button
-                        class="rounded-md bg-emerald-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-800"
-                    >
-                        Verify
-                    </button>
-                </form>
-            @endcan
         </div>
     </td>
 </tr>
@@ -209,7 +197,7 @@
                         </p>
 
                         <p class="mt-1 text-slate-700">
-                            {{ $contribution->paymentMethodLabel() }}
+                            {{ config("donations.payment_methods.{$contribution->payment_method}") }}
                         </p>
                     </div>
 
@@ -270,6 +258,19 @@
         </div>
 
         <div class="flex shrink-0 justify-end gap-3 border-t border-slate-200 px-5 py-4">
+            @can('verify', $contribution)
+                <form method="POST" action="{{ route('donations.verify', $contribution) }}">
+                    @csrf
+                    @method('PATCH')
+                    <button
+                        type="submit"
+                        class="rounded-md bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800"
+                    >
+                        {{ auth()->user()->hasRole('admin') ? 'Approve Contribution' : 'Verify Contribution' }}
+                    </button>
+                </form>
+            @endcan
+
             <button
                 type="button"
                 class="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"

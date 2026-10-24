@@ -341,7 +341,7 @@ Use the existing authenticated application route group.
 Recommended routes:
 
 ```php
-Route::middleware(['auth', 'role:admin,secretary,treasurer'])->group(function () {
+Route::middleware(['auth', 'role:admin,staff'])->group(function () {
     Route::get('/donors', [DonorController::class, 'index'])->name('donors.index');
     Route::post('/donors', [DonorController::class, 'store'])->name('donors.store');
     Route::get('/donors/{donor}', [DonorController::class, 'show'])->name('donors.show');
@@ -387,13 +387,13 @@ Controller responsibilities:
 
 Base route access:
 
-- `admin`, `secretary`, and `treasurer` can view donor cards if current product policy allows all operational roles to inspect donor records.
+- `admin` and `staff` can view donor cards if current product policy allows operational users to inspect donor records.
 
 Recommended action-level rules:
 
 - `admin`: view, create, edit all donor profiles.
-- `secretary`: view, create, edit donor profiles.
-- `treasurer`: view donor profiles and history; editing can be allowed only if finance workflow requires it.
+- `staff`: view, create, edit donor profiles.
+- `staff`: view donor profiles and history; editing can be allowed only if finance workflow requires it.
 
 Implementation options:
 
@@ -559,6 +559,6 @@ Before implementation, confirm:
 
 - Whether donor email should be unique or allowed to repeat.
 - Whether contact number should be unique or allowed to repeat.
-- Whether treasurer users may edit donor profiles or view-only.
+- Whether staff users may edit donor profiles or view-only.
 - Whether donor deletion should exist now, and if so whether soft deletes are required.
 - Whether `View History` should be a separate page, modal, or slide-over panel.

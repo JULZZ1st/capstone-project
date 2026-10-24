@@ -8,8 +8,8 @@ use App\Models\Contribution;
 use App\Models\Donor;
 use App\Models\InventoryItem;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 
 class DashboardMetrics
 {
@@ -18,22 +18,26 @@ class DashboardMetrics
         $limit = config('dashboard.limits.recent_items');
         $pendingStatus = config('dashboard.cash_statuses.pending');
         $verifiedStatus = config('dashboard.cash_statuses.verified');
-        $pendingCashCount = Contribution::query()
-            ->where('type', 'cash')
-            ->where('status', $pendingStatus)
-            ->count();
 
         return [
             'summary' => [
                 'total_cash_ledger' => Contribution::query()->where('type', 'cash')->where('status', $verifiedStatus)->sum('amount'),
-                'pending_cash_verification' => $pendingCashCount,
-                'in_kind_batches' => InventoryItem::query()->count(),
-                'registered_donors' => Donor::query()->count(),
+                'pending_cash_verification' => Contribution::query()->where('type', 'cash')->where('status', $pendingStatus)->count(),
+                'in_kind_batches' => Cache::remember(
+                    'dashboard.summary.in_kind_batches',
+                    config('dashboard.cache.safe_summary_ttl'),
+                    fn (): int => InventoryItem::query()->count(),
+                ),
+                'registered_donors' => Cache::remember(
+                    'dashboard.summary.registered_donors',
+                    config('dashboard.cache.safe_summary_ttl'),
+                    fn (): int => Donor::query()->count(),
+                ),
             ],
-            'treasurer_action_items' => $this->treasurerActionItems($pendingCashCount),
+            'staff_finance_action_items' => $this->staffFinanceActionItems($pendingStatus),
             'funding_distribution' => $this->fundingDistribution($verifiedStatus),
             'recent_cash_awaiting_audit' => Contribution::query()
-                ->select($this->contributionColumns())
+                ->select(['id', 'donor_id', 'amount', 'payment_method', 'received_at', 'created_at'])
                 ->with('donor:id,full_name')
                 ->where('type', 'cash')
                 ->where('status', $pendingStatus)
@@ -42,7 +46,7 @@ class DashboardMetrics
                 ->limit($limit)
                 ->get(),
             'system_log_activity' => $this->systemLogActivity($limit),
-            'secretary_in_kind_control' => [
+            'staff_in_kind_control' => [
                 'status_counts' => InventoryItem::query()
                     ->select('status', DB::raw('count(*) as total'))
                     ->groupBy('status')
@@ -75,18 +79,7 @@ class DashboardMetrics
         ];
     }
 
-    private function contributionColumns(): array
-    {
-        $columns = ['id', 'donor_id', 'amount', 'payment_method', 'received_at', 'created_at'];
-
-        if (Schema::hasColumn('contributions', 'payment_method_name')) {
-            $columns[] = 'payment_method_name';
-        }
-
-        return $columns;
-    }
-
-    private function treasurerActionItems(int $pendingCashCount): array
+    private function staffFinanceActionItems(string $pendingStatus): array
     {
         $latestReconciledEntry = BankLedgerEntry::query()
             ->where('status', 'reconciled')
@@ -98,7 +91,7 @@ class DashboardMetrics
         $discrepanciesToReview = (clone $withdrawalsToReview)->whereNotNull('discrepancy_amount');
 
         return [
-            'pending_cash_count' => $pendingCashCount,
+            'pending_cash_count' => Contribution::query()->where('type', 'cash')->where('status', $pendingStatus)->count(),
             'latest_reconciliation' => $latestReconciledEntry,
             'unreconciled_ledger_count' => BankLedgerEntry::query()->needsReview()->count(),
             'bank_withdrawals_awaiting_reconciliation' => $withdrawalsToReview->count(),

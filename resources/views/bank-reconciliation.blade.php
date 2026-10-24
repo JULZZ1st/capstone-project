@@ -179,7 +179,7 @@
 
                             <h2 class="text-base font-semibold text-slate-950">Import Bank Statement</h2>
 
-                            <p class="mt-1 text-sm text-slate-500">Upload a LANDBANK CSV or XLSX statement. The system previews direction, validation errors, and duplicate warnings before import. PDF statements are not parsed.</p>
+                            <p class="mt-1 text-sm text-slate-500">Upload a CSV or XLSX statement to add bank transactions for review.</p>
 
                         </div>
 
@@ -198,63 +198,6 @@
                     </div>
 
                     <x-form.error name="statement" />
-
-                    @if (session('bank_statement_preview'))
-                        @php
-                            $preview = session('bank_statement_preview');
-                        @endphp
-                        <div class="mt-5 rounded-lg border border-blue-200 bg-blue-50 p-4" data-testid="landbank-preview">
-                            <div class="flex items-start justify-between gap-4">
-                                <div>
-                                    <h3 class="font-semibold text-blue-950">LANDBANK statement preview</h3>
-                                    <p class="mt-1 text-sm text-blue-800">{{ count($preview['rows']) }} transaction row(s); beginning balance: {{ $preview['beginning_balance'] !== null ? number_format($preview['beginning_balance'], 2) : 'not found' }}, ending balance: {{ $preview['ending_balance'] !== null ? number_format($preview['ending_balance'], 2) : 'not found' }}</p>
-                                </div>
-                                @if (empty($preview['errors']))
-                                    <form method="POST" action="{{ route('bank-reconciliation.import.confirm') }}">
-                                        @csrf
-                                        <x-button>Confirm LANDBANK import</x-button>
-                                    </form>
-                                @endif
-                            </div>
-                            @if (!empty($preview['errors']))
-                                <div class="mt-3 rounded border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800">
-                                    <strong>Validation errors:</strong>
-                                    <ul class="mt-1 list-disc pl-5">
-                                        @foreach ($preview['errors'] as $error)
-                                            <li>{{ $error }}</li>
-                                        @endforeach
-                                    </ul>
-                                </div>
-                            @endif
-                            @if (!empty($preview['warnings']))
-                                <div class="mt-3 rounded border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-                                    <strong>Warnings:</strong>
-                                    <ul class="mt-1 list-disc pl-5">
-                                        @foreach ($preview['warnings'] as $warning)
-                                            <li>{{ $warning }}</li>
-                                        @endforeach
-                                    </ul>
-                                </div>
-                            @endif
-                            <div class="mt-3 overflow-x-auto">
-                                <table class="min-w-full text-left text-xs">
-                                    <thead><tr class="text-slate-600"><th class="px-2 py-1">Date</th><th class="px-2 py-1">Description</th><th class="px-2 py-1">REF / Check No.</th><th class="px-2 py-1">Direction</th><th class="px-2 py-1">Amount</th><th class="px-2 py-1">Balance</th></tr></thead>
-                                    <tbody>
-                                        @foreach ($preview['rows'] as $row)
-                                            <tr class="border-t border-blue-100">
-                                                <td class="px-2 py-1">{{ $row['transaction_date'] }}</td>
-                                                <td class="px-2 py-1">{{ $row['description'] }}</td>
-                                                <td class="px-2 py-1">{{ $row['reference_number'] ?: '—' }}</td>
-                                                <td class="px-2 py-1">{{ $row['transaction_type'] }}</td>
-                                                <td class="px-2 py-1">{{ number_format((float) $row['amount'], 2) }}</td>
-                                                <td class="px-2 py-1">{{ $row['balance'] !== null ? number_format($row['balance'], 2) : '—' }}</td>
-                                            </tr>
-                                        @endforeach
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    @endif
 
                 </section>
 
@@ -370,7 +313,7 @@
 
             @can('create', App\Models\BankLedgerEntry::class)
 
-                <div class="grid gap-6">
+                <div class="grid gap-6 lg:grid-cols-[1fr_24rem]">
 
                     <section class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
 
@@ -397,6 +340,28 @@
                             </div>
 
                         </form>
+
+                    </section>
+
+                    <section class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+
+                        <h2 class="text-base font-semibold text-slate-950">Import Withdrawals</h2>
+
+                        <p class="mt-1 text-sm text-slate-500">CSV or XLSX rows with transaction_type set to withdrawal are added for outgoing review.</p>
+
+                        <form method="POST" action="{{ route('bank-reconciliation.import') }}" enctype="multipart/form-data" class="mt-4 space-y-3">
+
+                            @csrf
+
+                            <input type="hidden" name="return_tab" value="outgoing">
+
+                            <input type="file" name="statement" accept=".csv,.txt,.xlsx" required class="block w-full text-sm text-slate-600">
+
+                            <x-button class="w-full">Import Statement</x-button>
+
+                        </form>
+
+                        <x-form.error name="statement" />
 
                     </section>
 

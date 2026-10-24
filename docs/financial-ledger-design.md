@@ -2,7 +2,7 @@
 
 ## Goal
 
-Provide a treasurer-facing ledger workflow for recording and reviewing cash transaction entries used by financial reporting and reconciliation workflows.
+Provide a staff-facing ledger workflow for recording and reviewing cash transaction entries used by financial reporting and reconciliation workflows.
 
 ## Architecture
 
@@ -45,14 +45,14 @@ The table is used as a legacy/simple cash ledger source and is also summarized o
 The route is inside the authenticated role middleware for:
 
 - `admin`
-- `secretary`
-- `treasurer`
+- `staff`
+- `staff`
 
-Future hardening should move the cash store logic into a Form Request and policy so only `admin` and `treasurer` can create cash transactions.
+Future hardening should move the cash store logic into a Form Request and policy so only `admin` and `staff` can create cash transactions.
 
 ## UI Components
 
-- Treasurer cash transaction form
+- Staff cash transaction form
 - Cash transactions list
 - Empty state
 - Shared dashboard panel styling
