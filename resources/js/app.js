@@ -1,6 +1,110 @@
 import './bootstrap';
 import './charts';
 
+const donorSearchTimers = new WeakMap();
+const donorSearchRequests = new WeakMap();
+
+const refreshDonorResults = async (form, targetUrl) => {
+    const results = document.querySelector('[data-donor-results]');
+
+    if (! results) {
+        form.requestSubmit();
+        return;
+    }
+
+    donorSearchRequests.get(form)?.abort();
+    const controller = new AbortController();
+    donorSearchRequests.set(form, controller);
+    results.setAttribute('aria-busy', 'true');
+
+    try {
+        const response = await fetch(targetUrl, {
+            headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+            signal: controller.signal,
+        });
+
+        if (! response.ok) {
+            throw new Error(`Donor search failed with status ${response.status}`);
+        }
+
+        const payload = await response.json();
+        const donorTbody = results.querySelector('[data-donor-tbody]');
+        if (donorTbody) {
+            donorTbody.innerHTML = payload.rows;
+        }
+        results.querySelector('[data-donor-pagination]').innerHTML = payload.pagination;
+        results.querySelector('[data-donor-modals]').innerHTML = payload.modals;
+        window.history.replaceState({}, '', targetUrl);
+    } catch (error) {
+        if (error.name !== 'AbortError') {
+            window.location.assign(targetUrl);
+        }
+    } finally {
+        if (donorSearchRequests.get(form) === controller) {
+            donorSearchRequests.delete(form);
+            results.removeAttribute('aria-busy');
+        }
+    }
+};
+
+const donorUrl = (form, page = 1) => {
+    const url = new URL(form.action, window.location.origin);
+    const formData = new FormData(form);
+
+    for (const [key, value] of formData.entries()) {
+        if (value !== '') url.searchParams.set(key, value);
+    }
+
+    if (page > 1) url.searchParams.set('page', page);
+
+    return url.toString();
+};
+
+document.addEventListener('input', (event) => {
+    const input = event.target.closest('[data-donor-live-search]');
+
+    if (! input) {
+        return;
+    }
+
+    const form = input.closest('[data-donor-search-form]');
+    if (! form) {
+        return;
+    }
+
+    window.clearTimeout(donorSearchTimers.get(form));
+    donorSearchTimers.set(form, window.setTimeout(() => refreshDonorResults(form, donorUrl(form)), 250));
+});
+
+document.addEventListener('change', (event) => {
+    const filter = event.target.closest('[data-donor-live-filter]');
+
+    if (filter) {
+        refreshDonorResults(filter.closest('[data-donor-search-form]'), donorUrl(filter.closest('[data-donor-search-form]')));
+    }
+});
+
+document.addEventListener('click', (event) => {
+    const link = event.target.closest('[data-donor-pagination] a');
+
+    if (! link) return;
+
+    const form = document.querySelector('[data-donor-search-form]');
+    if (! form) return;
+
+    event.preventDefault();
+    const url = new URL(link.href, window.location.origin);
+    refreshDonorResults(form, donorUrl(form, Number(url.searchParams.get('page') || 1)));
+});
+
+const successToast = document.querySelector('[data-toast]');
+if (successToast) {
+    window.setTimeout(() => {
+        successToast.classList.add('translate-y-[-0.5rem]', 'opacity-0');
+        window.setTimeout(() => successToast.remove(), 300);
+    }, 4000);
+}
+
 document.addEventListener('click', (event) => {
     const openButton = event.target.closest('[data-dialog-open]');
     const closeButton = event.target.closest('[data-dialog-close]');

@@ -18,14 +18,25 @@
             />
 
             <main class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-                @if (session('success') || session('status'))
-                    <x-alert type="success" class="mb-6">{{ session('success') ?? session('status') }}</x-alert>
-                @endif
 
                 @yield('content')
             </main>
         </div>
     </div>
+
+    @if (session('success') || session('status'))
+        <div
+            data-toast
+            role="status"
+            aria-live="polite"
+            class="fixed right-4 top-4 z-[110] max-w-sm rounded-lg border border-emerald-200 bg-white px-4 py-3 text-sm font-medium text-emerald-800 shadow-lg ring-1 ring-black/5 transition duration-300 sm:right-6 sm:top-6"
+        >
+            <div class="flex items-start gap-3">
+                <span class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-xs font-bold text-emerald-700">✓</span>
+                <span>{{ session('success') ?? session('status') }}</span>
+            </div>
+        </div>
+    @endif
 
     @stack('scripts')
 </body>
