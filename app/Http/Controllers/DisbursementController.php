@@ -24,7 +24,11 @@ class DisbursementController extends Controller
         Gate::authorize('viewAny', CashDisbursement::class);
 
         return view('disbursements.index', [
-            'disbursements' => CashDisbursement::query()->with(['requester', 'approver'])->latest()->get(),
+            'disbursements' => CashDisbursement::query()
+                ->with(['requester', 'approver'])
+                ->latest()
+                ->paginate(5)
+                ->withQueryString(),
         ]);
     }
 

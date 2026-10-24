@@ -123,20 +123,21 @@ class DashboardMetrics
     private function systemLogActivity(int $limit): Collection
     {
         return collect()
-            ->merge($this->activityFrom(Contribution::query()->latest()->limit($limit)->get(['id', 'type as label', 'created_at']), 'Contribution logged'))
-            ->merge($this->activityFrom(InventoryItem::query()->latest()->limit($limit)->get(['id', 'name as label', 'created_at']), 'Inventory updated'))
-            ->merge($this->activityFrom(CashDisbursement::query()->latest()->limit($limit)->get(['id', 'purpose as label', 'created_at']), 'Cash disbursed'))
+            ->merge($this->activityFrom(Contribution::query()->latest()->limit($limit)->get(['id', 'type as label', 'created_at']), 'Contribution logged', 'donations.show'))
+            ->merge($this->activityFrom(InventoryItem::query()->latest()->limit($limit)->get(['id', 'name as label', 'created_at']), 'Inventory updated', 'inventory.show'))
+            ->merge($this->activityFrom(CashDisbursement::query()->latest()->limit($limit)->get(['id', 'purpose as label', 'created_at']), 'Cash request updated', 'disbursements.show'))
             ->sortByDesc('created_at')
             ->take($limit)
             ->values();
     }
 
-    private function activityFrom(Collection $records, string $event): Collection
+    private function activityFrom(Collection $records, string $event, ?string $routeName = null): Collection
     {
         return $records->map(fn ($record): array => [
             'event' => $event,
             'label' => $record->label,
             'created_at' => $record->created_at,
+            'url' => $routeName ? route($routeName, $record->id) : null,
         ]);
     }
 }
