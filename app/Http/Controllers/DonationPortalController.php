@@ -26,6 +26,7 @@ class DonationPortalController extends Controller
         $contributions = Contribution::query()
             ->select([
                 'id',
+                'workspace_id',
                 'donor_id',
                 'campaign_id',
                 'created_by',

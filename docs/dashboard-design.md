@@ -10,7 +10,7 @@ The dashboard described here is implemented through `DashboardController`, `Dash
 
 ## Design Principles
 
-- Use the existing authenticated route group protected by `auth` and `role:admin,secretary,treasurer`.
+- Use the existing authenticated route group protected by `auth` and `role:admin,staff`.
 - Keep the dashboard server-rendered with Blade unless a future requirement explicitly needs client-side polling or charts.
 - Use reusable Blade layout and card components instead of repeated markup.
 - Keep controllers thin by moving dashboard aggregation into a query/service class if the controller grows.
@@ -75,7 +75,7 @@ Create a shared authenticated layout for operational pages:
 ### Pending Cash Verification
 
 - Purpose:
-  - Surface cash transactions awaiting review by treasurer/admin users.
+  - Surface cash transactions awaiting review by staff/admin users.
 - Data source:
   - `cash_transactions.status`
 - Required backend logic:
@@ -104,7 +104,7 @@ Create a shared authenticated layout for operational pages:
 - Loading state:
   - Skeleton count card for async loading only.
 - Empty state:
-  - Show zero and link secretary users to record inventory.
+  - Show zero and link staff users to record inventory.
 - Error state:
   - Show unavailable state and log the failure.
 
@@ -128,10 +128,10 @@ Create a shared authenticated layout for operational pages:
 
 ## Dashboard Cards
 
-### Treasurer Action Items
+### Staff Action Items
 
 - Purpose:
-  - Give treasurers a focused queue for cash and reconciliation work.
+  - Give staffs a focused queue for cash and reconciliation work.
 - Data source:
   - pending cash `contributions`
   - `bank_ledger_entries` and `bank_withdrawal_disbursement_matches`
@@ -149,7 +149,7 @@ Create a shared authenticated layout for operational pages:
 - Loading state:
   - Card-level skeleton if async partials are introduced.
 - Empty state:
-  - "No treasurer action items right now."
+  - "No staff action items right now."
 - Error state:
   - Show a non-blocking error message and keep other dashboard cards visible.
 
@@ -214,10 +214,10 @@ Create a shared authenticated layout for operational pages:
 - Error state:
   - Show unavailable activity state without blocking the page.
 
-### Secretary In-Kind Control Panel
+### Staff In-Kind Control Panel
 
 - Purpose:
-  - Give secretary users quick visibility into inventory intake and pending item handling.
+  - Give staff users quick visibility into inventory intake and pending item handling.
 - Data source:
   - `inventory_items`
 - Required backend logic:
@@ -327,7 +327,7 @@ Model recommendations:
 Recommended route structure:
 
 ```php
-Route::middleware(['auth', 'role:admin,secretary,treasurer'])->group(function () {
+Route::middleware(['auth', 'role:admin,staff'])->group(function () {
     Route::get('/', DashboardController::class)->name('dashboard');
 });
 ```
@@ -394,11 +394,11 @@ The dashboard should prepare a single view model array with these keys:
 - `summary.pending_cash_verification`
 - `summary.in_kind_batches`
 - `summary.registered_donors`
-- `treasurer_action_items`
+- `staff_finance_action_items`
 - `funding_distribution`
 - `recent_cash_awaiting_audit`
 - `system_log_activity`
-- `secretary_in_kind_control`
+- `staff_in_kind_control`
 - `recent_donations`
 
 Query guidelines:
@@ -436,10 +436,10 @@ Query guidelines:
 ## Authorization
 
 - Dashboard route must require authenticated users.
-- Existing roles `admin`, `secretary`, and `treasurer` may view the dashboard.
+- Admin and Staff may view the dashboard.
 - Card-level visibility can be role-aware:
-  - Treasurer-focused action cards should be visible to treasurer and admin.
-  - Secretary-focused in-kind cards should be visible to secretary and admin.
+  - Staff-focused action cards should be visible to staff and admin.
+  - Staff-focused in-kind cards should be visible to staff and admin.
   - Shared summary and recent donation cards can be visible to all approved roles.
 - Do not duplicate role strings across views; use model helpers, policies, gates, or config-backed constants.
 

@@ -203,11 +203,11 @@ class InventoryManagementTest extends TestCase
         $this->get(route('inventory.export.pdf'))->assertRedirect(route('login'));
     }
 
-    public function test_policy_blocks_treasurer_stock_adjustments(): void
+    public function test_staff_can_adjust_inventory_stock(): void
     {
         $treasurerRole = Role::query()->firstOrCreate(
-            ['name' => 'treasurer'],
-            config('auth_defaults.roles.treasurer')
+            ['name' => 'staff'],
+            config('auth_defaults.roles.staff')
         );
         $treasurer = User::factory()->create(['role_id' => $treasurerRole->id]);
         $item = $this->inventoryItem();
@@ -218,7 +218,12 @@ class InventoryManagementTest extends TestCase
             'reason' => 'correction',
         ]);
 
-        $response->assertForbidden();
+        $response->assertRedirect(route('inventory.index'));
+        $this->assertDatabaseHas('inventory_stock_movements', [
+            'inventory_item_id' => $item->id,
+            'movement_type' => 'stock_in',
+            'quantity' => 1,
+        ]);
     }
 
     private function inventoryItem(array $overrides = []): InventoryItem

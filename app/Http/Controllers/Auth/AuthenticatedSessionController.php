@@ -21,19 +21,12 @@ class AuthenticatedSessionController extends Controller
     {
         $request->authenticate();
         $request->session()->regenerate();
+        $request->session()->forget('active_workspace_id');
 
         $request->user()->forceFill([
             'last_login_at' => now(),
         ])->save();
 
-        if ($request->user()->hasRole('admin')) {
-            $request->session()->forget('active_workspace_id');
-
-            return redirect()->route('workspaces.index');
-        }
-
-        // A browser session can survive an account switch in some session
-        // drivers. Never carry another user's workspace into this login.
         $workspace = $request->user()->workspaceMemberships()
             ->with('workspace')
             ->where('status', 'active')
@@ -41,9 +34,13 @@ class AuthenticatedSessionController extends Controller
             ->latest('id')
             ->first()?->workspace;
 
-        $workspace instanceof Workspace
-            ? $request->session()->put('active_workspace_id', $workspace->getKey())
-            : $request->session()->forget('active_workspace_id');
+        if ($workspace === null && $request->user()->hasRole('admin')) {
+            $workspace = Workspace::query()->where('status', 'active')->orderBy('id')->first();
+        }
+
+        if ($workspace !== null) {
+            $request->session()->put('active_workspace_id', $workspace->getKey());
+        }
 
         return redirect()->intended(route('dashboard', absolute: false));
     }

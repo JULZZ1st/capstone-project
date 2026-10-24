@@ -34,7 +34,7 @@ class DashboardMetrics
                     fn (): int => Donor::query()->count(),
                 ),
             ],
-            'treasurer_action_items' => $this->treasurerActionItems($pendingStatus),
+            'staff_finance_action_items' => $this->staffFinanceActionItems($pendingStatus),
             'funding_distribution' => $this->fundingDistribution($verifiedStatus),
             'recent_cash_awaiting_audit' => Contribution::query()
                 ->select(['id', 'donor_id', 'amount', 'payment_method', 'received_at', 'created_at'])
@@ -46,7 +46,7 @@ class DashboardMetrics
                 ->limit($limit)
                 ->get(),
             'system_log_activity' => $this->systemLogActivity($limit),
-            'secretary_in_kind_control' => [
+            'staff_in_kind_control' => [
                 'status_counts' => InventoryItem::query()
                     ->select('status', DB::raw('count(*) as total'))
                     ->groupBy('status')
@@ -79,7 +79,7 @@ class DashboardMetrics
         ];
     }
 
-    private function treasurerActionItems(string $pendingStatus): array
+    private function staffFinanceActionItems(string $pendingStatus): array
     {
         $latestReconciledEntry = BankLedgerEntry::query()
             ->where('status', 'reconciled')

@@ -33,7 +33,7 @@ class WorkspaceAuthorizer
             return false;
         }
 
-        if (! $member->hasRole(['secretary', 'treasurer'])) {
+        if (! $member->hasRole(Role::STAFF)) {
             return false;
         }
 
@@ -45,7 +45,7 @@ class WorkspaceAuthorizer
 
     public function canManageStaffRole(User $actor, string $role): bool
     {
-        return $actor->hasRole(Role::ADMIN) && in_array($role, ['secretary', 'treasurer'], true);
+        return $actor->hasRole(Role::ADMIN) && $role === Role::STAFF;
     }
 
     public function canAccess(User $user, Workspace $workspace): bool
@@ -69,11 +69,6 @@ class WorkspaceAuthorizer
         if (! $this->canAccess($user, $workspace)) {
             throw new AuthorizationException('You are not authorized to access this workspace.');
         }
-    }
-
-    public function canManageWorkspaces(User $user): bool
-    {
-        return $user->hasRole(Role::ADMIN);
     }
 
     public function canManageMembers(User $user, Workspace $workspace): bool

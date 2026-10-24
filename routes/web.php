@@ -14,7 +14,6 @@ use App\Http\Controllers\InventorySubcategoryController;
 use App\Http\Controllers\InventoryUnitController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SystemSecurityController;
-use App\Http\Controllers\WorkspaceManagementController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function () {
@@ -31,21 +30,10 @@ Route::middleware('auth')->group(function () {
     Route::post('/password/change', [ChangePasswordController::class, 'store'])->name('password.change.store');
 });
 
-Route::middleware(['auth', 'password.change', 'role:admin'])
-    ->prefix('workspaces')
-    ->name('workspaces.')
-    ->group(function () {
-        Route::get('/', [WorkspaceManagementController::class, 'index'])->name('index');
-        Route::post('/', [WorkspaceManagementController::class, 'store'])->name('store');
-        Route::post('/{workspace}/activate', [WorkspaceManagementController::class, 'activate'])->name('activate');
-        Route::patch('/{workspace}/toggle', [WorkspaceManagementController::class, 'toggle'])->name('toggle');
-        Route::delete('/{workspace}', [WorkspaceManagementController::class, 'destroy'])->name('destroy');
-    });
-
 Route::middleware([
     'auth',
     'password.change',
-    'role:admin,secretary,treasurer',
+    'role:admin,staff',
     'workspace',
     'workspace.required',
     'workspace.models',

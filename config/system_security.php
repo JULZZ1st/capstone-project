@@ -43,11 +43,9 @@ return [
             'manage_accounts_permissions',
             'access_audit_logs',
         ],
-        'secretary' => [
+        'staff' => [
             'register_in_kind_supplies',
             'adjust_stock_levels',
-        ],
-        'treasurer' => [
             'access_audit_logs',
             'record_cash_credits',
         ],

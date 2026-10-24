@@ -40,7 +40,7 @@ class BankReconciliationTest extends TestCase
         $csv = "statement_id,description,reference_number,amount,transaction_date,payment_method\n".
             "stmt-100,GCash incoming,GC-100,1250.50,2026-09-05,gcash\n";
 
-        $response = $this->actingAs($this->userWithRole('treasurer'))->post(route('bank-reconciliation.import'), [
+        $response = $this->actingAs($this->userWithRole('staff'))->post(route('bank-reconciliation.import'), [
             'statement' => UploadedFile::fake()->createWithContent('statement.csv', $csv),
         ]);
 
@@ -69,7 +69,7 @@ XML);
         unlink($path);
         $this->assertNotFalse($xlsx);
 
-        $response = $this->actingAs($this->userWithRole('treasurer'))->post(route('bank-reconciliation.import'), [
+        $response = $this->actingAs($this->userWithRole('staff'))->post(route('bank-reconciliation.import'), [
             'statement' => UploadedFile::fake()->createWithContent('statement.xlsx', $xlsx),
         ]);
 
@@ -94,7 +94,7 @@ XML);
             "stmt-duplicate,Duplicate,100,2026-09-05\n".
             "stmt-new,New transaction,200,2026-09-05\n";
 
-        $response = $this->actingAs($this->userWithRole('treasurer'))->post(route('bank-reconciliation.import'), [
+        $response = $this->actingAs($this->userWithRole('staff'))->post(route('bank-reconciliation.import'), [
             'statement' => UploadedFile::fake()->createWithContent('statement.csv', $csv),
         ]);
 
@@ -102,18 +102,22 @@ XML);
         $this->assertDatabaseMissing('bank_ledger_entries', ['statement_id' => 'stmt-new']);
     }
 
-    public function test_secretary_cannot_import_bank_transactions(): void
+    public function test_staff_can_import_bank_transactions(): void
     {
-        $response = $this->actingAs($this->userWithRole('secretary'))->post(route('bank-reconciliation.import'), [
+        $response = $this->actingAs($this->userWithRole('staff'))->post(route('bank-reconciliation.import'), [
             'statement' => UploadedFile::fake()->createWithContent('statement.csv', "statement_id,description,amount,transaction_date\nstmt-1,Test,100,2026-09-05\n"),
         ]);
 
-        $response->assertForbidden();
+        $response->assertRedirect(route('bank-reconciliation.index'));
+        $this->assertDatabaseHas('bank_ledger_entries', [
+            'statement_id' => 'stmt-1',
+            'status' => 'unmatched',
+        ]);
     }
 
     public function test_treasurer_can_manually_create_bank_withdrawal_for_review(): void
     {
-        $treasurer = $this->userWithRole('treasurer');
+        $treasurer = $this->userWithRole('staff');
 
         $response = $this->actingAs($treasurer)->post(route('bank-reconciliation.withdrawals.store'), [
             'transaction_date' => '2026-09-12',
@@ -153,7 +157,7 @@ XML);
 
     public function test_imported_withdrawal_rows_appear_under_outgoing_review(): void
     {
-        $treasurer = $this->userWithRole('treasurer');
+        $treasurer = $this->userWithRole('staff');
         $csv = "statement_id,description,reference_number,amount,transaction_date,transaction_type\n".
             "stmt-wd-100,Bank withdrawal for supplies,WD-IMPORT-100,4200.00,2026-09-10,withdrawal\n";
 
@@ -182,7 +186,7 @@ XML);
 
     public function test_duplicate_withdrawal_reference_date_amount_is_rejected(): void
     {
-        $treasurer = $this->userWithRole('treasurer');
+        $treasurer = $this->userWithRole('staff');
         $this->ledgerEntry([
             'statement_id' => 'withdrawal-existing',
             'reference_number' => 'WD-DUP-001',
@@ -204,7 +208,7 @@ XML);
 
     public function test_import_duplicate_withdrawal_reference_date_amount_is_rejected(): void
     {
-        $treasurer = $this->userWithRole('treasurer');
+        $treasurer = $this->userWithRole('staff');
         $this->ledgerEntry([
             'statement_id' => 'withdrawal-import-existing',
             'reference_number' => 'WD-IMPORT-DUP',
@@ -224,30 +228,31 @@ XML);
         $this->assertDatabaseMissing('bank_ledger_entries', ['statement_id' => 'stmt-wd-new']);
     }
 
-    public function test_secretary_cannot_create_or_import_withdrawals_server_side(): void
+    public function test_staff_can_create_and_import_withdrawals_server_side(): void
     {
-        $secretary = $this->userWithRole('secretary');
+        $staff = $this->userWithRole('staff');
         $csv = "statement_id,description,reference_number,amount,transaction_date,transaction_type\n".
-            "stmt-secretary-wd,Secretary withdrawal,WD-SEC-001,100,2026-09-12,withdrawal\n";
+            "stmt-staff-import,Staff imported withdrawal,WD-STAFF-IMPORT,200,2026-09-12,withdrawal\n";
 
-        $this->actingAs($secretary)->post(route('bank-reconciliation.withdrawals.store'), [
+        $this->actingAs($staff)->post(route('bank-reconciliation.withdrawals.store'), [
             'transaction_date' => '2026-09-12',
-            'reference_number' => 'WD-SEC-001',
-            'description' => 'Secretary withdrawal',
+            'reference_number' => 'WD-STAFF-001',
+            'description' => 'Staff withdrawal',
             'amount' => 100,
-        ])->assertForbidden();
+        ])->assertRedirect(route('bank-reconciliation.index', ['tab' => 'outgoing']));
 
-        $this->actingAs($secretary)->post(route('bank-reconciliation.import'), [
+        $this->actingAs($staff)->post(route('bank-reconciliation.import'), [
             'return_tab' => 'outgoing',
             'statement' => UploadedFile::fake()->createWithContent('withdrawals.csv', $csv),
-        ])->assertForbidden();
+        ])->assertRedirect(route('bank-reconciliation.index', ['tab' => 'outgoing']));
 
-        $this->assertDatabaseMissing('bank_ledger_entries', ['reference_number' => 'WD-SEC-001']);
+        $this->assertDatabaseHas('bank_ledger_entries', ['reference_number' => 'WD-STAFF-001']);
+        $this->assertDatabaseHas('bank_ledger_entries', ['statement_id' => 'stmt-staff-import']);
     }
 
     public function test_one_bank_withdrawal_can_match_multiple_approved_disbursements_and_show_ready_when_balanced(): void
     {
-        $treasurer = $this->userWithRole('treasurer');
+        $treasurer = $this->userWithRole('staff');
         $withdrawal = $this->withdrawalEntry(['amount' => 5000, 'reference_number' => 'WD-MATCH-READY']);
         $first = $this->cashDisbursement(['amount' => 2000, 'purpose' => 'Approved medicine payout']);
         $second = $this->cashDisbursement(['amount' => 3000, 'purpose' => 'Approved food payout']);
@@ -279,7 +284,7 @@ XML);
 
     public function test_non_zero_withdrawal_match_difference_shows_discrepancy(): void
     {
-        $treasurer = $this->userWithRole('treasurer');
+        $treasurer = $this->userWithRole('staff');
         $withdrawal = $this->withdrawalEntry(['amount' => 6000, 'reference_number' => 'WD-MATCH-DIFF']);
         $disbursement = $this->cashDisbursement(['amount' => 2500, 'purpose' => 'Partial approved payout']);
 
@@ -310,7 +315,7 @@ XML);
 
     public function test_balanced_withdrawal_can_be_finalized(): void
     {
-        $treasurer = $this->userWithRole('treasurer');
+        $treasurer = $this->userWithRole('staff');
         $withdrawal = $this->withdrawalEntry(['amount' => 5000, 'reference_number' => 'WD-FINALIZE']);
         $first = $this->cashDisbursement(['amount' => 2000]);
         $second = $this->cashDisbursement(['amount' => 3000]);
@@ -344,7 +349,7 @@ XML);
 
     public function test_finalized_withdrawal_history_has_details_and_is_read_only(): void
     {
-        $treasurer = $this->userWithRole('treasurer');
+        $treasurer = $this->userWithRole('staff');
         $withdrawal = $this->withdrawalEntry([
             'amount' => 5000,
             'reference_number' => 'WD-HISTORY-001',
@@ -402,7 +407,7 @@ XML);
 
     public function test_discrepant_withdrawal_cannot_be_finalized(): void
     {
-        $treasurer = $this->userWithRole('treasurer');
+        $treasurer = $this->userWithRole('staff');
         $withdrawal = $this->withdrawalEntry(['amount' => 6000, 'reference_number' => 'WD-FINALIZE-DIFF']);
         $disbursement = $this->cashDisbursement(['amount' => 2500]);
 
@@ -426,7 +431,7 @@ XML);
 
     public function test_discrepancy_requires_an_explanation(): void
     {
-        $treasurer = $this->userWithRole('treasurer');
+        $treasurer = $this->userWithRole('staff');
         $withdrawal = $this->withdrawalEntry(['amount' => 6000, 'reference_number' => 'WD-MATCH-REASON']);
         $disbursement = $this->cashDisbursement(['amount' => 2500]);
 
@@ -448,7 +453,7 @@ XML);
 
     public function test_only_approved_active_unmatched_disbursements_are_selectable_for_withdrawal_matching(): void
     {
-        $treasurer = $this->userWithRole('treasurer');
+        $treasurer = $this->userWithRole('staff');
         $withdrawal = $this->withdrawalEntry(['reference_number' => 'WD-ELIGIBLE']);
         $otherWithdrawal = $this->withdrawalEntry(['reference_number' => 'WD-OTHER']);
         $eligible = $this->cashDisbursement(['purpose' => 'Eligible approved disbursement']);
@@ -482,7 +487,7 @@ XML);
 
     public function test_same_disbursement_cannot_be_matched_to_more_than_one_withdrawal(): void
     {
-        $treasurer = $this->userWithRole('treasurer');
+        $treasurer = $this->userWithRole('staff');
         $firstWithdrawal = $this->withdrawalEntry(['reference_number' => 'WD-FIRST']);
         $secondWithdrawal = $this->withdrawalEntry(['reference_number' => 'WD-SECOND']);
         $disbursement = $this->cashDisbursement(['purpose' => 'Single-use approved payout']);
@@ -507,7 +512,7 @@ XML);
 
     public function test_already_reconciled_withdrawal_cannot_be_matched_again(): void
     {
-        $treasurer = $this->userWithRole('treasurer');
+        $treasurer = $this->userWithRole('staff');
         $withdrawal = $this->withdrawalEntry([
             'reference_number' => 'WD-RECONCILED',
             'status' => 'reconciled',
@@ -557,7 +562,7 @@ XML);
     {
         $entry = $this->ledgerEntry(['reference_number' => 'GCSH-7741235', 'amount' => 5000]);
         $contribution = $this->electronicContribution(['reference_number' => 'GCSH-7741235', 'amount' => 5000]);
-        $treasurer = $this->userWithRole('treasurer');
+        $treasurer = $this->userWithRole('staff');
 
         $response = $this->actingAs($treasurer)->post(route('bank-reconciliation.reconcile'), [
             'bank_ledger_entry_id' => $entry->id,
@@ -577,7 +582,7 @@ XML);
     {
         $entry = $this->ledgerEntry(['reference_number' => 'GCSH-AUDIT', 'amount' => 2500]);
         $contribution = $this->electronicContribution(['reference_number' => 'GCSH-AUDIT', 'amount' => 2500]);
-        $treasurer = $this->userWithRole('treasurer');
+        $treasurer = $this->userWithRole('staff');
 
         $this->actingAs($treasurer)->post(route('bank-reconciliation.reconcile'), [
             'bank_ledger_entry_id' => $entry->id,
@@ -592,7 +597,7 @@ XML);
 
     public function test_bank_statement_import_is_recorded_in_the_security_audit_log(): void
     {
-        $treasurer = $this->userWithRole('treasurer');
+        $treasurer = $this->userWithRole('staff');
         $csv = "statement_id,description,reference_number,amount,transaction_date,payment_method\n".
             "stmt-audit,GCash incoming,GC-AUDIT,750.00,2026-09-05,gcash\n";
 
@@ -610,7 +615,7 @@ XML);
     {
         $entry = $this->ledgerEntry(['reference_number' => 'GCSH-HISTORY']);
         $contribution = $this->electronicContribution(['reference_number' => 'GCSH-HISTORY']);
-        $treasurer = $this->userWithRole('treasurer');
+        $treasurer = $this->userWithRole('staff');
 
         $this->actingAs($treasurer)->post(route('bank-reconciliation.reconcile'), [
             'bank_ledger_entry_id' => $entry->id,
@@ -629,7 +634,7 @@ XML);
         $entry = $this->ledgerEntry(['reference_number' => 'GCSH-7741235', 'amount' => 5000]);
         $contribution = $this->electronicContribution(['reference_number' => 'GCSH-7741235', 'amount' => 5000]);
 
-        $this->actingAs($this->userWithRole('treasurer'))->post(route('bank-reconciliation.reconcile'), [
+        $this->actingAs($this->userWithRole('staff'))->post(route('bank-reconciliation.reconcile'), [
             'bank_ledger_entry_id' => $entry->id,
             'contribution_id' => $contribution->id,
         ]);
@@ -642,18 +647,18 @@ XML);
         $response->assertSee($contribution->donor->full_name);
     }
 
-    public function test_secretary_cannot_reconcile_an_entry(): void
+    public function test_staff_can_reconcile_an_entry(): void
     {
         $entry = $this->ledgerEntry();
         $contribution = $this->electronicContribution();
 
-        $response = $this->actingAs($this->userWithRole('secretary'))->post(route('bank-reconciliation.reconcile'), [
+        $response = $this->actingAs($this->userWithRole('staff'))->post(route('bank-reconciliation.reconcile'), [
             'bank_ledger_entry_id' => $entry->id,
             'contribution_id' => $contribution->id,
         ]);
 
-        $response->assertForbidden();
-        $this->assertDatabaseHas('bank_ledger_entries', ['id' => $entry->id, 'status' => 'unmatched']);
+        $response->assertRedirect(route('bank-reconciliation.index'));
+        $this->assertDatabaseHas('bank_ledger_entries', ['id' => $entry->id, 'status' => 'reconciled']);
     }
 
     private function ledgerEntry(array $overrides = []): BankLedgerEntry
@@ -683,7 +688,7 @@ XML);
 
     private function cashDisbursement(array $overrides = []): CashDisbursement
     {
-        $requester = $this->userWithRole('treasurer');
+        $requester = $this->userWithRole('staff');
         $approver = $this->userWithRole('admin');
 
         return CashDisbursement::query()->create(array_merge([

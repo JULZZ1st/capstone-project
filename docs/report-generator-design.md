@@ -55,8 +55,8 @@ The In-Kind Audit report reads `inventory_stock_movements` with the related inve
 Allowed roles through current policy:
 
 - `admin`
-- `secretary`
-- `treasurer`
+- `staff`
+- `staff`
 
 ## UI Components
 

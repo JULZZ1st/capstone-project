@@ -31,7 +31,7 @@ class SystemSecurityDashboardQuery
                 'securityProfile:id,user_id,two_factor_enabled,two_factor_enforced,two_factor_verified_at,security_key_suffix',
                 'securityPermissions:id,key,name,sort_order',
             ])
-            ->whereHas('role', fn ($query) => $query->whereIn('name', ['secretary', 'treasurer']))
+            ->whereHas('role', fn ($query) => $query->where('name', 'staff'))
             ->whereHas('workspaceMemberships', function ($query): void {
                 $query->where('workspace_id', app(WorkspaceContext::class)->requireId())
                     ->where('status', 'active');

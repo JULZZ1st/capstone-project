@@ -21,7 +21,7 @@
         </div>
 
         <section class="rounded-xl border border-slate-200 bg-white shadow-sm">
-            <x-system-security.section-header title="Authorized Administrative Personnel">
+            <x-system-security.section-header title="Workspace Staff">
                     <x-slot:actions>
                         <x-system-security.status-badge :label="number_format($personnel->where('status', config('auth_defaults.user_status'))->count()).' Active Accounts'" tone="emerald" />
 
@@ -50,8 +50,7 @@
                                     <div>
                                         <label class="block text-[11px] text-slate-500">Role</label>
                                         <select name="role" required class="mt-1 w-full rounded border px-2 py-1 text-sm">
-                                            <option value="secretary"@if(old('role') === 'secretary') selected @endif>Secretary</option>
-                                            <option value="treasurer"@if(old('role') === 'treasurer') selected @endif>Treasurer</option>
+                                            <option value="staff"@if(old('role') === 'staff') selected @endif>Staff</option>
                                         </select>
                                         <x-form.error name="role" />
                                     </div>
@@ -79,7 +78,7 @@
                     <x-system-security.user-security-card :user="$user" :permissions="$permissions" />
                 @empty
                     <div class="lg:col-span-3">
-                        <x-dashboard.empty-state message="No authorized administrative personnel were found." />
+                        <x-dashboard.empty-state message="No staff accounts were found in this workspace." />
                     </div>
                 @endforelse
             </div>

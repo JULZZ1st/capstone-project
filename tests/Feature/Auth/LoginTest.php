@@ -15,7 +15,7 @@ class LoginTest extends TestCase
 
     public function test_active_user_can_login_and_is_redirected_to_dashboard(): void
     {
-        $user = $this->userWithRole('secretary', ['email' => 'active@example.com']);
+        $user = $this->userWithRole('staff', ['email' => 'active@example.com']);
 
         $response = $this->post(route('login.store'), [
             'email' => ' Active@Example.com ',
@@ -29,7 +29,7 @@ class LoginTest extends TestCase
     public function test_user_can_logout_and_login_again(): void
     {
         $password = 'StrongPass123!';
-        $user = $this->userWithRole('secretary', [
+        $user = $this->userWithRole('staff', [
             'email' => 'maria.santos@example.com',
             'password' => Hash::make($password),
         ]);
@@ -56,7 +56,7 @@ class LoginTest extends TestCase
     public function test_remember_me_uses_laravels_recaller_cookie_and_logout_clears_it(): void
     {
         $password = 'StrongPass123!';
-        $user = $this->userWithRole('secretary', [
+        $user = $this->userWithRole('staff', [
             'email' => 'remembered@example.com',
             'password' => Hash::make($password),
         ]);
@@ -85,7 +85,7 @@ class LoginTest extends TestCase
     public function test_login_without_remember_me_does_not_set_a_recaller_cookie(): void
     {
         $password = 'StrongPass123!';
-        $user = $this->userWithRole('secretary', [
+        $user = $this->userWithRole('staff', [
             'email' => 'session-only@example.com',
             'password' => Hash::make($password),
         ]);
@@ -104,7 +104,7 @@ class LoginTest extends TestCase
     public function test_user_can_login_again_after_session_expires(): void
     {
         $password = 'StrongPass123!';
-        $user = $this->userWithRole('secretary', [
+        $user = $this->userWithRole('staff', [
             'email' => 'juan.delacruz@example.com',
             'password' => Hash::make($password),
         ]);
@@ -131,7 +131,7 @@ class LoginTest extends TestCase
 
     public function test_incorrect_password_is_rejected(): void
     {
-        $this->userWithRole('secretary', ['email' => 'active@example.com']);
+        $this->userWithRole('staff', ['email' => 'active@example.com']);
 
         $this->post(route('login.store'), [
             'email' => 'active@example.com',
@@ -145,7 +145,7 @@ class LoginTest extends TestCase
     public function test_user_wrong_password_is_rejected(): void
     {
         $password = 'StrongPass123!';
-        $user = $this->userWithRole('secretary', [
+        $user = $this->userWithRole('staff', [
             'email' => 'ana.reyes@example.com',
             'password' => Hash::make($password),
         ]);
@@ -185,7 +185,7 @@ class LoginTest extends TestCase
 
     public function test_deactivated_user_cannot_login(): void
     {
-        $this->userWithRole('secretary', [
+        $this->userWithRole('staff', [
             'email' => 'deactivated@example.com',
             'status' => 'deactivated',
         ]);

@@ -27,6 +27,25 @@ class ResolveActiveWorkspace
             return $next($request);
         }
 
+        if ($user->hasRole('admin')) {
+            $workspace = $user->workspaceMemberships()
+                ->with('workspace')
+                ->where('status', 'active')
+                ->whereHas('workspace', fn ($query) => $query->where('status', 'active'))
+                ->latest('id')
+                ->first()?->workspace
+                ?? Workspace::query()->where('status', 'active')->orderBy('id')->first();
+
+            if ($workspace !== null) {
+                $this->context->set($workspace);
+                $request->session()->put('active_workspace_id', $workspace->getKey());
+            } else {
+                $request->session()->forget('active_workspace_id');
+            }
+
+            return $next($request);
+        }
+
         $workspaceId = $request->session()->get('active_workspace_id');
         if ($workspaceId !== null) {
             $workspace = Workspace::query()->find($workspaceId);

@@ -19,6 +19,13 @@ class WorkspaceIsolationTest extends TestCase
     public function test_tenant_routes_and_reports_cannot_cross_workspace_boundaries(): void
     {
         [$admin, $workspaceA, $workspaceB] = $this->workspaces();
+        $staffRole = Role::query()->firstOrCreate(['name' => 'staff'], ['display_name' => 'Staff']);
+        $staff = User::factory()->create(['role_id' => $staffRole->id]);
+        $workspaceA->memberships()->create([
+            'user_id' => $staff->id,
+            'role_id' => $staffRole->id,
+            'status' => 'active',
+        ]);
 
         app(WorkspaceContext::class)->set($workspaceA);
         $donorA = Donor::query()->create(['first_name' => 'A', 'last_name' => 'Donor', 'full_name' => 'Workspace A Donor', 'donor_type' => 'individual', 'status' => 'active', 'address' => 'A Address', 'contact_number' => '09000000001']);
@@ -44,7 +51,7 @@ class WorkspaceIsolationTest extends TestCase
             'created_by' => $admin->id,
         ]);
 
-        $this->actingAs($admin)->withSession(['active_workspace_id' => $workspaceA->id]);
+        $this->actingAs($staff)->withSession(['active_workspace_id' => $workspaceA->id]);
 
         $this->get(route('donors.index'))
             ->assertOk()
@@ -64,7 +71,7 @@ class WorkspaceIsolationTest extends TestCase
             ->assertDontSee('Workspace B Donor');
     }
 
-    public function test_admin_with_memberships_resolves_a_workspace_for_operational_records(): void
+    public function test_admin_with_membership_resolves_assigned_workspace_for_operational_records(): void
     {
         [$admin, $workspaceA] = $this->workspaces();
 

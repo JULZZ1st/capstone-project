@@ -334,7 +334,7 @@ class DonationManagementTest extends TestCase
         $response->assertDontSee('Other donor support');
     }
 
-    public function test_treasurer_can_view_shared_donors_but_cannot_modify_them(): void
+    public function test_staff_can_view_and_modify_donors(): void
     {
         $donor = Donor::query()->create([
             'donor_type' => 'individual',
@@ -345,29 +345,31 @@ class DonationManagementTest extends TestCase
             'contact_number' => '09171234567',
             'status' => config('donors.defaults.status'),
         ]);
-        $treasurer = $this->userWithRole('treasurer');
+        $staff = $this->userWithRole('staff');
 
-        $this->actingAs($treasurer)
+        $this->actingAs($staff)
             ->get(route('donors.index'))
             ->assertOk()
             ->assertSee('Shared Donor')
-            ->assertDontSee('data-dialog-open="edit-donor-modal-'.$donor->id.'"', false);
+            ->assertSee('data-dialog-open="edit-donor-modal-'.$donor->id.'"', false);
 
-        $this->actingAs($treasurer)
+        $this->actingAs($staff)
             ->patch(route('donors.update', $donor), [
                 'donor_type' => 'individual',
-                'first_name' => 'Changed',
+                'first_name' => 'Updated',
                 'last_name' => 'Donor',
                 'address' => 'Changed Address',
                 'contact_number' => '09170000000',
             ])
-            ->assertForbidden();
+            ->assertRedirect(route('donors.index'));
 
-        $this->actingAs($treasurer)
+        $this->assertDatabaseHas('donors', ['id' => $donor->id, 'full_name' => 'Updated Donor']);
+
+        $this->actingAs($staff)
             ->delete(route('donors.destroy', $donor))
-            ->assertForbidden();
+            ->assertRedirect(route('donors.index'));
 
-        $this->assertDatabaseHas('donors', ['id' => $donor->id, 'full_name' => 'Shared Donor']);
+        $this->assertDatabaseMissing('donors', ['id' => $donor->id]);
     }
 
     private function userWithRole(string $role): User

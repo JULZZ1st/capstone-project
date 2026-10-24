@@ -25,7 +25,7 @@ class WorkspaceArchitectureTest extends TestCase
         })->middleware(['web', 'auth', 'workspace']);
     }
 
-    public function test_gina_is_seeded_as_admin_with_workspace_management_access(): void
+    public function test_gina_is_seeded_as_admin_and_resolves_the_single_workspace_automatically(): void
     {
         $this->seed();
 
@@ -49,8 +49,8 @@ class WorkspaceArchitectureTest extends TestCase
     public function test_membership_resolves_active_workspace_into_request_context(): void
     {
         $role = Role::query()->create([
-            'name' => 'workspace-secretary',
-            'display_name' => 'Workspace Secretary',
+            'name' => 'workspace-staff',
+            'display_name' => 'Workspace Staff',
             'description' => 'Test role',
         ]);
         $user = User::factory()->create(['role_id' => $role->id]);
@@ -66,8 +66,8 @@ class WorkspaceArchitectureTest extends TestCase
     public function test_user_cannot_activate_a_workspace_without_membership(): void
     {
         $role = Role::query()->create([
-            'name' => 'workspace-treasurer',
-            'display_name' => 'Workspace Treasurer',
+            'name' => 'other-workspace-staff',
+            'display_name' => 'Other Workspace Staff',
             'description' => 'Test role',
         ]);
         $user = User::factory()->create(['role_id' => $role->id]);
@@ -79,17 +79,18 @@ class WorkspaceArchitectureTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_admin_can_activate_any_active_workspace_without_membership(): void
+    public function test_admin_uses_the_default_active_workspace_instead_of_session_selection(): void
     {
         $role = Role::query()->firstOrCreate(['name' => Role::ADMIN], ['display_name' => 'Admin']);
         $admin = User::factory()->create(['role_id' => $role->id]);
+        $defaultWorkspace = Workspace::query()->where('status', 'active')->orderBy('id')->firstOrFail();
         $workspace = Workspace::query()->create(['name' => 'Managed Workspace', 'slug' => 'managed-workspace']);
 
         $this->actingAs($admin)
             ->withSession(['active_workspace_id' => $workspace->id])
             ->get('/__workspace-context-test')
             ->assertOk()
-            ->assertJson(['workspace_id' => $workspace->id]);
+            ->assertJson(['workspace_id' => $defaultWorkspace->id]);
     }
 
     public function test_staff_created_with_an_active_workspace_receives_that_membership(): void
@@ -100,11 +101,11 @@ class WorkspaceArchitectureTest extends TestCase
             'display_name' => 'Administrator',
             'description' => 'Administrator',
         ]);
-        $secretaryRole = Role::query()->firstOrCreate([
-            'name' => 'secretary',
+        $staffRole = Role::query()->firstOrCreate([
+            'name' => 'staff',
         ], [
-            'display_name' => 'Secretary',
-            'description' => 'Secretary',
+            'display_name' => 'Staff',
+            'description' => 'Staff',
         ]);
         $admin = User::factory()->create(['role_id' => $adminRole->id]);
         $workspace = Workspace::query()->create(['name' => 'Staff Workspace', 'slug' => 'staff-workspace']);
@@ -116,17 +117,17 @@ class WorkspaceArchitectureTest extends TestCase
             ->assertOk();
 
         $staff = app(CreateStaffAccount::class)->handle([
-            'role' => 'secretary',
+            'role' => 'staff',
             'first_name' => 'Workspace',
-            'last_name' => 'Secretary',
-            'email' => 'workspace.secretary@example.test',
+            'last_name' => 'Staff',
+            'email' => 'workspace.staff@example.test',
             'password' => 'A secure password 123!',
         ], $admin);
 
         $this->assertDatabaseHas('workspace_memberships', [
             'workspace_id' => $workspace->id,
             'user_id' => $staff->id,
-            'role_id' => $secretaryRole->id,
+            'role_id' => $staffRole->id,
             'created_by' => $admin->id,
             'status' => 'active',
         ]);

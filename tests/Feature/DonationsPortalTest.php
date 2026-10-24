@@ -41,6 +41,42 @@ class DonationsPortalTest extends TestCase
         ]);
     }
 
+    public function test_admin_can_approve_a_pending_cash_contribution_from_donations_portal(): void
+    {
+        $adminRole = Role::query()->firstOrCreate(
+            ['name' => Role::ADMIN],
+            ['display_name' => 'Admin', 'description' => 'Administers barangay operations.'],
+        );
+        $admin = User::factory()->create(['role_id' => $adminRole->id]);
+        $contribution = Contribution::query()->create([
+            'donor_id' => $this->donor()->id,
+            'created_by' => $admin->id,
+            'type' => 'cash',
+            'status' => 'pending',
+            'amount' => 10000,
+            'payment_method' => 'cash',
+            'received_at' => now(),
+        ]);
+
+        $this->assertTrue($admin->can('verify', $contribution));
+
+        $this->actingAs($admin)
+            ->get(route('donations.index'))
+            ->assertOk()
+            ->assertSee('Approve Contribution');
+
+        $this->actingAs($admin)
+            ->patch(route('donations.verify', $contribution))
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('contributions', [
+            'id' => $contribution->id,
+            'status' => 'verified',
+            'verified_by' => $admin->id,
+        ]);
+        $this->assertNotNull($contribution->fresh()->verified_at);
+    }
+
     public function test_cash_contribution_does_not_require_items(): void
     {
         $donor = $this->donor();

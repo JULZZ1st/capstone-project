@@ -24,17 +24,16 @@ class SystemSecurityAdministrationTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('System Security Administration');
-        $response->assertSee('Authorized Administrative Personnel');
+        $response->assertSee('Workspace Staff');
         $response->assertSee('Security Activity Trail Ledger');
         $response->assertDontSee('<option value="admin">Administrator</option>', false);
-        $response->assertSee('value="secretary"', false);
-        $response->assertSee('value="treasurer"', false);
+        $response->assertSee('value="staff"', false);
         $this->assertDatabaseHas('security_permissions', ['name' => SecurityPermission::query()->firstOrFail()->name]);
     }
 
-    public function test_secretary_cannot_view_system_security_administration_page(): void
+    public function test_staff_cannot_manage_system_security_administration(): void
     {
-        $secretary = $this->userWithRole('secretary');
+        $secretary = $this->userWithRole('staff');
         $this->seed(SystemSecuritySeeder::class);
 
         $response = $this->actingAs($secretary)->get(route('system-security.index'));
@@ -68,7 +67,7 @@ class SystemSecurityAdministrationTest extends TestCase
     public function test_admin_can_toggle_two_factor_enforcement_and_audit_event_is_recorded(): void
     {
         $admin = $this->userWithRole('admin');
-        $secretary = $this->userWithRole('secretary');
+        $secretary = $this->userWithRole('staff');
         $this->seed(SystemSecuritySeeder::class);
 
         UserSecurityProfile::query()->updateOrCreate(

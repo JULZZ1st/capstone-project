@@ -9,7 +9,7 @@ class ContributionPolicy
 {
     public function viewAny(User $user): bool
     {
-        return $this->active($user) && $user->hasRole(['admin', 'secretary', 'treasurer']);
+        return $this->active($user) && $user->hasRole(['admin', 'staff']);
     }
 
     public function view(User $user, Contribution $contribution): bool
@@ -31,7 +31,7 @@ class ContributionPolicy
         return $contribution->isEditable()
             && (int) $contribution->created_by === (int) $user->id
             && $this->sameWorkspace($user, $contribution)
-            && $user->hasRole(['secretary', 'treasurer']);
+            && $user->hasRole('staff');
     }
 
     public function verify(User $user, Contribution $contribution): bool
@@ -39,7 +39,7 @@ class ContributionPolicy
         return $contribution->isCash()
             && $contribution->status === 'pending'
             && $this->sameWorkspace($user, $contribution)
-            && $user->hasRole(['admin', 'treasurer']);
+            && $user->hasRole(['admin', 'staff']);
     }
 
     public function void(User $user, Contribution $contribution): bool
