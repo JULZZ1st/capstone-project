@@ -25,8 +25,13 @@ return [
         'gcash' => 'GCash',
         'maya' => 'Maya',
         'check' => 'Check',
-        'money_order' => 'Money Order',
         'other' => 'Other',
+    ],
+
+    // Retained only for displaying historical records. It is intentionally
+    // excluded from payment_methods so new contributions cannot select it.
+    'legacy_payment_methods' => [
+        'money_order' => 'Money Order',
     ],
 
     'electronic_payment_methods' => [

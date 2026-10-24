@@ -14,12 +14,12 @@ class BankLedgerEntryPolicy
 
     public function reconcile(User $user, ?BankLedgerEntry $bankLedgerEntry = null): bool
     {
-        return $this->active($user) && $user->hasRole(['admin', 'treasurer']) && ($bankLedgerEntry === null || $this->sameWorkspace($user, $bankLedgerEntry));
+        return $this->active($user) && $user->hasRole('treasurer') && ($bankLedgerEntry === null || $this->sameWorkspace($user, $bankLedgerEntry));
     }
 
     public function import(User $user): bool
     {
-        return $this->active($user) && $user->hasRole(['admin', 'treasurer']);
+        return $this->active($user) && $user->hasRole('treasurer');
     }
 
     public function create(User $user): bool
@@ -30,7 +30,7 @@ class BankLedgerEntryPolicy
     public function matchWithdrawal(User $user, BankLedgerEntry $bankLedgerEntry): bool
     {
         return $this->sameWorkspace($user, $bankLedgerEntry)
-            && $user->hasRole(['admin', 'treasurer'])
+            && $user->hasRole('treasurer')
             && $bankLedgerEntry->isWithdrawal()
             && ! $bankLedgerEntry->isReconciled();
     }

@@ -56,6 +56,10 @@ class User extends Authenticatable
         'is_super_admin' => 'boolean',
     ];
 
+    private bool $roleNameResolved = false;
+
+    private ?string $resolvedRoleName = null;
+
     public function role(): BelongsTo
     {
         return $this->belongsTo(Role::class);
@@ -123,6 +127,10 @@ class User extends Authenticatable
             return $this->getRelation('role')?->name;
         }
 
+        if ($this->roleNameResolved) {
+            return $this->resolvedRoleName;
+        }
+
         $name = $this->role()->value('name');
 
         if ($name !== null) {
@@ -132,7 +140,10 @@ class User extends Authenticatable
         // Fallback for legacy schema where `users` may still have a string `role` column
         // (kept during migrations). This preserves access checks for existing seeded
         // or migrated users until `role_id` is populated.
-        return $this->getAttribute('role');
+        $this->resolvedRoleName = $name ?? $this->getAttribute('role');
+        $this->roleNameResolved = true;
+
+        return $this->resolvedRoleName;
     }
 
     public function roleDisplayName(): string

@@ -53,7 +53,7 @@
 
         @if ($contribution->isCash())
             <p class="text-xs text-slate-500">
-                {{ config("donations.payment_methods.{$contribution->payment_method}") }}
+                {{ $contribution->paymentMethodLabel() }}
             </p>
         @else
             <p class="text-xs text-slate-500">
@@ -209,7 +209,7 @@
                         </p>
 
                         <p class="mt-1 text-slate-700">
-                            {{ config("donations.payment_methods.{$contribution->payment_method}") }}
+                            {{ $contribution->paymentMethodLabel() }}
                         </p>
                     </div>
 

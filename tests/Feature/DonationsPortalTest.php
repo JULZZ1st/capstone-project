@@ -80,7 +80,7 @@ class DonationsPortalTest extends TestCase
 
     public function test_non_cash_payment_methods_require_external_references(): void
     {
-        foreach (['gcash', 'maya', 'bank_transfer', 'check', 'money_order', 'other'] as $paymentMethod) {
+        foreach (['gcash', 'maya', 'bank_transfer', 'check'] as $paymentMethod) {
             $response = $this->actingAs(User::factory()->create())->post(route('donations.store'), [
                 'donation_type' => 'cash',
                 'donor_id' => $this->donor()->id,
@@ -90,6 +90,66 @@ class DonationsPortalTest extends TestCase
 
             $response->assertSessionHasErrors('reference_number');
         }
+    }
+
+    public function test_other_payment_method_requires_a_name_but_not_an_external_reference(): void
+    {
+        $donor = $this->donor();
+        $user = User::factory()->create();
+
+        $missingName = $this->actingAs($user)->post(route('donations.store'), [
+            'donation_type' => 'cash',
+            'donor_id' => $donor->id,
+            'amount' => 500,
+            'payment_method' => 'other',
+        ]);
+
+        $missingName->assertSessionHasErrors('payment_method_name');
+        $this->assertDatabaseCount('contributions', 0);
+
+        $response = $this->actingAs($user)->post(route('donations.store'), [
+            'donation_type' => 'cash',
+            'donor_id' => $donor->id,
+            'amount' => 500,
+            'payment_method' => 'other',
+            'payment_method_name' => 'PayMaya QR',
+        ]);
+
+        $response->assertSessionDoesntHaveErrors();
+        $contribution = Contribution::query()->firstOrFail();
+
+        $this->assertSame('PayMaya QR', $contribution->payment_method_name);
+        $this->assertNull($contribution->reference_number);
+        $this->get(route('donations.index'))->assertSee('PayMaya QR');
+        $this->get(route('donations.show', $contribution))->assertSee('PayMaya QR');
+    }
+
+    public function test_money_order_is_not_a_new_payment_method_but_historical_rows_remain_visible(): void
+    {
+        $donor = $this->donor();
+        $user = User::factory()->create();
+        $historical = Contribution::query()->create([
+            'donor_id' => $donor->id,
+            'created_by' => $user->id,
+            'type' => 'cash',
+            'status' => 'verified',
+            'amount' => 500,
+            'payment_method' => 'money_order',
+            'reference_number' => 'MO-1001',
+        ]);
+
+        $this->actingAs($user)->get(route('donations.index'))
+            ->assertSee('Money Order')
+            ->assertDontSee('value="money_order"', false);
+        $this->actingAs($user)->post(route('donations.store'), [
+            'donation_type' => 'cash',
+            'donor_id' => $donor->id,
+            'amount' => 500,
+            'payment_method' => 'money_order',
+            'reference_number' => 'MO-1002',
+        ])->assertSessionHasErrors('payment_method');
+
+        $this->assertDatabaseHas('contributions', ['id' => $historical->id, 'payment_method' => 'money_order']);
     }
 
     public function test_in_kind_contribution_still_requires_at_least_one_item(): void

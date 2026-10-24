@@ -251,17 +251,30 @@ const updateReferenceRequirement = (form) => {
     const reference = form.querySelector('[data-reference-number]');
     const referenceField = form.querySelector('[data-reference-field]');
     const referenceLabel = form.querySelector('[data-reference-label]');
+    const paymentMethodName = form.querySelector('[data-payment-method-name]');
+    const paymentMethodNameField = form.querySelector('[data-payment-method-name-field]');
 
     if (! reference || ! referenceField) {
         return;
     }
 
     const isElectronic = method !== '' && method !== 'cash';
+    const isOther = method === 'other';
     const methodLabel = form.querySelector('[data-payment-method] option:checked')?.textContent?.trim();
+
+    if (paymentMethodName && paymentMethodNameField) {
+        paymentMethodNameField.hidden = ! isOther;
+        paymentMethodName.disabled = ! isOther;
+        paymentMethodName.required = isOther;
+
+        if (! isOther) {
+            paymentMethodName.value = '';
+        }
+    }
 
     referenceField.hidden = ! isElectronic;
     reference.disabled = ! isElectronic;
-    reference.required = isElectronic;
+    reference.required = isElectronic && ! isOther;
     referenceLabel.textContent = methodLabel && method !== 'other'
         ? `${methodLabel} ${method === 'check' || method === 'money_order' ? 'No.' : 'Reference No.'}`
         : 'External Payment Reference No.';

@@ -37,6 +37,21 @@
             </select>
             <x-form.error name="payment_method" />
         </div>
+        <div data-payment-method-name-field hidden>
+            <x-form.label for="payment_method_name">Payment Method Name</x-form.label>
+            <input
+                id="payment_method_name"
+                name="payment_method_name"
+                type="text"
+                value="{{ old('payment_method_name') }}"
+                data-payment-method-name
+                placeholder="Enter the payment method used"
+                disabled
+                class="mt-1 block w-full rounded-md border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                @error('payment_method_name') aria-invalid="true" aria-describedby="payment_method_name-error" @enderror
+            >
+            <x-form.error name="payment_method_name" />
+        </div>
         <div data-reference-field hidden>
             <x-form.label for="reference_number" data-reference-label>Transaction / Reference Number</x-form.label>
             <input

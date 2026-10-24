@@ -139,7 +139,7 @@
                                 <div class="flex flex-1 items-start justify-between gap-4">
                                     <div class="min-w-0">
                                         <p class="truncate text-sm font-medium text-slate-950">{{ $contribution->donor?->full_name ?? 'Unknown donor' }}</p>
-                                        <p class="text-sm text-slate-600">{{ config("donations.payment_methods.{$contribution->payment_method}") ?? 'Cash' }}</p>
+                                        <p class="text-sm text-slate-600">{{ $contribution->paymentMethodLabel() }}</p>
                                     </div>
                                     <p class="shrink-0 text-sm font-semibold text-slate-950">{{ $money($contribution->amount) }}</p>
                                 </div>
