@@ -39,7 +39,7 @@
                     <label for="audit-to" class="block text-xs font-semibold uppercase text-slate-500">To</label>
                     <input id="audit-to" name="to" type="date" value="{{ $to }}" class="mt-1 rounded-md border-slate-300 text-sm shadow-sm">
                 </div>
-                <x-button class="w-auto">Apply filters</x-button>
+                <x-button class="h-10 rounded-md border border-emerald-700 bg-emerald-600 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2">Apply filters</x-button>
             </form>
         @elseif (in_array($tab, ['financial', 'inventory'], true))
             <form method="GET" action="{{ route('reports.index') }}" class="flex flex-wrap items-end gap-3 rounded-lg border border-slate-200 bg-white p-4">
@@ -60,7 +60,7 @@
                         @endforeach
                     </select>
                 </div>
-                <x-button class="w-auto">Apply filters</x-button>
+                <x-button class="h-10 rounded-md border border-emerald-700 bg-emerald-600 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2">Apply filters</x-button>
             </form>
         @endif
 
