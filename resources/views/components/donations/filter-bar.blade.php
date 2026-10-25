@@ -1,7 +1,7 @@
-@props(['filters', 'campaigns'])
+@props(['filters'])
 
 <form method="GET" action="{{ route('donations.index') }}" class="p-5">
-    <div class="grid gap-3 lg:grid-cols-[minmax(0,1fr)_160px_180px_160px_auto]">
+    <div class="grid gap-3 lg:grid-cols-[minmax(0,1fr)_160px_180px_auto]">
         <div>
             <x-form.label for="search"></x-form.label>
             <div class="relative mt-1.5">
@@ -22,16 +22,6 @@
                 <option value="">All types</option>
                 @foreach (config('donations.types') as $value => $label)
                     <option value="{{ $value }}" @selected(($filters['type'] ?? '') === $value)>{{ $label }}</option>
-                @endforeach
-            </select>
-        </div>
-
-        <div>
-            <x-form.label for="campaign_id"></x-form.label>
-            <select id="campaign_id" name="campaign_id" class="mt-1.5 block w-full rounded-lg border-slate-300 py-2.5 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                <option value="">All campaigns</option>
-                @foreach ($campaigns as $campaign)
-                    <option value="{{ $campaign->id }}" @selected((string) ($filters['campaign_id'] ?? '') === (string) $campaign->id)>{{ $campaign->name }}</option>
                 @endforeach
             </select>
         </div>

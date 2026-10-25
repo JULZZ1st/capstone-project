@@ -31,7 +31,7 @@
             <x-form.label for="payment_method">Payment Method</x-form.label>
             <select id="payment_method" name="payment_method" data-payment-method class="mt-1 block w-full rounded-md border-slate-300 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500">
                 <option value="">Select method</option>
-                @foreach (config('donations.payment_methods') as $value => $label)
+                @foreach (collect(config('donations.payment_methods'))->except('money_order')->all() as $value => $label)
                     <option value="{{ $value }}" @selected(old('payment_method') === $value)>{{ $label }}</option>
                 @endforeach
             </select>
@@ -51,6 +51,21 @@
                 @error('reference_number') aria-invalid="true" aria-describedby="reference_number-error" @enderror
             >
             <x-form.error name="reference_number" />
+        </div>
+        <div data-payment-method-name-field hidden>
+            <x-form.label for="payment_method_name">Other Payment Method</x-form.label>
+            <input
+                id="payment_method_name"
+                name="payment_method_name"
+                type="text"
+                value="{{ old('payment_method_name') }}"
+                data-payment-method-name
+                placeholder="Enter the payment method name"
+                disabled
+                class="mt-1 block w-full rounded-md border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                @error('payment_method_name') aria-invalid="true" aria-describedby="payment_method_name-error" @enderror
+            >
+            <x-form.error name="payment_method_name" />
         </div>
         <div>
             <x-form.label for="cash_received_at">Date Received</x-form.label>

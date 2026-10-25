@@ -42,10 +42,6 @@
         {{ config("donations.types.{$contribution->type}") }}
     </td>
 
-    <td class="hidden px-4 py-4 align-top text-slate-700 md:table-cell">
-        {{ $contribution->campaign?->name ?? 'No campaign' }}
-    </td>
-
     <td class="px-4 py-4 align-top">
         <p class="font-medium text-slate-950">
             {{ $value ? 'PHP '.number_format((float) $value, 2) : 'Not provided' }}
@@ -53,7 +49,7 @@
 
         @if ($contribution->isCash())
             <p class="text-xs text-slate-500">
-                {{ config("donations.payment_methods.{$contribution->payment_method}") }}
+                {{ $contribution->payment_method === 'other' ? ($contribution->payment_method_name ?? 'Other') : config("donations.payment_methods.{$contribution->payment_method}", ucfirst(str_replace('_', ' ', (string) $contribution->payment_method))) }}
             </p>
         @else
             <p class="text-xs text-slate-500">
@@ -162,16 +158,6 @@
 
                 <div>
                     <p class="text-xs font-medium uppercase tracking-wide text-slate-500">
-                        Campaign
-                    </p>
-
-                    <p class="mt-1 text-slate-700">
-                        {{ $contribution->campaign?->name ?? 'No campaign' }}
-                    </p>
-                </div>
-
-                <div>
-                    <p class="text-xs font-medium uppercase tracking-wide text-slate-500">
                         Logged By
                     </p>
 
@@ -197,7 +183,7 @@
                         </p>
 
                         <p class="mt-1 text-slate-700">
-                            {{ config("donations.payment_methods.{$contribution->payment_method}") }}
+                            {{ $contribution->payment_method === 'other' ? ($contribution->payment_method_name ?? 'Other') : config("donations.payment_methods.{$contribution->payment_method}", ucfirst(str_replace('_', ' ', (string) $contribution->payment_method))) }}
                         </p>
                     </div>
 

@@ -1,4 +1,4 @@
-@props(['donors', 'campaigns', 'categories', 'subcategoriesByCategory'])
+@props(['donors', 'categories', 'subcategoriesByCategory'])
 
 @php($selectedType = old('donation_type', 'cash'))
 
@@ -56,7 +56,7 @@
                     </h3>
 
                     <p class="mt-1 text-sm text-slate-500">
-                        Identify the donor and, if applicable, the campaign receiving the contribution.
+                        Identify the donor and contribution details.
                     </p>
                 </div>
 
@@ -114,35 +114,6 @@
 
                         <x-form.error name="donor_id" />
                     </div>
-
-                </div>
-
-                <div class="md:max-w-[calc(50%-0.5rem)]">
-
-                    <x-form.label for="campaign_id">
-                        Campaign
-                    </x-form.label>
-
-                    <select
-                        id="campaign_id"
-                        name="campaign_id"
-                        class="mt-1 block w-full rounded-md border-slate-300 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                    >
-                        <option value="">
-                            No campaign
-                        </option>
-
-                        @foreach ($campaigns as $campaign)
-                            <option
-                                value="{{ $campaign->id }}"
-                                @selected((string) old('campaign_id') === (string) $campaign->id)
-                            >
-                                {{ $campaign->name }}
-                            </option>
-                        @endforeach
-                    </select>
-
-                    <x-form.error name="campaign_id" />
 
                 </div>
 

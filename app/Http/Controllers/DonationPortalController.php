@@ -6,7 +6,6 @@ use App\Http\Requests\Donations\DonationPortalIndexRequest;
 use App\Http\Requests\Donations\StoreContributionRequest;
 use App\Http\Requests\Donations\UpdateContributionRequest;
 use App\Http\Requests\Donations\VerifyContributionRequest;
-use App\Models\Campaign;
 use App\Models\Contribution;
 use App\Models\Donor;
 use App\Models\InventoryCategory;
@@ -28,13 +27,13 @@ class DonationPortalController extends Controller
                 'id',
                 'workspace_id',
                 'donor_id',
-                'campaign_id',
                 'created_by',
                 'verified_by',
                 'type',
                 'status',
                 'amount',
                 'payment_method',
+                'payment_method_name',
                 'receipt_number',
                 'reference_number',
                 'notes',
@@ -44,14 +43,12 @@ class DonationPortalController extends Controller
             ])
             ->with([
                 'donor:id,full_name,contact_number,email,status',
-                'campaign:id,name,status',
                 'creator:id,first_name,last_name,name',
             ])
             ->withCount('items')
             ->withSum('items', 'estimated_value')
             ->search($filters['search'] ?? null)
             ->type($filters['type'] ?? null)
-            ->campaign(isset($filters['campaign_id']) ? (int) $filters['campaign_id'] : null)
             ->status($filters['status'] ?? null)
             ->latest('received_at')
             ->latest()
@@ -81,10 +78,6 @@ class DonationPortalController extends Controller
                 ->active()
                 ->orderBy('full_name')
                 ->get(['id', 'full_name', 'contact_number']),
-            'campaigns' => Campaign::query()
-                ->active()
-                ->orderBy('name')
-                ->get(['id', 'name']),
             'categories' => $categoriesForItems,
             'subcategoriesByCategory' => $categoriesForItems
                 ->mapWithKeys(fn (InventoryCategory $category) => [$category->key => $category->subcategories->map(fn (InventorySubcategory $subcategory) => [
@@ -111,7 +104,6 @@ class DonationPortalController extends Controller
 
         $contribution->load([
             'donor',
-            'campaign',
             'creator.role',
             'verifier.role',
             'items',

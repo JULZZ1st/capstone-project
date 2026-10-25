@@ -17,7 +17,7 @@ return [
     */
 
     // Production and shared deployments must use the centralized MySQL server.
-    // PHPUnit overrides this with an in-memory SQLite connection in phpunit.xml.
+    // PHPUnit should use the same MySQL configuration as the app unless a dedicated override is required.
     'default' => env('DB_CONNECTION', 'mysql'),
 
     /*

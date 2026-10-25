@@ -27,10 +27,6 @@
                         <dd class="mt-1 text-sm text-slate-900">{{ optional($contribution->received_at)->format('M d, Y h:i A') ?? 'Not provided' }}</dd>
                     </div>
                     <div>
-                        <dt class="text-xs font-semibold uppercase text-slate-500">Campaign</dt>
-                        <dd class="mt-1 text-sm text-slate-900">{{ $contribution->campaign?->name ?? 'No campaign' }}</dd>
-                    </div>
-                    <div>
                         <dt class="text-xs font-semibold uppercase text-slate-500">Logged by</dt>
                         <dd class="mt-1 text-sm text-slate-900">{{ $contribution->creator?->name ?? trim(($contribution->creator?->first_name ?? '').' '.($contribution->creator?->last_name ?? '')) ?: 'System' }}</dd>
                     </div>
@@ -44,7 +40,7 @@
                     <div class="mt-6 rounded-md bg-slate-50 p-4">
                         <p class="text-sm font-semibold text-slate-600">Amount</p>
                         <p class="mt-1 text-2xl font-bold text-slate-950">PHP {{ number_format((float) $contribution->amount, 2) }}</p>
-                        <p class="mt-1 text-sm text-slate-500">{{ config("donations.payment_methods.{$contribution->payment_method}") }}</p>
+                        <p class="mt-1 text-sm text-slate-500">{{ $contribution->payment_method === 'other' ? ($contribution->payment_method_name ?? 'Other') : config("donations.payment_methods.{$contribution->payment_method}", ucfirst(str_replace('_', ' ', (string) $contribution->payment_method))) }}</p>
                     </div>
                 @else
                     <div class="mt-6 overflow-hidden rounded-lg border border-slate-200">

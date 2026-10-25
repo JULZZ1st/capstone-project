@@ -311,19 +311,32 @@ const updateReferenceRequirement = (form) => {
     const reference = form.querySelector('[data-reference-number]');
     const referenceField = form.querySelector('[data-reference-field]');
     const referenceLabel = form.querySelector('[data-reference-label]');
+    const customMethodField = form.querySelector('[data-payment-method-name-field]');
+    const customMethodInput = form.querySelector('[data-payment-method-name]');
 
     if (! reference || ! referenceField) {
         return;
     }
 
-    const isElectronic = method !== '' && method !== 'cash';
+    const isElectronic = method !== '' && method !== 'cash' && method !== 'other';
     const methodLabel = form.querySelector('[data-payment-method] option:checked')?.textContent?.trim();
+
+    if (customMethodField && customMethodInput) {
+        const showCustomMethod = method === 'other';
+        customMethodField.hidden = ! showCustomMethod;
+        customMethodInput.disabled = ! showCustomMethod;
+        customMethodInput.required = showCustomMethod;
+
+        if (! showCustomMethod) {
+            customMethodInput.value = '';
+        }
+    }
 
     referenceField.hidden = ! isElectronic;
     reference.disabled = ! isElectronic;
     reference.required = isElectronic;
     referenceLabel.textContent = methodLabel && method !== 'other'
-        ? `${methodLabel} ${method === 'check' || method === 'money_order' ? 'No.' : 'Reference No.'}`
+        ? `${methodLabel} ${method === 'check' ? 'No.' : 'Reference No.'}`
         : 'External Payment Reference No.';
     reference.placeholder = isElectronic
         ? 'Enter the reference from the payment provider'

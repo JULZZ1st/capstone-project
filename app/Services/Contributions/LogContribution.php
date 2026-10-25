@@ -17,12 +17,12 @@ class LogContribution
 
             $contribution = Contribution::query()->create([
                 'donor_id' => $data['donor_id'],
-                'campaign_id' => $data['campaign_id'] ?? null,
                 'created_by' => $user->id,
                 'type' => $type,
                 'status' => config("donations.default_status.{$type}"),
                 'amount' => $type === 'cash' ? $data['amount'] : null,
                 'payment_method' => $type === 'cash' ? $data['payment_method'] : null,
+                'payment_method_name' => $type === 'cash' ? ($data['payment_method'] === 'other' ? ($data['payment_method_name'] ?? null) : null) : null,
                 'reference_number' => $type === 'cash' && ($data['payment_method'] ?? null) !== 'cash'
                     ? ($data['reference_number'] ?? null)
                     : null,
