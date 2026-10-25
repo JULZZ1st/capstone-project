@@ -19,7 +19,6 @@ class CashDisbursement extends Model
         'recipient',
         'requested_date',
         'notes',
-        'supporting_reference',
         'requested_by',
         'approved_by',
         'status',

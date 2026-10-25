@@ -29,14 +29,8 @@ class WorkspaceBackfillTest extends TestCase
             'address' => 'Barangay A',
             'contact_number' => '09170000000',
         ]);
-        $campaign = \App\Models\Campaign::query()->create([
-            'name' => 'Legacy Campaign',
-            'slug' => 'legacy-campaign-test',
-            'status' => 'active',
-        ]);
         $contribution = Contribution::query()->create([
             'donor_id' => $donor->id,
-            'campaign_id' => $campaign->id,
             'created_by' => $user->id,
             'type' => 'cash',
             'status' => 'verified',

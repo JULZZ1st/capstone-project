@@ -57,7 +57,7 @@ class BankReconciliationController extends Controller
 
         $pendingReceipts = Contribution::query()
             ->eligibleForReconciliation()
-            ->with(['donor:id,full_name', 'campaign:id,name'])
+            ->with('donor:id,full_name')
             ->latest('received_at')
             ->limit(config('bank_reconciliation.limits.pending_receipts'))
             ->get();

@@ -70,7 +70,7 @@
 | Search Donor Database | Search existing donor records by name or other identifying details. | Staff | High | ✅ Implemented | Donor Management (`DonorController`) | Search bar component wired to donor index query. |
 | View Donor Profiles | View a donor's full profile, including contribution history. | Staff | High | ✅ Implemented | Donor Management (`DonorController::show`) | Includes a donor history summary component. |
 | Record Cash Receipts | Log an incoming cash donation against a donor, with verification workflow. | Staff | Critical | ✅ Implemented | Donation Portal (`DonationPortalController`, `Contribution`) | Includes `store`, `update`, and `verify` actions; a simpler legacy cash-entry form also exists under Role Workflows. |
-| Record Cash Disbursements | Submit an outgoing cash disbursement request (e.g., aid payout, operational expense). | Staff | High | ✅ Implemented | Cash Bookkeeping (`DisbursementController`, `CashDisbursement`) | `/disbursements` records amount, purpose, recipient, requested date, notes, and supporting reference with `pending` status. Admin approval/rejection precedes outgoing bank reconciliation. |
+| Record Cash Disbursements | Submit an outgoing cash disbursement request (e.g., aid payout, operational expense). | Staff | High | ✅ Implemented | Cash Bookkeeping (`DisbursementController`, `CashDisbursement`) | `/disbursements` records amount, purpose, recipient, requested date, and notes with `pending` status. Admin approval/rejection precedes outgoing bank reconciliation. |
 
 ### 3. Warehouse & Distribution Execution
 

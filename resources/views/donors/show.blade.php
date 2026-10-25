@@ -18,13 +18,9 @@
                     </button>
                 @endcan
                 @can('delete', $donor)
-                    <form method="POST" action="{{ route('donors.destroy', $donor) }}" onsubmit="return confirm('Remove this donor? If they have donation history, the profile will be deactivated instead of permanently deleted.')">
-                        @csrf
-                        @method('DELETE')
-                        <button type="submit" class="inline-flex items-center justify-center rounded-md border border-red-300 px-4 py-2.5 text-sm font-semibold text-red-700 hover:bg-red-50">
-                            Remove
-                        </button>
-                    </form>
+                    <button type="button" class="inline-flex items-center justify-center rounded-md border border-red-300 px-4 py-2.5 text-sm font-semibold text-red-700 hover:bg-red-50" data-dialog-open="remove-donor-modal-{{ $donor->id }}">
+                        Delete
+                    </button>
                 @endcan
             </div>
         </div>
@@ -95,5 +91,8 @@
 
     @can('update', $donor)
         <x-donors.edit-modal :donor="$donor" :open="$errors->any() && old('_modal') === 'edit-'.$donor->id" />
+    @endcan
+    @can('delete', $donor)
+        <x-donors.remove-modal :donor="$donor" />
     @endcan
 @endsection

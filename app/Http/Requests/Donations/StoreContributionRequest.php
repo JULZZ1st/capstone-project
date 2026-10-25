@@ -24,7 +24,6 @@ class StoreContributionRequest extends FormRequest
         return [
             'donation_type' => ['required', Rule::in(array_keys(config('donations.types')))],
             'donor_id' => ['required', WorkspaceValidationRules::exists('donors')],
-            'campaign_id' => ['nullable', WorkspaceValidationRules::exists('campaigns')],
             'received_at' => ['nullable', 'date_format:Y-m-d'],
             'amount' => ['required_if:donation_type,cash', 'nullable', 'numeric', 'min:0.01', 'max:99999999.99'],
             'payment_method' => ['required_if:donation_type,cash', 'nullable', Rule::in(array_keys(config('donations.payment_methods')))],
@@ -36,6 +35,7 @@ class StoreContributionRequest extends FormRequest
                 WorkspaceValidationRules::unique('contributions', 'reference_number')->where(fn ($query) => $query->where('payment_method', $this->input('payment_method'))),
             ],
             'notes' => ['nullable', 'string', 'max:2000'],
+            'photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
             'items' => $isInKind ? ['required', 'array', 'min:1'] : ['array'],
             'items.*.name' => ['required_if:donation_type,in_kind', 'string', 'max:255'],
             'items.*.category' => ['required_if:donation_type,in_kind', Rule::in([...array_keys(InventoryCategory::options()), '__other__'])],
@@ -128,7 +128,6 @@ class StoreContributionRequest extends FormRequest
 
         $this->merge([
             'donation_type' => $donationType,
-            'campaign_id' => $this->nullableValue($this->input('campaign_id')),
             'amount' => $this->nullableValue($this->input('amount')),
             'payment_method' => $this->nullableLower($this->input('payment_method')),
             'reference_number' => $this->nullableValue($this->input('reference_number')),

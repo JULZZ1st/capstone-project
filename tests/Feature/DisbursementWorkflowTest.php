@@ -25,7 +25,6 @@ class DisbursementWorkflowTest extends TestCase
             'recipient' => 'Juan Dela Cruz',
             'requested_date' => '2026-09-12',
             'notes' => 'Urgent dialysis support',
-            'supporting_reference' => 'BRGY-REF-2026-001',
         ]);
 
         $response->assertRedirect(route('disbursements.index'));
@@ -34,7 +33,6 @@ class DisbursementWorkflowTest extends TestCase
             'purpose' => 'Medical assistance payout',
             'recipient' => 'Juan Dela Cruz',
             'notes' => 'Urgent dialysis support',
-            'supporting_reference' => 'BRGY-REF-2026-001',
             'requested_by' => $requester->id,
             'status' => 'pending',
         ]);
@@ -50,7 +48,6 @@ class DisbursementWorkflowTest extends TestCase
             ->assertSee($requester->name)
             ->assertSee('pending')
             ->assertSee(route('disbursements.show', CashDisbursement::query()->firstOrFail()), false)
-            ->assertSee('BRGY-REF-2026-001')
             ->assertSee('Urgent dialysis support');
     }
 
@@ -113,7 +110,6 @@ class DisbursementWorkflowTest extends TestCase
             'recipient' => 'Community Pharmacy',
             'requested_date' => '2026-09-12',
             'notes' => 'Prescription support',
-            'supporting_reference' => 'MED-001',
             'requested_by' => $requester->id,
             'status' => 'pending',
         ]);
@@ -124,7 +120,6 @@ class DisbursementWorkflowTest extends TestCase
             ->assertSee('Emergency supplies')
             ->assertSee('Community Pharmacy')
             ->assertSee('PHP 1,250.00')
-            ->assertSee('MED-001')
             ->assertSee('Prescription support')
             ->assertSee('Approve')
             ->assertSee('Reject');

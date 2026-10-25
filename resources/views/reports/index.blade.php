@@ -112,7 +112,7 @@
                         <thead class="bg-slate-100 text-xs text-slate-600"><tr><th class="p-3">Type</th><th class="p-3">Donor / Requester</th><th class="p-3">Purpose</th><th class="p-3">Method</th><th class="p-3">Amount</th><th class="p-3">Date</th><th class="p-3">Status</th></tr></thead>
                         <tbody>
                             @forelse ($report['ledger'] as $row)
-                                <tr class="border-t border-slate-100"><td class="p-3">{{ $row['entry_type'] }}</td><td class="p-3">{{ $row['donor_name'] }}</td><td class="p-3">{{ $row['campaign_name'] ?? 'General Fund' }}</td><td class="p-3">{{ $row['payment_method_label'] }}</td><td class="p-3">₱{{ number_format($row['amount'], 2) }}</td><td class="p-3">{{ $row['received_at']->format('M d, Y') }}</td><td class="p-3">{{ $row['status_label'] }}</td></tr>
+                                <tr class="border-t border-slate-100"><td class="p-3">{{ $row['entry_type'] }}</td><td class="p-3">{{ $row['donor_name'] }}</td><td class="p-3">{{ $row['purpose'] }}</td><td class="p-3">{{ $row['payment_method_label'] }}</td><td class="p-3">₱{{ number_format($row['amount'], 2) }}</td><td class="p-3">{{ $row['received_at']->format('M d, Y') }}</td><td class="p-3">{{ $row['status_label'] }}</td></tr>
                             @empty
                                 <tr><td colspan="7" class="p-4 text-center text-slate-500">No financial transactions found for this period.</td></tr>
                             @endforelse

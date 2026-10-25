@@ -11,6 +11,9 @@ use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class DonationsPortalTest extends TestCase
@@ -39,6 +42,58 @@ class DonationsPortalTest extends TestCase
             'payment_method' => 'cash',
             'created_by' => $user->id,
         ]);
+    }
+
+    public function test_contribution_photo_is_optional_and_served_only_to_authorized_users(): void
+    {
+        Storage::fake('local');
+        $donor = $this->donor();
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->post(route('donations.store'), [
+            'donation_type' => 'cash',
+            'donor_id' => $donor->id,
+            'amount' => 250,
+            'payment_method' => 'cash',
+            'photo' => UploadedFile::fake()->createWithContent(
+                'donation.png',
+                base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII='),
+            ),
+        ]);
+
+        $response->assertSessionDoesntHaveErrors();
+        $contribution = Contribution::query()->firstOrFail();
+        $this->assertNotNull($contribution->photo_path);
+        Storage::disk('local')->assertExists($contribution->photo_path);
+
+        $this->actingAs($user)->get(route('donations.photo', $contribution))->assertOk();
+        $viewerRole = Role::query()->firstOrCreate(
+            ['name' => 'viewer'],
+            ['display_name' => 'Viewer', 'description' => 'Read-only test role.'],
+        );
+        $viewer = User::factory()->create(['role_id' => $viewerRole->id]);
+        $this->actingAs($viewer)->get(route('donations.photo', $contribution))->assertForbidden();
+    }
+
+    public function test_campaign_and_supporting_reference_features_are_removed_from_the_schema(): void
+    {
+        $this->assertFalse(Schema::hasTable('campaigns'));
+        $this->assertFalse(Schema::hasColumn('contributions', 'campaign_id'));
+        $this->assertFalse(Schema::hasColumn('cash_disbursements', 'supporting_reference'));
+    }
+
+    public function test_donations_portal_has_compact_filters_and_no_campaign_controls_or_summary_cards(): void
+    {
+        $response = $this->actingAs(User::factory()->create())->get(route('donations.index'));
+
+        $response->assertOk()
+            ->assertSee('All statuses')
+            ->assertSee('Cash starts as Pending')
+            ->assertSee('Reset filters')
+            ->assertDontSee('Campaign')
+            ->assertDontSee('Total Contributions')
+            ->assertDontSee('Log New Contribution')
+            ->assertDontSee('<<div', false);
     }
 
     public function test_admin_can_approve_a_pending_cash_contribution_from_donations_portal(): void

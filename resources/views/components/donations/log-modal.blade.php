@@ -1,4 +1,4 @@
-@props(['donors', 'campaigns', 'categories', 'subcategoriesByCategory'])
+@props(['donors', 'categories', 'subcategoriesByCategory'])
 
 @php($selectedType = old('donation_type', 'cash'))
 
@@ -10,6 +10,7 @@
     <form
         method="POST"
         action="{{ route('donations.store') }}"
+        enctype="multipart/form-data"
         class="flex max-h-[90vh] flex-col"
         data-contribution-form
     >
@@ -23,7 +24,7 @@
 
                 <div>
                     <h2 class="text-lg font-semibold text-slate-950">
-                        Log New Contribution
+                        Add Contribution
                     </h2>
 
                     <p class="text-sm text-slate-500">
@@ -56,7 +57,7 @@
                     </h3>
 
                     <p class="mt-1 text-sm text-slate-500">
-                        Identify the donor and, if applicable, the campaign receiving the contribution.
+                        Identify the donor and contribution type.
                     </p>
                 </div>
 
@@ -117,35 +118,6 @@
 
                 </div>
 
-                <div class="md:max-w-[calc(50%-0.5rem)]">
-
-                    <x-form.label for="campaign_id">
-                        Campaign
-                    </x-form.label>
-
-                    <select
-                        id="campaign_id"
-                        name="campaign_id"
-                        class="mt-1 block w-full rounded-md border-slate-300 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                    >
-                        <option value="">
-                            No campaign
-                        </option>
-
-                        @foreach ($campaigns as $campaign)
-                            <option
-                                value="{{ $campaign->id }}"
-                                @selected((string) old('campaign_id') === (string) $campaign->id)
-                            >
-                                {{ $campaign->name }}
-                            </option>
-                        @endforeach
-                    </select>
-
-                    <x-form.error name="campaign_id" />
-
-                </div>
-
                 <x-donations.cash-fields
                     :active="$selectedType === 'cash'"
                 />
@@ -175,6 +147,19 @@
 
                     <x-form.error name="notes" />
 
+                </div>
+
+                <div>
+                    <x-form.label for="photo">Donation Photo (Optional)</x-form.label>
+                    <input
+                        id="photo"
+                        name="photo"
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        class="mt-1 block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm file:mr-4 file:rounded-md file:border-0 file:bg-blue-50 file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-blue-700 hover:file:bg-blue-100"
+                    >
+                    <p class="mt-1 text-xs text-slate-500">Upload one JPG, PNG, or WEBP image up to 5 MB.</p>
+                    <x-form.error name="photo" />
                 </div>
 
             </div>

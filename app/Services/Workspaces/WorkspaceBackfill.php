@@ -24,7 +24,6 @@ class WorkspaceBackfill
 
             foreach ([
                 'donors',
-                'campaigns',
                 'inventory_categories',
                 'inventory_units',
                 'inventory_items',
@@ -123,22 +122,11 @@ class WorkspaceBackfill
 
     private function assignContributionWorkspaces(array &$assigned): void
     {
-        foreach (DB::table('contributions')->select(['id', 'donor_id', 'campaign_id', 'workspace_id'])->get() as $row) {
+        foreach (DB::table('contributions')->select(['id', 'donor_id', 'workspace_id'])->get() as $row) {
             $donorWorkspace = DB::table('donors')->where('id', $row->donor_id)->value('workspace_id');
-            $campaignWorkspace = $row->campaign_id === null
-                ? null
-                : DB::table('campaigns')->where('id', $row->campaign_id)->value('workspace_id');
 
             if ($donorWorkspace === null) {
                 $this->recordIssue('contributions', $row->id, 'missing_donor_workspace', 'Contribution donor does not have workspace ownership.');
-                continue;
-            }
-            if ($row->campaign_id !== null && $campaignWorkspace === null) {
-                $this->recordIssue('contributions', $row->id, 'missing_campaign_workspace', 'Contribution campaign does not have workspace ownership.');
-                continue;
-            }
-            if ($campaignWorkspace !== null && (int) $campaignWorkspace !== (int) $donorWorkspace) {
-                $this->recordIssue('contributions', $row->id, 'donor_campaign_workspace_mismatch', 'Contribution donor and campaign belong to different workspaces.');
                 continue;
             }
             if ($row->workspace_id !== null && (int) $row->workspace_id !== (int) $donorWorkspace) {
@@ -244,7 +232,6 @@ class WorkspaceBackfill
     {
         $relationships = [
             ['contributions', 'donor_id', 'donors'],
-            ['contributions', 'campaign_id', 'campaigns'],
             ['inventory_items', 'inventory_subcategory_id', 'inventory_subcategories'],
             ['bank_ledger_entries', 'matched_contribution_id', 'contributions'],
             ['reconciliation_discrepancies', 'cleared_bank_ledger_entry_id', 'bank_ledger_entries'],

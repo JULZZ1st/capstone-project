@@ -13,7 +13,6 @@ The **Fund Disbursements** page accepts:
 | Recipient/Payee | ABC Grocery |
 | Requested Date | Sept 12, 2026 |
 | Notes | Food packs for distribution |
-| Supporting Reference | PR/Receipt No. if available |
 
 After submission, the request status becomes:
 

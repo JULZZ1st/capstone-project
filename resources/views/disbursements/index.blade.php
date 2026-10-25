@@ -75,19 +75,10 @@
 
                         <fieldset class="space-y-4 border-t border-slate-200 pt-5">
                             <legend class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Additional Information</legend>
-
-                            <div class="grid gap-5 md:grid-cols-2">
-                                <div class="space-y-2">
-                                    <label for="supporting_reference" class="block text-sm font-medium text-slate-700">Supporting Reference (Optional)</label>
-                                    <input id="supporting_reference" name="supporting_reference" type="text" value="{{ old('supporting_reference') }}" placeholder="e.g. Purchase Request No., Receipt No., Check No., or supporting document reference" class="block h-12 w-full rounded-lg border border-slate-300 bg-slate-50/60 px-3 text-sm text-slate-900 shadow-sm transition focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200">
-                                    <x-form.error name="supporting_reference" />
-                                </div>
-
-                                <div class="space-y-2">
+                            <div class="space-y-2">
                                     <label for="notes" class="block text-sm font-medium text-slate-700">Notes / Remarks (Optional)</label>
                                     <textarea id="notes" name="notes" rows="3" class="block w-full rounded-lg border border-slate-300 bg-slate-50/60 px-3 py-2.5 text-sm text-slate-900 shadow-sm transition focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200">{{ old('notes') }}</textarea>
                                     <x-form.error name="notes" />
-                                </div>
                             </div>
                         </fieldset>
                     </div>
@@ -128,7 +119,6 @@
                                     data-amount="{{ $disbursement->amount }}"
                                     data-recipient="{{ $disbursement->recipient ?? '' }}"
                                     data-purpose="{{ str_replace(['"','\\'], ['&quot;','\\\\'], $disbursement->purpose) }}"
-                                    data-supporting-reference="{{ $disbursement->supporting_reference ?? '' }}"
                                     data-notes="{{ str_replace(['"','\\'], ['&quot;','\\\\'], $disbursement->notes ?? '') }}"
                                     data-status="{{ $disbursement->status }}"
                                     data-approval-url="{{ route('disbursements.approve', $disbursement) }}"
@@ -139,9 +129,6 @@
                                     <td class="px-5 py-4 text-slate-700">{{ $disbursement->recipient ?? 'Not provided' }}</td>
                                     <td class="px-5 py-4 text-slate-700">
                                         <p>{{ $disbursement->purpose }}</p>
-                                        @if ($disbursement->supporting_reference)
-                                            <p class="mt-1 text-xs text-slate-500">Ref: {{ $disbursement->supporting_reference }}</p>
-                                        @endif
                                         @if ($disbursement->notes)
                                             <p class="mt-1 text-xs text-slate-500">{{ $disbursement->notes }}</p>
                                         @endif
@@ -228,11 +215,6 @@
                 <legend class="text-xs font-semibold uppercase tracking-wide text-slate-500">Additional Information</legend>
                 <div class="grid gap-4 sm:grid-cols-2">
                 <div class="space-y-2">
-                    <label for="modal_supporting_reference" class="block text-sm font-medium text-slate-700">Supporting Reference (Optional)</label>
-                    <input id="modal_supporting_reference" name="supporting_reference" type="text" class="block h-11 w-full rounded-lg border border-slate-300 bg-slate-50/60 px-3 text-sm text-slate-900 shadow-sm focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200">
-                </div>
-
-                <div class="space-y-2">
                     <label for="modal_notes" class="block text-sm font-medium text-slate-700">Notes / Remarks (Optional)</label>
                     <textarea id="modal_notes" name="notes" rows="2" class="block w-full rounded-lg border border-slate-300 bg-slate-50/60 px-3 py-2.5 text-sm text-slate-900 shadow-sm focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200"></textarea>
                 </div>
@@ -314,7 +296,6 @@
                     document.getElementById('modal_recipient').value = row.dataset.recipient || '';
                     document.getElementById('modal_amount').value = row.dataset.amount || '';
                     document.getElementById('modal_purpose').value = row.dataset.purpose ? decodeURIComponent(escape(row.dataset.purpose)) : '';
-                    document.getElementById('modal_supporting_reference').value = row.dataset.supportingReference || '';
                     document.getElementById('modal_notes').value = row.dataset.notes ? decodeURIComponent(escape(row.dataset.notes)) : '';
                     const rejectionReason = document.getElementById('modal_rejection_reason');
                     if (rejectionReason) {

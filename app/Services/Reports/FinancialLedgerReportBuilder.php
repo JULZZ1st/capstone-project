@@ -18,7 +18,6 @@ class FinancialLedgerReportBuilder
         $contributions = Contribution::query()
             ->with([
                 'donor:id,full_name',
-                'campaign:id,name',
                 'ledgerEntry:id,matched_contribution_id,status',
             ])
             ->where('type', 'cash')
@@ -103,7 +102,7 @@ class FinancialLedgerReportBuilder
                 'id' => $contribution->id,
                 'entry_type' => 'Contribution',
                 'donor_name' => $contribution->donor?->full_name ?? 'Unknown Donor',
-                'campaign_name' => $contribution->campaign?->name,
+                'purpose' => 'General Fund',
                 'payment_method_label' => $methodLabels[$contribution->payment_method] ?? ucfirst((string) $contribution->payment_method),
                 'amount' => (float) $contribution->amount,
                 'received_at' => $contribution->received_at,
@@ -117,7 +116,7 @@ class FinancialLedgerReportBuilder
             'id' => $disbursement->id,
             'entry_type' => 'Disbursement',
             'donor_name' => $disbursement->requester?->name ?? 'Unknown Requester',
-            'campaign_name' => $disbursement->purpose,
+            'purpose' => $disbursement->purpose,
             'payment_method_label' => 'Cash out',
             'amount' => (float) $disbursement->amount,
             'received_at' => $disbursement->created_at,

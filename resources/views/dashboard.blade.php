@@ -100,32 +100,6 @@
             </x-dashboard.panel>
             @endcan
 
-            <x-dashboard.panel title="Campaign Contributions / Funding Distribution" subtitle="Verified cash grouped by funding purpose." icon="megaphone" tone="purple">
-                @if ($dashboard['funding_distribution']->isEmpty())
-                    <x-dashboard.empty-state icon="megaphone" message="No funding distribution available yet." action="{{ route('donations.index') }}" action-label="View Campaigns" />
-                @else
-                    <x-dashboard.chart
-                        id="funding-distribution-chart"
-                        type="bar"
-                        :horizontal="true"
-                        :labels="$dashboard['funding_distribution']->pluck('label')->all()"
-                        :values="$dashboard['funding_distribution']->pluck('total')->all()"
-                        :colors="['#7c3aed']"
-                        value-prefix="PHP "
-                        :height="max(140, $dashboard['funding_distribution']->count() * 48)"
-                        aria-label="Verified cash contributions grouped by campaign"
-                    />
-                    <ul class="mt-4 space-y-2">
-                        @foreach ($dashboard['funding_distribution'] as $item)
-                            <li class="flex items-center justify-between gap-4 rounded-xl bg-slate-50 px-3 py-2">
-                                <span class="truncate text-sm text-slate-600">{{ $item->label }}</span>
-                                <span class="text-sm font-semibold text-slate-950">{{ $money($item->total) }}</span>
-                            </li>
-                        @endforeach
-                    </ul>
-                @endif
-            </x-dashboard.panel>
-
             <x-dashboard.panel title="Recent Cash Donations Awaiting Audit" subtitle="Latest pending cash entries." icon="search" tone="rose">
                 @if ($dashboard['recent_cash_awaiting_audit']->isEmpty())
                     <x-dashboard.empty-state icon="search" message="No cash donations awaiting audit." action="{{ route('donations.index') }}" action-label="View Pending" />

@@ -28,10 +28,10 @@ The Financial Ledger report reads from:
   - cash contribution records
 - `donors`
   - donor names
-- `campaigns`
-  - optional campaign context
 - `bank_ledger_entries`
   - reconciliation status for electronic payments
+
+Contributions without a campaign are reported under the single-barangay General Fund purpose. Campaign records and campaign-based reporting have been removed.
 
 No dedicated report table is needed because reports are generated from normalized operational records.
 

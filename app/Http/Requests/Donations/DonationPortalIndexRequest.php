@@ -4,7 +4,6 @@ namespace App\Http\Requests\Donations;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
-use App\Support\Workspaces\WorkspaceValidationRules;
 
 class DonationPortalIndexRequest extends FormRequest
 {
@@ -18,7 +17,6 @@ class DonationPortalIndexRequest extends FormRequest
         return [
             'search' => ['nullable', 'string', 'max:255'],
             'type' => ['nullable', Rule::in(array_keys(config('donations.types')))],
-            'campaign_id' => ['nullable', 'integer', WorkspaceValidationRules::exists('campaigns')],
             'status' => ['nullable', Rule::in(array_keys(config('donations.statuses')))],
         ];
     }
@@ -28,7 +26,6 @@ class DonationPortalIndexRequest extends FormRequest
         $this->merge([
             'search' => $this->nullableTrim('search'),
             'type' => $this->nullableTrim('type'),
-            'campaign_id' => $this->nullableTrim('campaign_id'),
             'status' => $this->nullableTrim('status'),
         ]);
     }

@@ -52,10 +52,6 @@
                 <h3 class="text-xs font-semibold uppercase tracking-wide text-slate-500">Additional Information</h3>
                 <dl class="mt-3 grid gap-4 md:grid-cols-2">
                     <div>
-                        <dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">Supporting Reference (Optional)</dt>
-                        <dd class="mt-1 text-sm font-medium text-slate-950">{{ $disbursement->supporting_reference ?? 'Not provided' }}</dd>
-                    </div>
-                    <div>
                         <dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">Notes / Remarks (Optional)</dt>
                         <dd class="mt-1 whitespace-pre-line text-sm text-slate-700">{{ $disbursement->notes ?? 'Not provided' }}</dd>
                     </div>

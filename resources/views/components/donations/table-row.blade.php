@@ -42,10 +42,6 @@
         {{ config("donations.types.{$contribution->type}") }}
     </td>
 
-    <td class="hidden px-4 py-4 align-top text-slate-700 md:table-cell">
-        {{ $contribution->campaign?->name ?? 'No campaign' }}
-    </td>
-
     <td class="px-4 py-4 align-top">
         <p class="font-medium text-slate-950">
             {{ $value ? 'PHP '.number_format((float) $value, 2) : 'Not provided' }}
@@ -162,16 +158,6 @@
 
                 <div>
                     <p class="text-xs font-medium uppercase tracking-wide text-slate-500">
-                        Campaign
-                    </p>
-
-                    <p class="mt-1 text-slate-700">
-                        {{ $contribution->campaign?->name ?? 'No campaign' }}
-                    </p>
-                </div>
-
-                <div>
-                    <p class="text-xs font-medium uppercase tracking-wide text-slate-500">
                         Logged By
                     </p>
 
@@ -252,6 +238,13 @@
                         <p class="mt-1 whitespace-pre-line text-slate-700">
                             {{ $contribution->notes }}
                         </p>
+                    </div>
+                @endif
+
+                @if ($contribution->photo_path)
+                    <div class="md:col-span-2">
+                        <p class="text-xs font-medium uppercase tracking-wide text-slate-500">Donation Photo</p>
+                        <img src="{{ route('donations.photo', $contribution) }}" alt="Photo attached to contribution {{ $contribution->receipt_number }}" class="mt-2 max-h-80 max-w-full rounded-lg border border-slate-200 object-contain">
                     </div>
                 @endif
             </div>

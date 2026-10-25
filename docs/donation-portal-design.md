@@ -1,5 +1,7 @@
 # Donation Portal Module Design
 
+> Historical design specification: the implemented portal no longer uses campaigns. Campaign records and contribution links have been removed; see [donation-portal-flow.md](./donation-portal-flow.md) for the current workflow.
+
 ## Purpose and Scope
 
 This document defines the implementation specification for a production-ready Donation Portal module for the Barangay Donation Platform.

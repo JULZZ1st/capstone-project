@@ -35,7 +35,6 @@ class DashboardMetrics
                 ),
             ],
             'staff_finance_action_items' => $this->staffFinanceActionItems($pendingStatus),
-            'funding_distribution' => $this->fundingDistribution($verifiedStatus),
             'recent_cash_awaiting_audit' => Contribution::query()
                 ->select(['id', 'donor_id', 'amount', 'payment_method', 'received_at', 'created_at'])
                 ->with('donor:id,full_name')
@@ -101,23 +100,6 @@ class DashboardMetrics
                 ->get()
                 ->sum(fn (BankLedgerEntry $entry): float => abs((float) $entry->discrepancy_amount)),
         ];
-    }
-
-    private function fundingDistribution(string $verifiedStatus): Collection
-    {
-        return Contribution::query()
-            ->select('campaign_id', DB::raw('sum(amount) as total'))
-            ->where('type', 'cash')
-            ->where('status', $verifiedStatus)
-            ->groupBy('campaign_id')
-            ->with('campaign:id,name')
-            ->orderByDesc('total')
-            ->limit(config('dashboard.limits.funding_categories'))
-            ->get()
-            ->map(fn (Contribution $row): object => (object) [
-                'label' => $row->campaign?->name ?? 'Uncategorized',
-                'total' => $row->total,
-            ]);
     }
 
     private function systemLogActivity(int $limit): Collection

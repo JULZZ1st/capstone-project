@@ -64,9 +64,33 @@ class DonorManagementTest extends TestCase
         $response->assertSee('Donor Name');
         $response->assertSee('City / Municipality');
         $response->assertSee('sticky top-0', false);
+        $response->assertSee('aria-label="Actions for '.$donor->full_name.'"', false);
+        $response->assertSee('view-donor-modal-'.$donor->id);
         $response->assertSee('data-dialog-open="remove-donor-modal-'.$donor->id.'"', false);
-        $response->assertSee('If donation history exists, the profile is deactivated instead of permanently deleted.');
+        $response->assertSee('Confirm Delete');
+        $response->assertSee('Donation History');
         $response->assertDontSee('onsubmit="return confirm(', false);
+    }
+
+    public function test_donor_with_history_gets_a_centered_view_modal_and_safe_deactivation_confirmation(): void
+    {
+        $admin = $this->userWithRole('admin');
+        $donor = $this->donor();
+        Contribution::query()->create([
+            'donor_id' => $donor->id,
+            'type' => 'cash',
+            'status' => 'verified',
+            'amount' => 125,
+            'payment_method' => 'cash',
+            'received_at' => now(),
+        ]);
+
+        $response = $this->actingAs($admin)->get(route('donors.index'));
+
+        $response->assertOk()
+            ->assertSee('class="m-auto w-[min(920px,calc(100vw-2rem))] max-h-[90vh]', false)
+            ->assertSee('sticky top-0 z-10', false)
+            ->assertSee('Confirm Deactivation');
     }
 
     public function test_create_and_edit_forms_render_four_wizard_steps(): void

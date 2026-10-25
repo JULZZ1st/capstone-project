@@ -18,7 +18,6 @@ class RequestDisbursement
                 'recipient' => $data['recipient'],
                 'requested_date' => $data['requested_date'],
                 'notes' => $data['notes'] ?? null,
-                'supporting_reference' => $data['supporting_reference'] ?? null,
                 'requested_by' => $user->id,
                 'status' => 'pending',
             ]);
@@ -33,7 +32,6 @@ class RequestDisbursement
                     'purpose' => $disbursement->purpose,
                     'recipient' => $disbursement->recipient,
                     'requested_date' => $disbursement->requested_date?->toDateString(),
-                    'supporting_reference' => $disbursement->supporting_reference,
                 ],
                 'occurred_at' => now(),
             ]);

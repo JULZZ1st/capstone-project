@@ -46,6 +46,7 @@ Route::middleware([
     Route::delete('/donors/{donor}', [DonorController::class, 'destroy'])->name('donors.destroy');
     Route::get('/donations', [DonationPortalController::class, 'index'])->name('donations.index');
     Route::post('/donations', [DonationPortalController::class, 'store'])->name('donations.store');
+    Route::get('/donations/{contribution}/photo', [DonationPortalController::class, 'photo'])->name('donations.photo');
     Route::get('/donations/{contribution}', [DonationPortalController::class, 'show'])->name('donations.show');
     Route::patch('/donations/{contribution}', [DonationPortalController::class, 'update'])->name('donations.update');
     Route::patch('/donations/{contribution}/verify', [DonationPortalController::class, 'verify'])->name('donations.verify');

@@ -20,7 +20,6 @@ class StoreDisbursementRequest extends FormRequest
             'recipient' => ['required', 'string', 'max:255'],
             'requested_date' => ['required', 'date'],
             'notes' => ['nullable', 'string', 'max:2000'],
-            'supporting_reference' => ['nullable', 'string', 'max:255'],
         ];
     }
 
@@ -30,7 +29,6 @@ class StoreDisbursementRequest extends FormRequest
             'purpose' => trim((string) $this->input('purpose')),
             'recipient' => trim((string) $this->input('recipient')),
             'notes' => $this->nullableTrim('notes'),
-            'supporting_reference' => $this->nullableTrim('supporting_reference'),
         ]);
     }
 

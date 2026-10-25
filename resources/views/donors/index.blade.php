@@ -70,15 +70,31 @@
                                         <span class="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">{{ config('donors.statuses')[$donor->status] ?? ucfirst($donor->status) }}</span>
                                     </td>
                                     <td class="px-4 py-3">
-                                        <div class="flex justify-end gap-2 whitespace-nowrap">
-                                            <a href="{{ route('donors.show', $donor) }}" class="rounded-md border border-slate-300 px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-white">View</a>
-                                            @can('update', $donor)
-                                                <button type="button" class="rounded-md bg-blue-700 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-blue-800" data-dialog-open="edit-donor-modal-{{ $donor->id }}">Edit</button>
-                                            @endcan
-                                            @can('delete', $donor)
-                                                <button type="button" class="rounded-md border border-red-300 px-2.5 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-50" data-dialog-open="remove-donor-modal-{{ $donor->id }}">Remove</button>
-                                            @endcan
-                                        </div>
+                                        <details class="relative flex justify-end">
+                                            <summary class="flex h-9 w-9 cursor-pointer list-none items-center justify-center rounded-lg text-slate-600 transition hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Actions for {{ $donor->full_name }}">
+                                                <x-icon name="ellipsis-vertical" class="h-5 w-5" />
+                                            </summary>
+                                            <div class="absolute right-0 top-full z-20 mt-1 w-36 rounded-lg border border-slate-200 bg-white p-1 shadow-lg">
+                                                @can('view', $donor)
+                                                    <button type="button" class="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50" data-dialog-open="view-donor-modal-{{ $donor->id }}">
+                                                        <x-icon name="eye" class="h-4 w-4" />
+                                                        View
+                                                    </button>
+                                                @endcan
+                                                @can('update', $donor)
+                                                    <button type="button" class="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50" data-dialog-open="edit-donor-modal-{{ $donor->id }}">
+                                                        <x-icon name="edit" class="h-4 w-4" />
+                                                        Edit
+                                                    </button>
+                                                @endcan
+                                                @can('delete', $donor)
+                                                    <button type="button" class="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-red-700 hover:bg-red-50" data-dialog-open="remove-donor-modal-{{ $donor->id }}">
+                                                        <x-icon name="trash" class="h-4 w-4" />
+                                                        Delete
+                                                    </button>
+                                                @endcan
+                                            </div>
+                                        </details>
                                     </td>
                                 </tr>
                             @endforeach
@@ -88,6 +104,9 @@
             </section>
 
             @foreach ($donors as $donor)
+                @can('view', $donor)
+                    <x-donors.view-modal :donor="$donor" />
+                @endcan
                 @can('update', $donor)
                     <x-donors.edit-modal :donor="$donor" :open="$errors->any() && $modal === 'edit-'.$donor->id" />
                 @endcan
