@@ -2,7 +2,7 @@
 
 **Module:** In-Kind Inventory (Gina)
 **Related Requirement:** A6 (Configure Item Categories)
-**Access:** `admin` role only (view access also granted to `secretary`/`treasurer`, edit/delete is admin-only)
+**Access:** Admin-only for changes; Admin and Staff can view categories and units.
 
 ## What this replaces
 
@@ -38,14 +38,14 @@ Note: changing a `key` does **not** retroactively update existing inventory item
 
 ## Authorization summary
 
-| Action | admin | secretary | treasurer |
+| Action | admin | staff |
 |---|---|---|---|
-| View the Manage Categories page | ✅ | ✅ | ✅ |
-| Create category/unit | ✅ | ❌ | ❌ |
-| Edit category/unit | ✅ | ❌ | ❌ |
-| Delete category/unit | ✅ | ❌ | ❌ |
+| View the Manage Categories page | ✅ | ❌ |
+| Create category/unit | ✅ | ❌ |
+| Edit category/unit | ✅ | ❌ |
+| Delete category/unit | ✅ | ❌ |
 
-Enforced server-side by `InventoryCategoryPolicy` and `InventoryUnitPolicy` — non-admins hitting the store/update/destroy routes directly receive a `403`, not just a hidden button.
+Enforced server-side by `InventoryCategoryPolicy` and `InventoryUnitPolicy` — Staff cannot open the management page or hit create/update/destroy routes directly; these requests receive a `403`, not just a hidden button. Staff can still select active categories and units in operational forms.
 
 ## Data model
 

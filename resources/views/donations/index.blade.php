@@ -48,7 +48,9 @@
             />
 
         </section>
-        <div class="flex flex-col gap-3 lg:flex-row lg:items-end">
+
+
+        <<div class="flex flex-col gap-4 lg:flex-row lg:items-center">
             <div class="min-w-0 flex-1">
                 <x-donations.filter-bar
                     :filters="$filters"

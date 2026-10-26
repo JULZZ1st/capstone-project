@@ -43,7 +43,7 @@ Existing relevant models:
 Existing relevant routes:
 
 ```php
-Route::middleware(['auth', 'role:admin,secretary,treasurer'])->group(function () {
+Route::middleware(['auth', 'role:admin,staff'])->group(function () {
     Route::get('/donors', [DonorController::class, 'index'])->name('donors.index');
     Route::post('/donations', [DonationController::class, 'storeDonation'])->name('donations.store');
     Route::get('/role-workflows', [InventoryCashController::class, 'index'])->name('workflows.index');
@@ -335,8 +335,8 @@ Additional validation:
 - Cash amount must be greater than zero.
 - Reference number should be unique per payment method when provided.
 - New cash contributions default to configured status, typically `pending` or `verified` depending on approval workflow.
-- Treasurer or admin users may verify cash contributions.
-- Secretary users may log cash only if current business policy allows it; otherwise they can view but not verify.
+- Staff or admin users may verify cash contributions.
+- Staff users may log and verify cash contributions.
 - Do not automatically create bank reconciliation records from a donation.
 - Store all cash contribution creation in a transaction.
 
@@ -689,7 +689,7 @@ Optional service:
 Recommended route group:
 
 ```php
-Route::middleware(['auth', 'role:admin,secretary,treasurer'])->group(function () {
+Route::middleware(['auth', 'role:admin,staff'])->group(function () {
     Route::get('/donations', [DonationPortalController::class, 'index'])->name('donations.index');
     Route::post('/donations', [DonationPortalController::class, 'store'])->name('donations.store');
     Route::get('/donations/{contribution}', [DonationPortalController::class, 'show'])->name('donations.show');
@@ -733,8 +733,7 @@ Recommended policy:
 Suggested role behavior:
 
 - `admin`: view, create, edit, verify, cancel all contributions.
-- `secretary`: view and create donor and in-kind contributions; edit/cancel own pending records if policy allows.
-- `treasurer`: view and create cash contributions; verify cash contributions; view in-kind summaries.
+- `staff`: view and create donor and contribution records, verify cash contributions, and view in-kind summaries.
 
 Do not duplicate role strings in views. Use policies, model helpers, config-backed constants, or enum-like role constants.
 
@@ -767,7 +766,7 @@ Create in-kind flow:
 
 Verification flow:
 
-1. Authorized treasurer or admin clicks `Verify`.
+1. Authorized staff or admin clicks `Verify`.
 2. Request validates permission and current status.
 3. Controller/service updates status, verifier, and verified timestamp.
 4. Redirects with success flash.
@@ -897,7 +896,7 @@ Before implementation, confirm:
 
 - Whether campaigns are required on every contribution or optional.
 - Whether new cash contributions default to `pending` or `verified`.
-- Whether secretary users may log cash contributions.
-- Whether treasurer users may edit in-kind contribution records.
+- Whether staff users may log cash contributions.
+- Whether staff users may edit in-kind contribution records.
 - Whether existing `donations`, `cash_transactions`, and `inventory_items` records should be backfilled into the new contribution tables.
 - Whether item categories should be config-backed or managed through a database reference table.

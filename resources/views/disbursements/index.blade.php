@@ -5,20 +5,18 @@
 @section('page-subtitle', 'Submit and review cash requests with maker-checker approval.')
 
 @section('content')
-    <div class="space-y-6">
+    <div class="flex min-h-[calc(100vh-10rem)] flex-col gap-4">
         @php
             $canApproveAny = $disbursements->contains(fn ($disbursement) => auth()->user()->can('approve', $disbursement));
         @endphp
 
-        <section class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-            <div class="flex items-center justify-between gap-3 border-b border-slate-100 px-5 py-4">
-                <h2 class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Request history</h2>
+        <div class="flex shrink-0 justify-end">
                 @can('create', \App\Models\CashDisbursement::class)
                     <button type="button" id="toggle-fund-request-form" aria-haspopup="dialog" aria-controls="create-fund-request-modal" class="inline-flex items-center justify-center rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-200">
                         Create Fund Request
                     </button>
                 @endcan
-            </div>
+        </div>
             @can('create', \App\Models\CashDisbursement::class)
             <dialog id="create-fund-request-modal" data-reopen="{{ old('_modal') === 'create' ? 'true' : 'false' }}" class="m-auto w-[calc(100%-2rem)] max-w-3xl overflow-hidden rounded-xl border-0 p-0 shadow-2xl backdrop:bg-slate-950/55">
                 <div class="flex max-h-[86vh] flex-col bg-white">
@@ -100,87 +98,93 @@
                 </div>
             </dialog>
             @endcan
-            <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-slate-100 text-sm">
-                        <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <div data-fund-request-results class="flex min-h-0 flex-1 flex-col">
+                <div data-fund-request-table class="flex min-h-0 flex-1 flex-col overflow-x-auto">
+                    <table class="w-full min-w-0 max-md:min-w-[900px] table-fixed text-left text-sm">
+                        <caption class="sr-only">Fund requests</caption>
+                        <colgroup>
+                            <col class="w-[12%]"><col class="w-[16%]"><col class="w-[26%]"><col class="w-[12%]"><col class="w-[14%]"><col class="w-[12%]"><col class="w-[16%]">
+                        </colgroup>
+                        <thead class="bg-slate-100 text-xs uppercase tracking-wide text-slate-500 shadow-[0_1px_0_0_rgba(226,232,240,1)]">
                             <tr>
-                                <th class="px-5 py-3">Date</th>
-                                <th class="px-5 py-3">Recipient / Payee</th>
-                                <th class="px-5 py-3">Purpose</th>
-                                <th class="px-5 py-3 text-right">Amount</th>
-                                <th class="px-5 py-3">Requested By</th>
-                                <th class="px-5 py-3">Status</th>
-                                <th class="px-5 py-3 text-right">Action</th>
+                                <th scope="col" class="px-4 py-3 font-semibold">Date</th>
+                                <th scope="col" class="px-4 py-3 font-semibold">Recipient / Payee</th>
+                                <th scope="col" class="px-4 py-3 font-semibold">Purpose</th>
+                                <th scope="col" class="px-4 py-3 text-right font-semibold">Amount</th>
+                                <th scope="col" class="px-4 py-3 font-semibold">Requested By</th>
+                                <th scope="col" class="px-4 py-3 font-semibold">Status</th>
+                                <th scope="col" class="px-4 py-3 text-right font-semibold">Actions</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-slate-100 bg-white">
-                            @forelse ($disbursements as $disbursement)
-                                @php
-                                    $statusLabel = $disbursement->isVoided()
-                                        ? 'Cancelled'
-                                        : ($disbursement->status === 'pending'
-                                            ? 'Pending Approval'
-                                            : ($disbursement->status === 'approved' ? 'Approved Fund Request' : ucfirst($disbursement->status)));
-                                @endphp
-                                <tr
-                                    data-fund-request-id="{{ $disbursement->id }}"
-                                    data-requested-date="{{ ($disbursement->requested_date ?? $disbursement->created_at)->format('Y-m-d') }}"
-                                    data-amount="{{ $disbursement->amount }}"
-                                    data-recipient="{{ $disbursement->recipient ?? '' }}"
-                                    data-purpose="{{ str_replace(['"','\\'], ['&quot;','\\\\'], $disbursement->purpose) }}"
-                                    data-supporting-reference="{{ $disbursement->supporting_reference ?? '' }}"
-                                    data-notes="{{ str_replace(['"','\\'], ['&quot;','\\\\'], $disbursement->notes ?? '') }}"
-                                    data-status="{{ $disbursement->status }}"
-                                    data-approval-url="{{ route('disbursements.approve', $disbursement) }}"
-                                    data-rejection-url="{{ route('disbursements.reject', $disbursement) }}"
-                                    data-can-approve="{{ auth()->user()->can('approve', $disbursement) ? 'true' : 'false' }}"
-                                >
-                                    <td class="whitespace-nowrap px-5 py-4 text-slate-600">{{ ($disbursement->requested_date ?? $disbursement->created_at)->format('M d, Y') }}</td>
-                                    <td class="px-5 py-4 text-slate-700">{{ $disbursement->recipient ?? 'Not provided' }}</td>
-                                    <td class="px-5 py-4 text-slate-700">
-                                        <p>{{ $disbursement->purpose }}</p>
-                                        @if ($disbursement->supporting_reference)
-                                            <p class="mt-1 text-xs text-slate-500">Ref: {{ $disbursement->supporting_reference }}</p>
-                                        @endif
-                                        @if ($disbursement->notes)
-                                            <p class="mt-1 text-xs text-slate-500">{{ $disbursement->notes }}</p>
-                                        @endif
-                                        @if ($disbursement->isVoided())
-                                            <p class="mt-1 text-xs font-semibold text-red-700">Cancellation Reason: {{ $disbursement->void_reason }}</p>
-                                        @endif
-                                    </td>
-                                    <td class="whitespace-nowrap px-5 py-4 text-right font-semibold text-slate-950">PHP {{ number_format((float) $disbursement->amount, 2) }}</td>
-                                    <td class="whitespace-nowrap px-5 py-4 text-slate-600">{{ $disbursement->requester->name }}</td>
-                                    <td class="px-5 py-4">
-                                        <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">{{ $statusLabel }}</span>
-                                        <span class="sr-only">{{ $disbursement->status }}</span>
-                                    </td>
-                                    <td class="px-5 py-4">
-                                        <div class="flex items-center justify-end gap-3">
-                                            <button type="button" data-open-fund-request-modal="{{ $disbursement->id }}" class="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">View</button>
-                                            @can('void', $disbursement)
-                                                <details class="relative">
-                                                    <summary class="cursor-pointer rounded-md bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700">Cancel</summary>
-                                                    <form method="POST" action="{{ route('disbursements.void', $disbursement) }}" class="absolute right-0 z-10 mt-2 w-72 space-y-2 rounded border border-slate-100 bg-white p-3 shadow-lg">
-                                                        @csrf @method('PATCH')
-                                                        <x-form.label for="void_reason_{{ $disbursement->id }}">Cancellation Reason</x-form.label>
-                                                        <textarea id="void_reason_{{ $disbursement->id }}" name="void_reason" rows="2" required class="block w-full rounded-md border-slate-300 text-sm shadow-sm focus:border-red-500 focus:ring-red-500"></textarea>
-                                                        <x-button class="w-full">Confirm Cancellation</x-button>
-                                                    </form>
-                                                </details>
-                                            @endcan
-                                        </div>
-                                    </td>
-                                </tr>
-                            @empty
-                                <tr>
-                                    <td colspan="7" class="px-5 py-10 text-center text-sm text-slate-500">No fund requests have been submitted.</td>
-                                </tr>
-                            @endforelse
-                        </tbody>
                     </table>
+                    <div data-fund-request-scroll class="min-h-0 flex-1 overflow-y-auto overflow-x-clip overscroll-contain">
+                        <table class="w-full min-w-0 max-md:min-w-[900px] table-fixed text-left text-sm">
+                            <caption class="sr-only">Fund request records</caption>
+                            <colgroup>
+                                <col class="w-[12%]"><col class="w-[16%]"><col class="w-[26%]"><col class="w-[12%]"><col class="w-[14%]"><col class="w-[12%]"><col class="w-[16%]">
+                            </colgroup>
+                            <tbody class="divide-y divide-slate-100 bg-white">
+                                @forelse ($disbursements as $disbursement)
+                                    @php
+                                        $statusLabel = $disbursement->isVoided()
+                                            ? 'Cancelled'
+                                            : ($disbursement->status === 'pending'
+                                                ? 'Pending Approval'
+                                                : ($disbursement->status === 'approved' ? 'Approved Fund Request' : ucfirst($disbursement->status)));
+                                    @endphp
+                                    <tr class="align-top hover:bg-slate-50/70" data-fund-request-id="{{ $disbursement->id }}" data-requested-date="{{ ($disbursement->requested_date ?? $disbursement->created_at)->format('Y-m-d') }}" data-amount="{{ $disbursement->amount }}" data-recipient="{{ $disbursement->recipient ?? '' }}" data-purpose="{{ str_replace(['"','\\'], ['&quot;','\\\\'], $disbursement->purpose) }}" data-supporting-reference="{{ $disbursement->supporting_reference ?? '' }}" data-notes="{{ str_replace(['"','\\'], ['&quot;','\\\\'], $disbursement->notes ?? '') }}" data-status="{{ $disbursement->status }}" data-approval-url="{{ route('disbursements.approve', $disbursement) }}" data-rejection-url="{{ route('disbursements.reject', $disbursement) }}" data-can-approve="{{ auth()->user()->can('approve', $disbursement) ? 'true' : 'false' }}">
+                                        <td class="whitespace-nowrap px-4 py-3 text-slate-600">{{ ($disbursement->requested_date ?? $disbursement->created_at)->format('M d, Y') }}</td>
+                                        <td class="truncate px-4 py-3 text-slate-700" title="{{ $disbursement->recipient ?? 'Not provided' }}">{{ $disbursement->recipient ?? 'Not provided' }}</td>
+                                        <td class="px-4 py-3 text-slate-700">
+                                            <div class="min-w-0">
+                                                <p class="truncate font-medium text-slate-900" title="{{ $disbursement->purpose }}">{{ $disbursement->purpose }}</p>
+                                                @if ($disbursement->supporting_reference)
+                                                    <p class="truncate text-xs text-slate-500" title="Ref: {{ $disbursement->supporting_reference }}">Ref: {{ $disbursement->supporting_reference }}</p>
+                                                @endif
+                                                @if ($disbursement->notes)
+                                                    <p class="truncate text-xs text-slate-500" title="{{ $disbursement->notes }}">{{ $disbursement->notes }}</p>
+                                                @endif
+                                                @if ($disbursement->isVoided())
+                                                    <p class="truncate text-xs font-semibold text-red-700" title="Cancellation Reason: {{ $disbursement->void_reason }}">Cancellation Reason: {{ $disbursement->void_reason }}</p>
+                                                @endif
+                                            </div>
+                                        </td>
+                                        <td class="whitespace-nowrap px-4 py-3 text-right font-semibold text-slate-950">PHP {{ number_format((float) $disbursement->amount, 2) }}</td>
+                                        <td class="truncate px-4 py-3 text-slate-600" title="{{ $disbursement->requester->name }}">{{ $disbursement->requester->name }}</td>
+                                        <td class="px-4 py-3 whitespace-nowrap"><span class="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">{{ $statusLabel }}</span><span class="sr-only">{{ $disbursement->status }}</span></td>
+                                        <td class="px-4 py-3">
+                                            <div class="flex justify-end" data-fund-request-action>
+                                                <button type="button" data-fund-request-menu-toggle aria-haspopup="menu" aria-expanded="false" aria-label="Actions for {{ $disbursement->purpose }}" class="flex h-8 w-8 items-center justify-center rounded-md text-lg font-bold leading-none text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                                    <span aria-hidden="true">⋮</span>
+                                                </button>
+                                                <div data-fund-request-menu-panel hidden class="fixed z-[120] w-36 rounded-lg border border-slate-200 bg-white p-1 shadow-xl ring-1 ring-black/5">
+                                                    <button type="button" data-open-fund-request-modal="{{ $disbursement->id }}" data-fund-request-action class="flex w-full items-center rounded-md px-3 py-2 text-left text-sm font-medium text-slate-700 hover:bg-slate-50">View</button>
+                                                    @can('void', $disbursement)
+                                                        <button type="button" data-fund-request-cancel-toggle data-fund-request-action class="flex w-full items-center rounded-md px-3 py-2 text-left text-sm font-medium text-red-700 hover:bg-red-50">Cancel</button>
+                                                        <div data-fund-request-cancel-confirm hidden class="mt-1 border-t border-slate-100 p-2">
+                                                            <form method="POST" action="{{ route('disbursements.void', $disbursement) }}" class="space-y-2">
+                                                                @csrf @method('PATCH')
+                                                                <x-form.label for="void_reason_{{ $disbursement->id }}">Cancellation Reason</x-form.label>
+                                                                <textarea id="void_reason_{{ $disbursement->id }}" name="void_reason" rows="2" required class="block w-full rounded-md border-slate-300 text-sm shadow-sm focus:border-red-500 focus:ring-red-500"></textarea>
+                                                                <x-button class="w-full">Confirm Cancellation</x-button>
+                                                            </form>
+                                                        </div>
+                                                    @endcan
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr><td colspan="7" class="h-56 px-4 py-8 text-center"><p class="font-semibold text-slate-800">No fund requests found</p><p class="mt-1 text-sm text-slate-500">Create a fund request to begin the approval workflow.</p></td></tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
-        </section>
+                <div data-fund-request-pagination class="shrink-0 pt-3">
+                    {{ $disbursements->links() }}
+                </div>
+            </div>
     </div>
 
     <dialog id="fund-request-detail-modal" class="m-auto w-[calc(100%-2rem)] max-w-3xl overflow-hidden rounded-xl border-0 p-0 shadow-2xl backdrop:bg-slate-950/55">
@@ -282,6 +286,68 @@
             const approvalForm = document.getElementById('approve-fund-request-form');
             const rejectionForm = document.getElementById('reject-fund-request-form');
 
+            const closeFundRequestMenus = () => {
+                document.querySelectorAll('[data-fund-request-menu-panel]').forEach((panel) => {
+                    panel.hidden = true;
+                    panel.closest('[data-fund-request-action]')?.querySelector('[data-fund-request-menu-toggle]')?.setAttribute('aria-expanded', 'false');
+                });
+            };
+
+            const positionFundRequestMenu = (toggle, panel) => {
+                const toggleRect = toggle.getBoundingClientRect();
+                const panelRect = panel.getBoundingClientRect();
+                const gap = 8;
+                const top = toggleRect.bottom + gap + panelRect.height <= window.innerHeight - gap
+                    ? toggleRect.bottom + gap
+                    : toggleRect.top - panelRect.height - gap;
+                const left = Math.min(toggleRect.right - panelRect.width, window.innerWidth - panelRect.width - gap);
+
+                panel.style.top = `${Math.max(gap, top)}px`;
+                panel.style.left = `${Math.max(gap, left)}px`;
+            };
+
+            document.querySelectorAll('[data-fund-request-menu-toggle]').forEach((toggle) => {
+                toggle.addEventListener('click', (event) => {
+                    event.stopPropagation();
+                    const panel = toggle.closest('[data-fund-request-action]')?.querySelector('[data-fund-request-menu-panel]');
+                    if (! panel) return;
+
+                    const shouldOpen = panel.hidden;
+                    closeFundRequestMenus();
+                    if (shouldOpen) {
+                        panel.querySelector('[data-open-fund-request-modal]')?.removeAttribute('hidden');
+                        panel.querySelector('[data-fund-request-cancel-toggle]')?.removeAttribute('hidden');
+                        panel.querySelector('[data-fund-request-cancel-confirm]')?.setAttribute('hidden', 'hidden');
+                        panel.hidden = false;
+                        toggle.setAttribute('aria-expanded', 'true');
+                        positionFundRequestMenu(toggle, panel);
+                    }
+                });
+            });
+
+            document.querySelectorAll('[data-fund-request-cancel-toggle]').forEach((cancelToggle) => {
+                cancelToggle.addEventListener('click', (event) => {
+                    event.stopPropagation();
+                    const panel = cancelToggle.closest('[data-fund-request-menu-panel]');
+                    const confirmation = panel?.querySelector('[data-fund-request-cancel-confirm]');
+                    if (! panel || ! confirmation) return;
+
+                    confirmation.hidden = false;
+                    cancelToggle.hidden = true;
+                    panel.querySelector('[data-open-fund-request-modal]')?.setAttribute('hidden', 'hidden');
+                    const toggle = cancelToggle.closest('[data-fund-request-action]')?.querySelector('[data-fund-request-menu-toggle]');
+                    if (toggle) positionFundRequestMenu(toggle, panel);
+                });
+            });
+
+            document.addEventListener('click', (event) => {
+                if (! event.target.closest('[data-fund-request-menu-panel], [data-fund-request-menu-toggle]')) {
+                    closeFundRequestMenus();
+                }
+            });
+
+            window.addEventListener('resize', closeFundRequestMenus);
+
             if (toggleButton && createModal) {
                 toggleButton.addEventListener('click', () => {
                     createModal.showModal();
@@ -308,6 +374,8 @@
                 button.addEventListener('click', () => {
                     const row = button.closest('tr');
                     if (! row || ! modal) return;
+
+                    closeFundRequestMenus();
 
                     form.dataset.requestId = row.dataset.fundRequestId;
                     document.getElementById('modal_requested_date').value = row.dataset.requestedDate || '';
@@ -340,6 +408,14 @@
                     });
 
                     modal.showModal();
+                });
+            });
+
+            document.querySelectorAll('[data-fund-request-scroll] tr[data-fund-request-id]').forEach((row) => {
+                row.addEventListener('click', (event) => {
+                    if (event.target.closest('[data-fund-request-action]')) return;
+
+                    row.querySelector('[data-open-fund-request-modal]')?.click();
                 });
             });
 

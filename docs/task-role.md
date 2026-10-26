@@ -6,7 +6,7 @@ Admin
 - Review audit logs
 - Manage categories and units
 
-Secretary
+Staff
 
 - Create and update donor records
 - Record donations
@@ -14,7 +14,7 @@ Secretary
 - Record stock-in and stock-out
 - Maintain inventory records
 
-Treasurer
+Staff
 
 - Verify cash donations
 - Record or import bank transactions
@@ -22,5 +22,5 @@ Treasurer
 - Compare bank withdrawals with approved, active disbursements
 - Save discrepancy explanations while differences remain unresolved
 - Finalize balanced outgoing reconciliations and review their read-only history/details
-- Review Treasurer dashboard action items
+- Review Staff dashboard action items
 - Review financial ledger and reports

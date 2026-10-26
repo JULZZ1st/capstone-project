@@ -17,7 +17,7 @@
 | **Related Module(s)** | The functional area(s)/codebase module(s) the requirement belongs to |
 | **Notes** | Clarifications, scope caveats, or known limitations |
 
-> **Role mapping note:** the current codebase implements three account roles — `admin`, `secretary`, and `treasurer` — enforced via the `role:admin,secretary,treasurer` route middleware and model policies. For this specification, **Administrator** corresponds to the `admin` role, and **Staff** corresponds to the `secretary` and `treasurer` roles collectively. Update this note if role names change.
+> **Role mapping note:** the current codebase implements two account roles — `admin` and `staff` — enforced via the `role:admin,staff` route middleware and model policies. **Administrator** corresponds to `admin`; **Staff** combines the former Secretary and Treasurer permissions. Update this note if role names change.
 
 > **Status accuracy:** statuses below were assessed by reviewing the current `routes/web.php`, controllers, services, models, migrations, and views. Re-verify before the defense if the codebase has changed since the review date above.
 
@@ -31,7 +31,7 @@
 |---|---|---|---|---|---|---|
 | Log In | Authenticate with email and password to access the system. | Administrator | Critical | ✅ Implemented | Authentication (`AuthenticatedSessionController`) | Shared login flow for all roles; redirects by role after success. |
 | Log Out | Terminate the active session securely. | Administrator | Critical | ✅ Implemented | Authentication (`AuthenticatedSessionController`) | Single shared logout route (`POST /logout`) for all authenticated roles. |
-| Manage Staff Accounts | Create, view, edit, and deactivate Secretary/Treasurer accounts, and manage per-user security settings. | Administrator | High | 🟡 Partially Implemented | System Security (`SystemSecurityController`, `SystemSecurityDashboardQuery`) | Admin can currently **view** personnel and **toggle two-factor enforcement** per user. Account creation, editing, and deactivation from an admin UI were not found (only self-service `/register`). |
+| Manage Staff Accounts | Create, view, edit, and deactivate Staff accounts, and manage per-user security settings. | Administrator | High | 🟡 Partially Implemented | System Security (`SystemSecurityController`, `SystemSecurityDashboardQuery`) | Admin can currently **view** personnel and **toggle two-factor enforcement** per user. Account creation, editing, and deactivation from an admin UI were not found (only self-service `/register`). |
 | Audit System Logs | View a searchable, filterable log of security-relevant actions across the system (logins, permission changes, etc.). | Administrator | High | ✅ Implemented | System Security (`SecurityActivityEvent`) | Includes action-type filter and free-text search, with actor/user attribution and IP address capture. |
 
 ### 2. Master Data & Cash Bookkeeping Management
@@ -182,7 +182,7 @@ graph TD
 1. **Foundation (done):** Authentication, role-based access, main dashboard.
 2. **Core records (done):** Donor management, donation portal (cash & in-kind receipts with verification).
 3. **Warehouse operations (done):** Inventory item management, stock-in/stock-out adjustments, live stock monitoring.
-4. **Cash oversight (done):** Fund disbursement request/approval/void workflow, incoming and outgoing bank reconciliation, reconciliation history/details, Treasurer dashboard action items, and financial ledger reporting (CSV export).
+4. **Cash oversight (done):** Fund disbursement request/approval/void workflow, incoming and outgoing bank reconciliation, reconciliation history/details, Staff dashboard action items, and financial ledger reporting (CSV export).
 5. **Administrative account control (next priority):** Full staff account lifecycle management — create, edit, deactivate accounts, and assign roles/permissions from an admin UI.
 6. **Cash bookkeeping completeness (done):** Disbursement request, approval/rejection, void/reversal, outgoing bank matching, discrepancy handling, and final reconciliation are implemented (Julius).
 7. **Reporting completeness:** PDF export for all report types and downloadable PDF reports for Staff.
@@ -232,7 +232,7 @@ graph TD
 
 - [ ] Confirm the *Current Status* column above still matches the deployed codebase (re-run through routes/controllers if time has passed since last review).
 - [ ] Prepare a live demo path: Log in → Dashboard → Record a donation → Verify it → Stock-in/stock-out an item → Reconcile a ledger entry → Generate a Financial Ledgers report → Export CSV.
-- [ ] Be ready to explain the three implementation roles (`admin`, `secretary`, `treasurer`) and how they map to the Administrator/Staff terminology used in this document.
+- [ ] Be ready to explain the two implementation roles (`admin`, `staff`) and how they map to the Administrator/Staff terminology used in this document.
 - [ ] Be ready to explicitly state which requirements are **Planned**, and why (scope prioritization, time constraints): PDF export (both roles).
 - [ ] Be ready to explain the **Partially Implemented** item: Manage Staff Accounts (view + 2FA toggle only, no full CRUD).
 - [ ] Verify test coverage referenced in `tests/Feature/` (Bank Reconciliation, Donation Management, Inventory Management, Financial Ledger Report Builder, Report Generator, System Security Administration, Registration) passes before the defense.

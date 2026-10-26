@@ -16,7 +16,7 @@ class ReconciliationApprovalService
         return DB::transaction(function () use ($period, $actor) {
             $period = BankReconciliation::query()->lockForUpdate()->findOrFail($period->id);
             if (! $period->isDraft() || (int) $period->prepared_by !== (int) $actor->id) {
-                throw ValidationException::withMessages(['period' => 'Only the preparing treasurer can submit a draft period.']);
+                throw ValidationException::withMessages(['period' => 'Only the staff member who prepared this draft can submit it.']);
             }
             $this->validateForApproval($period);
             $period->forceFill(['status' => 'ready_for_review', 'submitted_at' => now()])->save();

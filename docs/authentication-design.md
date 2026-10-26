@@ -4,7 +4,7 @@
 
 This document defines the implementation guide for a maintainable authentication module for the Barangay Donation Platform.
 
-The current project is a Laravel 11 application using Blade templates, Tailwind CSS, Vite, MySQL, the default `web` session guard, database-backed sessions, an existing `AuthController`, a custom `EnsureRole` middleware, and a `users.role` string column for role-based access. The existing authenticated application routes are protected by `auth` and `role:admin,secretary,treasurer`.
+The current project is a Laravel 11 application using Blade templates, Tailwind CSS, Vite, MySQL, the default `web` session guard, database-backed sessions, an existing `AuthController`, a custom `EnsureRole` middleware, and a `users.role` string column for role-based access. The existing authenticated application routes are protected by `auth` and `role:admin,staff`.
 
 The authentication module should provide:
 
@@ -224,7 +224,7 @@ Additional behavior:
 Current schema:
 
 - `users` table includes `name`, `email`, `email_verified_at`, `password`, `remember_token`, timestamps.
-- A later migration adds `users.role` as a string with default `secretary`.
+- A later migration adds `users.role` as a string with default `staff`.
 - `password_reset_tokens` and `sessions` tables already exist in the default users migration.
 
 Recommended migration path:
@@ -290,8 +290,8 @@ Schema::create('roles', function (Blueprint $table) {
 Recommended seeded roles:
 
 - `admin`
-- `secretary`
-- `treasurer`
+- `staff`
+- `staff`
 
 Role names should be seeded through a seeder or enum/config source and referenced by constants, not duplicated across controllers, middleware, and views.
 
@@ -327,7 +327,7 @@ Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
 Protected application routes should continue using a grouped structure:
 
 ```php
-Route::middleware(['auth', 'verified', 'role:admin,secretary,treasurer'])->group(function () {
+Route::middleware(['auth', 'verified', 'role:admin,staff'])->group(function () {
     // Existing donation, inventory, cash, and reconciliation routes.
 });
 ```
@@ -408,7 +408,7 @@ Existing middleware:
 Recommended changes:
 
 - Update `EnsureRole` to check normalized `Role` relationship rather than `users.role` string after migration.
-- Preserve support for multiple roles: `role:admin,secretary,treasurer`.
+- Preserve support for multiple roles: `role:admin,staff`.
 - Add optional middleware:
   - `EnsureUserIsActive` for `status === active`.
   - Laravel `verified` middleware for email verification.
@@ -422,8 +422,8 @@ Recommended changes:
 - Avoid hardcoding permissions directly in Blade views. Use helpers, policies, gates, or view conditionals backed by model methods.
 - For the current role model:
   - `admin`: full system access and user management.
-  - `secretary`: donor records and in-kind inventory workflows.
-  - `treasurer`: cash transactions and bank reconciliation workflows.
+  - `staff`: donor records and in-kind inventory workflows.
+  - `staff`: cash transactions and bank reconciliation workflows.
 - Future fine-grained permissions can be added with policies or a `permissions` table if role checks become too coarse.
 
 ## Security Considerations

@@ -32,7 +32,7 @@ class E2eWorkspaceSeeder extends Seeder
             );
 
             $users = [];
-            foreach (['admin', 'secretary', 'treasurer'] as $role) {
+            foreach (['admin', 'staff'] as $role) {
                 $email = "e2e.{$role}.{$suffix}@example.test";
                 $user = User::query()->updateOrCreate(
                     ['email' => $email],
@@ -83,7 +83,7 @@ class E2eWorkspaceSeeder extends Seeder
                 [
                     'donor_id' => $donor->id,
                     'campaign_id' => $campaign->id,
-                    'created_by' => $users['secretary']->id,
+                    'created_by' => $users['staff']->id,
                     'type' => 'cash',
                     'status' => 'verified',
                     'amount' => $suffix === 'a' ? 111.00 : 222.00,
@@ -102,7 +102,7 @@ class E2eWorkspaceSeeder extends Seeder
                     'estimated_unit_value' => 10,
                     'received_at' => now(),
                     'status' => 'received',
-                    'created_by' => $users['secretary']->id,
+                    'created_by' => $users['staff']->id,
                 ],
             );
             BankLedgerEntry::query()->updateOrCreate(

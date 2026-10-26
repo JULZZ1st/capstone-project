@@ -13,7 +13,7 @@ class E2eReconciliationFixtureSeeder extends Seeder
 {
     public function run(): void
     {
-        $secretary = User::query()->where('email', 'e2e.secretary@example.test')->firstOrFail();
+        $staff = User::query()->where('email', 'e2e.staff@example.test')->firstOrFail();
         $admin = User::query()->where('email', 'e2e.admin@example.test')->firstOrFail();
         $donor = Donor::query()->updateOrCreate(['email' => 'e2e.fixture@example.test'], [
             'donor_type' => 'individual', 'full_name' => 'E2E Fixture Donor',
@@ -21,7 +21,7 @@ class E2eReconciliationFixtureSeeder extends Seeder
         ]);
 
         Contribution::query()->updateOrCreate(['reference_number' => 'E2E-CONTRIB-001'], [
-            'donor_id' => $donor->id, 'created_by' => $secretary->id, 'verified_by' => $admin->id,
+            'donor_id' => $donor->id, 'created_by' => $staff->id, 'verified_by' => $admin->id,
             'type' => 'cash', 'status' => 'verified', 'amount' => 1000,
             'payment_method' => 'bank_transfer', 'received_at' => '2026-10-05 10:00:00', 'verified_at' => now(),
         ]);
@@ -30,7 +30,7 @@ class E2eReconciliationFixtureSeeder extends Seeder
             CashDisbursement::query()->updateOrCreate(['supporting_reference' => $reference], [
                 'amount' => $amount, 'purpose' => 'E2E approved disbursement '.$reference,
                 'recipient' => 'E2E Recipient', 'requested_date' => '2026-10-06',
-                'requested_by' => $secretary->id, 'approved_by' => $admin->id,
+                'requested_by' => $staff->id, 'approved_by' => $admin->id,
                 'approved_at' => '2026-10-06 10:00:00', 'status' => 'approved',
             ]);
         }

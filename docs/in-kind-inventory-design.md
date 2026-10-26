@@ -688,7 +688,7 @@ Use the existing authenticated application route group.
 Recommended routes:
 
 ```php
-Route::middleware(['auth', 'role:admin,secretary,treasurer'])->group(function () {
+Route::middleware(['auth', 'role:admin,staff'])->group(function () {
     Route::get('/inventory', [InventoryController::class, 'index'])->name('inventory.index');
     Route::post('/inventory', [InventoryController::class, 'store'])->name('inventory.store');
     Route::get('/inventory/{inventoryItem}', [InventoryController::class, 'show'])->name('inventory.show');
@@ -733,8 +733,8 @@ Recommended policy:
 Suggested role behavior:
 
 - `admin`: view, create, edit, adjust, audit, archive all inventory items.
-- `secretary`: view, create, edit, adjust in-kind inventory, and audit if barangay policy allows it.
-- `treasurer`: view inventory summaries and item details; stock adjustment only if finance workflow requires valuation corrections.
+- `staff`: view, create, edit, adjust in-kind inventory, and audit if barangay policy allows it.
+- `staff`: view inventory summaries and item details; stock adjustment only if finance workflow requires valuation corrections.
 
 Rules:
 
@@ -968,6 +968,6 @@ Before implementation begins, confirm:
 - Whether categories and units should remain config-backed or become database-managed records.
 - Whether batch number should be unique per item/category.
 - Whether expired goods can remain in stock but be blocked from distribution.
-- Whether treasurer users can adjust inventory value fields or only view inventory.
+- Whether staff users can adjust inventory value fields or only view inventory.
 - Whether formal audit history should be implemented now or deferred.
 - Whether existing legacy `inventory_items` records should be migrated into the production-ready schema.

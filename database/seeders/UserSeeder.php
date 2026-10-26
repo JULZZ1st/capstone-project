@@ -2,33 +2,49 @@
 
 namespace Database\Seeders;
 
+use App\Models\Role;
 use App\Models\User;
+use App\Models\Workspace;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Hash;
 
 class UserSeeder extends Seeder
 {
     public function run(): void
     {
-        $gina = User::query()->firstOrNew(['email' => 'gina@gmail.com']);
+        $role = Role::query()->where('name', Role::ADMIN)->firstOrFail();
+        $password = 'ginagamboa123s!';
 
-        // Preserve an existing account's password and account state. The default
-        // password is only assigned when the seeded account is created for the
-        // first time in a new database.
-        if (! $gina->exists) {
-            $gina->password = '@Gina;18_2026_test';
-            $gina->must_change_password = false;
-            $gina->status = 'active';
-            $gina->first_name = 'Gina';
-            $gina->last_name = 'Gamboa';
-            $gina->name = 'Gina Gamboa';
+        $gina = User::query()->firstOrNew(['email' => 'gina@gmail.com']);
+        $gina->fill([
+            'role_id' => $role->id,
+            'first_name' => 'Gina',
+            'last_name' => 'Gamboa',
+            'name' => 'Gina Gamboa',
+            'must_change_password' => false,
+            'status' => 'active',
+        ]);
+
+        if (! $gina->exists || ! Hash::check($password, (string) $gina->password)) {
+            $gina->password = $password;
         }
 
-        $gina->role_id = null;
-        $gina->is_super_admin = true;
         $gina->save();
 
-        // Gina is platform-only. Remove only her legacy membership; preserve
-        // the legacy workspace and every other user's membership.
-        $gina->workspaceMemberships()->delete();
+        $workspace = $gina->workspaceMemberships()
+            ->where('status', 'active')
+            ->with('workspace')
+            ->latest('id')
+            ->first()?->workspace;
+
+        $workspace ??= Workspace::query()->firstOrCreate(
+            ['slug' => 'legacy'],
+            ['name' => 'Legacy Workspace', 'status' => 'active'],
+        );
+
+        $gina->workspaceMemberships()->updateOrCreate(
+            ['workspace_id' => $workspace->id],
+            ['role_id' => $role->id, 'status' => 'active'],
+        );
     }
 }

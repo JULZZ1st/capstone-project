@@ -9,7 +9,7 @@ class CashDisbursementPolicy
 {
     public function viewAny(User $user): bool
     {
-        return $this->active($user) && $user->hasRole(['admin', 'secretary', 'treasurer']);
+        return $this->active($user) && $user->hasRole(['admin', 'staff']);
     }
 
     public function create(User $user): bool

@@ -17,7 +17,7 @@ class DisbursementWorkflowTest extends TestCase
 
     public function test_disbursement_request_saves_new_fields_as_pending_and_displays_in_history(): void
     {
-        $requester = $this->userWithRole('treasurer');
+        $requester = $this->userWithRole('staff');
 
         $response = $this->actingAs($requester)->post(route('disbursements.store'), [
             'amount' => 2450.75,
@@ -56,7 +56,7 @@ class DisbursementWorkflowTest extends TestCase
 
     public function test_disbursement_request_requires_new_required_fields(): void
     {
-        $requester = $this->userWithRole('treasurer');
+        $requester = $this->userWithRole('staff');
 
         $this->actingAs($requester)
             ->post(route('disbursements.store'), [
@@ -70,7 +70,7 @@ class DisbursementWorkflowTest extends TestCase
 
     public function test_requester_cannot_approve_own_disbursement(): void
     {
-        $requester = $this->userWithRole('treasurer');
+        $requester = $this->userWithRole('staff');
         $disbursement = CashDisbursement::query()->create([
             'amount' => 1250,
             'purpose' => 'Emergency supplies',
@@ -87,7 +87,7 @@ class DisbursementWorkflowTest extends TestCase
 
     public function test_admin_approval_is_audited(): void
     {
-        $requester = $this->userWithRole('treasurer');
+        $requester = $this->userWithRole('staff');
         $admin = $this->userWithRole('admin');
         $disbursement = CashDisbursement::query()->create([
             'amount' => 1250,
@@ -105,7 +105,7 @@ class DisbursementWorkflowTest extends TestCase
 
     public function test_pending_disbursement_detail_shows_admin_decision_actions(): void
     {
-        $requester = $this->userWithRole('treasurer');
+        $requester = $this->userWithRole('staff');
         $admin = $this->userWithRole('admin');
         $disbursement = CashDisbursement::query()->create([
             'amount' => 1250,
@@ -132,7 +132,7 @@ class DisbursementWorkflowTest extends TestCase
 
     public function test_admin_can_approve_another_users_pending_request_from_request_history(): void
     {
-        $requester = $this->userWithRole('treasurer');
+        $requester = $this->userWithRole('staff');
         $admin = $this->userWithRole('admin');
         CashDisbursement::query()->create([
             'amount' => 1250,
@@ -154,8 +154,8 @@ class DisbursementWorkflowTest extends TestCase
 
     public function test_non_admin_cannot_approve_or_reject_server_side(): void
     {
-        $requester = $this->userWithRole('treasurer');
-        $secretary = $this->userWithRole('secretary');
+        $requester = $this->userWithRole('staff');
+        $secretary = $this->userWithRole('staff');
         $disbursement = CashDisbursement::query()->create([
             'amount' => 1250,
             'purpose' => 'Emergency supplies',
@@ -176,7 +176,7 @@ class DisbursementWorkflowTest extends TestCase
 
     public function test_non_admin_can_view_pending_details_without_decision_actions(): void
     {
-        $requester = $this->userWithRole('treasurer');
+        $requester = $this->userWithRole('staff');
         $disbursement = CashDisbursement::query()->create([
             'amount' => 1250,
             'purpose' => 'Emergency supplies',
@@ -196,7 +196,7 @@ class DisbursementWorkflowTest extends TestCase
     public function test_pending_unreconciled_contribution_can_be_voided_and_audited(): void
     {
         $admin = $this->userWithRole('admin');
-        $creator = $this->userWithRole('secretary');
+        $creator = $this->userWithRole('staff');
         $donor = Donor::query()->create([
             'donor_type' => 'individual', 'full_name' => 'Test Donor', 'address' => 'Test Address',
             'contact_number' => '09170000000', 'email' => 'void-test@example.com', 'status' => 'active',
@@ -214,7 +214,7 @@ class DisbursementWorkflowTest extends TestCase
 
     public function test_approved_disbursement_can_be_voided_and_audited(): void
     {
-        $requester = $this->userWithRole('treasurer');
+        $requester = $this->userWithRole('staff');
         $admin = $this->userWithRole('admin');
         $disbursement = CashDisbursement::query()->create([
             'amount' => 1250, 'purpose' => 'Emergency supplies', 'requested_by' => $requester->id,
@@ -229,7 +229,7 @@ class DisbursementWorkflowTest extends TestCase
 
     public function test_requester_cannot_reject_own_disbursement(): void
     {
-        $requester = $this->userWithRole('treasurer');
+        $requester = $this->userWithRole('staff');
         $disbursement = CashDisbursement::query()->create([
             'amount' => 900,
             'purpose' => 'Relief goods',
@@ -246,7 +246,7 @@ class DisbursementWorkflowTest extends TestCase
 
     public function test_admin_rejection_requires_reason_and_is_audited(): void
     {
-        $requester = $this->userWithRole('treasurer');
+        $requester = $this->userWithRole('staff');
         $admin = $this->userWithRole('admin');
         $disbursement = CashDisbursement::query()->create([
             'amount' => 900,
@@ -277,7 +277,7 @@ class DisbursementWorkflowTest extends TestCase
 
     public function test_dashboard_and_ledger_totals_only_count_approved_active_disbursements(): void
     {
-        $requester = $this->userWithRole('treasurer');
+        $requester = $this->userWithRole('staff');
         $admin = $this->userWithRole('admin');
 
         $approved = CashDisbursement::query()->create([

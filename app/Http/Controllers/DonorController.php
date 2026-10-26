@@ -7,6 +7,7 @@ use App\Http\Requests\Donors\UpdateDonorRequest;
 use App\Models\Donor;
 use App\Services\Donors\RemoveDonor;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
@@ -14,7 +15,7 @@ use Illuminate\View\View;
 
 class DonorController extends Controller
 {
-    public function index(Request $request): View
+    public function index(Request $request): View|JsonResponse
     {
         $search = trim((string) $request->query('search'));
         $type = $request->query('type');
@@ -47,11 +48,21 @@ class DonorController extends Controller
             ->paginate(config('donors.pagination.per_page'))
             ->withQueryString();
 
-        return view('donors.index', [
+        $viewData = [
             'donors' => $donors,
             'search' => $search,
             'selectedType' => $type,
-        ]);
+        ];
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'rows' => view('donors.partials.rows', ['donors' => $donors])->render(),
+                'modals' => view('donors.partials.modals', ['donors' => $donors])->render(),
+                'pagination' => $donors->links()->render(),
+            ]);
+        }
+
+        return view('donors.index', $viewData);
     }
 
     public function store(StoreDonorRequest $request)

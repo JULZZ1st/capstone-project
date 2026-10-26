@@ -7,10 +7,10 @@ use App\Models\User;
 
 class BankReconciliationPolicy
 {
-    public function viewAny(User $user): bool { return $this->active($user) && $user->hasRole(['admin', 'secretary', 'treasurer']); }
-    public function prepare(User $user): bool { return $this->active($user) && $user->hasRole('treasurer'); }
-    public function submit(User $user, BankReconciliation $period): bool { return $this->sameWorkspace($user, $period) && $user->hasRole('treasurer') && $period->isDraft(); }
-    public function update(User $user, BankReconciliation $period): bool { return $this->sameWorkspace($user, $period) && $user->hasRole('treasurer') && $period->isDraft() && (int) $period->prepared_by === (int) $user->id; }
+    public function viewAny(User $user): bool { return $this->active($user) && $user->hasRole(['admin', 'staff']); }
+    public function prepare(User $user): bool { return $this->active($user) && $user->hasRole('staff'); }
+    public function submit(User $user, BankReconciliation $period): bool { return $this->sameWorkspace($user, $period) && $user->hasRole('staff') && $period->isDraft(); }
+    public function update(User $user, BankReconciliation $period): bool { return $this->sameWorkspace($user, $period) && $user->hasRole('staff') && $period->isDraft() && (int) $period->prepared_by === (int) $user->id; }
     public function approve(User $user, BankReconciliation $period): bool
     {
         return $this->sameWorkspace($user, $period) && $user->hasRole('admin') && $period->isReadyForReview() && (int) $period->prepared_by !== (int) $user->id;

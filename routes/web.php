@@ -14,7 +14,6 @@ use App\Http\Controllers\InventorySubcategoryController;
 use App\Http\Controllers\InventoryUnitController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SystemSecurityController;
-use App\Http\Controllers\WorkspaceManagementController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function () {
@@ -31,19 +30,10 @@ Route::middleware('auth')->group(function () {
     Route::post('/password/change', [ChangePasswordController::class, 'store'])->name('password.change.store');
 });
 
-Route::middleware(['auth', 'password.change', 'platform.superadmin'])
-    ->prefix('workspaces')
-    ->name('workspaces.')
-    ->group(function () {
-        Route::get('/', [WorkspaceManagementController::class, 'index'])->name('index');
-        Route::post('/', [WorkspaceManagementController::class, 'store'])->name('store');
-        Route::patch('/{workspace}/toggle', [WorkspaceManagementController::class, 'toggle'])->name('toggle');
-    });
-
 Route::middleware([
     'auth',
     'password.change',
-    'role:admin,secretary,treasurer',
+    'role:admin,staff',
     'workspace',
     'workspace.required',
     'workspace.models',
@@ -90,7 +80,6 @@ Route::middleware([
     Route::post('/bank-reconciliation/periods/{period}/reject', [BankReconciliationController::class, 'rejectPeriod'])->name('bank-reconciliation.periods.reject');
     Route::post('/bank-reconciliation/periods/{period}/reopen', [BankReconciliationController::class, 'reopenPeriod'])->name('bank-reconciliation.periods.reopen');
     Route::post('/bank-reconciliation/import', [BankReconciliationController::class, 'import'])->name('bank-reconciliation.import');
-    Route::post('/bank-reconciliation/import/confirm', [BankReconciliationController::class, 'confirmImport'])->name('bank-reconciliation.import.confirm');
     Route::post('/bank-reconciliation/withdrawals', [BankReconciliationController::class, 'storeWithdrawal'])->name('bank-reconciliation.withdrawals.store');
     Route::post('/bank-reconciliation/withdrawals/{withdrawal}/matches', [BankReconciliationController::class, 'storeWithdrawalMatches'])->name('bank-reconciliation.withdrawals.matches.store');
     Route::post('/bank-reconciliation/withdrawals/{withdrawal}/reconcile', [BankReconciliationController::class, 'finalizeWithdrawal'])->name('bank-reconciliation.withdrawals.reconcile');

@@ -29,7 +29,7 @@ class UpdateStaffAccountRequest extends FormRequest
             'first_name' => ['required', 'string', 'max:100'],
             'last_name' => ['required', 'string', 'max:100'],
             'email' => ['required', 'string', $emailRule, 'max:255', Rule::unique('users', 'email')->ignore($userId)],
-            'role' => ['required', 'string', 'in:secretary,treasurer'],
+            'role' => ['required', 'string', 'in:staff'],
             'status' => ['nullable', 'string'],
         ];
     }

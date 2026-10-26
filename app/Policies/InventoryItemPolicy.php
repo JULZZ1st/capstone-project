@@ -9,7 +9,7 @@ class InventoryItemPolicy
 {
     public function viewAny(User $user): bool
     {
-        return $this->active($user) && $user->hasRole(['admin', 'secretary', 'treasurer']);
+        return $this->active($user) && $user->hasRole(['admin', 'staff']);
     }
 
     public function view(User $user, InventoryItem $inventoryItem): bool
@@ -19,24 +19,24 @@ class InventoryItemPolicy
 
     public function create(User $user): bool
     {
-        return $this->active($user) && $user->hasRole(['admin', 'secretary']);
+        return $this->active($user) && $user->hasRole(['admin', 'staff']);
     }
 
     public function update(User $user, InventoryItem $inventoryItem): bool
     {
-        return $this->active($user) && $this->sameWorkspace($user, $inventoryItem) && $user->hasRole(['admin', 'secretary']);
+        return $this->active($user) && $this->sameWorkspace($user, $inventoryItem) && $user->hasRole(['admin', 'staff']);
     }
 
     public function adjustStock(User $user, InventoryItem $inventoryItem): bool
     {
         return $inventoryItem->status === config('inventory.defaults.status')
             && $this->sameWorkspace($user, $inventoryItem)
-            && $user->hasRole(['admin', 'secretary']);
+            && $user->hasRole(['admin', 'staff']);
     }
 
     public function audit(User $user, InventoryItem $inventoryItem): bool
     {
-        return $this->active($user) && $this->sameWorkspace($user, $inventoryItem) && $user->hasRole(['admin', 'secretary']);
+        return $this->active($user) && $this->sameWorkspace($user, $inventoryItem) && $user->hasRole(['admin', 'staff']);
     }
 
     public function archive(User $user, InventoryItem $inventoryItem): bool

@@ -2,7 +2,7 @@
 
 This document describes the implemented Fund Disbursement and Bank Reconciliation workflow. The focused coverage is in `tests/Feature/DisbursementWorkflowTest.php` and `tests/Feature/BankReconciliationTest.php`.
 
-### 1. Secretary/Treasurer Creates a Fund Disbursement Request
+### 1. Staff Creates a Fund Disbursement Request
 
 The **Fund Disbursements** page accepts:
 
@@ -29,7 +29,7 @@ The Request History table displays:
 
 | Date | Purpose | Amount | Requested By | Status | Action |
 |---|---|---:|---|---|---|
-| Sept 12 | Relief goods | ₱10,000 | Secretary | Pending | View |
+| Sept 12 | Relief goods | ₱10,000 | Staff | Pending | View |
 
 When the Admin opens the request, the available decisions are:
 
@@ -43,9 +43,9 @@ The requester cannot approve their own disbursement request.
 
 ---
 
-## 3. Treasurer Records or Imports the Actual Bank Withdrawal
+## 3. Staff Records or Imports the Actual Bank Withdrawal
 
-After the disbursement is approved, the Treasurer proceeds to the existing **Bank Reconciliation** page.
+After the disbursement is approved, the Staff proceeds to the existing **Bank Reconciliation** page.
 
 The current page has:
 
@@ -160,7 +160,7 @@ The unique match constraint, eligibility query, policy, and request validation e
 After successful reconciliation, show:
 
 > **Status: Reconciled**  
-> Reconciled by: Treasurer  
+> Reconciled by: Staff
 > Reconciled at: Sept 13, 2026 2:42 PM  
 > Bank amount: ₱10,000  
 > Matched disbursements: 3  
@@ -181,7 +181,7 @@ Outgoing **RECONCILIATION HISTORY** displays:
 
 | Date | Bank Ref | Type | Bank Amount | Matched Amount | Difference | Status | Reconciled By |
 |---|---|---|---:|---:|---:|---|---|
-| Sep 13 | WD-00981 | Withdrawal | ₱10,000 | ₱10,000 | ₱0 | Reconciled | Treasurer |
+| Sep 13 | WD-00981 | Withdrawal | ₱10,000 | ₱10,000 | ₱0 | Reconciled | Staff |
 | Sep 14 | WD-00982 | Withdrawal | ₱8,000 | ₱7,500 | ₱500 | Unreconciled / Discrepancy | — |
 
 Each row has **View Details**, which shows the finalized withdrawal, every matched disbursement and amount, status, reconciler, and reconciliation timestamp.
@@ -190,7 +190,7 @@ Each row has **View Details**, which shows the finalized withdrawal, every match
 
 ## 8. Reflect Reconciliation Work on the Dashboard
 
-The **Treasurer Action Items** section shows live operational summaries:
+The **Staff Action Items** section shows live operational summaries:
 
 - 3 Bank Withdrawals Awaiting Reconciliation
 - 1 Discrepancy Requiring Explanation
@@ -275,7 +275,7 @@ A single `matched_disbursement_id` field would not be enough because one withdra
 
 # Role Behavior
 
-## Secretary
+## Staff
 
 - Records operational transactions, donations, and inventory
 - Can submit a disbursement request; cannot approve, reject, or finalize reconciliation
@@ -285,7 +285,7 @@ A single `matched_disbursement_id` field would not be enough because one withdra
 - Approves or rejects disbursement requests
 - Approves or rejects requests and can void approved disbursements with a reason
 
-## Treasurer
+## Staff
 
 - Imports or records bank transactions
 - Selects approved disbursements
@@ -297,7 +297,7 @@ A single `matched_disbursement_id` field would not be enough because one withdra
 
 # Recommended Defense Demo Scenario
 
-### 1. Secretary
+### 1. Staff
 
 > Request ₱10,000 — Relief Operations
 
@@ -305,7 +305,7 @@ A single `matched_disbursement_id` field would not be enough because one withdra
 
 > Approve ₱10,000
 
-### 3. Treasurer
+### 3. Staff
 
 > Import or record bank withdrawal ₱10,000
 
@@ -325,7 +325,7 @@ The system calculates:
 
 ### 5. Confirm
 
-> ✅ Reconciled by Treasurer, date and time recorded
+> ✅ Reconciled by Staff, date and time recorded
 
 Then demonstrate a second case:
 

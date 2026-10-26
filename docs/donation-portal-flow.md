@@ -55,7 +55,7 @@ flowchart TD
 - Required: `donor_id`, at least one row in `items[]` (`name`, `category`, `quantity`, `unit`, `condition`; `estimated_value` optional).
 - Default status: `received` (`config('donations.default_status.in_kind')`).
 - Each item row becomes one `contribution_items` row, created in the same transaction as the parent `contributions` row — an in-kind contribution can never exist with a missing or partial item list.
-- In-kind contributions are **not** part of the verify flow (verification is cash-specific — treasurer/admin sign-off on money received).
+- In-kind contributions are **not** part of the verify flow (verification is cash-specific — staff/admin sign-off on money received).
 
 ## Verification (Cash only)
 
@@ -67,7 +67,7 @@ flowchart TD
 
 | Status | Meaning |
 |---|---|
-| `pending` | Cash logged, awaiting treasurer/admin verification |
+| `pending` | Cash logged, awaiting staff/admin verification |
 | `verified` | Cash confirmed |
 | `received` | In-kind goods accepted (default, no separate approval step) |
 | `distributed` | In-kind goods have left inventory via relief operations |

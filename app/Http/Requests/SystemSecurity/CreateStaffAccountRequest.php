@@ -28,7 +28,7 @@ class CreateStaffAccountRequest extends FormRequest
             'first_name' => ['required', 'string', 'max:100'],
             'last_name' => ['required', 'string', 'max:100'],
             'email' => ['required', 'string', $emailRule, 'max:255', 'unique:users,email'],
-            'role' => ['required', 'string', 'in:secretary,treasurer'],
+            'role' => ['required', 'string', 'in:staff'],
             'password' => ['required', 'confirmed', Password::min(12)],
         ];
     }

@@ -14,14 +14,13 @@
 **Target Users (roles actually defined in code — `Role` model, `role_id` on `users`):**
 | Role | Code constant | General scope |
 |---|---|---|
-| **Admin** | `Role::ADMIN` (`admin`) | Full system access: approves/rejects/voids disbursements, voids contributions, manages staff accounts, manages item categories, sole editor of System Security settings. |
-| **Secretary** | `Role::SECRETARY` (`secretary`) | Day-to-day data entry: donor records, contribution logging, inventory create/update/stock adjustments, can view (not edit) System Security. |
-| **Treasurer** | `Role::TREASURER` (`treasurer`) | Cash-facing operations: verifies cash contributions, imports bank statements, reconciles the ledger; blocked from inventory stock adjustments and from category management. |
+| **Admin** | `Role::ADMIN` (`admin`) | Administers the single-barangay system: approves/rejects/voids disbursements, voids contributions, manages staff accounts and item categories, and is the sole editor of System Security settings. |
+| **Staff** | `Role::STAFF` (`staff`) | Combined operational role: donor and contribution records, inventory and stock adjustments, cash verification, bank imports, and reconciliation. Cannot manage accounts, manage categories, or perform Admin-only approvals. |
 
 **Donation Workflow (narrative):**
 1. A **Donor** (individual or organization) is created or found in **Donor Management**.
 2. Staff log a **Contribution** in the **Donation Portal** — either `cash` (with payment method + reference number) or `in_kind` (with one or more line items tied to inventory categories/subcategories).
-3. Cash contributions go through a **verification** step (Admin/Treasurer only) before they count toward ledger totals.
+3. Cash contributions go through a **verification** step (Admin/Staff only) before they count toward ledger totals.
 4. In-kind contributions flow into **In-Kind Inventory** as stock, tracked through **Stock-In/Stock-Out** movements.
 5. Electronic/bank-channel contributions are cross-checked against imported bank statements in **Bank Reconciliation**, and marked reconciled once matched.
 6. Outgoing funds go through **Cash Disbursements**: a request, then a separate Admin **approval/rejection** (maker-checker — the requester cannot approve their own request), before counting as disbursed.
@@ -33,8 +32,8 @@
 ## 2. Page / Module Review
 
 ### Dashboard
-- **Purpose:** At-a-glance summary of cash ledger totals, pending-verification counts, funding distribution by campaign, recent donation activity, and treasurer action items.
-- **Access:** Admin, Secretary, Treasurer (all three; content is the same, not role-filtered).
+- **Purpose:** At-a-glance summary of cash ledger totals, pending-verification counts, funding distribution by campaign, recent donation activity, and staff action items.
+- **Access:** Admin and Staff (both roles; content is the same, not role-filtered).
 - **Main functionality:** Single invokable `DashboardController` delegating all computation to `App\Support\Dashboard\DashboardMetrics::build()`. Computes cash ledger totals live from `Contribution` (verified cash only), disbursement totals from `CashDisbursement` (approved + not voided), funding distribution grouped by campaign, and a recent-activity feed.
 - **Connects to:** Reads from Contributions, Campaigns, Bank Ledger Entries, Cash Disbursements — i.e., it's a read-only rollup of every other module.
 - **Status:** **Complete.** Fully implemented and tested (`tests/Feature/DashboardMetricsTest.php`, 6 tests), including a regression test that explicitly confirms legacy tables (see below) are excluded from totals.
@@ -43,7 +42,7 @@
 
 ### Donation Portal / Contributions
 - **Purpose:** Log and verify incoming donations (the real "Donation" entity in this codebase is called `Contribution`, not `Donation` — see Known Questions/legacy-model note below).
-- **Access:** Admin, Secretary, Treasurer can create; **verify** (cash only, pending only) is Admin/Treasurer only; **void** is Admin only.
+- **Access:** Admin and Staff can create and verify pending cash contributions; **void** is Admin only.
 - **Main functionality:** `DonationPortalController` (index/store/show/update/verify), backed by `LogContribution` service. Handles both `cash` (amount + payment method + reference number, unique per method) and `in_kind` (one or more `ContributionItem` rows tied to category/subcategory) contributions. Receipt numbers auto-generate (`DON-YYYYMMDD-000001` format). Update is restricted to the creator (or Admin) while the record `isEditable()`.
 - **Connects to:** Requires a `Donor`; in-kind items feed inventory classification; verified cash flows into Bank Reconciliation matching and the Financial Ledger; void action is exposed here but processed via the Disbursements module's `VoidContribution` service.
 - **Status:** **Complete.** Heavily tested — `tests/Feature/DonationsPortalTest.php` (17 tests) covers cash/in-kind rules, reference-number uniqueness, subcategory validation, receipt numbering.
@@ -52,16 +51,16 @@
 
 ### Donor Management
 - **Purpose:** Maintain donor records (individuals/organizations) used across donations and reporting.
-- **Access:** Admin, Secretary, Treasurer — **no dedicated Policy class exists** for this module (see below), so all three roles currently have identical donor CRUD rights, including delete.
+- **Access:** Admin and Staff — **no dedicated Policy class exists** for this module (see below), so both roles currently have identical donor CRUD rights, including delete.
 - **Main functionality:** `DonorController` — full CRUD, duplicate-donor detection heuristic on create (normalizes name/email/phone, prompts to confirm before proceeding), search by split names. Delete (`RemoveDonor` service) hard-deletes a donor **only if they have no contribution history**; otherwise it **deactivates** them (`status = inactive`) and logs the action — donation history is never lost.
 - **Connects to:** Donor is required to create a Contribution; donor profile shows contribution history (now correctly reading `contributions`, not the legacy `donations` table — this was a real bug fixed recently, see `docs/TEAM_TASK_ASSIGNMENT.md` Neziel section).
 - **Status:** **Complete**, with one **design inconsistency to flag**: unlike every other module, there is no `DonorPolicy` — access control here is only the blanket route-level role check, not per-action authorization like the rest of the app.
 - **Manually check before the meeting:** Try deleting a donor with no history (should hard-delete) and one with history (should deactivate, not delete) — confirm both paths work as designed and are intentional.
-- **Remaining issues:** Decide (and be ready to explain) whether Secretary and Treasurer should really have identical donor-delete rights, or whether a `DonorPolicy` should restrict delete to Admin, matching the pattern used everywhere else.
+- **Remaining issues:** Decide whether Staff should have donor-delete rights, or whether a `DonorPolicy` should restrict delete to Admin.
 
 ### In-Kind Inventory
 - **Purpose:** Track in-kind goods received, current stock levels, and alerts for low/critical/out-of-stock/expiring items.
-- **Access:** View — all three roles. Create/update/adjust stock — Admin & Secretary. Archive — Admin only. Treasurer is explicitly **blocked** from stock adjustments (tested).
+- **Access:** View — Admin and Staff. Create/update/adjust stock — Admin and Staff. Archive — Admin only.
 - **Main functionality:** `InventoryController` (index/store/show/update/exportPdf) + `InventoryStockAdjustmentController` for movements. Stock status (`adequate`/`low_stock`/`critical_stock`/`out_of_stock`/`expired`) computed live via `InventoryItem::stockStatus()`. PDF export via `InventoryReportPdfExporter`.
 - **Connects to:** In-kind contribution items feed initial stock; category/subcategory reference data classifies items; stock movements feed the monthly In-Kind Audits report and its CSV/PDF exports.
 - **Status:** **Complete.** Tested in `tests/Feature/InventoryManagementTest.php` (13 tests), including "stock-out cannot go below zero" and audit-log recording of adjustments.
@@ -70,7 +69,7 @@
 
 ### Categories & Subcategories
 - **Purpose:** Admin-managed reference data for classifying in-kind items (categories, subcategories, units) — replaces a formerly static config file.
-- **Access:** View — all three roles (though the index route itself is gated to the `create` ability, effectively admin-only for the management screen). Create/update/delete — **Admin only**.
+- **Access:** Manage Categories is **Admin only**. Staff can use active categories and units in donation and inventory forms.
 - **Main functionality:** `InventoryCategoryController`, `InventorySubcategoryController`, `InventoryUnitController`, all delegating to `ManageInventoryReferenceItem`. Deleting a category/subcategory/unit is blocked while it's still referenced by an inventory item or contribution item — it must be deactivated instead.
 - **Connects to:** Feeds validation and dropdowns in both the Donation Portal (in-kind items) and Inventory.
 - **Status:** **Complete.** Heavily tested — `tests/Feature/InventoryCategoryManagementTest.php` (19 tests, the largest test file in the suite).
@@ -79,7 +78,7 @@
 
 ### Stock-In / Stock-Out
 - **Purpose:** Record inventory movements — incoming donations (stock-in) and outgoing distributions (stock-out).
-- **Access:** Admin & Secretary (Treasurer explicitly blocked, tested).
+- **Access:** Admin and Staff can create and adjust stock.
 - **Main functionality:** Single `InventoryStockAdjustmentController::store` wrapping `AdjustInventoryStock`, which locks the item row, computes the new quantity based on movement type, rejects negative results, and writes an `InventoryStockMovement` row plus an audit log entry.
 - **Connects to:** Movement history displays on the inventory item detail page; feeds "Monitor Live Stock" alerts.
 - **Status:** **Complete.**
@@ -88,7 +87,7 @@
 
 ### Financial Ledger
 - **Purpose:** Unified view of cash inflows (verified contributions) and outflows (approved disbursements), with reconciliation status.
-- **Access:** View — all three roles (via the Reports page); reconciliation actions live in the separate Bank Reconciliation module.
+- **Access:** View — Admin and Staff (via the Reports page); reconciliation actions live in the separate Bank Reconciliation module.
 - **Main functionality:** `FinancialLedgerReportBuilder` merges contributions and disbursements into one chronological ledger with status labels (including "Voided" for voided rows, which stay visible but are excluded from totals). Filterable by year/month. Exportable as CSV and PDF.
 - **Connects to:** Reads Contributions (Donation Portal), Cash Disbursements (Disbursements module), Bank Ledger Entries (Bank Reconciliation).
 - **Status:** **Complete for the summary/CSV path; Needs Verification for the PDF path** (PDF route exists and is wired, but has no feature test — see §4).
@@ -97,7 +96,7 @@
 
 ### Cash Disbursements and Approval
 - **Purpose:** Request, approve/reject, and (if needed) void outgoing cash payments, with a maker-checker control.
-- **Access:** Request — all three roles. Approve/Reject/Void — **Admin only**, and the approver **cannot be the same user who made the request** (enforced in code, not just UI).
+- **Access:** Request — Admin and Staff. Approve/Reject/Void — **Admin only**, and the approver **cannot be the same user who made the request** (enforced in code, not just UI).
 - **Main functionality:** `DisbursementController` (index/store/approve/reject/voidDisbursement/voidContribution) delegating to single-purpose services (`RequestDisbursement`, `ApproveDisbursement`, `RejectDisbursement`, `VoidDisbursement`, `VoidContribution`), each writing an audit event. Rejection requires a reason; void requires a reason.
 - **Connects to:** Approved, non-voided disbursements feed the Dashboard and Financial Ledger totals; void action here also handles voiding a pending, unreconciled cash **Contribution** (not just disbursements).
 - **Status:** **Needs Verification.** The code is complete and the corresponding test file (`tests/Feature/DisbursementWorkflowTest.php`, 7 tests) covers the maker-checker rule, rejection-reason requirement, and audit logging — but the team's own notes record this as "implemented but not locally verified" (no PHP/Composer available when it was built). **Run the test suite to confirm before claiming this is done in the defense.**
@@ -106,7 +105,7 @@
 
 ### Bank Reconciliation
 - **Purpose:** Import bank statement transactions and match them against recorded contributions.
-- **Access:** Import/reconcile — Admin & Treasurer only (Secretary explicitly blocked, tested). View history — all three.
+- **Access:** Import/reconcile — Admin and Staff. Staff can prepare and submit periods; only Admin can approve, reject, or reopen them.
 - **Main functionality:** `BankReconciliationController` (index/import/reconcile). CSV import (`ImportBankStatement`) rejects duplicate statement IDs. `LedgerMatchFinder` suggests candidate contribution matches (by reference number); `ReconcileLedgerEntry` performs the match and marks it reconciled. Unverified electronic contributions are excluded as match candidates.
 - **Connects to:** Reads Contributions; writes reconciliation status consumed by the Financial Ledger and Dashboard.
 - **Status:** **Complete.** Tested in `tests/Feature/BankReconciliationTest.php` (13 tests) including role restrictions, duplicate-ID rejection, and audit logging.
@@ -115,16 +114,16 @@
 
 ### Staff Account Management / System Security
 - **Purpose:** Admin tooling to create/edit/deactivate staff accounts and toggle two-factor-authentication enforcement.
-- **Access:** View — Admin & Secretary. All mutations (create/edit/deactivate account, toggle 2FA) — **Admin only**.
+- **Access:** View — Admin & Staff. All mutations (create/edit/deactivate account, toggle 2FA) — **Admin only**.
 - **Main functionality:** `StaffAccountController` (store/update/deactivate) and `SystemSecurityController` (index/updateTwoFactorEnforcement), both delegating to dedicated services. Includes a safeguard that blocks deactivating the **last remaining Admin account**.
 - **Connects to:** Every module's `created_by`/`verified_by`/`matched_by`/`approved_by` foreign keys reference `users` managed here; audit log actions also surface on this page.
 - **Status:** **Needs Verification** (same caveat as Disbursements — team notes mark this "implemented but not locally verified" even though tests exist and reportedly passed in one prior run: `tests/Feature/SystemSecurityStaffAccountTest.php`, 7 tests, and `SystemSecurityAdministrationTest.php`, 4 tests).
 - **Manually check before the meeting:** Create a new staff account, edit it, then try to deactivate every Admin account down to the last one and confirm the system blocks that last deactivation.
-- **Remaining issues:** See §7 — the open, unauthenticated `/register` route (separate from this admin-managed flow) still exists and self-provisions Secretary accounts. Decide before defense whether that should remain enabled.
+- **Remaining issues:** See §7 — the open, unauthenticated `/register` route (separate from this admin-managed flow) still exists and self-provisions Staff accounts. Decide before defense whether that should remain enabled.
 
 ### Audit Logs
 - **Purpose:** Searchable, filterable record of security-relevant and financial actions (who did what, when).
-- **Access:** View — Admin & Secretary. (No separate "edit" concept — logs are append-only.)
+- **Access:** View — Admin & Staff. (No separate "edit" concept — logs are append-only.)
 - **Main functionality:** Custom `SecurityActivityEvent` model (not a package), written explicitly by each relevant service (approve/reject/void disbursement, void contribution, remove donor, adjust stock, import/reconcile bank statement, create/update/deactivate staff account, toggle 2FA) — captures actor, action, summary, metadata, IP address, timestamp. Displayed on the System Security page with action-type filtering and free-text search.
 - **Connects to:** Cross-cuts every module listed above.
 - **Status:** **Complete** for the actions it covers.
@@ -133,7 +132,7 @@
 
 ### Reports / PDF Export
 - **Purpose:** Generate and export structured reports: Financial Ledgers, Philanthropy Roster (donor giving summary), and In-Kind Audits.
-- **Access:** View/export — all three roles.
+- **Access:** View/export — Admin and Staff.
 - **Main functionality:** `ReportController` provides Financial Ledgers, Philanthropy Roster, and In-Kind Audits. The In-Kind Audits report reads the inventory stock-movement trail, filters by month, and exports CSV/PDF with quantities before/after, reason, reference, remarks, and recorder.
 - **Connects to:** Reads Contributions, Cash Disbursements, Bank Ledger Entries, Inventory (for the separate inventory PDF export reachable from the Inventory page itself).
 - **Status:** **Complete.** Financial ledger, philanthropy roster, inventory summary, and in-kind audit PDF exports are wired. CSV exports are available for financial ledger and in-kind audit reports.
@@ -203,7 +202,7 @@ Statuses below reflect **actual code**, cross-checked against `PROJECT_REQUIREME
 1. **Run the full automated test suite** (`php artisan test`) and confirm a clean pass — several features (disbursement approval/void, staff account CRUD, PDF export) were built and reportedly tested once, but the team's own notes say this was never re-verified after later changes were merged in. This is the single highest-value thing to do before the meeting.
 2. **Sample/demo data**: there is currently **no seeder for donors, contributions, or inventory items** — `DatabaseSeeder` only creates roles, one demo user per role (and only if an env var is set), and security permissions. **Before the meeting, either write a demo seeder or manually populate the app with realistic sample data** so the dashboard/reports/ledger aren't empty during the live demo.
 3. **PDF exports**: financial-ledger and philanthropy-roster PDF downloads have no automated test — manually download and visually inspect both (layout, totals, fonts) before relying on them live.
-4. **Authentication for all roles**: manually log in as Admin, Secretary, and Treasurer and click through every module to confirm each role sees exactly what it should (especially the System Security page, which Secretary can view but not edit).
+4. **Authentication for all roles**: manually log in as Admin, Staff, and Staff and click through every module to confirm each role sees exactly what it should (especially the System Security page, which Staff can view but not edit).
 5. **Broken routes/forms**: no dangling `route()` references were found in a code-level cross-check, but do a manual click-through of every sidebar link and form submission as a final sanity pass — automated checks don't catch UI/JS issues.
 
 **Medium priority:**
@@ -225,9 +224,9 @@ Statuses below reflect **actual code**, cross-checked against `PROJECT_REQUIREME
 
 1. **What does "Reconcile Cash Ledger" mean for this project?** The current implementation is specifically **bank-statement-to-contribution matching** (import a CSV of bank lines, match each to a recorded donation, mark it reconciled) — it is *not* a general cash-inflow-vs-outflow balancing/trial-balance feature. If the adviser's original intent was the latter, that's a scope conversation to have now rather than after the defense.
 
-2. **Donor delete vs. deactivate when transaction history exists.** The system already implements a specific rule: a donor with **no** contribution history can be permanently deleted; a donor **with** history is automatically deactivated instead (never deleted), preserving all donation records. Confirm this is the intended policy — and separately, confirm whether Secretary/Treasurer should really have the same delete rights as Admin here, since there's no dedicated policy restricting it (unlike every other module).
+2. **Donor delete vs. deactivate when transaction history exists.** The system already implements a specific rule: a donor with **no** contribution history can be permanently deleted; a donor **with** history is automatically deactivated instead (never deleted), preserving all donation records. Confirm this is the intended policy — and separately, confirm whether Staff should really have the same delete rights as Admin here, since there's no dedicated policy restricting it (unlike every other module).
 
-3. **Should public self-service staff registration remain available?** `/register` is currently open to anyone, unauthenticated, and immediately creates an active **Secretary** account with no approval step — this exists in parallel with a fully-built, Admin-only staff account creation flow (`StaffAccountController`). For a back-office system like this, having both an open self-registration path *and* an admin-gated one is worth a direct decision: keep both, restrict `/register` to invite-only, or remove it entirely in favor of Admin-created accounts.
+3. **Should public self-service staff registration remain available?** `/register` is currently open to anyone, unauthenticated, and immediately creates an active **Staff** account with no approval step — this exists in parallel with a fully-built, Admin-only staff account creation flow (`StaffAccountController`). For a back-office system like this, having both an open self-registration path *and* an admin-gated one is worth a direct decision: keep both, restrict `/register` to invite-only, or remove it entirely in favor of Admin-created accounts.
 
 4. **What is the intended scope of PDF reports?** Current report PDFs cover Financial Ledger, Philanthropy Roster, Inventory Summary, and In-Kind Movement Audit. Confirm whether this is the full intended report set or whether additional report types are expected before defense.
 
@@ -235,9 +234,9 @@ Statuses below reflect **actual code**, cross-checked against `PROJECT_REQUIREME
 
 ## 7. Recommended Adviser Demo Order
 
-1. **Log in** as Admin — walk through the Dashboard, briefly explaining the three roles and how access differs.
+1. **Log in** as Admin and Staff — walk through the Dashboard, briefly explaining how their permissions differ.
 2. **Donor Management** — find/create a donor.
-3. **Donation Portal** — log a cash donation for that donor, then verify it (switch to Treasurer if you want to show the role split).
+3. **Donation Portal** — log a cash donation for that donor, then verify it (switch to Staff if you want to show the role split).
 4. **In-Kind Inventory** — log an in-kind donation, show the resulting stock entry, then perform a stock-out.
 5. **Categories & Subcategories** — briefly show the admin-only reference-data screen (optional, time permitting).
 6. **Bank Reconciliation** — import a small sample statement and reconcile one entry.

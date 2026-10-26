@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -13,7 +14,7 @@ use Illuminate\Notifications\Notifiable;
 
 class User extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
+    /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
 
     /**
@@ -23,7 +24,6 @@ class User extends Authenticatable
      */
     protected $fillable = [
         'role_id',
-        'is_super_admin',
         'first_name',
         'last_name',
         'name',
@@ -53,7 +53,6 @@ class User extends Authenticatable
         'last_login_at' => 'datetime',
         'password' => 'hashed',
         'must_change_password' => 'boolean',
-        'is_super_admin' => 'boolean',
     ];
 
     public function role(): BelongsTo
@@ -71,11 +70,6 @@ class User extends Authenticatable
         return $this->belongsToMany(Workspace::class, 'workspace_memberships')
             ->withPivot(['role_id', 'status', 'created_by'])
             ->withTimestamps();
-    }
-
-    public function isSuperAdmin(): bool
-    {
-        return (bool) $this->is_super_admin;
     }
 
     public function createdContributions(): HasMany
@@ -137,10 +131,6 @@ class User extends Authenticatable
 
     public function roleDisplayName(): string
     {
-        if ($this->isSuperAdmin() && $this->role_id === null) {
-            return 'Super Admin';
-        }
-
         if ($this->relationLoaded('role')) {
             return $this->getRelation('role')?->display_name ?? ucfirst((string) $this->roleName());
         }
