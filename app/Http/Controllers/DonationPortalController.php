@@ -26,6 +26,7 @@ class DonationPortalController extends Controller
         $contributions = Contribution::query()
             ->select([
                 'id',
+                'workspace_id',
                 'donor_id',
                 'campaign_id',
                 'created_by',
@@ -146,6 +147,6 @@ class DonationPortalController extends Controller
 
         return redirect()
             ->back()
-            ->with('success', 'Cash contribution verified successfully.');
+            ->with('success', 'Donation verified successfully.');
     }
 }

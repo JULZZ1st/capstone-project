@@ -15,7 +15,7 @@
     </style>
 </head>
 <body>
-    <h1>Barangay Treasurer Cash Audit Summary</h1>
+    <h1>Barangay Financial Audit Summary</h1>
     <p class="subtitle">Month Cycle: {{ $report['period']->format('F Y') }}</p>
 
     <table class="summary-table">

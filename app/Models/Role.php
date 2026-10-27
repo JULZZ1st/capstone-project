@@ -8,8 +8,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Role extends Model
 {
     public const ADMIN = 'admin';
-    public const SECRETARY = 'secretary';
-    public const TREASURER = 'treasurer';
+
+    public const STAFF = 'staff';
 
     protected $fillable = [
         'name',
@@ -21,4 +21,5 @@ class Role extends Model
     {
         return $this->hasMany(User::class);
     }
+
 }

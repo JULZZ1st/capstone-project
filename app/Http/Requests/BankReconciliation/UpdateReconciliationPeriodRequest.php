@@ -8,7 +8,7 @@ class UpdateReconciliationPeriodRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->hasRole('treasurer') ?? false;
+        return $this->user()?->hasRole(['staff', 'secretary', 'treasurer']) ?? false;
     }
 
     public function rules(): array

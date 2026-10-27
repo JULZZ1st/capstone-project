@@ -2,7 +2,7 @@
 
 ## Goal
 
-Provide treasurer and administrator staff with a workspace for both incoming and outgoing bank reconciliation. Incoming deposits are matched to verified electronic contributions; outgoing withdrawals are matched to approved cash disbursements. Finalized outgoing reconciliations are read-only through the normal workflow.
+Provide Admin and Staff with a workspace for both incoming and outgoing bank reconciliation. Incoming deposits are matched to verified electronic contributions; outgoing withdrawals are matched to approved cash disbursements. Finalized outgoing reconciliations are read-only through the normal workflow.
 
 ## Architecture
 
@@ -41,8 +41,8 @@ The schema uses foreign keys and indexes so each bank ledger row can be reconcil
 
 1. An authorized user opens the workspace and chooses **Incoming Funds** or **Outgoing Funds**.
 2. Incoming reconciliation loads unmatched bank deposits and eligible electronic contributions. `LedgerMatchFinder` provides suggestions; `ReconcileLedgerEntryRequest` and `ReconcileLedgerEntry` enforce the incoming match and duplicate protections.
-3. A secretary or treasurer submits a fund disbursement request. It starts as `pending`; an admin approves or rejects it, and the requester cannot approve their own request.
-4. A treasurer records or imports a withdrawal, then selects approved, active, non-voided disbursements. One withdrawal may have multiple matches.
+3. An Admin or Staff member submits a fund disbursement request. It starts as `pending`; an admin approves or rejects it, and the requester cannot approve their own request.
+4. A staff records or imports a withdrawal, then selects approved, active, non-voided disbursements. One withdrawal may have multiple matches.
 5. The outgoing screen calculates `bank withdrawal amount - selected disbursements total`.
 6. A non-zero difference requires an explanation and is saved as unresolved discrepancy data. The withdrawal remains `unreconciled` and cannot be finalized.
 7. When the difference is zero, **Confirm Reconciliation** saves the matches, sets the withdrawal to `reconciled`, and records `reconciled_by` and `reconciled_at`.
@@ -51,11 +51,11 @@ The schema uses foreign keys and indexes so each bank ledger row can be reconcil
 
 ## Permission Model
 
-- `admin`, `secretary`, and `treasurer` can view the workspace.
-- `admin` and `treasurer` can import or record withdrawals and manage outgoing matches/finalization.
+- `admin` and `staff` can view the workspace.
+- `admin` and `staff` can import or record withdrawals and manage outgoing matches/finalization.
 - `admin` approves or rejects disbursement requests and performs controlled void actions.
-- `secretary` can submit disbursement requests but cannot approve, reject, or reconcile.
-- `treasurer` verifies incoming receipts, records/imports withdrawals, matches approved disbursements, resolves discrepancies, and finalizes balanced withdrawals.
+- `staff` can submit disbursement requests but cannot approve, reject, or reconcile.
+- `staff` verifies incoming receipts, records/imports withdrawals, matches approved disbursements, resolves discrepancies, and finalizes balanced withdrawals.
 - Authorization is enforced through `BankLedgerEntryPolicy` and the Form Request.
 
 ## UI Components
@@ -77,7 +77,7 @@ The UI follows the existing app dashboard style: white cards, slate borders, com
 - Finalized withdrawal is requested through the normal edit/match route.
 - No ledger entries need review.
 - No electronic receipts are available.
-- Secretary attempts reconciliation and receives validation/authorization denial.
+- Staff can reconcile bank transactions within the active workspace.
 - Balanced outgoing withdrawal can be finalized and records reconciler metadata.
 - Outgoing history and read-only details show finalized match data.
 
@@ -87,8 +87,8 @@ Feature coverage should verify:
 
 - Authorized users can view the workspace.
 - Match suggestions appear for compatible ledger and contribution records.
-- Treasurer/admin can reconcile.
-- Secretary cannot reconcile.
+- Staff/admin can reconcile.
+- Staff can import statements and reconcile transactions; only Admin can approve or reopen periods.
 - Duplicate reconciliation is rejected.
 
 Current focused test file:

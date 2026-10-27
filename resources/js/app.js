@@ -1,47 +1,109 @@
 import './bootstrap';
 import './charts';
 
-let toastTimer = null;
+const donorSearchTimers = new WeakMap();
+const donorSearchRequests = new WeakMap();
 
-const hideToast = (dialog = null) => {
-    const toast = dialog?.querySelector('[data-ui-toast]') ?? document.querySelector('[data-ui-toast]');
+const refreshDonorResults = async (form, targetUrl) => {
+    const results = document.querySelector('[data-donor-results]');
 
-    window.clearTimeout(toastTimer);
-    toast?.classList.add('hidden');
-};
-
-const showToast = (wizard, title, description) => {
-    const toast = wizard.closest('dialog')?.querySelector('[data-ui-toast]');
-
-    if (! toast) {
+    if (! results) {
+        form.requestSubmit();
         return;
     }
 
-    toast.querySelector('[data-ui-toast-title]')?.replaceChildren(document.createTextNode(title));
-    toast.querySelector('[data-ui-toast-description]')?.replaceChildren(document.createTextNode(description));
-    toast.classList.remove('hidden');
+    donorSearchRequests.get(form)?.abort();
+    const controller = new AbortController();
+    donorSearchRequests.set(form, controller);
+    results.setAttribute('aria-busy', 'true');
 
-    window.clearTimeout(toastTimer);
-    toastTimer = window.setTimeout(() => toast.classList.add('hidden'), 4200);
+    try {
+        const response = await fetch(targetUrl, {
+            headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+            signal: controller.signal,
+        });
+
+        if (! response.ok) {
+            throw new Error(`Donor search failed with status ${response.status}`);
+        }
+
+        const payload = await response.json();
+        const donorTbody = results.querySelector('[data-donor-tbody]');
+        if (donorTbody) {
+            donorTbody.innerHTML = payload.rows;
+        }
+        results.querySelector('[data-donor-pagination]').innerHTML = payload.pagination;
+        results.querySelector('[data-donor-modals]').innerHTML = payload.modals;
+        window.history.replaceState({}, '', targetUrl);
+    } catch (error) {
+        if (error.name !== 'AbortError') {
+            window.location.assign(targetUrl);
+        }
+    } finally {
+        if (donorSearchRequests.get(form) === controller) {
+            donorSearchRequests.delete(form);
+            results.removeAttribute('aria-busy');
+        }
+    }
 };
 
-const resetDonorWizard = (dialog) => {
-    const wizard = dialog?.querySelector('[data-donor-form]');
+const donorUrl = (form, page = 1) => {
+    const url = new URL(form.action, window.location.origin);
+    const formData = new FormData(form);
 
-    hideToast(dialog);
+    for (const [key, value] of formData.entries()) {
+        if (value !== '') url.searchParams.set(key, value);
+    }
 
-    if (! wizard) {
+    if (page > 1) url.searchParams.set('page', page);
+
+    return url.toString();
+};
+
+document.addEventListener('input', (event) => {
+    const input = event.target.closest('[data-donor-live-search]');
+
+    if (! input) {
         return;
     }
 
-    wizard.closest('form')?.reset();
-    wizard.querySelectorAll('input, select, textarea').forEach((field) => {
-        clearDonorWizardHighlight(field);
-        field.removeAttribute('aria-invalid');
-    });
-    setDonorWizardStep(wizard, Number(wizard.dataset.wizardStartStep) || 0);
-    updateDonorCreateForm(wizard);
-};
+    const form = input.closest('[data-donor-search-form]');
+    if (! form) {
+        return;
+    }
+
+    window.clearTimeout(donorSearchTimers.get(form));
+    donorSearchTimers.set(form, window.setTimeout(() => refreshDonorResults(form, donorUrl(form)), 250));
+});
+
+document.addEventListener('change', (event) => {
+    const filter = event.target.closest('[data-donor-live-filter]');
+
+    if (filter) {
+        refreshDonorResults(filter.closest('[data-donor-search-form]'), donorUrl(filter.closest('[data-donor-search-form]')));
+    }
+});
+
+document.addEventListener('click', (event) => {
+    const link = event.target.closest('[data-donor-pagination] a');
+
+    if (! link) return;
+
+    const form = document.querySelector('[data-donor-search-form]');
+    if (! form) return;
+
+    event.preventDefault();
+    const url = new URL(link.href, window.location.origin);
+    refreshDonorResults(form, donorUrl(form, Number(url.searchParams.get('page') || 1)));
+});
+
+const successToast = document.querySelector('[data-toast]');
+if (successToast) {
+    window.setTimeout(() => {
+        successToast.classList.add('translate-y-[-0.5rem]', 'opacity-0');
+        window.setTimeout(() => successToast.remove(), 300);
+    }, 4000);
+}
 
 document.addEventListener('click', (event) => {
     const openButton = event.target.closest('[data-dialog-open]');
@@ -51,7 +113,6 @@ document.addEventListener('click', (event) => {
         const dialog = document.getElementById(openButton.dataset.dialogOpen);
 
         if (dialog instanceof HTMLDialogElement) {
-            resetDonorWizard(dialog);
             dialog.showModal();
         }
     }
@@ -60,7 +121,6 @@ document.addEventListener('click', (event) => {
         const dialog = document.getElementById(closeButton.dataset.dialogClose);
 
         if (dialog instanceof HTMLDialogElement) {
-            resetDonorWizard(dialog);
             dialog.close();
         }
     }
@@ -68,7 +128,6 @@ document.addEventListener('click', (event) => {
 
 document.addEventListener('cancel', (event) => {
     if (event.target instanceof HTMLDialogElement) {
-        resetDonorWizard(event.target);
         event.target.close();
     }
 }, true);
@@ -131,36 +190,29 @@ const setDonorWizardStep = (wizard, stepIndex) => {
     wizard.dataset.currentWizardStep = String(currentIndex);
 };
 
-const invalidDonorWizardFields = (step) => Array.from(step.querySelectorAll('input, select, textarea'))
-    .filter((field) => field.required && ! field.disabled && ! field.closest('[data-wizard-step]')?.hidden && ! field.checkValidity());
-
-const invalidDonorWizardField = (step) => invalidDonorWizardFields(step)[0];
-
-const clearDonorWizardHighlight = (field) => {
-    field.classList.remove('border-rose-500', 'ring-1', 'ring-rose-500');
-    field.removeAttribute('aria-invalid');
-};
+const invalidDonorWizardField = (step) => Array.from(step.querySelectorAll('input, select, textarea'))
+    .find((field) => ! field.disabled
+        && ! field.closest('[data-wizard-step]')?.hidden
+        && ! field.checkValidity());
 
 const validateDonorWizardStep = (wizard, step) => {
-    const invalidFields = invalidDonorWizardFields(step);
-    const invalidField = invalidFields[0];
+    const invalidField = invalidDonorWizardField(step);
+    const errorMessage = donorWizardControls(wizard).error ?? wizard.querySelector('[data-wizard-error]');
 
-    step.querySelectorAll('input, select, textarea').forEach(clearDonorWizardHighlight);
-    invalidFields.forEach((field) => {
-        field.classList.add('border-rose-500', 'ring-1', 'ring-rose-500');
-        field.setAttribute('aria-invalid', 'true');
-    });
+    if (errorMessage) {
+        errorMessage.hidden = ! invalidField;
+        if (invalidField) {
+            const invalidCount = Array.from(step.querySelectorAll('input, select, textarea')).filter((field) => ! field.disabled && ! field.checkValidity()).length;
+            errorMessage.textContent = invalidCount > 1
+                ? 'Please fill out the remaining fields.'
+                : 'Please fill out the remaining field.';
+        }
+    }
 
     if (! invalidField) {
         return true;
     }
 
-    showToast(wizard,
-        'Required field missing',
-        invalidFields.length > 1
-            ? 'Complete the highlighted required fields before continuing.'
-            : 'Complete the highlighted required field before continuing.',
-    );
     invalidField.focus();
     invalidField.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
@@ -221,7 +273,11 @@ document.addEventListener('input', (event) => {
     const wizard = donorWizardForm(event.target);
 
     if (wizard) {
-        clearDonorWizardHighlight(event.target);
+        const error = donorWizardControls(wizard).error ?? wizard.querySelector('[data-wizard-error]');
+
+        if (error) {
+            error.hidden = true;
+        }
     }
 });
 
@@ -229,7 +285,11 @@ document.addEventListener('change', (event) => {
     const wizard = donorWizardForm(event.target);
 
     if (wizard) {
-        clearDonorWizardHighlight(event.target);
+        const error = donorWizardControls(wizard).error ?? wizard.querySelector('[data-wizard-error]');
+
+        if (error) {
+            error.hidden = true;
+        }
     }
 });
 
@@ -251,19 +311,33 @@ const updateReferenceRequirement = (form) => {
     const reference = form.querySelector('[data-reference-number]');
     const referenceField = form.querySelector('[data-reference-field]');
     const referenceLabel = form.querySelector('[data-reference-label]');
+    const methodName = form.querySelector('[data-payment-method-name]');
+    const methodNameField = form.querySelector('[data-payment-method-name-field]');
+
+    if (methodName && methodNameField) {
+        const isOther = method === 'other';
+
+        methodNameField.hidden = ! isOther;
+        methodName.disabled = ! isOther;
+        methodName.required = isOther;
+
+        if (! isOther) {
+            methodName.value = '';
+        }
+    }
 
     if (! reference || ! referenceField) {
         return;
     }
 
-    const isElectronic = method !== '' && method !== 'cash';
+    const isElectronic = method !== '' && method !== 'cash' && method !== 'other';
     const methodLabel = form.querySelector('[data-payment-method] option:checked')?.textContent?.trim();
 
     referenceField.hidden = ! isElectronic;
     reference.disabled = ! isElectronic;
     reference.required = isElectronic;
-    referenceLabel.textContent = methodLabel && method !== 'other'
-        ? `${methodLabel} ${method === 'check' || method === 'money_order' ? 'No.' : 'Reference No.'}`
+    referenceLabel.textContent = methodLabel
+        ? `${methodLabel} ${method === 'check' ? 'No.' : 'Reference No.'}`
         : 'External Payment Reference No.';
     reference.placeholder = isElectronic
         ? 'Enter the reference from the payment provider'
@@ -433,6 +507,21 @@ document.querySelectorAll('[data-contribution-form]').forEach((form) => {
     updateContributionSections(form);
     updateReferenceRequirement(form);
 });
+
+document.addEventListener('submit', (event) => {
+    const form = event.target.closest('[data-contribution-form]');
+    const submit = form?.querySelector('[data-contribution-submit]');
+
+    if (! form || ! submit) {
+        return;
+    }
+
+    submit.disabled = true;
+    submit.setAttribute('aria-busy', 'true');
+    const label = submit.querySelector('[data-contribution-submit-label]');
+    if (label) label.textContent = 'Saving…';
+});
+
 document.querySelectorAll('[data-inventory-item-form]').forEach((form) => updateInventorySubcategorySelect(form));
 initializeSubcategorySelects();
 

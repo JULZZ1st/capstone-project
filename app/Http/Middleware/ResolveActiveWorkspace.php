@@ -27,8 +27,26 @@ class ResolveActiveWorkspace
             return $next($request);
         }
 
-        if ($user->isSuperAdmin()) {
-            $request->session()->forget('active_workspace_id');
+        if ($user->hasRole('admin')) {
+            $sessionWorkspaceId = $request->session()->get('active_workspace_id');
+            $workspace = $sessionWorkspaceId !== null ? Workspace::query()->find($sessionWorkspaceId) : null;
+
+            if ($workspace === null || ! $this->authorizer->canAccess($user, $workspace)) {
+                $workspace = $user->workspaceMemberships()
+                    ->with('workspace')
+                    ->where('status', 'active')
+                    ->whereHas('workspace', fn ($query) => $query->where('status', 'active'))
+                    ->latest('id')
+                    ->first()?->workspace
+                    ?? Workspace::query()->where('status', 'active')->orderBy('id')->first();
+            }
+
+            if ($workspace !== null) {
+                $this->context->set($workspace);
+                $request->session()->put('active_workspace_id', $workspace->getKey());
+            } else {
+                $request->session()->forget('active_workspace_id');
+            }
 
             return $next($request);
         }
@@ -40,7 +58,7 @@ class ResolveActiveWorkspace
             if ($workspace === null || ! $this->authorizer->canAccess($user, $workspace)) {
                 $request->session()->forget('active_workspace_id');
 
-                if ($workspace !== null && ! $user->isSuperAdmin()) {
+                if ($workspace !== null && ! $user->hasRole('admin')) {
                     abort(403, 'You are not authorized to access this workspace.');
                 }
             } else {
@@ -48,7 +66,7 @@ class ResolveActiveWorkspace
             }
         }
 
-        if (! $this->context->hasWorkspace() && ! $user->isSuperAdmin()) {
+        if (! $this->context->hasWorkspace()) {
             $membership = $user->workspaceMemberships()
                 ->with('workspace')
                 ->where('status', 'active')

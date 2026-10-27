@@ -34,7 +34,7 @@ class DashboardMetrics
                     fn (): int => Donor::query()->count(),
                 ),
             ],
-            'treasurer_action_items' => $this->treasurerActionItems($pendingStatus),
+            'staff_finance_action_items' => $this->staffFinanceActionItems($pendingStatus),
             'funding_distribution' => $this->fundingDistribution($verifiedStatus),
             'recent_cash_awaiting_audit' => Contribution::query()
                 ->select(['id', 'donor_id', 'amount', 'payment_method', 'received_at', 'created_at'])
@@ -46,7 +46,7 @@ class DashboardMetrics
                 ->limit($limit)
                 ->get(),
             'system_log_activity' => $this->systemLogActivity($limit),
-            'secretary_in_kind_control' => [
+            'staff_in_kind_control' => [
                 'status_counts' => InventoryItem::query()
                     ->select('status', DB::raw('count(*) as total'))
                     ->groupBy('status')
@@ -79,7 +79,7 @@ class DashboardMetrics
         ];
     }
 
-    private function treasurerActionItems(string $pendingStatus): array
+    private function staffFinanceActionItems(string $pendingStatus): array
     {
         $latestReconciledEntry = BankLedgerEntry::query()
             ->where('status', 'reconciled')
@@ -123,20 +123,21 @@ class DashboardMetrics
     private function systemLogActivity(int $limit): Collection
     {
         return collect()
-            ->merge($this->activityFrom(Contribution::query()->latest()->limit($limit)->get(['id', 'type as label', 'created_at']), 'Contribution logged'))
-            ->merge($this->activityFrom(InventoryItem::query()->latest()->limit($limit)->get(['id', 'name as label', 'created_at']), 'Inventory updated'))
-            ->merge($this->activityFrom(CashDisbursement::query()->latest()->limit($limit)->get(['id', 'purpose as label', 'created_at']), 'Cash disbursed'))
+            ->merge($this->activityFrom(Contribution::query()->latest()->limit($limit)->get(['id', 'type as label', 'created_at']), 'Contribution logged', 'donations.show'))
+            ->merge($this->activityFrom(InventoryItem::query()->latest()->limit($limit)->get(['id', 'name as label', 'created_at']), 'Inventory updated', 'inventory.show'))
+            ->merge($this->activityFrom(CashDisbursement::query()->latest()->limit($limit)->get(['id', 'purpose as label', 'created_at']), 'Cash request updated', 'disbursements.show'))
             ->sortByDesc('created_at')
             ->take($limit)
             ->values();
     }
 
-    private function activityFrom(Collection $records, string $event): Collection
+    private function activityFrom(Collection $records, string $event, ?string $routeName = null): Collection
     {
         return $records->map(fn ($record): array => [
             'event' => $event,
             'label' => $record->label,
             'created_at' => $record->created_at,
+            'url' => $routeName ? route($routeName, $record->id) : null,
         ]);
     }
 }
