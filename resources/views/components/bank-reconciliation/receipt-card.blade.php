@@ -13,7 +13,7 @@
 
     <div class="mt-3 flex items-center justify-between gap-4">
         <p class="truncate text-xs text-slate-400">
-            {{ config("donations.payment_methods.{$contribution->payment_method}", ucfirst((string) $contribution->payment_method)) }}
+            {{ $contribution->paymentMethodLabel() }}
             &middot; External ref: {{ $contribution->reference_number ?? '—' }}
         </p>
 

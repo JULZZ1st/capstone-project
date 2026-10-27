@@ -35,7 +35,8 @@ class FinancialLedgerReportBuilder
             ->get();
 
         $bankEntries = BankLedgerEntry::query()
-            ->whereBetween('transaction_date', [$periodStart->toDateString(), $periodEnd->toDateString()])
+            ->whereDate('transaction_date', '>=', $periodStart->toDateString())
+            ->whereDate('transaction_date', '<=', $periodEnd->toDateString())
             ->get();
 
         return [
@@ -71,7 +72,7 @@ class FinancialLedgerReportBuilder
 
     private function wireSourceBreakdown(Collection $contributions): Collection
     {
-        $methodLabels = config('donations.payment_methods');
+        $methodLabels = array_merge(config('donations.payment_methods'), config('donations.legacy_payment_methods'));
 
         $totals = $contributions->reject(fn (Contribution $contribution) => $contribution->isVoided())
             ->groupBy('payment_method')
@@ -93,9 +94,8 @@ class FinancialLedgerReportBuilder
     private function ledgerRows(Collection $contributions, Collection $disbursements): Collection
     {
         $statuses = config('bank_reconciliation.receipt_statuses');
-        $methodLabels = config('donations.payment_methods');
 
-        $contributionRows = $contributions->map(function (Contribution $contribution) use ($statuses, $methodLabels) {
+        $contributionRows = $contributions->map(function (Contribution $contribution) use ($statuses) {
             $statusKey = $contribution->isVoided() ? 'voided' : ($this->isReconciled($contribution) ? 'reconciled' : 'pending');
 
             return [
@@ -103,7 +103,7 @@ class FinancialLedgerReportBuilder
                 'entry_type' => 'Contribution',
                 'donor_name' => $contribution->donor?->full_name ?? 'Unknown Donor',
                 'purpose' => 'General Fund',
-                'payment_method_label' => $methodLabels[$contribution->payment_method] ?? ucfirst((string) $contribution->payment_method),
+                'payment_method_label' => $contribution->paymentMethodLabel(),
                 'amount' => (float) $contribution->amount,
                 'received_at' => $contribution->received_at,
                 'status_key' => $statusKey,

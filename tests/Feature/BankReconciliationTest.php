@@ -6,6 +6,7 @@ use App\Models\BankLedgerEntry;
 use App\Models\CashDisbursement;
 use App\Models\Contribution;
 use App\Models\Donor;
+use App\Models\ReconciliationDiscrepancy;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -345,6 +346,40 @@ XML);
         $this->actingAs($treasurer)->post(route('bank-reconciliation.withdrawals.matches.store', $withdrawal), [
             'disbursement_ids' => [$first->id],
         ])->assertSessionHasErrors('withdrawal');
+    }
+
+    public function test_unrelated_unresolved_period_discrepancy_does_not_block_balanced_withdrawal_reconciliation(): void
+    {
+        $treasurer = $this->userWithRole('staff');
+        $period = app(\App\Services\BankReconciliation\ReconciliationPeriodService::class)->create([
+            'period_start' => '2026-10-01',
+            'period_end' => '2026-10-31',
+            'opening_balance' => 10000,
+            'bank_ending_balance' => 10000,
+            'prepared_by' => $treasurer->id,
+        ]);
+        $discrepancy = ReconciliationDiscrepancy::query()->create([
+            'bank_reconciliation_id' => $period->id,
+            'type' => 'bank_charge',
+            'classification' => 'accounting_adjustment',
+            'amount' => 50,
+            'explanation' => 'Unrelated period-level bank charge under investigation.',
+            'evidence_reference' => 'CHG-UNRELATED-001',
+            'resolution_status' => 'unresolved',
+            'adjustment_amount' => 0,
+            'carry_forward' => false,
+        ]);
+        $withdrawal = $this->withdrawalEntry(['amount' => 5000, 'transaction_date' => '2026-10-05']);
+        $disbursement = $this->cashDisbursement(['amount' => 5000]);
+
+        $this->actingAs($treasurer)->post(route('bank-reconciliation.withdrawals.reconcile', $withdrawal), [
+            'withdrawal_id' => $withdrawal->id,
+            'disbursement_ids' => [$disbursement->id],
+            'finalize' => 1,
+        ])->assertRedirect(route('bank-reconciliation.index', ['tab' => 'outgoing']));
+
+        $this->assertDatabaseHas('bank_ledger_entries', ['id' => $withdrawal->id, 'status' => 'reconciled']);
+        $this->assertDatabaseHas('reconciliation_discrepancies', ['id' => $discrepancy->id, 'resolution_status' => 'unresolved']);
     }
 
     public function test_finalized_withdrawal_history_has_details_and_is_read_only(): void

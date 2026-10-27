@@ -203,16 +203,16 @@ class InventoryManagementTest extends TestCase
         $this->get(route('inventory.export.pdf'))->assertRedirect(route('login'));
     }
 
-    public function test_staff_can_adjust_inventory_stock(): void
+    public function test_staff_can_make_stock_adjustments_within_their_workspace(): void
     {
-        $treasurerRole = Role::query()->firstOrCreate(
+        $staffRole = Role::query()->firstOrCreate(
             ['name' => 'staff'],
             config('auth_defaults.roles.staff')
         );
-        $treasurer = User::factory()->create(['role_id' => $treasurerRole->id]);
+        $staff = User::factory()->create(['role_id' => $staffRole->id]);
         $item = $this->inventoryItem();
 
-        $response = $this->actingAs($treasurer)->post(route('inventory.adjustments.store', $item), [
+        $response = $this->actingAs($staff)->post(route('inventory.adjustments.store', $item), [
             'movement_type' => 'stock_in',
             'quantity' => 1,
             'reason' => 'correction',

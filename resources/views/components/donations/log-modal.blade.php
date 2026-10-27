@@ -4,7 +4,8 @@
 
 <dialog
     id="log-contribution-dialog"
-    class="w-[min(940px,calc(100vw-2rem))] rounded-2xl p-0 shadow-xl backdrop:bg-slate-950/50"
+    class="m-auto w-[min(760px,calc(100vw-2rem))] overflow-hidden rounded-2xl p-0 shadow-2xl backdrop:bg-slate-950/50"
+    aria-labelledby="log-contribution-title"
     @if($errors->any()) open @endif
 >
     <form
@@ -16,20 +17,12 @@
     >
         @csrf
 
-        <div class="flex shrink-0 items-center justify-between border-b border-slate-200 bg-white px-5 py-4">
+        <div class="sticky top-0 z-10 flex shrink-0 items-center justify-between border-b border-slate-200 bg-white px-5 py-3">
             <div class="flex items-center gap-3">
-                <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-100 text-blue-700">
-                    <x-icon name="gift" class="h-5 w-5" />
-                </span>
-
                 <div>
-                    <h2 class="text-lg font-semibold text-slate-950">
+                    <h2 id="log-contribution-title" class="text-lg font-semibold text-slate-950">
                         Add Contribution
                     </h2>
-
-                    <p class="text-sm text-slate-500">
-                        Record cash or in-kind donations from active donors.
-                    </p>
                 </div>
             </div>
 
@@ -43,7 +36,7 @@
         </div>
 
         <div class="min-h-0 flex-1 overflow-y-auto">
-            <div class="space-y-5 px-5 py-5">
+            <div class="space-y-4 px-5 py-4">
 
                 @if ($donors->isEmpty())
                     <x-alert type="error">
@@ -129,13 +122,8 @@
                 />
 
                 <div>
-
-                    <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-700">
-                        Additional Information
-                    </h3>
-
-                    <x-form.label for="notes" class="mt-3">
-                        Notes / Remarks
+                    <x-form.label for="notes">
+                        Notes <span class="font-normal text-slate-400">(optional)</span>
                     </x-form.label>
 
                     <textarea
@@ -165,7 +153,7 @@
             </div>
         </div>
 
-        <div class="flex shrink-0 flex-col-reverse gap-3 border-t border-slate-200 bg-slate-50 px-5 py-4 sm:flex-row sm:justify-end">
+        <div class="sticky bottom-0 z-10 flex shrink-0 flex-col-reverse gap-3 border-t border-slate-200 bg-slate-50 px-5 py-3 sm:flex-row sm:justify-end">
 
             <button
                 type="button"
@@ -178,8 +166,9 @@
             <x-button
                 class="sm:w-auto"
                 :disabled="$donors->isEmpty()"
+                data-contribution-submit
             >
-                Save Contribution
+                <span data-contribution-submit-label>Save Contribution</span>
             </x-button>
 
         </div>

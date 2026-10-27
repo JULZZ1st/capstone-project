@@ -89,7 +89,7 @@ class FinancialLedgerReportBuilderTest extends TestCase
 
     public function test_disbursement_total_only_counts_approved_active_disbursements(): void
     {
-        $requester = User::factory()->create(['role_id' => Role::query()->firstOrCreate(['name' => 'staff'])->id]);
+        $requester = User::factory()->create(['role_id' => Role::query()->firstOrCreate(['name' => 'staff'], config('auth_defaults.roles.staff'))->id]);
         $admin = User::factory()->create(['role_id' => Role::query()->firstOrCreate(['name' => 'admin'])->id]);
 
         CashDisbursement::query()->create([

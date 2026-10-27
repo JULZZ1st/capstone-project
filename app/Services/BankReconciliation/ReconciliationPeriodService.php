@@ -99,8 +99,8 @@ class ReconciliationPeriodService
         $start = $period->period_start->startOfDay();
         $end = $period->period_end->endOfDay();
 
-        $bankIn = (float) BankLedgerEntry::query()->whereBetween('transaction_date', [$start->toDateString(), $end->toDateString()])->where('transaction_type', 'deposit')->sum('amount');
-        $bankOut = (float) BankLedgerEntry::query()->whereBetween('transaction_date', [$start->toDateString(), $end->toDateString()])->where('transaction_type', 'withdrawal')->sum('amount');
+        $bankIn = (float) BankLedgerEntry::query()->whereDate('transaction_date', '>=', $start->toDateString())->whereDate('transaction_date', '<=', $end->toDateString())->where('transaction_type', 'deposit')->sum('amount');
+        $bankOut = (float) BankLedgerEntry::query()->whereDate('transaction_date', '>=', $start->toDateString())->whereDate('transaction_date', '<=', $end->toDateString())->where('transaction_type', 'withdrawal')->sum('amount');
         $ledgerIn = (float) Contribution::query()->where('type', 'cash')->where('status', '!=', 'cancelled')->whereNull('voided_at')->whereBetween('received_at', [$start, $end])->sum('amount');
         $ledgerOut = (float) CashDisbursement::query()->where('status', 'approved')->whereNull('voided_at')->whereBetween('created_at', [$start, $end])->sum('amount');
         $ledgerEnding = (float) $period->opening_balance + $ledgerIn - $ledgerOut;
@@ -147,7 +147,8 @@ class ReconciliationPeriodService
         foreach ($items as $item) {
             $transactionType = $item->type === 'outstanding_check' ? 'withdrawal' : 'deposit';
             $entry = BankLedgerEntry::query()
-                ->whereBetween('transaction_date', [$start->toDateString(), $end->toDateString()])
+                ->whereDate('transaction_date', '>=', $start->toDateString())
+                ->whereDate('transaction_date', '<=', $end->toDateString())
                 ->where('transaction_type', $transactionType)
                 ->where('amount', $item->amount)
                 ->where(function ($query) use ($item) {

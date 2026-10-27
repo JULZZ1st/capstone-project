@@ -86,7 +86,7 @@ class ReconciliationApprovalService
                 $query->where('classification', '!=', 'timing_difference')->orWhereNotIn('type', ['outstanding_check', 'deposit_in_transit']);
             })->exists();
         if ($invalidTiming || $unexplained) $errors['discrepancies'] = 'Unexplained differences must be resolved; timing items require valid evidence and review.';
-        $unmatched = BankLedgerEntry::query()->whereBetween('transaction_date', [$period->period_start, $period->period_end])->whereIn('status', ['unmatched', 'unreconciled'])->exists();
+        $unmatched = BankLedgerEntry::query()->whereDate('transaction_date', '>=', $period->period_start->toDateString())->whereDate('transaction_date', '<=', $period->period_end->toDateString())->whereIn('status', ['unmatched', 'unreconciled'])->exists();
         if ($unmatched) $errors['matching'] = 'All bank movements in the period must be matched before approval.';
         if ($errors !== []) throw ValidationException::withMessages($errors);
     }

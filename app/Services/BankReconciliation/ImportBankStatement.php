@@ -185,9 +185,17 @@ class ImportBankStatement
         }
 
         try {
-            $transactionDate = is_numeric($date)
-                ? Carbon::create(1899, 12, 30)->addDays((int) $date)->toDateString()
-                : Carbon::parse($date)->toDateString();
+            if (is_numeric($date)) {
+                $excelSerial = (float) $date;
+                $wholeDays = (int) floor($excelSerial);
+                $fractionalSeconds = (int) round(($excelSerial - $wholeDays) * 86400);
+                $transactionDate = Carbon::create(1899, 12, 30)
+                    ->addDays($wholeDays)
+                    ->addSeconds($fractionalSeconds)
+                    ->toDateString();
+            } else {
+                $transactionDate = Carbon::parse($date)->toDateString();
+            }
         } catch (\Throwable) {
             throw ValidationException::withMessages(['statement' => "Invalid transaction date on row {$line}."]);
         }

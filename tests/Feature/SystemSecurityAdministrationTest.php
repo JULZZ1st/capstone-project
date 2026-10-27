@@ -31,12 +31,12 @@ class SystemSecurityAdministrationTest extends TestCase
         $this->assertDatabaseHas('security_permissions', ['name' => SecurityPermission::query()->firstOrFail()->name]);
     }
 
-    public function test_staff_cannot_manage_system_security_administration(): void
+    public function test_staff_cannot_view_system_security_administration_page(): void
     {
-        $secretary = $this->userWithRole('staff');
+        $staff = $this->userWithRole('staff');
         $this->seed(SystemSecuritySeeder::class);
 
-        $response = $this->actingAs($secretary)->get(route('system-security.index'));
+        $response = $this->actingAs($staff)->get(route('system-security.index'));
 
         $response->assertForbidden();
     }
@@ -67,25 +67,25 @@ class SystemSecurityAdministrationTest extends TestCase
     public function test_admin_can_toggle_two_factor_enforcement_and_audit_event_is_recorded(): void
     {
         $admin = $this->userWithRole('admin');
-        $secretary = $this->userWithRole('staff');
+        $staff = $this->userWithRole('staff');
         $this->seed(SystemSecuritySeeder::class);
 
         UserSecurityProfile::query()->updateOrCreate(
-            ['user_id' => $secretary->id],
+            ['user_id' => $staff->id],
             ['two_factor_enabled' => true, 'two_factor_enforced' => false],
         );
 
-        $response = $this->actingAs($admin)->patch(route('system-security.two-factor-enforcement.update', $secretary), [
+        $response = $this->actingAs($admin)->patch(route('system-security.two-factor-enforcement.update', $staff), [
             'enforced' => true,
         ]);
 
         $response->assertRedirect(route('system-security.index'));
         $this->assertDatabaseHas('user_security_profiles', [
-            'user_id' => $secretary->id,
+            'user_id' => $staff->id,
             'two_factor_enforced' => true,
         ]);
         $this->assertDatabaseHas('security_activity_events', [
-            'user_id' => $secretary->id,
+            'user_id' => $staff->id,
             'actor_id' => $admin->id,
             'action' => 'two_factor_enforced',
         ]);

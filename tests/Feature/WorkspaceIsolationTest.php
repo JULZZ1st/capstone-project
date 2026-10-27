@@ -4,9 +4,11 @@ namespace Tests\Feature;
 
 use App\Models\Contribution;
 use App\Models\Donor;
+use App\Models\InventoryItem;
 use App\Models\Role;
 use App\Models\User;
 use App\Models\Workspace;
+use App\Support\Dashboard\DashboardMetrics;
 use App\Support\Workspaces\WorkspaceContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
@@ -83,6 +85,42 @@ class WorkspaceIsolationTest extends TestCase
             ->withSession(['active_workspace_id' => $workspaceA->id])
             ->get(route('donors.index'))
             ->assertOk();
+    }
+
+    public function test_dashboard_cached_counts_are_isolated_by_workspace(): void
+    {
+        [, $workspaceA, $workspaceB] = $this->workspaces();
+
+        foreach ([$workspaceA, $workspaceB] as $workspaceIndex => $workspace) {
+            app(WorkspaceContext::class)->set($workspace);
+            $recordCount = $workspaceIndex + 1;
+
+            for ($recordIndex = 0; $recordIndex < $recordCount; $recordIndex++) {
+                Donor::query()->create([
+                    'full_name' => 'Donor '.$recordIndex,
+                    'donor_type' => 'individual',
+                    'status' => 'active',
+                    'address' => 'San Isidro',
+                    'contact_number' => '09171234567',
+                ]);
+                InventoryItem::query()->create([
+                    'name' => 'Item '.$recordIndex,
+                    'category' => 'food',
+                    'quantity' => 1,
+                ]);
+            }
+
+            $summary = app(DashboardMetrics::class)->build()['summary'];
+
+            $this->assertSame($recordCount, $summary['registered_donors']);
+            $this->assertSame($recordCount, $summary['in_kind_batches']);
+        }
+
+        app(WorkspaceContext::class)->set($workspaceA);
+        $summary = app(DashboardMetrics::class)->build()['summary'];
+
+        $this->assertSame(1, $summary['registered_donors']);
+        $this->assertSame(1, $summary['in_kind_batches']);
     }
 
     private function workspaces(): array

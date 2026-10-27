@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>UX/UI Smoke Test Report</title>
+    <style>
+        @page { size: A4; margin: 16mm; }
+        body { font-family: Arial, sans-serif; color: #172033; line-height: 1.45; font-size: 10.5pt; }
+        h1 { color: #123b78; font-size: 24pt; margin-bottom: 4px; }
+        h2 { color: #123b78; border-bottom: 2px solid #d7e3f4; padding-bottom: 4px; margin-top: 22px; }
+        h3 { color: #254f86; margin-bottom: 4px; }
+        .muted { color: #667085; }
+        .summary { background: #eef6ff; border-left: 5px solid #2563eb; padding: 12px 15px; margin: 14px 0; }
+        .pass { color: #087443; font-weight: 700; }
+        .fail { color: #b42318; font-weight: 700; }
+        .medium { color: #a15c00; font-weight: 700; }
+        table { width: 100%; border-collapse: collapse; margin: 8px 0 16px; }
+        th, td { border: 1px solid #d9e0ea; padding: 6px 7px; vertical-align: top; }
+        th { background: #edf2f8; text-align: left; }
+        img { max-width: 100%; border: 1px solid #cbd5e1; border-radius: 6px; margin: 5px 0 12px; }
+        .page-break { break-before: page; }
+        code { background: #f3f4f6; padding: 1px 3px; border-radius: 3px; }
+        ul { margin-top: 4px; }
+    </style>
+</head>
+<body>
+    <h1>Barangay Donation Management System</h1>
+    <p><strong>UX/UI Smoke Test and Usability Audit</strong><br>
+        <span class="muted">Executed: 24 October 2026 · Browser: Playwright Chromium · Environment: local Laravel server</span></p>
+
+    <div class="summary">
+        <strong>Overall assessment: PASS with one Medium-severity UI defect fixed.</strong>
+        All primary authenticated pages loaded successfully for Gina’s Admin account. No browser console errors or failed application requests were observed during the smoke pass. The donor wizard’s initial validation alert was incorrectly visible; this was fixed and reverified.
+    </div>
+
+    <h2>Executive summary</h2>
+    <ul>
+        <li>Authentication and Admin access: <span class="pass">PASS</span>.</li>
+        <li>Primary sidebar navigation: <span class="pass">PASS</span> — Dashboard, Donors, Donations, Fund Requests, Inventory, Categories, Bank Reconciliation, Reports, and System Administration all returned their expected pages.</li>
+        <li>Report generator main page and report-tab navigation: <span class="pass">PASS</span> for observed routes; export controls were present and correctly linked.</li>
+        <li>Console/network smoke: <span class="pass">PASS</span> — zero Playwright console errors and no failed application requests observed.</li>
+        <li>RBAC note: the current database/application has <code>admin</code> and <code>staff</code>; Secretary and Treasurer were intentionally consolidated into Staff. Legacy Secretary/Treasurer workflows therefore require separate migration-compatibility testing.</li>
+        <li>No destructive CRUD actions were executed. Forms and modals were opened and validation behavior was checked without creating, deleting, or changing business records.</li>
+    </ul>
+
+    <h2>Page-by-page results</h2>
+    <table>
+        <tr><th>Area</th><th>Result</th><th>Evidence / notes</th></tr>
+        <tr><td>Login and Admin session</td><td class="pass">PASS</td><td>Gina Gamboa logged in and reached the dashboard as Admin.</td></tr>
+        <tr><td>Dashboard</td><td class="pass">PASS</td><td>Summary cards, panels, sidebar, user identity, and links rendered.</td></tr>
+        <tr><td>Donor Management</td><td class="pass">PASS</td><td>Search field, type filter, table actions, and Add Donor modal rendered.</td></tr>
+        <tr><td>Donations Portal</td><td class="pass">PASS</td><td>Page loaded with expected title and navigation.</td></tr>
+        <tr><td>Fund Requests</td><td class="pass">PASS</td><td>Page loaded with expected title and navigation.</td></tr>
+        <tr><td>In-Kind Inventory</td><td class="pass">PASS</td><td>Inventory page and Categories page loaded.</td></tr>
+        <tr><td>Bank Reconciliation</td><td class="pass">PASS</td><td>Page loaded with expected title and navigation.</td></tr>
+        <tr><td>Reports</td><td class="pass">PASS</td><td>Report type tabs, month/year filters, Apply filters, Download PDF, and Download CSV controls rendered.</td></tr>
+        <tr><td>System Administration</td><td class="pass">PASS</td><td>Admin-only page opened and displayed Admin Control Console plus staff controls.</td></tr>
+    </table>
+
+    <h2>Confirmed issue and fix</h2>
+    <h3>UX-001 — Donor wizard displayed validation warning on initial open</h3>
+    <p><strong>Severity:</strong> Medium · <strong>Status:</strong> <span class="pass">Fixed and verified</span></p>
+    <p>The donor creation modal rendered “Please fill out the remaining field” before the user clicked Next or Save. The alert had the <code>hidden</code> attribute, but a Tailwind <code>flex</code> utility overrode the browser hidden rule. This made a validation message look like an error immediately on a blank form.</p>
+    <p><strong>Fix:</strong> added an explicit global <code>[hidden] { display: none !important; }</code> base rule in <code>resources/css/app.css</code>. The browser retest confirmed <code>hidden=true</code> and computed <code>display:none</code> on initial modal open.</p>
+
+    <h3>Before</h3>
+    <img src="../output/playwright/ux-audit-donor-modal.png" alt="Donor modal showing an incorrect initial validation warning">
+    <h3>After</h3>
+    <img src="../output/playwright/ux-audit-donor-modal-after.png" alt="Donor modal with the initial validation warning hidden">
+
+    <div class="page-break"></div>
+    <h2>Usability observations</h2>
+    <ul>
+        <li>Sidebar labels are descriptive and consistent across all primary pages.</li>
+        <li>Empty states provide contextual next actions on the dashboard and report areas.</li>
+        <li>Donor creation uses a four-step wizard. This is understandable, but it is a relatively high-click workflow; consider showing a compact progress summary and only requiring steps that contain mandatory fields.</li>
+        <li>Reports expose many report types in one horizontal navigation group. On smaller screens, confirm wrapping/overflow behavior and consider grouping operational reports separately from exports.</li>
+        <li>System Administration correctly exposes Staff rather than the removed Secretary/Treasurer choices.</li>
+    </ul>
+
+    <h2>Remaining issues and next steps</h2>
+    <table>
+        <tr><th>Severity</th><th>Item</th><th>Recommendation</th></tr>
+        <tr><td>Medium</td><td>Full CRUD workflows were not mutated during this smoke audit.</td><td>Run a disposable/staging-data workflow suite for create, edit, delete, approval, reconciliation, and export actions.</td></tr>
+        <tr><td>Medium</td><td>Legacy Secretary/Treasurer role names remain in historical test fixtures and older migration-era references.</td><td>Complete a compatibility sweep and update or retire stale fixtures after the Staff-role consolidation.</td></tr>
+        <tr><td>Low</td><td>Responsive behavior at narrow mobile widths was not exhaustively exercised.</td><td>Add viewport checks at 375px and 768px for tables, report tabs, modals, and reconciliation panels.</td></tr>
+    </table>
+
+    <h2>Verification details</h2>
+    <ul>
+        <li>Build verification: <code>npm run build</code> completed successfully.</li>
+        <li>Playwright screenshots: donor list, donor modal before fix, donor modal after fix.</li>
+        <li>Browser console: 0 errors observed.</li>
+        <li>Application state was not reset and no destructive database operation was performed.</li>
+    </ul>
+</body>
+</html>

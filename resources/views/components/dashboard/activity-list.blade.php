@@ -4,7 +4,7 @@
     $iconFor = fn (string $event) => match (true) {
         str_contains($event, 'Contribution') => 'gift',
         str_contains($event, 'Inventory') => 'archive',
-        str_contains($event, 'disbursed') => 'banknotes',
+        str_contains($event, 'request') => 'banknotes',
         default => 'terminal',
     };
 @endphp
@@ -14,7 +14,12 @@
 @else
     <ul class="space-y-2.5">
         @foreach ($items as $item)
-            <li class="flex items-start gap-3 rounded-xl bg-slate-50 px-3 py-2.5">
+            <li>
+                @if ($item['url'] ?? null)
+                    <a href="{{ $item['url'] }}" class="flex items-start gap-3 rounded-xl bg-slate-50 px-3 py-2.5 transition hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                @else
+                    <div class="flex items-start gap-3 rounded-xl bg-slate-50 px-3 py-2.5">
+                @endif
                 <span class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white text-slate-500 ring-1 ring-slate-200">
                     <x-icon :name="$iconFor($item['event'])" class="h-4 w-4" />
                 </span>
@@ -23,6 +28,11 @@
                     <p class="truncate text-sm text-slate-600">{{ $item['label'] }}</p>
                     <p class="mt-0.5 text-xs text-slate-500">{{ optional($item['created_at'])->diffForHumans() }}</p>
                 </div>
+                @if ($item['url'] ?? null)
+                    </a>
+                @else
+                    </div>
+                @endif
             </li>
         @endforeach
     </ul>

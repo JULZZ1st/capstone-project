@@ -18,205 +18,74 @@
                 <h2 class="mt-1 text-2xl font-bold text-slate-950">Welcome back, {{ $greetingName }}! <span aria-hidden="true">👋</span></h2>
                 <p class="mt-1 text-sm text-slate-500">Here's what's happening across donation operations today.</p>
             </div>
-            <a
-                href="{{ route('dashboard') }}"
-                class="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
-            >
+            <a href="{{ route('dashboard') }}" class="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50">
                 <x-icon name="refresh" class="h-4 w-4" />
                 Refresh
             </a>
         </div>
 
-        <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <x-dashboard.summary-card
-                label="Total Cash Ledger"
-                :value="$money($summary['total_cash_ledger'])"
-                description="Verified and approved cash entries."
-                icon="wallet"
-                tone="positive"
-            />
-            <x-dashboard.summary-card
-                label="Pending Cash Verification"
-                :value="number_format($summary['pending_cash_verification'])"
-                description="Cash entries awaiting audit."
-                icon="clock"
-                tone="warning"
-            />
-            <x-dashboard.summary-card
-                label="In-Kind Batches"
-                :value="number_format($summary['in_kind_batches'])"
-                description="Inventory records currently tracked."
-                icon="cube"
-                tone="info"
-            />
-            <x-dashboard.summary-card
-                label="Registered Donors"
-                :value="number_format($summary['registered_donors'])"
-                description="Donor profiles available."
-                icon="users"
-                tone="purple"
-            />
+        <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Dashboard summary">
+            <x-dashboard.summary-card label="Total Cash Ledger" :value="$money($summary['total_cash_ledger'])" description="Verified and approved cash entries." icon="wallet" tone="positive" />
+            <x-dashboard.summary-card label="Pending Cash Verification" :value="number_format($summary['pending_cash_verification'])" description="Cash entries awaiting audit." icon="clock" tone="warning" />
+            <x-dashboard.summary-card label="In-Kind Batches" :value="number_format($summary['in_kind_batches'])" description="Inventory records currently tracked." icon="cube" tone="info" />
+            <x-dashboard.summary-card label="Registered Donors" :value="number_format($summary['registered_donors'])" description="Donor profiles available." icon="users" tone="purple" />
         </section>
 
-        <section class="grid gap-6 xl:grid-cols-2">
-            @can('viewAny', \App\Models\BankLedgerEntry::class)
-            <x-dashboard.panel title="Staff Finance Action Items" subtitle="Cash and reconciliation work needing attention." icon="alert-triangle" tone="warning">
-                @php($actionItems = $dashboard['staff_finance_action_items'])
-                <div class="mb-3 flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2.5">
-                    <span class="text-sm text-slate-600">Total cash disbursed</span>
-                    <span class="text-sm font-semibold text-slate-950">{{ $money($dashboard['disbursements']['total_disbursed']) }}</span>
-                </div>
-                @if ($actionItems['pending_cash_count'] === 0 && $actionItems['unreconciled_ledger_count'] === 0 && $actionItems['bank_withdrawals_awaiting_reconciliation'] === 0)
-                    <x-dashboard.empty-state icon="alert-triangle" message="No finance action items right now." action="{{ route('bank-reconciliation.index') }}" action-label="View Today" />
-                @else
-                    <dl class="space-y-3">
-                        <div class="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2.5">
-                            <dt class="text-sm text-slate-600">Pending cash verification</dt>
-                            <dd class="text-sm font-semibold text-slate-950">{{ number_format($actionItems['pending_cash_count']) }}</dd>
-                        </div>
-                        <div class="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2.5">
-                            <dt class="text-sm text-slate-600">Bank ledger entries awaiting review</dt>
-                            <dd class="text-sm font-semibold text-slate-950">{{ number_format($actionItems['unreconciled_ledger_count']) }}</dd>
-                        </div>
-                        <a href="{{ route('bank-reconciliation.index', ['tab' => 'outgoing']) }}" class="flex items-center justify-between gap-4 rounded-xl bg-slate-50 px-3 py-2.5 transition hover:bg-slate-100">
-                            <span class="text-sm text-slate-600">Bank Withdrawals Awaiting Reconciliation</span>
-                            <span class="text-sm font-semibold text-slate-950">{{ number_format($actionItems['bank_withdrawals_awaiting_reconciliation']) }}</span>
-                        </a>
-                        <a href="{{ route('bank-reconciliation.index', ['tab' => 'outgoing']) }}" class="flex items-center justify-between gap-4 rounded-xl bg-slate-50 px-3 py-2.5 transition hover:bg-slate-100">
-                            <span class="text-sm text-slate-600">Discrepancies Requiring Review</span>
-                            <span class="text-sm font-semibold text-slate-950">{{ number_format($actionItems['discrepancies_requiring_review']) }}</span>
-                        </a>
-                        <a href="{{ route('bank-reconciliation.index', ['tab' => 'outgoing']) }}" class="flex items-center justify-between gap-4 rounded-xl bg-slate-50 px-3 py-2.5 transition hover:bg-slate-100">
-                            <span class="text-sm text-slate-600">Pending Liquidation / Unresolved Difference</span>
-                            <span class="text-sm font-semibold text-slate-950">{{ $money($actionItems['unresolved_difference_amount']) }}</span>
-                        </a>
-                        @if ($actionItems['latest_reconciliation'])
-                            <div class="rounded-xl bg-emerald-50 px-3 py-2.5 text-sm text-emerald-800">
-                                Latest reconciliation: {{ $actionItems['latest_reconciliation']->matched_at->format('Y-m-d') }} for {{ $money($actionItems['latest_reconciliation']->amount) }}.
-                            </div>
-                        @endif
-                    </dl>
-                @endif
-            </x-dashboard.panel>
-            @endcan
-
-            <x-dashboard.panel title="Recent Cash Donations Awaiting Audit" subtitle="Latest pending cash entries." icon="search" tone="rose">
-                @if ($dashboard['recent_cash_awaiting_audit']->isEmpty())
-                    <x-dashboard.empty-state icon="search" message="No cash donations awaiting audit." action="{{ route('donations.index') }}" action-label="View Pending" />
-                @else
-                    <ul class="divide-y divide-slate-100">
-                        @foreach ($dashboard['recent_cash_awaiting_audit'] as $contribution)
-                            <li class="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
-                                <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-rose-100 text-sm font-semibold text-rose-700">
-                                    {{ strtoupper(substr((string) ($contribution->donor?->full_name ?? '?'), 0, 1)) }}
-                                </span>
-                                <div class="flex flex-1 items-start justify-between gap-4">
-                                    <div class="min-w-0">
-                                        <p class="truncate text-sm font-medium text-slate-950">{{ $contribution->donor?->full_name ?? 'Unknown donor' }}</p>
-                                        <p class="text-sm text-slate-600">{{ config("donations.payment_methods.{$contribution->payment_method}") ?? 'Cash' }}</p>
-                                    </div>
-                                    <p class="shrink-0 text-sm font-semibold text-slate-950">{{ $money($contribution->amount) }}</p>
-                                </div>
-                            </li>
-                        @endforeach
-                    </ul>
-                @endif
-            </x-dashboard.panel>
-
-            <x-dashboard.panel title="System Log Activity" subtitle="Recent operational records derived from current tables." icon="terminal" tone="info">
-                <x-dashboard.activity-list :items="$dashboard['system_log_activity']" />
-            </x-dashboard.panel>
-
-            @can('create', \App\Models\InventoryItem::class)
-            <x-dashboard.panel title="Staff Inventory Control Panel" subtitle="Inventory status and recent in-kind records." icon="clipboard-list" tone="positive">
-                <div class="grid gap-6 lg:grid-cols-2">
-                    <div>
-                        <h3 class="mb-3 text-sm font-semibold text-slate-700">Inventory by status</h3>
-                        @php($statusCounts = $dashboard['staff_in_kind_control']['status_counts'])
-                        @if ($statusCounts->isEmpty())
-                            <x-dashboard.empty-state icon="cube" message="No inventory records yet." />
-                        @else
-                            @php($statusColors = ['#10b981', '#f59e0b', '#64748b', '#ef4444', '#0ea5e9'])
-                            <x-dashboard.chart
-                                id="inventory-status-chart"
-                                type="doughnut"
-                                :labels="$statusCounts->map(fn ($row) => ucfirst($row->status))->all()"
-                                :values="$statusCounts->pluck('total')->all()"
-                                :colors="$statusColors"
-                                :height="180"
-                                aria-label="Inventory items grouped by status"
-                            />
-                            <x-dashboard.chart-legend
-                                :items="$statusCounts->map(fn ($row) => ['label' => ucfirst($row->status), 'value' => number_format($row->total)])->all()"
-                                :colors="$statusColors"
-                            />
-                        @endif
-                    </div>
-                    <div>
-                        <h3 class="mb-3 text-sm font-semibold text-slate-700">Recent in-kind records</h3>
-                        @if ($dashboard['staff_in_kind_control']['recent_items']->isEmpty())
-                            <x-dashboard.empty-state icon="archive" message="No in-kind donations recorded yet." action="{{ route('inventory.index') }}" action-label="View Inventory" />
-                        @else
-                            <ul class="space-y-2.5">
-                                @foreach ($dashboard['staff_in_kind_control']['recent_items'] as $item)
-                                    <li class="rounded-xl bg-slate-50 px-3 py-2.5">
-                                        <p class="text-sm font-medium text-slate-950">{{ $item->name }}</p>
-                                        <p class="text-sm text-slate-600">{{ $item->category }} &middot; Qty {{ number_format($item->quantity) }}</p>
-                                        <p class="mt-1 text-xs text-slate-500">{{ ucfirst($item->status) }}</p>
-                                    </li>
-                                @endforeach
-                            </ul>
-                        @endif
-                    </div>
+        <section class="grid items-stretch gap-4 md:grid-cols-2 xl:grid-cols-3" aria-label="Recent activity">
+            <x-dashboard.panel title="Recent Donations" subtitle="Latest donation records." icon="heart" tone="rose" class="flex h-full min-h-0 flex-col">
+                <div class="max-h-72 min-h-0 flex-1 overflow-y-auto pr-1" data-dashboard-scroll-list>
+                    @if ($dashboard['recent_donations']->isEmpty())
+                        <x-dashboard.empty-state icon="heart" message="No donations recorded yet." action="{{ route('donations.index') }}" action-label="View Donations" />
+                    @else
+                        <ul class="divide-y divide-slate-100">
+                            @foreach ($dashboard['recent_donations'] as $donation)
+                                <li>
+                                    <a href="{{ route('donations.show', $donation) }}" class="flex items-center gap-3 rounded-lg px-2 py-3 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 first:pt-0 last:pb-0">
+                                        <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-semibold text-blue-700">{{ strtoupper(substr((string) ($donation->donor?->full_name ?? '?'), 0, 1)) }}</span>
+                                        <span class="min-w-0 flex-1">
+                                            <span class="block truncate text-sm font-medium text-slate-950">{{ $donation->donor?->full_name ?? 'Unknown donor' }}</span>
+                                            <span class="block truncate text-xs text-slate-600">{{ config("donations.types.{$donation->type}") }} · {{ optional($donation->received_at ?? $donation->created_at)->format('M d, Y') }}</span>
+                                        </span>
+                                        @if ($donation->type === 'cash')
+                                            <span class="shrink-0 text-xs font-semibold text-slate-950">{{ $money($donation->amount) }}</span>
+                                        @else
+                                            <span class="shrink-0 text-xs font-semibold text-slate-950">{{ number_format($donation->items_count) }} item(s)</span>
+                                        @endif
+                                    </a>
+                                </li>
+                            @endforeach
+                        </ul>
+                    @endif
                 </div>
             </x-dashboard.panel>
-            @endcan
 
-            <x-dashboard.panel title="Recent Donations Stream" subtitle="Latest donation records with donor context." icon="heart" tone="rose">
-                @if ($dashboard['recent_donations']->isEmpty())
-                    <x-dashboard.empty-state icon="heart" message="No donations recorded yet." action="{{ route('donations.index') }}" action-label="View Donations" />
-                @else
-                    <ul class="divide-y divide-slate-100">
-                        @foreach ($dashboard['recent_donations'] as $donation)
-                            <li class="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
-                                <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-100 text-sm font-semibold text-blue-700">
-                                    {{ strtoupper(substr((string) ($donation->donor?->full_name ?? '?'), 0, 1)) }}
-                                </span>
-                                <div class="flex flex-1 items-start justify-between gap-4">
-                                    <div class="min-w-0">
-                                        <p class="truncate text-sm font-medium text-slate-950">{{ $donation->donor?->full_name ?? 'Unknown donor' }}</p>
-                                        <p class="text-sm text-slate-600">{{ config("donations.types.{$donation->type}") }}</p>
-                                    </div>
-                                    @if ($donation->type === 'cash')
-                                        <p class="shrink-0 text-sm font-semibold text-slate-950">{{ $money($donation->amount) }}</p>
-                                    @else
-                                        <p class="shrink-0 text-sm font-semibold text-slate-950">{{ number_format($donation->items_count) }} item(s)</p>
-                                    @endif
-                                </div>
-                            </li>
-                        @endforeach
-                    </ul>
-                @endif
+            <x-dashboard.panel title="Recent Requests" subtitle="Latest fund requests." icon="banknotes" tone="info" class="flex h-full min-h-0 flex-col">
+                <div class="max-h-72 min-h-0 flex-1 overflow-y-auto pr-1" data-dashboard-scroll-list>
+                    @if ($dashboard['disbursements']['recent']->isEmpty())
+                        <x-dashboard.empty-state icon="banknotes" message="No requests have been recorded yet." action="{{ route('disbursements.index') }}" action-label="View Requests" />
+                    @else
+                        <ul class="divide-y divide-slate-100">
+                            @foreach ($dashboard['disbursements']['recent'] as $request)
+                                <li>
+                                    <a href="{{ route('disbursements.show', $request) }}" class="flex items-start gap-3 rounded-lg px-2 py-3 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 first:pt-0 last:pb-0">
+                                        <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-semibold text-blue-700">₱</span>
+                                        <span class="min-w-0 flex-1">
+                                            <span class="block truncate text-sm font-medium text-slate-950" title="{{ $request->purpose }}">{{ $request->purpose }}</span>
+                                            <span class="block truncate text-xs text-slate-600">{{ $request->requester->name }} · {{ ucfirst($request->status) }}</span>
+                                        </span>
+                                        <span class="shrink-0 text-xs font-semibold text-slate-950">{{ $money($request->amount) }}</span>
+                                    </a>
+                                </li>
+                            @endforeach
+                        </ul>
+                    @endif
+                </div>
             </x-dashboard.panel>
 
-            <x-dashboard.panel title="Recent Cash Disbursements" subtitle="Latest outgoing cash payments recorded." icon="banknotes" tone="info">
-                @if ($dashboard['disbursements']['recent']->isEmpty())
-                    <x-dashboard.empty-state icon="banknotes" message="No cash disbursements have been recorded yet." action="{{ route('disbursements.index') }}" action-label="Record Disbursement" />
-                @else
-                    <ul class="divide-y divide-slate-100">
-                        @foreach ($dashboard['disbursements']['recent'] as $disbursement)
-                            <li class="py-3 first:pt-0 last:pb-0">
-                                <div class="flex items-start justify-between gap-4">
-                                    <div>
-                                        <p class="text-sm font-medium text-slate-950">{{ $disbursement->purpose }}</p>
-                                        <p class="text-sm text-slate-600">{{ $disbursement->requester->name }} &middot; {{ ucfirst($disbursement->status) }}</p>
-                                    </div>
-                                    <p class="text-sm font-semibold text-slate-950">{{ $money($disbursement->amount) }}</p>
-                                </div>
-                            </li>
-                        @endforeach
-                    </ul>
-                @endif
+            <x-dashboard.panel title="System Log Activity" subtitle="Recent operational records." icon="terminal" tone="info" class="flex h-full min-h-0 flex-col">
+                <div class="max-h-72 min-h-0 flex-1 overflow-y-auto pr-1" data-dashboard-scroll-list>
+                    <x-dashboard.activity-list :items="$dashboard['system_log_activity']" />
+                </div>
             </x-dashboard.panel>
         </section>
     </div>

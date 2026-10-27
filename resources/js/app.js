@@ -1,6 +1,110 @@
 import './bootstrap';
 import './charts';
 
+const donorSearchTimers = new WeakMap();
+const donorSearchRequests = new WeakMap();
+
+const refreshDonorResults = async (form, targetUrl) => {
+    const results = document.querySelector('[data-donor-results]');
+
+    if (! results) {
+        form.requestSubmit();
+        return;
+    }
+
+    donorSearchRequests.get(form)?.abort();
+    const controller = new AbortController();
+    donorSearchRequests.set(form, controller);
+    results.setAttribute('aria-busy', 'true');
+
+    try {
+        const response = await fetch(targetUrl, {
+            headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+            signal: controller.signal,
+        });
+
+        if (! response.ok) {
+            throw new Error(`Donor search failed with status ${response.status}`);
+        }
+
+        const payload = await response.json();
+        const donorTbody = results.querySelector('[data-donor-tbody]');
+        if (donorTbody) {
+            donorTbody.innerHTML = payload.rows;
+        }
+        results.querySelector('[data-donor-pagination]').innerHTML = payload.pagination;
+        results.querySelector('[data-donor-modals]').innerHTML = payload.modals;
+        window.history.replaceState({}, '', targetUrl);
+    } catch (error) {
+        if (error.name !== 'AbortError') {
+            window.location.assign(targetUrl);
+        }
+    } finally {
+        if (donorSearchRequests.get(form) === controller) {
+            donorSearchRequests.delete(form);
+            results.removeAttribute('aria-busy');
+        }
+    }
+};
+
+const donorUrl = (form, page = 1) => {
+    const url = new URL(form.action, window.location.origin);
+    const formData = new FormData(form);
+
+    for (const [key, value] of formData.entries()) {
+        if (value !== '') url.searchParams.set(key, value);
+    }
+
+    if (page > 1) url.searchParams.set('page', page);
+
+    return url.toString();
+};
+
+document.addEventListener('input', (event) => {
+    const input = event.target.closest('[data-donor-live-search]');
+
+    if (! input) {
+        return;
+    }
+
+    const form = input.closest('[data-donor-search-form]');
+    if (! form) {
+        return;
+    }
+
+    window.clearTimeout(donorSearchTimers.get(form));
+    donorSearchTimers.set(form, window.setTimeout(() => refreshDonorResults(form, donorUrl(form)), 250));
+});
+
+document.addEventListener('change', (event) => {
+    const filter = event.target.closest('[data-donor-live-filter]');
+
+    if (filter) {
+        refreshDonorResults(filter.closest('[data-donor-search-form]'), donorUrl(filter.closest('[data-donor-search-form]')));
+    }
+});
+
+document.addEventListener('click', (event) => {
+    const link = event.target.closest('[data-donor-pagination] a');
+
+    if (! link) return;
+
+    const form = document.querySelector('[data-donor-search-form]');
+    if (! form) return;
+
+    event.preventDefault();
+    const url = new URL(link.href, window.location.origin);
+    refreshDonorResults(form, donorUrl(form, Number(url.searchParams.get('page') || 1)));
+});
+
+const successToast = document.querySelector('[data-toast]');
+if (successToast) {
+    window.setTimeout(() => {
+        successToast.classList.add('translate-y-[-0.5rem]', 'opacity-0');
+        window.setTimeout(() => successToast.remove(), 300);
+    }, 4000);
+}
+
 document.addEventListener('click', (event) => {
     const openButton = event.target.closest('[data-dialog-open]');
     const closeButton = event.target.closest('[data-dialog-close]');
@@ -207,19 +311,33 @@ const updateReferenceRequirement = (form) => {
     const reference = form.querySelector('[data-reference-number]');
     const referenceField = form.querySelector('[data-reference-field]');
     const referenceLabel = form.querySelector('[data-reference-label]');
+    const methodName = form.querySelector('[data-payment-method-name]');
+    const methodNameField = form.querySelector('[data-payment-method-name-field]');
+
+    if (methodName && methodNameField) {
+        const isOther = method === 'other';
+
+        methodNameField.hidden = ! isOther;
+        methodName.disabled = ! isOther;
+        methodName.required = isOther;
+
+        if (! isOther) {
+            methodName.value = '';
+        }
+    }
 
     if (! reference || ! referenceField) {
         return;
     }
 
-    const isElectronic = method !== '' && method !== 'cash';
+    const isElectronic = method !== '' && method !== 'cash' && method !== 'other';
     const methodLabel = form.querySelector('[data-payment-method] option:checked')?.textContent?.trim();
 
     referenceField.hidden = ! isElectronic;
     reference.disabled = ! isElectronic;
     reference.required = isElectronic;
-    referenceLabel.textContent = methodLabel && method !== 'other'
-        ? `${methodLabel} ${method === 'check' || method === 'money_order' ? 'No.' : 'Reference No.'}`
+    referenceLabel.textContent = methodLabel
+        ? `${methodLabel} ${method === 'check' ? 'No.' : 'Reference No.'}`
         : 'External Payment Reference No.';
     reference.placeholder = isElectronic
         ? 'Enter the reference from the payment provider'
@@ -389,6 +507,21 @@ document.querySelectorAll('[data-contribution-form]').forEach((form) => {
     updateContributionSections(form);
     updateReferenceRequirement(form);
 });
+
+document.addEventListener('submit', (event) => {
+    const form = event.target.closest('[data-contribution-form]');
+    const submit = form?.querySelector('[data-contribution-submit]');
+
+    if (! form || ! submit) {
+        return;
+    }
+
+    submit.disabled = true;
+    submit.setAttribute('aria-busy', 'true');
+    const label = submit.querySelector('[data-contribution-submit-label]');
+    if (label) label.textContent = 'Saving…';
+});
+
 document.querySelectorAll('[data-inventory-item-form]').forEach((form) => updateInventorySubcategorySelect(form));
 initializeSubcategorySelects();
 

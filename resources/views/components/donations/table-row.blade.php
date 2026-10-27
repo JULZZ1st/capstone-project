@@ -49,7 +49,7 @@
 
         @if ($contribution->isCash())
             <p class="text-xs text-slate-500">
-                {{ config("donations.payment_methods.{$contribution->payment_method}") }}
+                {{ $contribution->paymentMethodLabel() }}
             </p>
         @else
             <p class="text-xs text-slate-500">
@@ -183,7 +183,7 @@
                         </p>
 
                         <p class="mt-1 text-slate-700">
-                            {{ config("donations.payment_methods.{$contribution->payment_method}") }}
+                            {{ $contribution->paymentMethodLabel() }}
                         </p>
                     </div>
 
@@ -330,7 +330,7 @@
                     class="mt-1 block w-full rounded-lg border-slate-300 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500"
                     required
                 >
-                    @foreach (['pending', 'received', 'verified', 'rejected'] as $status)
+                    @foreach (array_values(array_filter(['pending', 'received', 'rejected', $contribution->status === 'verified' ? 'verified' : null])) as $status)
                         <option
                             value="{{ $status }}"
                             @selected($contribution->status === $status)

@@ -47,7 +47,7 @@
                     <div class="mt-6 rounded-md bg-slate-50 p-4">
                         <p class="text-sm font-semibold text-slate-600">Amount</p>
                         <p class="mt-1 text-2xl font-bold text-slate-950">PHP {{ number_format((float) $contribution->amount, 2) }}</p>
-                        <p class="mt-1 text-sm text-slate-500">{{ config("donations.payment_methods.{$contribution->payment_method}") }}</p>
+                        <p class="mt-1 text-sm text-slate-500">{{ $contribution->paymentMethodLabel() }}</p>
                     </div>
                 @else
                     <div class="mt-6 overflow-hidden rounded-lg border border-slate-200">
@@ -93,8 +93,21 @@
                     <form method="POST" action="{{ route('donations.verify', $contribution) }}" class="mt-4">
                         @csrf
                         @method('PATCH')
-                        <x-button>Verify Cash Contribution</x-button>
+                        <x-button>Verify Donation</x-button>
                     </form>
+                @endcan
+
+                @can('update', $contribution)
+                    @if (auth()->user()->hasRole('admin') && $contribution->status === 'pending')
+                        <form method="POST" action="{{ route('donations.update', $contribution) }}" class="mt-4">
+                            @csrf
+                            @method('PATCH')
+                            <input type="hidden" name="status" value="rejected">
+                            <button type="submit" class="inline-flex w-full items-center justify-center rounded-md border border-rose-200 px-4 py-2.5 text-sm font-semibold text-rose-700 hover:bg-rose-50">
+                                Reject Donation
+                            </button>
+                        </form>
+                    @endif
                 @endcan
 
                 @can('void', $contribution)
@@ -115,6 +128,7 @@
                             <x-form.label for="status">Status</x-form.label>
                             <select id="status" name="status" class="mt-1 block w-full rounded-md border-slate-300 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500">
                                 @foreach (config('donations.statuses') as $value => $status)
+                                    @continue($value === 'verified' && $contribution->status !== 'verified')
                                     <option value="{{ $value }}" @selected(old('status', $contribution->status) === $value)>{{ $status['label'] }}</option>
                                 @endforeach
                             </select>

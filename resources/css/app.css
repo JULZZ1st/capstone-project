@@ -3,6 +3,10 @@
 @tailwind utilities;
 
 @layer base {
+	[hidden] {
+		display: none !important;
+	}
+
 	select {
 		appearance: none;
 		padding-right: 2.5rem;
