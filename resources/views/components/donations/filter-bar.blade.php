@@ -1,6 +1,6 @@
 @props(['filters'])
 
-<form method="GET" action="{{ route('donations.index') }}" class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+<form method="GET" action="{{ route('donations.index') }}" class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm" data-donation-filter-form>
     <div class="grid min-w-0 gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_170px_170px_auto]">
         <div class="min-w-0">
             <label for="search" class="sr-only">Search contributions</label>
@@ -12,6 +12,8 @@
                     type="search"
                     value="{{ $filters['search'] ?? '' }}"
                     placeholder="Search donor, reference, item, notes"
+                    autocomplete="off"
+                    data-donation-live-search
                     class="block h-10 w-full min-w-0 rounded-lg border-slate-300 py-2 pl-9 pr-3 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500"
                 >
             </div>
@@ -19,7 +21,7 @@
 
         <div>
             <label for="type" class="sr-only">Contribution type</label>
-            <select id="type" name="type" class="block h-10 w-full rounded-lg border-slate-300 px-3 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500">
+            <select id="type" name="type" class="block h-10 w-full rounded-lg border-slate-300 px-3 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500" data-donation-live-filter>
                 <option value="">All types</option>
                 @foreach (config('donations.types') as $value => $label)
                     <option value="{{ $value }}" @selected(($filters['type'] ?? '') === $value)>{{ $label }}</option>
@@ -29,7 +31,7 @@
 
         <div>
             <label for="status" class="sr-only">Contribution status</label>
-            <select id="status" name="status" class="block h-10 w-full rounded-lg border-slate-300 px-3 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500">
+            <select id="status" name="status" class="block h-10 w-full rounded-lg border-slate-300 px-3 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500" data-donation-live-filter>
                 <option value="">All statuses</option>
                 @foreach (config('donations.statuses') as $value => $status)
                     <option value="{{ $value }}" @selected(($filters['status'] ?? '') === $value)>{{ $status['label'] }}</option>

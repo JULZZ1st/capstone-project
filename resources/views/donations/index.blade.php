@@ -23,7 +23,7 @@
                 <div class="shrink-0">
                     <x-button
                         type="button"
-                        class="w-full gap-2 shadow-sm lg:w-auto"
+                        class="h-10 w-full gap-2 px-4 shadow-sm sm:w-auto"
                         data-dialog-open="log-contribution-dialog"
                     >
                         <x-icon name="plus" class="h-4 w-4" />

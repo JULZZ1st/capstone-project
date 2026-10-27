@@ -132,6 +132,46 @@ class DonationsPortalTest extends TestCase
         $this->assertNotNull($contribution->fresh()->verified_at);
     }
 
+    public function test_staff_can_log_a_bank_transfer_contribution_for_an_active_workspace_donor(): void
+    {
+        $donor = $this->donor();
+        $staff = User::factory()->create();
+
+        $response = $this->actingAs($staff)->post(route('donations.store'), [
+            'donation_type' => 'cash',
+            'donor_id' => $donor->id,
+            'amount' => 75000,
+            'payment_method' => 'bank_transfer',
+            'reference_number' => 'TRF-26001',
+        ]);
+
+        $response->assertSessionDoesntHaveErrors();
+        $response->assertRedirect(route('donations.index'));
+        $this->assertDatabaseHas('contributions', [
+            'donor_id' => $donor->id,
+            'amount' => 75000,
+            'payment_method' => 'bank_transfer',
+            'reference_number' => 'TRF-26001',
+            'created_by' => $staff->id,
+        ]);
+    }
+
+    public function test_inactive_donor_is_rejected_before_contribution_is_saved(): void
+    {
+        $donor = $this->donor(['status' => 'inactive']);
+
+        $response = $this->actingAs(User::factory()->create())->post(route('donations.store'), [
+            'donation_type' => 'cash',
+            'donor_id' => $donor->id,
+            'amount' => 75000,
+            'payment_method' => 'bank_transfer',
+            'reference_number' => 'TRF-INACTIVE-001',
+        ]);
+
+        $response->assertSessionHasErrors('donor_id');
+        $this->assertDatabaseMissing('contributions', ['reference_number' => 'TRF-INACTIVE-001']);
+    }
+
     public function test_cash_contribution_does_not_require_items(): void
     {
         $donor = $this->donor();
