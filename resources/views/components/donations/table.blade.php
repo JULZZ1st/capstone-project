@@ -9,7 +9,6 @@
                     <th class="px-5 py-3">Receipt No.</th>
                     <th class="px-4 py-3">Donor</th>
                     <th class="px-4 py-3">Type</th>
-                    <th class="hidden px-4 py-3 md:table-cell">Campaign</th>
                     <th class="px-4 py-3">Amount / Items</th>
                     <th class="px-4 py-3">Status</th>
                     <th class="whitespace-nowrap px-4 py-3">Date Received</th>
