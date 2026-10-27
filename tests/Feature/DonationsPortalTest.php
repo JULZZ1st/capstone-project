@@ -428,6 +428,81 @@ class DonationsPortalTest extends TestCase
         $response->assertSessionHasErrors('reference_number');
         $this->assertDatabaseCount('contributions', 1);
     }
+
+    public function test_admin_can_verify_pending_donation_for_reconciliation(): void
+    {
+        $admin = User::factory()->create();
+        $admin->update(['role_id' => Role::query()->where('name', 'admin')->firstOrFail()->id]);
+        $donation = Contribution::query()->create([
+            'donor_id' => $this->donor()->id,
+            'created_by' => User::factory()->create()->id,
+            'type' => 'cash',
+            'status' => 'pending',
+            'amount' => 1250,
+            'payment_method' => 'bank_transfer',
+            'reference_number' => 'BANK-VERIFY-001',
+            'received_at' => now(),
+        ]);
+
+        $this->actingAs($admin)
+            ->patch(route('donations.verify', $donation))
+            ->assertRedirect();
+
+        $donation->refresh();
+        $this->assertSame('verified', $donation->status);
+        $this->assertSame($admin->id, $donation->verified_by);
+        $this->assertNotNull($donation->verified_at);
+        $this->assertTrue(Contribution::query()->whereKey($donation)->eligibleForReconciliation()->exists());
+    }
+
+    public function test_staff_cannot_verify_or_reject_a_pending_donation(): void
+    {
+        $staff = User::factory()->create();
+        $donation = Contribution::query()->create([
+            'donor_id' => $this->donor()->id,
+            'created_by' => $staff->id,
+            'type' => 'cash',
+            'status' => 'pending',
+            'amount' => 1250,
+            'payment_method' => 'bank_transfer',
+            'reference_number' => 'BANK-STAFF-001',
+            'received_at' => now(),
+        ]);
+
+        $this->actingAs($staff)
+            ->patch(route('donations.verify', $donation))
+            ->assertForbidden();
+
+        $this->actingAs($staff)
+            ->patch(route('donations.update', $donation), ['status' => 'rejected'])
+            ->assertForbidden();
+
+        $this->assertDatabaseHas('contributions', ['id' => $donation->id, 'status' => 'pending']);
+    }
+
+    public function test_admin_can_reject_pending_donation_and_it_is_not_reconcilable(): void
+    {
+        $admin = User::factory()->create();
+        $admin->update(['role_id' => Role::query()->where('name', 'admin')->firstOrFail()->id]);
+        $donation = Contribution::query()->create([
+            'donor_id' => $this->donor()->id,
+            'created_by' => User::factory()->create()->id,
+            'type' => 'cash',
+            'status' => 'pending',
+            'amount' => 1250,
+            'payment_method' => 'bank_transfer',
+            'reference_number' => 'BANK-REJECT-001',
+            'received_at' => now(),
+        ]);
+
+        $this->actingAs($admin)
+            ->patch(route('donations.update', $donation), ['status' => 'rejected'])
+            ->assertRedirect(route('donations.show', $donation));
+
+        $this->assertDatabaseHas('contributions', ['id' => $donation->id, 'status' => 'rejected']);
+        $this->assertFalse(Contribution::query()->whereKey($donation)->eligibleForReconciliation()->exists());
+    }
+
     private function donor(array $overrides = []): Donor
     {
         return Donor::query()->create(array_merge([

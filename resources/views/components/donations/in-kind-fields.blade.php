@@ -3,13 +3,13 @@
 @php($rows = old('items', [['name' => null, 'category' => null, 'subcategory' => null, 'quantity' => null, 'unit' => null, 'condition' => null, 'estimated_value' => null, 'notes' => null]]))
 
 <section
-    class="space-y-4 rounded-lg border border-slate-200 p-4"
+    class="space-y-4"
     data-contribution-section="in_kind"
     data-subcategories='@json($subcategoriesByCategory)'
     @hidden(! $active)
 >
     <div class="flex items-center justify-between gap-3">
-        <h3 class="text-sm font-semibold text-slate-950">In-Kind Goods</h3>
+        <p class="text-sm font-semibold text-slate-950">Items received</p>
         <button type="button" class="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50" data-add-item-row>Add Item Row</button>
     </div>
     <x-form.error name="items" />

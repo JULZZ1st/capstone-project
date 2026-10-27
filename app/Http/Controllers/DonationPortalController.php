@@ -147,6 +147,6 @@ class DonationPortalController extends Controller
 
         return redirect()
             ->back()
-            ->with('success', 'Cash contribution verified successfully.');
+            ->with('success', 'Donation verified successfully.');
     }
 }

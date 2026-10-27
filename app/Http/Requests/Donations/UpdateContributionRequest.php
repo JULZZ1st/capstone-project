@@ -9,13 +9,35 @@ class UpdateContributionRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->can('update', $this->route('contribution')) ?? false;
+        $user = $this->user();
+        $contribution = $this->route('contribution');
+
+        if (! $user || ! $user->can('update', $contribution)) {
+            return false;
+        }
+
+        // Staff may correct their own editable records, but verification and
+        // rejection are independent review decisions reserved for Admins.
+        return $user->hasRole('admin')
+            || ! in_array($this->input('status'), ['verified', 'rejected'], true);
     }
 
     public function rules(): array
     {
+        $allowedStatuses = array_keys(config('donations.statuses'));
+
+        // A pending donation must use the dedicated verification endpoint so
+        // the reviewer and verification timestamp are recorded. Existing
+        // verified records may still be edited for administrative notes.
+        if ($this->route('contribution')?->status !== 'verified') {
+            $allowedStatuses = array_values(array_diff($allowedStatuses, ['verified']));
+        }
+
         return [
-            'status' => ['required', Rule::in(array_keys(config('donations.statuses')))],
+            'status' => [
+                'required',
+                Rule::in($allowedStatuses),
+            ],
             'notes' => ['nullable', 'string', 'max:2000'],
         ];
     }

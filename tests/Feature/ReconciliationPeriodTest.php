@@ -140,7 +140,7 @@ class ReconciliationPeriodTest extends TestCase
 
     public function test_documented_timing_item_does_not_block_independent_approval(): void
     {
-        $treasurer = $this->userWithRole('treasurer');
+        $treasurer = $this->userWithRole('staff');
         $admin = $this->userWithRole('admin');
         $period = app(ReconciliationPeriodService::class)->create([
             'period_start' => '2026-12-01', 'period_end' => '2026-12-31',
@@ -160,7 +160,7 @@ class ReconciliationPeriodTest extends TestCase
 
     public function test_carried_forward_timing_item_clears_once_when_matching_bank_row_appears(): void
     {
-        $user = $this->userWithRole('treasurer');
+        $user = $this->userWithRole('staff');
         $first = app(ReconciliationPeriodService::class)->create([
             'period_start' => '2027-01-01', 'period_end' => '2027-01-31',
             'opening_balance' => 1000, 'bank_ending_balance' => 1000,
@@ -206,7 +206,7 @@ class ReconciliationPeriodTest extends TestCase
 
     public function test_treasurer_submits_and_independent_admin_approves_and_locks_period(): void
     {
-        $treasurer = $this->userWithRole('treasurer');
+        $treasurer = $this->userWithRole('staff');
         $admin = $this->userWithRole('admin');
         $period = app(ReconciliationPeriodService::class)->create([
             'period_start' => '2026-11-01', 'period_end' => '2026-11-30',
@@ -232,7 +232,7 @@ class ReconciliationPeriodTest extends TestCase
 
     public function test_approval_rejects_unexplained_difference_even_when_period_is_submitted(): void
     {
-        $treasurer = $this->userWithRole('treasurer');
+        $treasurer = $this->userWithRole('staff');
         $admin = $this->userWithRole('admin');
         $period = app(ReconciliationPeriodService::class)->create([
             'period_start' => '2026-12-01', 'period_end' => '2026-12-31',

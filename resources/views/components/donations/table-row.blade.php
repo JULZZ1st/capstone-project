@@ -53,7 +53,7 @@
 
         @if ($contribution->isCash())
             <p class="text-xs text-slate-500">
-                {{ config("donations.payment_methods.{$contribution->payment_method}") }}
+                {{ $contribution->paymentMethodLabel() }}
             </p>
         @else
             <p class="text-xs text-slate-500">
@@ -197,7 +197,7 @@
                         </p>
 
                         <p class="mt-1 text-slate-700">
-                            {{ config("donations.payment_methods.{$contribution->payment_method}") }}
+                            {{ $contribution->paymentMethodLabel() }}
                         </p>
                     </div>
 
@@ -266,9 +266,25 @@
                         type="submit"
                         class="rounded-md bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800"
                     >
-                        {{ auth()->user()->hasRole('admin') ? 'Approve Contribution' : 'Verify Contribution' }}
+                        Verify Donation
                     </button>
                 </form>
+            @endcan
+
+            @can('update', $contribution)
+                @if (auth()->user()->hasRole('admin') && $contribution->status === 'pending')
+                    <form method="POST" action="{{ route('donations.update', $contribution) }}">
+                        @csrf
+                        @method('PATCH')
+                        <input type="hidden" name="status" value="rejected">
+                        <button
+                            type="submit"
+                            class="rounded-md border border-rose-200 px-4 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-50"
+                        >
+                            Reject Donation
+                        </button>
+                    </form>
+                @endif
             @endcan
 
             <button
@@ -337,7 +353,7 @@
                     class="mt-1 block w-full rounded-lg border-slate-300 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500"
                     required
                 >
-                    @foreach (['pending', 'received', 'verified', 'rejected'] as $status)
+                    @foreach (array_values(array_filter(['pending', 'received', 'rejected', $contribution->status === 'verified' ? 'verified' : null])) as $status)
                         <option
                             value="{{ $status }}"
                             @selected($contribution->status === $status)

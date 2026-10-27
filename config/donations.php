@@ -12,6 +12,7 @@ return [
         'received' => ['label' => 'Received', 'class' => 'bg-blue-100 text-blue-800 ring-blue-200'],
         'distributed' => ['label' => 'Distributed', 'class' => 'bg-slate-100 text-slate-800 ring-slate-200'],
         'cancelled' => ['label' => 'Cancelled', 'class' => 'bg-red-100 text-red-800 ring-red-200'],
+        'rejected' => ['label' => 'Rejected', 'class' => 'bg-red-100 text-red-800 ring-red-200'],
     ],
 
     'default_status' => [
@@ -25,8 +26,13 @@ return [
         'gcash' => 'GCash',
         'maya' => 'Maya',
         'check' => 'Check',
-        'money_order' => 'Money Order',
         'other' => 'Other',
+    ],
+
+    // Retained only for displaying historical records. It is intentionally
+    // excluded from payment_methods so new contributions cannot select it.
+    'legacy_payment_methods' => [
+        'money_order' => 'Money Order',
     ],
 
     'electronic_payment_methods' => [
@@ -34,7 +40,6 @@ return [
         'gcash',
         'maya',
         'check',
-        'money_order',
     ],
 
     'item_categories' => [

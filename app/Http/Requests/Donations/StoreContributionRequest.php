@@ -28,6 +28,7 @@ class StoreContributionRequest extends FormRequest
             'received_at' => ['nullable', 'date_format:Y-m-d'],
             'amount' => ['required_if:donation_type,cash', 'nullable', 'numeric', 'min:0.01', 'max:99999999.99'],
             'payment_method' => ['required_if:donation_type,cash', 'nullable', Rule::in(array_keys(config('donations.payment_methods')))],
+            'payment_method_name' => ['required_if:payment_method,other', 'nullable', 'string', 'max:100'],
             'reference_number' => [
                 Rule::requiredIf(fn () => $this->requiresExternalReference()),
                 'nullable',
@@ -131,6 +132,7 @@ class StoreContributionRequest extends FormRequest
             'campaign_id' => $this->nullableValue($this->input('campaign_id')),
             'amount' => $this->nullableValue($this->input('amount')),
             'payment_method' => $this->nullableLower($this->input('payment_method')),
+            'payment_method_name' => $this->nullableValue($this->input('payment_method_name')),
             'reference_number' => $this->nullableValue($this->input('reference_number')),
             'notes' => $this->nullableValue($this->input('notes')),
             'items' => $items,
@@ -140,8 +142,7 @@ class StoreContributionRequest extends FormRequest
     private function requiresExternalReference(): bool
     {
         return $this->input('donation_type') === 'cash'
-            && filled($this->input('payment_method'))
-            && $this->input('payment_method') !== 'cash';
+            && in_array($this->input('payment_method'), config('donations.electronic_payment_methods'), true);
     }
 
     private function nullableValue(mixed $value): ?string

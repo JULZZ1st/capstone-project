@@ -23,11 +23,6 @@ class ReconcileLedgerEntry
 
             $this->periodGuard->assertMutableEntry($entry);
 
-            $period = $this->periodGuard->forDate($entry->transaction_date->toDateString());
-            if ($period?->discrepancies()->where('resolution_status', 'unresolved')->exists()) {
-                throw ValidationException::withMessages(['period' => 'The reconciliation period has unresolved discrepancies.']);
-            }
-
             if (! in_array($entry->transaction_type, ['deposit', null], true) || bccomp((string) $entry->amount, (string) $contribution->amount, 2) !== 0) {
                 throw ValidationException::withMessages(['contribution_id' => 'Only deposits with an exact contribution amount can be reconciled.']);
             }

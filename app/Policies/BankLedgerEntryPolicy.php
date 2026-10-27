@@ -9,28 +9,28 @@ class BankLedgerEntryPolicy
 {
     public function viewAny(User $user): bool
     {
-        return $this->active($user) && $user->hasRole(['admin', 'staff']);
+        return $this->active($user) && $user->hasRole(['admin', 'staff', 'secretary', 'treasurer']);
     }
 
     public function reconcile(User $user, ?BankLedgerEntry $bankLedgerEntry = null): bool
     {
-        return $this->active($user) && $user->hasRole(['admin', 'staff']) && ($bankLedgerEntry === null || $this->sameWorkspace($user, $bankLedgerEntry));
+        return $this->active($user) && $user->hasRole(['admin', 'staff', 'secretary', 'treasurer']) && ($bankLedgerEntry === null || $this->sameWorkspace($user, $bankLedgerEntry));
     }
 
     public function import(User $user): bool
     {
-        return $this->active($user) && $user->hasRole(['admin', 'staff']);
+        return $this->active($user) && $user->hasRole(['admin', 'staff', 'secretary', 'treasurer']);
     }
 
     public function create(User $user): bool
     {
-        return $this->active($user) && $user->hasRole(['admin', 'staff']);
+        return $this->active($user) && $user->hasRole(['admin', 'staff', 'secretary', 'treasurer']);
     }
 
     public function matchWithdrawal(User $user, BankLedgerEntry $bankLedgerEntry): bool
     {
         return $this->sameWorkspace($user, $bankLedgerEntry)
-            && $user->hasRole(['admin', 'staff'])
+            && $user->hasRole(['admin', 'staff', 'secretary', 'treasurer'])
             && $bankLedgerEntry->isWithdrawal()
             && ! $bankLedgerEntry->isReconciled();
     }

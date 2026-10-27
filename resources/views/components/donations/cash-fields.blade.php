@@ -1,13 +1,12 @@
 @props(['active' => true])
 
 <section
-    class="space-y-4 rounded-lg border border-slate-200 p-4"
+    class="space-y-4"
     data-contribution-section="cash"
     data-cash-fields
     @hidden(! $active)
 >
-    <h3 class="text-sm font-semibold text-slate-950">Cash / Electronic Transfer</h3>
-    <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+    <div class="grid gap-4 md:grid-cols-2">
         <div>
             <x-form.label for="amount">Donation Amount</x-form.label>
             <div class="relative mt-1">
@@ -51,6 +50,21 @@
                 @error('reference_number') aria-invalid="true" aria-describedby="reference_number-error" @enderror
             >
             <x-form.error name="reference_number" />
+        </div>
+        <div data-payment-method-name-field hidden>
+            <x-form.label for="payment_method_name">Payment Method Name</x-form.label>
+            <input
+                id="payment_method_name"
+                name="payment_method_name"
+                type="text"
+                value="{{ old('payment_method_name') }}"
+                data-payment-method-name
+                placeholder="e.g. PayMaya QR"
+                disabled
+                class="mt-1 block w-full rounded-md border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                @error('payment_method_name') aria-invalid="true" aria-describedby="payment_method_name-error" @enderror
+            >
+            <x-form.error name="payment_method_name" />
         </div>
         <div>
             <x-form.label for="cash_received_at">Date Received</x-form.label>

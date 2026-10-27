@@ -26,6 +26,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use App\Support\Workspaces\WorkspaceContext;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class BankReconciliationController extends Controller
@@ -245,19 +246,15 @@ class BankReconciliationController extends Controller
             $difference = (float) $withdrawal->amount - (float) $selectedTotal;
 
             if ($withdrawal->isReconciled()) {
-                abort(422, 'This bank withdrawal has already been reconciled.');
+                throw ValidationException::withMessages(['withdrawal' => 'This bank withdrawal has already been reconciled.']);
             }
 
             $period = BankReconciliation::query()->whereDate('period_start', '<=', $withdrawal->transaction_date)->whereDate('period_end', '>=', $withdrawal->transaction_date)->first();
             if ($period?->isLocked()) {
-                abort(422, 'Transactions in a locked reconciliation period cannot be modified.');
+                throw ValidationException::withMessages(['period' => 'Transactions in a locked reconciliation period cannot be modified.']);
             }
-            if ($period && $period->discrepancies()->where('resolution_status', 'unresolved')->exists()) {
-                abort(422, 'The reconciliation period has unresolved discrepancies.');
-            }
-
             if (abs($difference) >= 0.005) {
-                abort(422, 'The withdrawal can only be reconciled when the difference is zero.');
+                throw ValidationException::withMessages(['finalize' => 'The withdrawal can only be reconciled when the difference is zero.']);
             }
 
             $withdrawal->matchedDisbursements()->sync($disbursementIds);

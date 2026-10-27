@@ -85,8 +85,7 @@ class DonorManagementTest extends TestCase
         $response->assertSee('data-dialog-open="edit-donor-modal-'.$donor->id.'"', false);
         $response->assertSee('data-wizard-next', false);
         $response->assertSee('data-wizard-submit', false);
-        $response->assertSee('data-ui-toast', false);
-        $response->assertDontSee('Please fill out the remaining field', false);
+        $response->assertSee('data-wizard-error role="alert" hidden', false);
     }
 
     private function donor(): Donor
