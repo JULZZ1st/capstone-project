@@ -15,6 +15,7 @@ use App\Services\Contributions\LogContribution;
 use App\Services\Inventory\ResolveInventoryClassification;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Database\QueryException;
 use Illuminate\View\View;
 
 class DonationPortalController extends Controller
@@ -97,7 +98,23 @@ class DonationPortalController extends Controller
 
     public function store(StoreContributionRequest $request, LogContribution $logger, ResolveInventoryClassification $resolver): RedirectResponse
     {
-        $contribution = $logger->handle($request->validated(), $request->user(), $resolver);
+        try {
+            $contribution = $logger->handle($request->validated(), $request->user(), $resolver);
+        } catch (QueryException $exception) {
+            $message = $exception->getMessage();
+
+            if (
+                $exception->getCode() !== '23000'
+                || ! str_contains($message, '1452')
+                || (! str_contains($message, 'donor_id') && ! str_contains($message, 'contributions_donor_id_foreign'))
+            ) {
+                throw $exception;
+            }
+
+            return back()
+                ->withInput()
+                ->withErrors(['donor_id' => 'The selected donor is no longer available in this workspace. Please select an active donor and try again.']);
+        }
 
         return redirect()
             ->route('donations.index')

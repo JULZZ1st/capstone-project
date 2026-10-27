@@ -42,10 +42,6 @@
         {{ config("donations.types.{$contribution->type}") }}
     </td>
 
-    <td class="hidden px-4 py-4 align-top text-slate-700 md:table-cell">
-        {{ $contribution->campaign?->name ?? 'No campaign' }}
-    </td>
-
     <td class="px-4 py-4 align-top">
         <p class="font-medium text-slate-950">
             {{ $value ? 'PHP '.number_format((float) $value, 2) : 'Not provided' }}

@@ -3,6 +3,28 @@ import './charts';
 
 const donorSearchTimers = new WeakMap();
 const donorSearchRequests = new WeakMap();
+const donationFilterTimers = new WeakMap();
+
+const submitDonationFilters = (form) => {
+    if (form) form.requestSubmit();
+};
+
+document.addEventListener('input', (event) => {
+    const input = event.target.closest('[data-donation-live-search]');
+    const form = input?.closest('[data-donation-filter-form]');
+
+    if (! form) return;
+
+    window.clearTimeout(donationFilterTimers.get(form));
+    donationFilterTimers.set(form, window.setTimeout(() => submitDonationFilters(form), 300));
+});
+
+document.addEventListener('change', (event) => {
+    const filter = event.target.closest('[data-donation-live-filter]');
+    const form = filter?.closest('[data-donation-filter-form]');
+
+    if (form) submitDonationFilters(form);
+});
 
 const refreshDonorResults = async (form, targetUrl) => {
     const results = document.querySelector('[data-donor-results]');

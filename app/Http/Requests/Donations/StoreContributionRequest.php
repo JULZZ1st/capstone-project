@@ -23,7 +23,11 @@ class StoreContributionRequest extends FormRequest
 
         return [
             'donation_type' => ['required', Rule::in(array_keys(config('donations.types')))],
-            'donor_id' => ['required', WorkspaceValidationRules::exists('donors')],
+            'donor_id' => [
+                'required',
+                WorkspaceValidationRules::exists('donors')
+                    ->where('status', config('donors.defaults.status')),
+            ],
             'campaign_id' => ['nullable', WorkspaceValidationRules::exists('campaigns')],
             'received_at' => ['nullable', 'date_format:Y-m-d'],
             'amount' => ['required_if:donation_type,cash', 'nullable', 'numeric', 'min:0.01', 'max:99999999.99'],
