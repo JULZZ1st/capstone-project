@@ -95,9 +95,9 @@ class DonationManagementTest extends TestCase
 
         $organization->assertOk();
         $organization->assertSee('Organization Name');
-        $organization->assertSee('Contact Person');
+        $organization->assertSee('Authorized Representative Name');
         $organization->assertSee('data-organization-name-field', false);
-        $organization->assertSee('data-contact-person-field', false);
+        $organization->assertSee('name="contact_person"', false);
     }
 
     public function test_individual_name_fields_are_required_for_individual_donors(): void

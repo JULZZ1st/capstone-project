@@ -15,17 +15,21 @@ class Donor extends Model
         'workspace_id',
         'donor_type',
         'first_name',
+        'middle_name',
         'last_name',
+        'suffix',
         'full_name',
         'contact_person',
         'address',
         'barangay',
         'city_municipality',
         'province',
+        'region',
         'barangay_area',
         'contact_number',
         'preferred_contact_method',
         'email',
+        'tin',
         'status',
         'notes',
     ];
@@ -55,6 +59,7 @@ class Donor extends Model
                 ->orWhere('barangay', 'like', "%{$term}%")
                 ->orWhere('city_municipality', 'like', "%{$term}%")
                 ->orWhere('province', 'like', "%{$term}%")
+                ->orWhere('region', 'like', "%{$term}%")
                 ->orWhere('barangay_area', 'like', "%{$term}%");
         });
     }

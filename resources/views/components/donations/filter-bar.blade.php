@@ -1,6 +1,6 @@
-@props(['filters', 'campaigns'])
+@props(['filters'])
 
-<form method="GET" action="{{ route('donations.index') }}" class="grid w-full gap-3 lg:grid-cols-[minmax(0,1fr)_10rem_11rem_10rem]" data-donation-filter-form>
+<form method="GET" action="{{ route('donations.index') }}" class="grid w-full gap-3 sm:grid-cols-[minmax(0,1fr)_10rem_11rem]" data-donation-filter-form>
     <div class="min-w-0">
         <x-form.label for="search" class="sr-only">Search contributions</x-form.label>
         <div class="relative">
@@ -24,16 +24,6 @@
             <option value="">All types</option>
             @foreach (config('donations.types') as $value => $label)
                 <option value="{{ $value }}" @selected(($filters['type'] ?? '') === $value)>{{ $label }}</option>
-            @endforeach
-        </select>
-    </div>
-
-    <div>
-        <x-form.label for="campaign_id" class="sr-only">Campaign filter</x-form.label>
-        <select id="campaign_id" name="campaign_id" class="block h-10 w-full rounded-md border-slate-300 bg-white px-3 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500" data-donation-live-filter>
-            <option value="">All campaigns</option>
-            @foreach ($campaigns as $campaign)
-                <option value="{{ $campaign->id }}" @selected((string) ($filters['campaign_id'] ?? '') === (string) $campaign->id)>{{ $campaign->name }}</option>
             @endforeach
         </select>
     </div>

@@ -36,6 +36,7 @@ class DonorController extends Controller
                 'barangay',
                 'city_municipality',
                 'province',
+                'region',
                 'barangay_area',
                 'status',
                 'notes',
@@ -71,6 +72,12 @@ class DonorController extends Controller
         $data['status'] = config('donors.defaults.status');
 
         if (! $request->duplicateConfirmed() && $this->hasLikelyDuplicate($data)) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => 'A donor with matching name and contact details may already exist. Review the information before creating another profile.',
+                ], 409);
+            }
+
             return redirect()
                 ->route('donors.index')
                 ->withInput($request->except('_confirm_duplicate'))
@@ -78,7 +85,16 @@ class DonorController extends Controller
                 ->with('duplicate_donor_detected', true);
         }
 
-        Donor::query()->create($data);
+        $donor = Donor::query()->create($data);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'donor' => [
+                    'id' => $donor->id,
+                    'label' => $donor->full_name.' - '.$donor->contact_number,
+                ],
+            ], 201);
+        }
 
         return redirect()
             ->route('donors.index')

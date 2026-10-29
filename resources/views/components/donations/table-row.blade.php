@@ -17,13 +17,23 @@
     'hover:bg-slate-50' => session('highlight_contribution') !== $contribution->id
 ])>
     <td class="whitespace-nowrap px-5 py-4 align-top">
+        <p class="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Donation ID</p>
         <p class="font-semibold text-slate-950">
             {{ $contribution->receipt_number ?? '#'.str_pad((string) $contribution->id, 5, '0', STR_PAD_LEFT) }}
         </p>
 
         @if ($contribution->isCash())
             <p class="text-xs text-slate-500">
-                {{ $contribution->reference_number ? 'Ref: '.$contribution->reference_number : 'No external reference' }}
+                @if ($contribution->official_receipt_number)
+                    Official Receipt: {{ $contribution->official_receipt_number }}
+                @elseif ($contribution->reference_number)
+                    Bank Ref: {{ $contribution->reference_number }}
+                @else
+                    No external reference
+                @endif
+                @if ($contribution->isCash() && $contribution->document_review_status === 'missing_deed_admin_review')
+                    <span class="font-semibold text-amber-700">Missing Deed – Admin Review</span>
+                @endif
             </p>
         @endif
     </td>
@@ -138,7 +148,7 @@
 
                 <div>
                     <p class="text-xs font-medium uppercase tracking-wide text-slate-500">
-                        Receipt Number
+                        Donation ID (system-generated)
                     </p>
 
                     <p class="mt-1 text-slate-700">
@@ -189,7 +199,7 @@
 
                     <div>
                         <p class="text-xs font-medium uppercase tracking-wide text-slate-500">
-                            Payment Method
+                            How was the donation received?
                         </p>
 
                         <p class="mt-1 text-slate-700">
@@ -199,13 +209,36 @@
 
                     <div>
                         <p class="text-xs font-medium uppercase tracking-wide text-slate-500">
-                            Reference Number
+                            Official Receipt Number
                         </p>
 
                         <p class="mt-1 text-slate-700">
-                            {{ $contribution->reference_number ?? 'Not provided' }}
+                            {{ $contribution->official_receipt_number ?? 'Not provided' }}
                         </p>
                     </div>
+
+                    @if ($contribution->payment_method === 'check')
+                        <div>
+                            <p class="text-xs font-medium uppercase tracking-wide text-slate-500">Check Number</p>
+                            <p class="mt-1 text-slate-700">{{ $contribution->check_number ?? 'Not provided' }}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs font-medium uppercase tracking-wide text-slate-500">Bank Name</p>
+                            <p class="mt-1 text-slate-700">{{ $contribution->bank_name ?? 'Not provided' }}</p>
+                        </div>
+                    @elseif ($contribution->reference_number)
+                        <div>
+                            <p class="text-xs font-medium uppercase tracking-wide text-slate-500">Bank Reference Number</p>
+                            <p class="mt-1 text-slate-700">{{ $contribution->reference_number }}</p>
+                        </div>
+                    @endif
+
+                    @if ($contribution->document_review_status === 'missing_deed_admin_review')
+                        <div class="md:col-span-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                            <p class="font-semibold">Missing Deed – Admin Review</p>
+                            <p class="mt-1">Staff explanation: {{ $contribution->deed_decline_reason }}</p>
+                        </div>
+                    @endif
                 @else
                     <div>
                         <p class="text-xs font-medium uppercase tracking-wide text-slate-500">

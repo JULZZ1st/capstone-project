@@ -12,6 +12,7 @@ use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\InventoryStockAdjustmentController;
 use App\Http\Controllers\InventorySubcategoryController;
 use App\Http\Controllers\InventoryUnitController;
+use App\Http\Controllers\LocationController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SystemSecurityController;
 use Illuminate\Support\Facades\Route;
@@ -44,11 +45,17 @@ Route::middleware([
     Route::get('/donors/{donor}', [DonorController::class, 'show'])->name('donors.show');
     Route::patch('/donors/{donor}', [DonorController::class, 'update'])->name('donors.update');
     Route::delete('/donors/{donor}', [DonorController::class, 'destroy'])->name('donors.destroy');
+    Route::get('/locations/provinces', [LocationController::class, 'provinces'])->name('locations.provinces');
+    Route::get('/locations/cities', [LocationController::class, 'cities'])->name('locations.cities');
+    Route::get('/locations/barangays', [LocationController::class, 'barangays'])->name('locations.barangays');
     Route::get('/donations', [DonationPortalController::class, 'index'])->name('donations.index');
     Route::post('/donations', [DonationPortalController::class, 'store'])->name('donations.store');
     Route::get('/donations/{contribution}', [DonationPortalController::class, 'show'])->name('donations.show');
+    Route::get('/donations/{contribution}/evidence/{evidence}', [DonationPortalController::class, 'downloadEvidence'])->name('donations.evidence');
     Route::patch('/donations/{contribution}', [DonationPortalController::class, 'update'])->name('donations.update');
     Route::patch('/donations/{contribution}/verify', [DonationPortalController::class, 'verify'])->name('donations.verify');
+    Route::patch('/donations/{contribution}/request-documents', [DonationPortalController::class, 'requestDocuments'])->name('donations.request-documents');
+    Route::patch('/donations/{contribution}/certificate', [DonationPortalController::class, 'issueCertificate'])->name('donations.certificate.issue');
 
     Route::get('/inventory', [InventoryController::class, 'index'])->name('inventory.index');
     Route::post('/inventory', [InventoryController::class, 'store'])->name('inventory.store');

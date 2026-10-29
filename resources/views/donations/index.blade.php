@@ -17,7 +17,6 @@
             <div class="min-w-0 flex-1">
                 <x-donations.filter-bar
                     :filters="$filters"
-                    :campaigns="$campaigns"
                 />
             </div>
 
@@ -107,8 +106,6 @@
         <x-donations.log-modal
             :donors="$donors"
             :campaigns="$campaigns"
-            :categories="$categories"
-            :subcategories-by-category="$subcategoriesByCategory"
         />
     @endcan
 

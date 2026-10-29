@@ -6,7 +6,7 @@
 @endphp
 
 <header class="sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur">
-    <div class="flex min-h-16 items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+    <div class="flex min-h-16 min-w-0 items-center justify-between gap-4 px-4 sm:px-5 lg:px-6">
         <div class="min-w-0 py-3">
             <h1 class="truncate text-sm font-bold text-slate-950 sm:text-[15px]">{{ $title }}</h1>
             @if ($subtitle)

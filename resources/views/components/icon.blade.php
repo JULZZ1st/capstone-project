@@ -179,6 +179,25 @@
             <path d="M5 12h14" />
             @break
 
+        @case('upload')
+            <path d="M12 16V4" />
+            <path d="m7 9 5-5 5 5" />
+            <path d="M5 15v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3" />
+            @break
+
+        @case('pencil')
+            <path d="M15.2 4.3 19.7 8.8" />
+            <path d="M5 19l.9-3.8L15.5 5.6a1.8 1.8 0 0 1 2.5 0l1.4 1.4a1.8 1.8 0 0 1 0 2.5L9.8 19.1 5 19Z" />
+            @break
+
+        @case('trash')
+            <path d="M4.5 7h15" />
+            <path d="M9 7V4.8c0-.4.3-.8.8-.8h4.4c.5 0 .8.4.8.8V7" />
+            <path d="M6.5 7l.7 12c0 .8.7 1.5 1.5 1.5h6.6c.8 0 1.5-.7 1.5-1.5L18 7" />
+            <path d="M10 11v6" />
+            <path d="M14 11v6" />
+            @break
+
         @default
             <circle cx="12" cy="12" r="8.25" />
     @endswitch

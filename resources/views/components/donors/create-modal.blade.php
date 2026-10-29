@@ -1,6 +1,6 @@
 @props(['open' => false, 'startStep' => 0])
 
-<dialog id="create-donor-modal" class="m-auto w-[calc(100%-2rem)] max-w-3xl overflow-hidden rounded-xl p-0 shadow-2xl backdrop:bg-slate-950/55" @if($open) open @endif>
+<dialog id="create-donor-modal" class="m-auto w-[calc(100%-2rem)] max-w-2xl overflow-hidden rounded-xl p-0 shadow-2xl backdrop:bg-slate-950/55" @if($open) open @endif>
     <form method="POST" action="{{ route('donors.store') }}" class="flex max-h-[86vh] flex-col bg-white" data-donor-create-form data-donor-wizard-form novalidate>
         @csrf
         <input type="hidden" name="_modal" value="create">
