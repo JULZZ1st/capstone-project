@@ -39,10 +39,11 @@
                             <tr><th class="bg-slate-50 px-5 py-3 text-left font-medium text-slate-500">Contact Person</th><td class="px-5 py-3 font-medium text-slate-950">{{ $donor->contact_person }}</td></tr>
                         @endif
                         <tr><th class="bg-slate-50 px-5 py-3 text-left font-medium text-slate-500">Preferred Contact Method</th><td class="px-5 py-3 font-medium text-slate-950">{{ $donor->preferred_contact_method ? config('donors.contact_methods')[$donor->preferred_contact_method] : 'Not provided' }}</td></tr>
-                        <tr><th class="bg-slate-50 px-5 py-3 text-left font-medium text-slate-500">Street / Address</th><td class="px-5 py-3 font-medium text-slate-950">{{ $donor->address ?: 'Not provided' }}</td></tr>
+                        <tr><th class="bg-slate-50 px-5 py-3 text-left font-medium text-slate-500">Street / Purok / House No.</th><td class="px-5 py-3 font-medium text-slate-950">{{ $donor->address ?: 'Not provided' }}</td></tr>
                         <tr><th class="bg-slate-50 px-5 py-3 text-left font-medium text-slate-500">Barangay</th><td class="px-5 py-3 font-medium text-slate-950">{{ $donor->barangay ?: $donor->barangay_area ?: 'Not provided' }}</td></tr>
                         <tr><th class="bg-slate-50 px-5 py-3 text-left font-medium text-slate-500">City / Municipality</th><td class="px-5 py-3 font-medium text-slate-950">{{ $donor->city_municipality ?: 'Not provided' }}</td></tr>
                         <tr><th class="bg-slate-50 px-5 py-3 text-left font-medium text-slate-500">Province</th><td class="px-5 py-3 font-medium text-slate-950">{{ $donor->province ?: 'Not provided' }}</td></tr>
+                        <tr><th class="bg-slate-50 px-5 py-3 text-left font-medium text-slate-500">Region</th><td class="px-5 py-3 font-medium text-slate-950">{{ $donor->region ?: 'Not provided' }}</td></tr>
                         <tr><th class="bg-slate-50 px-5 py-3 text-left font-medium text-slate-500">Status</th><td class="px-5 py-3 font-medium text-slate-950">{{ config('donors.statuses')[$donor->status] ?? ucfirst($donor->status) }}</td></tr>
                         <tr><th class="bg-slate-50 px-5 py-3 text-left font-medium text-slate-500">Notes</th><td class="whitespace-pre-line px-5 py-3 font-medium text-slate-950">{{ $donor->notes ?: 'Not provided' }}</td></tr>
                     </tbody>

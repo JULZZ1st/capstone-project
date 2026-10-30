@@ -21,9 +21,26 @@ class Contribution extends Model
         'type',
         'status',
         'amount',
+        'purpose_type',
+        'purpose_name',
         'payment_method',
         'payment_method_name',
         'reference_number',
+        'check_number',
+        'bank_name',
+        'registered_bank_account',
+        'official_receipt_number',
+        'certificate_requested',
+        'certificate_status',
+        'certificate_issued_by',
+        'certificate_issued_at',
+        'deed_declined',
+        'deed_decline_reason',
+        'document_review_status',
+        'document_request_reason',
+        'documents_requested_by',
+        'documents_requested_at',
+        'donor_tin',
         'notes',
         'photo_path',
         'received_at',
@@ -40,6 +57,10 @@ class Contribution extends Model
             'received_at' => 'datetime',
             'verified_at' => 'datetime',
             'voided_at' => 'datetime',
+            'certificate_requested' => 'boolean',
+            'certificate_issued_at' => 'datetime',
+            'deed_declined' => 'boolean',
+            'documents_requested_at' => 'datetime',
         ];
     }
 
@@ -58,6 +79,16 @@ class Contribution extends Model
         return $this->belongsTo(User::class, 'verified_by');
     }
 
+    public function certificateIssuer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'certificate_issued_by');
+    }
+
+    public function documentsRequester(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'documents_requested_by');
+    }
+
     public function voider(): BelongsTo
     {
         return $this->belongsTo(User::class, 'voided_by');
@@ -66,6 +97,11 @@ class Contribution extends Model
     public function items(): HasMany
     {
         return $this->hasMany(ContributionItem::class);
+    }
+
+    public function evidence(): HasMany
+    {
+        return $this->hasMany(ContributionEvidence::class);
     }
 
     public function ledgerEntry(): HasOne

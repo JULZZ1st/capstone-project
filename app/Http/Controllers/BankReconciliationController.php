@@ -52,6 +52,10 @@ class BankReconciliationController extends Controller
         $eligibleDisbursements = CashDisbursement::query()
             ->approvedActive()
             ->whereDoesntHave('withdrawalMatch')
+            ->where(function ($query): void {
+                $query->whereDoesntHave('payment')
+                    ->orWhereHas('payment', fn ($payment) => $payment->where('payment_method', 'bank_transfer'));
+            })
             ->with('requester:id,name,first_name,last_name')
             ->latest('approved_at')
             ->get();

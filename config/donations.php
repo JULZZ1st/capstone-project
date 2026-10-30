@@ -2,7 +2,7 @@
 
 return [
     'types' => [
-        'cash' => 'Cash / Electronic Transfer',
+        'cash' => 'Cash Donation',
         'in_kind' => 'In-Kind Goods',
     ],
 
@@ -21,18 +21,26 @@ return [
     ],
 
     'payment_methods' => [
-        'cash' => 'Cash',
-        'bank_transfer' => 'Bank Transfer',
-        'gcash' => 'GCash',
-        'maya' => 'Maya',
+        'cash' => 'Cash (Handed in Person)',
         'check' => 'Check',
-        'other' => 'Other',
+        'bank_transfer' => 'Bank Transfer / Deposit',
     ],
 
     // Retained only for displaying historical records. It is intentionally
     // excluded from payment_methods so new contributions cannot select it.
     'legacy_payment_methods' => [
         'money_order' => 'Money Order',
+        'gcash' => 'GCash',
+        'maya' => 'Maya',
+        'other' => 'Other',
+    ],
+
+    // Accepted only for backward-compatible direct imports/submissions; these
+    // methods are intentionally absent from the new-donation UI.
+    'legacy_input_payment_methods' => [
+        'gcash',
+        'maya',
+        'other',
     ],
 
     'electronic_payment_methods' => [
@@ -66,6 +74,25 @@ return [
         'toys_recreational_items' => 'Toys & Recreational Items',
         'other' => 'Other',
     ],
+
+    // Fixed, simplified category list for In-Kind Donation items. Decoupled
+    // from the InventoryCategory taxonomy used by the standalone Inventory
+    // module — these keys are never created/edited by users.
+    'item_main_categories' => [
+        'food_relief' => 'Food / Relief Goods',
+        'medical_health' => 'Medical & Health Supplies',
+        'it_office_equipment' => 'IT & Office Equipment',
+        'disaster_safety' => 'Disaster Response & Safety Gear',
+        'construction_hardware' => 'Construction & Hardware Materials',
+        'furniture_fixtures' => 'Furniture & Fixtures',
+        'others' => 'Others',
+    ],
+
+    // Categories for which the Add Item modal shows an Expiration Date field.
+    'item_expiration_categories' => ['food_relief', 'medical_health'],
+
+    // Categories for which the Add Item modal shows Brand/Model/Serial Number fields.
+    'item_equipment_categories' => ['it_office_equipment', 'furniture_fixtures'],
 
     'item_conditions' => [
         'new' => 'New',

@@ -42,6 +42,22 @@ class ContributionPolicy
             && $user->hasRole(['admin', 'staff']);
     }
 
+    public function requestDocuments(User $user, Contribution $contribution): bool
+    {
+        return $contribution->isCash()
+            && $contribution->status === 'pending'
+            && $this->sameWorkspace($user, $contribution)
+            && $user->hasRole('admin');
+    }
+
+    public function issueCertificate(User $user, Contribution $contribution): bool
+    {
+        return $user->hasRole('admin')
+            && $contribution->certificate_requested
+            && $contribution->certificate_status === 'pending'
+            && $this->sameWorkspace($user, $contribution);
+    }
+
     public function void(User $user, Contribution $contribution): bool
     {
         return $this->sameWorkspace($user, $contribution)

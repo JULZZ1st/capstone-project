@@ -36,6 +36,7 @@ class DonorController extends Controller
                 'barangay',
                 'city_municipality',
                 'province',
+                'region',
                 'barangay_area',
                 'status',
                 'notes',
@@ -77,6 +78,12 @@ class DonorController extends Controller
         $data['status'] = config('donors.defaults.status');
 
         if (! $request->duplicateConfirmed() && $this->hasLikelyDuplicate($data)) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => 'A donor with matching name and contact details may already exist. Review the information before creating another profile.',
+                ], 409);
+            }
+
             return redirect()
                 ->route('donors.index')
                 ->withInput($request->except('_confirm_duplicate'))
@@ -84,7 +91,16 @@ class DonorController extends Controller
                 ->with('duplicate_donor_detected', true);
         }
 
-        Donor::query()->create($data);
+        $donor = Donor::query()->create($data);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'donor' => [
+                    'id' => $donor->id,
+                    'label' => $donor->full_name.' - '.$donor->contact_number,
+                ],
+            ], 201);
+        }
 
         return redirect()
             ->route('donors.index')
@@ -112,6 +128,10 @@ class DonorController extends Controller
     {
         $donor->update($request->donorData());
 
+        if ($request->expectsJson()) {
+            return response()->json(['donor' => $this->donorPayload($donor->fresh())]);
+        }
+
         return redirect()
             ->route('donors.index')
             ->with('success', 'Donor profile updated successfully.');
@@ -126,6 +146,10 @@ class DonorController extends Controller
         $message = $result === 'deactivated'
             ? 'Donor has existing donation history, so the profile was deactivated instead of deleted.'
             : 'Donor profile deleted successfully.';
+
+        if ($request->expectsJson()) {
+            return response()->json(['message' => $message, 'id' => $donor->id]);
+        }
 
         return redirect()
             ->route('donors.index')
@@ -185,5 +209,15 @@ class DonorController extends Controller
     private function normalizeContactNumber(?string $contactNumber): string
     {
         return preg_replace('/\D+/', '', (string) $contactNumber) ?? '';
+    }
+
+    private function donorPayload(Donor $donor): array
+    {
+        return $donor->only([
+            'id', 'donor_type', 'first_name', 'middle_name', 'last_name', 'suffix',
+            'full_name', 'contact_person', 'email', 'contact_number',
+            'preferred_contact_method', 'tin', 'address', 'barangay', 'city_municipality',
+            'province', 'region', 'notes', 'status',
+        ]);
     }
 }

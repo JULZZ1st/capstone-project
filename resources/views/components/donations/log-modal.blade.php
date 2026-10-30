@@ -1,10 +1,10 @@
-@props(['donors', 'categories', 'subcategoriesByCategory'])
+@props(['donors'])
 
 @php($selectedType = old('donation_type', 'cash'))
 
 <dialog
     id="log-contribution-dialog"
-    class="m-auto w-[min(760px,calc(100vw-2rem))] overflow-hidden rounded-2xl p-0 shadow-2xl backdrop:bg-slate-950/50"
+    class="m-auto w-[min(860px,calc(100vw-1.5rem))] max-w-full overflow-hidden rounded-2xl p-0 shadow-2xl backdrop:bg-slate-950/50"
     aria-labelledby="log-contribution-title"
     @if($errors->any()) open @endif
 >
@@ -12,31 +12,26 @@
         method="POST"
         action="{{ route('donations.store') }}"
         enctype="multipart/form-data"
-        class="flex max-h-[90vh] flex-col"
+        class="flex max-h-[calc(100vh-2rem)] min-h-0 flex-col"
         data-contribution-form
     >
         @csrf
 
-        <div class="sticky top-0 z-10 flex shrink-0 items-center justify-between border-b border-slate-200 bg-white px-5 py-3">
-            <div class="flex items-center gap-3">
-                <div>
-                    <h2 id="log-contribution-title" class="text-lg font-semibold text-slate-950">
-                        Add Contribution
-                    </h2>
-                </div>
-            </div>
+        <div class="flex shrink-0 items-center justify-between border-b border-slate-200 bg-white px-5 py-3.5 sm:px-6">
+            <h2 id="log-contribution-title" class="text-base font-semibold text-slate-950">Add Donation</h2>
 
             <button
                 type="button"
                 class="rounded-md px-2 py-1 text-2xl leading-none text-slate-500 hover:bg-slate-100"
                 data-dialog-close="log-contribution-dialog"
+                aria-label="Close modal"
             >
                 &times;
             </button>
         </div>
 
         <div class="min-h-0 flex-1 overflow-y-auto">
-            <div class="space-y-4 px-5 py-4">
+            <div class="space-y-5 px-5 py-4 sm:px-6 sm:py-5">
 
                 @if ($donors->isEmpty())
                     <x-alert type="error">
@@ -44,98 +39,39 @@
                     </x-alert>
                 @endif
 
-                <div>
-                    <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-700">
-                        Basic Information
-                    </h3>
-
-                    <p class="mt-1 text-sm text-slate-500">
-                        Identify the donor and contribution type.
-                    </p>
+                <div class="grid gap-2 sm:grid-cols-2" role="tablist" aria-label="Contribution type">
+                    @foreach (config('donations.types') as $value => $label)
+                        @php($isCash = $value === 'cash')
+                        <button
+                            type="button"
+                            role="tab"
+                            aria-selected="{{ $selectedType === $value ? 'true' : 'false' }}"
+                            class="group flex min-h-14 items-center gap-3 rounded-xl border px-4 py-2.5 text-left transition {{ $selectedType === $value ? 'border-blue-500 bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm' : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-blue-200 hover:bg-blue-50' }}"
+                            data-contribution-tab="{{ $value }}"
+                        >
+                            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg {{ $selectedType === $value ? 'bg-white/15 text-white' : 'bg-white text-slate-600 shadow-sm' }}">
+                                <x-icon :name="$isCash ? 'banknotes' : 'cube'" class="h-5 w-5" />
+                            </span>
+                            <span class="min-w-0">
+                                <span class="block text-sm font-semibold">{{ $isCash ? 'Cash Donation' : 'In-Kind Goods' }}</span>
+                                <span class="block truncate text-xs {{ $selectedType === $value ? 'text-blue-100' : 'text-slate-500' }}">{{ $isCash ? 'Record monetary contributions' : 'Record donated goods and items' }}</span>
+                            </span>
+                        </button>
+                    @endforeach
                 </div>
 
-                <div class="grid gap-4 md:grid-cols-2">
-
-                    <div>
-                        <x-form.label for="donation_type">
-                            Contribution Type
-                        </x-form.label>
-
-                        <select
-                            id="donation_type"
-                            name="donation_type"
-                            class="mt-1 block w-full rounded-md border-slate-300 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                            data-contribution-type
-                        >
-                            @foreach (config('donations.types') as $value => $label)
-                                <option
-                                    value="{{ $value }}"
-                                    @selected($selectedType === $value)
-                                >
-                                    {{ $label }}
-                                </option>
-                            @endforeach
-                        </select>
-
-                        <x-form.error name="donation_type" />
-                    </div>
-
-
-                    <div>
-                        <x-form.label for="donor_id">
-                            Donor
-                        </x-form.label>
-
-                        <select
-                            id="donor_id"
-                            name="donor_id"
-                            class="mt-1 block w-full rounded-md border-slate-300 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                            @disabled($donors->isEmpty())
-                        >
-                            <option value="">
-                                Select donor
-                            </option>
-
-                            @foreach ($donors as $donor)
-                                <option
-                                    value="{{ $donor->id }}"
-                                    @selected((string) old('donor_id') === (string) $donor->id)
-                                >
-                                    {{ $donor->full_name }} - {{ $donor->contact_number }}
-                                </option>
-                            @endforeach
-                        </select>
-
-                        <x-form.error name="donor_id" />
-                    </div>
-
-                </div>
+                <input id="donation_type" type="hidden" name="donation_type" value="{{ $selectedType }}" data-contribution-type>
+                <x-form.error name="donation_type" />
 
                 <x-donations.cash-fields
                     :active="$selectedType === 'cash'"
+                    :donors="$donors"
                 />
 
                 <x-donations.in-kind-fields
                     :active="$selectedType === 'in_kind'"
-                    :categories="$categories"
-                    :subcategories-by-category="$subcategoriesByCategory"
+                    :donors="$donors"
                 />
-
-                <div>
-                    <x-form.label for="notes">
-                        Notes <span class="font-normal text-slate-400">(optional)</span>
-                    </x-form.label>
-
-                    <textarea
-                        id="notes"
-                        name="notes"
-                        rows="3"
-                        class="mt-1 block w-full rounded-md border-slate-300 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                    >{{ old('notes') }}</textarea>
-
-                    <x-form.error name="notes" />
-
-                </div>
 
                 <div>
                     <x-form.label for="photo">Donation Photo (Optional)</x-form.label>
@@ -149,15 +85,14 @@
                     <p class="mt-1 text-xs text-slate-500">Upload one JPG, PNG, or WEBP image up to 5 MB.</p>
                     <x-form.error name="photo" />
                 </div>
-
             </div>
         </div>
 
-        <div class="sticky bottom-0 z-10 flex shrink-0 flex-col-reverse gap-3 border-t border-slate-200 bg-slate-50 px-5 py-3 sm:flex-row sm:justify-end">
+        <div class="flex shrink-0 flex-col-reverse gap-3 border-t border-slate-200 bg-slate-50 px-5 py-3 sm:flex-row sm:justify-end sm:px-6">
 
             <button
                 type="button"
-                class="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-white"
+                class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-white"
                 data-dialog-close="log-contribution-dialog"
             >
                 Cancel
@@ -175,3 +110,35 @@
 
     </form>
 </dialog>
+
+@can('create', \App\Models\Donor::class)
+    <dialog
+        id="quick-create-donor-dialog"
+        class="m-auto w-[min(42rem,calc(100vw-1.5rem))] max-w-full overflow-hidden rounded-2xl p-0 shadow-2xl backdrop:bg-slate-950/55"
+        aria-labelledby="quick-create-donor-title"
+    >
+        <form method="POST" action="{{ route('donors.store') }}" class="flex max-h-[calc(100vh-2rem)] min-h-0 flex-col bg-white" data-quick-donor-form data-donor-wizard-form novalidate>
+            @csrf
+            <input type="hidden" name="_modal" value="quick-create">
+            <div class="flex shrink-0 items-center justify-between border-b border-slate-200 px-5 py-3.5">
+                <div>
+                    <h2 id="quick-create-donor-title" class="text-base font-semibold text-slate-950">Add Donor</h2>
+                    <p class="mt-0.5 text-xs text-slate-500">Create a donor profile and use it for this contribution.</p>
+                </div>
+                <button type="button" class="rounded-md px-2 py-1 text-2xl leading-none text-slate-500 hover:bg-slate-100" data-dialog-close="quick-create-donor-dialog" aria-label="Close modal">&times;</button>
+            </div>
+            <div class="min-h-0 flex-1 overflow-y-auto">
+                <x-donors.form mode="create" />
+                <p class="mx-5 mb-4 hidden rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700" data-quick-donor-error role="alert"></p>
+            </div>
+            <div class="flex shrink-0 items-center justify-between gap-3 border-t border-slate-200 bg-slate-50 px-5 py-3">
+                <button type="button" class="h-9 rounded-lg border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50" data-wizard-back disabled>Back</button>
+                <div class="flex items-center gap-2">
+                    <button type="button" class="h-9 rounded-lg border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50" data-dialog-close="quick-create-donor-dialog">Cancel</button>
+                    <button type="button" class="h-9 rounded-lg bg-blue-700 px-4 text-sm font-semibold text-white hover:bg-blue-800" data-wizard-next>Next</button>
+                    <button type="submit" hidden class="h-9 rounded-lg bg-blue-700 px-4 text-sm font-semibold text-white hover:bg-blue-800 disabled:opacity-50" data-wizard-submit>Save Donor</button>
+                </div>
+            </div>
+        </form>
+    </dialog>
+@endcan

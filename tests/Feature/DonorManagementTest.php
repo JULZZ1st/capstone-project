@@ -61,15 +61,117 @@ class DonorManagementTest extends TestCase
         $response = $this->actingAs($admin)->get(route('donors.index'));
 
         $response->assertOk();
-        $response->assertSee('Donor Name');
-        $response->assertSee('City / Municipality');
+        $response->assertSee('Donor');
+        $response->assertSee('Location');
         $response->assertSee('sticky top-0', false);
-        $response->assertSee('aria-label="Actions for '.$donor->full_name.'"', false);
-        $response->assertSee('view-donor-modal-'.$donor->id);
         $response->assertSee('data-dialog-open="remove-donor-modal-'.$donor->id.'"', false);
         $response->assertSee('Confirm Delete');
         $response->assertSee('Donation History');
+        $response->assertSee('view-donor-modal-'.$donor->id);
+        $response->assertSee('aria-label="Actions for '.$donor->full_name.'"', false);
         $response->assertDontSee('onsubmit="return confirm(', false);
+    }
+
+    public function test_create_and_edit_forms_render_three_wizard_steps(): void
+    {
+        $admin = $this->userWithRole('admin');
+        $donor = $this->donor();
+
+        $response = $this->actingAs($admin)->get(route('donors.index'));
+
+        $response->assertOk();
+        $response->assertSee('Donor profile steps');
+        $response->assertSee('data-wizard-step-title="Basic & Contact Information"', false);
+        $response->assertSee('data-wizard-step-title="Address Information"', false);
+        $response->assertSee('data-wizard-step-title="Additional Information"', false);
+        $response->assertSee('data-dialog-open="edit-donor-modal-'.$donor->id.'"', false);
+        $response->assertSee('data-wizard-next', false);
+        $response->assertSee('data-wizard-submit', false);
+        $response->assertSee('data-wizard-error role="alert" hidden', false);
+    }
+
+    public function test_donor_can_be_created_with_cascading_address_selection(): void
+    {
+        $admin = $this->userWithRole('admin');
+        $region = \Schoolees\Psgc\Models\Region::query()->create(['code' => '9900000000', 'name' => 'Test Region']);
+        $province = \Schoolees\Psgc\Models\Province::query()->create(['code' => '9900100000', 'name' => 'Test Province', 'region_code' => $region->code]);
+        $city = \Schoolees\Psgc\Models\City::query()->create(['code' => '9900100100', 'name' => 'Test City', 'region_code' => $region->code, 'province_code' => $province->code]);
+        $barangay = \Schoolees\Psgc\Models\Barangay::query()->create(['code' => '9900100100001', 'name' => 'Test Barangay', 'city_code' => $city->code]);
+
+        $response = $this->actingAs($admin)->post(route('donors.store'), [
+            'donor_type' => 'individual',
+            'first_name' => 'Cascading',
+            'last_name' => 'Address',
+            'contact_number' => '09170000001',
+            'region' => $region->name,
+            'province' => $province->name,
+            'city_municipality' => $city->name,
+            'barangay' => $barangay->name,
+        ]);
+
+        $response->assertRedirect(route('donors.index'));
+        $response->assertSessionDoesntHaveErrors();
+
+        $donor = Donor::query()->where('contact_number', '09170000001')->firstOrFail();
+        $this->assertSame($region->name, $donor->region);
+        $this->assertSame($province->name, $donor->province);
+        $this->assertSame($city->name, $donor->city_municipality);
+        $this->assertSame($barangay->name, $donor->barangay);
+
+        $showResponse = $this->actingAs($admin)->get(route('donors.show', $donor));
+        $showResponse->assertOk();
+        $showResponse->assertSee($region->name);
+        $showResponse->assertSee($province->name);
+        $showResponse->assertSee($city->name);
+        $showResponse->assertSee($barangay->name);
+    }
+
+    public function test_fresh_create_form_defaults_address_but_respects_explicit_clear(): void
+    {
+        $admin = $this->userWithRole('admin');
+        \Schoolees\Psgc\Models\Region::query()->create(['code' => '700000000', 'name' => 'Region VII (Central Visayas)']);
+        \Schoolees\Psgc\Models\City::query()->create(['code' => '730600000', 'name' => 'City of Cebu', 'region_code' => '700000000']);
+
+        $freshResponse = $this->actingAs($admin)->get(route('donors.index'));
+        $freshResponse->assertOk();
+        $freshResponse->assertSee('value="Region VII (Central Visayas)"', false);
+        $freshResponse->assertSee('>Central Visayas</div>', false);
+        $freshResponse->assertSee('value="City of Cebu" data-code="730600000"', false);
+
+        $failedSubmit = $this->from(route('donors.index'))->actingAs($admin)->post(route('donors.store'), [
+            'donor_type' => 'individual',
+            'first_name' => '',
+            'last_name' => '',
+            'contact_number' => '',
+            'region' => '',
+            'province' => '',
+            'city_municipality' => '',
+            'barangay' => '',
+        ]);
+        $failedSubmit->assertRedirect(route('donors.index'));
+        $failedSubmit->assertSessionHasErrors();
+
+        $redisplayed = $this->actingAs($admin)->get(route('donors.index'));
+        $redisplayed->assertOk();
+        $redisplayed->assertDontSee('value="City of Cebu" data-code="730600000" selected', false);
+    }
+
+    public function test_editing_donor_with_non_matching_legacy_address_does_not_break(): void
+    {
+        $admin = $this->userWithRole('admin');
+        $donor = $this->donor();
+
+        $response = $this->actingAs($admin)->patch(route('donors.update', $donor), [
+            'donor_type' => 'individual',
+            'first_name' => 'Updated',
+            'last_name' => 'Name',
+            'contact_number' => $donor->contact_number,
+            'barangay' => $donor->address,
+        ]);
+
+        $response->assertRedirect(route('donors.index'));
+        $response->assertSessionDoesntHaveErrors();
+        $this->assertDatabaseHas('donors', ['id' => $donor->id, 'first_name' => 'Updated']);
     }
 
     public function test_donor_with_history_gets_a_centered_view_modal_and_safe_deactivation_confirmation(): void
@@ -93,26 +195,7 @@ class DonorManagementTest extends TestCase
             ->assertSee('Confirm Deactivation');
     }
 
-    public function test_create_and_edit_forms_render_four_wizard_steps(): void
-    {
-        $admin = $this->userWithRole('admin');
-        $donor = $this->donor();
-
-        $response = $this->actingAs($admin)->get(route('donors.index'));
-
-        $response->assertOk();
-        $response->assertSee('Donor profile steps');
-        $response->assertSee('data-wizard-step-title="Basic Information"', false);
-        $response->assertSee('data-wizard-step-title="Contact Information"', false);
-        $response->assertSee('data-wizard-step-title="Address"', false);
-        $response->assertSee('data-wizard-step-title="Additional Information"', false);
-        $response->assertSee('data-dialog-open="edit-donor-modal-'.$donor->id.'"', false);
-        $response->assertSee('data-wizard-next', false);
-        $response->assertSee('data-wizard-submit', false);
-        $response->assertSee('data-wizard-error role="alert" hidden', false);
-    }
-
-    public function test_invalid_create_reopens_the_form_at_the_contact_step(): void
+    public function test_invalid_create_reopens_the_form_at_the_basic_and_contact_step(): void
     {
         $admin = $this->userWithRole('admin');
 
@@ -131,7 +214,7 @@ class DonorManagementTest extends TestCase
         $response = $this->get(route('donors.index'))->assertOk();
 
         $this->assertMatchesRegularExpression('/<dialog id="create-donor-modal"[^>]*\\sopen\\s*>/', $response->getContent());
-        $response->assertSee('data-wizard-start-step="1"', false);
+        $response->assertSee('data-wizard-start-step="0"', false);
         $this->assertDatabaseCount('donors', 0);
     }
 
@@ -148,14 +231,15 @@ class DonorManagementTest extends TestCase
                 'first_name' => 'Maria',
                 'last_name' => 'Santos',
                 'contact_number' => '09171234567',
+                'region' => str_repeat('x', 256),
             ])
             ->assertRedirect(route('donors.index'))
-            ->assertSessionHasErrors('address');
+            ->assertSessionHasErrors('region');
 
         $response = $this->get(route('donors.index'))->assertOk();
 
         $this->assertMatchesRegularExpression('/<dialog id="edit-donor-modal-'.$donor->id.'"[^>]*\\sopen\\s*>/', $response->getContent());
-        $response->assertSee('data-wizard-start-step="2"', false);
+        $response->assertSee('data-wizard-start-step="1"', false);
         $this->assertDatabaseHas('donors', ['id' => $donor->id, 'address' => $donor->address]);
     }
 

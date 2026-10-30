@@ -5,32 +5,44 @@
 @section('page-subtitle', 'Log, review, and verify cash and in-kind contributions.')
 
 @section('content')
+
     @if ($errors->any())
         <x-alert type="error" class="mb-6">
             Please review the highlighted fields and try again.
         </x-alert>
     @endif
 
-    <div class="space-y-6">
-        <div class="flex flex-col gap-4 lg:flex-row lg:items-start">
+    <div class="space-y-4">
+        <div class="flex flex-col gap-3 lg:flex-row lg:items-center">
             <div class="min-w-0 flex-1">
                 <x-donations.filter-bar
                     :filters="$filters"
                 />
             </div>
 
-            @can('create', \App\Models\Contribution::class)
-                <div class="shrink-0">
+            <div class="flex shrink-0 flex-col gap-2 sm:flex-row">
+                @can('viewAny', \App\Models\Donor::class)
+                    <x-button
+                        type="button"
+                        class="h-10 w-full gap-2 border border-blue-200 bg-white px-4 !text-blue-700 hover:border-blue-300 hover:bg-blue-50 hover:!text-blue-800 sm:w-auto"
+                        data-dialog-open="donor-directory-modal"
+                    >
+                        <x-icon name="users" class="h-4 w-4" />
+                        View All Donors
+                    </x-button>
+                @endcan
+
+                @can('create', \App\Models\Contribution::class)
                     <x-button
                         type="button"
                         class="h-10 w-full gap-2 px-4 shadow-sm sm:w-auto"
                         data-dialog-open="log-contribution-dialog"
                     >
                         <x-icon name="plus" class="h-4 w-4" />
-                        Add Contribution
+                        Add Donation
                     </x-button>
-                </div>
-            @endcan
+                @endcan
+            </div>
 
         </div>
 
@@ -56,6 +68,7 @@
                         @if (request()->hasAny(['search', 'type', 'status']))
 
                             Try adjusting your search or filters.
+
                         @else
 
                             Start by logging a new cash or in-kind contribution.
@@ -84,7 +97,7 @@
                                     name="plus"
                                     class="-ml-0.5 mr-1.5 h-4 w-4"
                                 />
-                                Add Contribution
+                                Add Donation
                             </x-button>
                         @endcan
 
@@ -103,9 +116,11 @@
     @can('create', \App\Models\Contribution::class)
         <x-donations.log-modal
             :donors="$donors"
-            :categories="$categories"
-            :subcategories-by-category="$subcategoriesByCategory"
         />
+    @endcan
+
+    @can('viewAny', \App\Models\Donor::class)
+        <x-donations.donor-directory-modal :donors="$donorDirectory" />
     @endcan
 
 @endsection

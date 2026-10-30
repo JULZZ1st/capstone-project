@@ -19,19 +19,29 @@
                 <h2 class="text-base font-semibold text-slate-950">Record</h2>
                 <dl class="mt-4 grid gap-4 sm:grid-cols-2">
                     <div>
-                        <dt class="text-xs font-semibold uppercase text-slate-500">Receipt No.</dt>
+                        <dt class="text-xs font-semibold uppercase text-slate-500">Donation ID (system-generated)</dt>
                         <dd class="mt-1 text-sm font-semibold text-slate-900">{{ $contribution->receipt_number ?? '#'.str_pad((string) $contribution->id, 5, '0', STR_PAD_LEFT) }}</dd>
                     </div>
                     <div>
                         <dt class="text-xs font-semibold uppercase text-slate-500">Date received</dt>
                         <dd class="mt-1 text-sm text-slate-900">{{ optional($contribution->received_at)->format('M d, Y h:i A') ?? 'Not provided' }}</dd>
                     </div>
+                    @if ($contribution->isCash())
+                        <div>
+                            <dt class="text-xs font-semibold uppercase text-slate-500">Donation purpose</dt>
+                            <dd class="mt-1 text-sm text-slate-900">{{ $contribution->purpose_type === 'specific' ? ($contribution->purpose_name ?: 'For a Specific Purpose') : 'General Barangay Use' }}</dd>
+                        </div>
+                    @endif
                     <div>
                         <dt class="text-xs font-semibold uppercase text-slate-500">Logged by</dt>
                         <dd class="mt-1 text-sm text-slate-900">{{ $contribution->creator?->name ?? trim(($contribution->creator?->first_name ?? '').' '.($contribution->creator?->last_name ?? '')) ?: 'System' }}</dd>
                     </div>
                     <div>
-                        <dt class="text-xs font-semibold uppercase text-slate-500">External Reference</dt>
+                        <dt class="text-xs font-semibold uppercase text-slate-500">Official Receipt Number</dt>
+                        <dd class="mt-1 text-sm text-slate-900">{{ $contribution->official_receipt_number ?? 'Not provided' }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs font-semibold uppercase text-slate-500">Bank Reference Number</dt>
                         <dd class="mt-1 text-sm text-slate-900">{{ $contribution->reference_number ?? 'Not provided' }}</dd>
                     </div>
                 </dl>
@@ -48,7 +58,27 @@
                         <p class="text-sm font-semibold text-slate-600">Amount</p>
                         <p class="mt-1 text-2xl font-bold text-slate-950">PHP {{ number_format((float) $contribution->amount, 2) }}</p>
                         <p class="mt-1 text-sm text-slate-500">{{ $contribution->paymentMethodLabel() }}</p>
+                        @if ($contribution->payment_method === 'check')
+                            <p class="mt-2 text-sm text-slate-600">Check {{ $contribution->check_number ?? '—' }} · {{ $contribution->bank_name ?? 'Bank not provided' }}</p>
+                        @elseif ($contribution->payment_method === 'bank_transfer')
+                            <p class="mt-2 text-sm text-slate-600">Account: {{ $contribution->registered_bank_account ?? 'Not provided' }}</p>
+                        @endif
                     </div>
+
+                    @if ($contribution->document_review_status === 'missing_deed_admin_review')
+                        <div class="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+                            <p class="font-semibold">Missing Deed – Admin Review</p>
+                            <p class="mt-1">The donation was saved as Pending because the donor declined to sign the Deed of Donation.</p>
+                            <p class="mt-2"><span class="font-semibold">Staff explanation:</span> {{ $contribution->deed_decline_reason }}</p>
+                        </div>
+                    @endif
+
+                    @if ($contribution->documents_requested_at)
+                        <div class="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900">
+                            <p class="font-semibold">Documents requested by Admin</p>
+                            <p class="mt-1">{{ $contribution->document_request_reason }}</p>
+                        </div>
+                    @endif
                 @else
                     <div class="mt-6 overflow-hidden rounded-lg border border-slate-200">
                         <table class="min-w-full divide-y divide-slate-200 text-sm">
@@ -57,7 +87,7 @@
                                     <th class="px-4 py-3">Item</th>
                                     <th class="px-4 py-3">Quantity</th>
                                     <th class="px-4 py-3">Condition</th>
-                                    <th class="px-4 py-3 text-right">Estimated Value</th>
+                                    <th class="px-4 py-3 text-right">Est. Total Value (PHP)</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-slate-200 bg-white">
@@ -66,7 +96,19 @@
                                         <td class="px-4 py-3">
                                             <p class="font-medium text-slate-900">{{ $item->name }}</p>
                                             @php($subcategoryLabel = $item->subcategory ? $subcategoryLabels->get($item->category.':'.$item->subcategory) : null)
-                                            <p class="text-xs text-slate-500">{{ $categoryLabels->get($item->category, $item->category) }}@if($subcategoryLabel) &middot; {{ $subcategoryLabel }} @endif</p>
+                                            <p class="text-xs text-slate-500">
+                                                {{ $categoryLabels->get($item->category, $item->category) }}@if($subcategoryLabel) &middot; {{ $subcategoryLabel }} @endif
+                                                @if($item->category === 'others' && $item->category_description) &mdash; {{ $item->category_description }} @endif
+                                            </p>
+                                            @php($details = array_filter([
+                                                $item->brand ? 'Brand: '.$item->brand : null,
+                                                $item->model ? 'Model: '.$item->model : null,
+                                                $item->serial_number ? 'SN: '.$item->serial_number : null,
+                                                $item->expiration_date ? 'Expires: '.$item->expiration_date->format('M d, Y') : null,
+                                            ]))
+                                            @if($details)
+                                                <p class="text-xs text-slate-400">{{ implode(' · ', $details) }}</p>
+                                            @endif
                                         </td>
                                         <td class="px-4 py-3">{{ $item->quantity }} {{ config("donations.units.{$item->unit}") }}</td>
                                         <td class="px-4 py-3">{{ config("donations.item_conditions.{$item->condition}") }}</td>
@@ -84,6 +126,23 @@
                         <p class="mt-2 whitespace-pre-line text-sm text-slate-600">{{ $contribution->notes }}</p>
                     </div>
                 @endif
+
+                @if ($contribution->evidence->isNotEmpty())
+                    <div class="mt-6 border-t border-slate-200 pt-5">
+                        <h3 class="text-sm font-semibold text-slate-900">Documents</h3>
+                        <div class="mt-3 grid gap-2 sm:grid-cols-2">
+                            @foreach ($contribution->evidence as $evidence)
+                                <a href="{{ route('donations.evidence', [$contribution, $evidence]) }}" target="_blank" rel="noopener" class="flex min-w-0 items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 transition hover:border-blue-300 hover:bg-blue-50">
+                                    <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-white text-xs font-bold uppercase text-blue-700 ring-1 ring-slate-200">{{ pathinfo($evidence->original_name, PATHINFO_EXTENSION) }}</span>
+                                    <span class="min-w-0 flex-1">
+                                        <span class="block truncate text-sm font-medium text-slate-800">{{ str($evidence->document_type)->replace('_', ' ')->title() }} · {{ $evidence->original_name }}</span>
+                                        <span class="block text-xs text-slate-500">{{ $evidence->size < 1048576 ? number_format(max(1, $evidence->size / 1024), 0).' KB' : number_format($evidence->size / 1048576, 1).' MB' }} · View or download</span>
+                                    </span>
+                                </a>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
             </section>
 
             @if (auth()->user()->can('verify', $contribution) || auth()->user()->can('void', $contribution) || auth()->user()->can('update', $contribution))
@@ -96,6 +155,42 @@
                         <x-button>Verify Donation</x-button>
                     </form>
                 @endcan
+
+                @can('requestDocuments', $contribution)
+                    <div class="mt-5 border-t border-slate-200 pt-4">
+                        <h3 class="text-sm font-semibold text-slate-900">Request Missing Documents</h3>
+                        <p class="mt-1 text-xs text-slate-500">The donation remains Pending until the required written documents are complete.</p>
+                        <form method="POST" action="{{ route('donations.request-documents', $contribution) }}" class="mt-3 space-y-2">
+                            @csrf
+                            @method('PATCH')
+                            <label for="document_request_reason" class="sr-only">Reason for requesting documents</label>
+                            <textarea id="document_request_reason" name="document_request_reason" rows="3" required placeholder="Tell Staff which document is missing and what to provide" class="block w-full rounded-lg border-slate-300 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500"></textarea>
+                            <x-button>Request Documents</x-button>
+                        </form>
+                    </div>
+                @endcan
+
+                @can('issueCertificate', $contribution)
+                    <div class="mt-5 border-t border-slate-200 pt-4">
+                        <h3 class="text-sm font-semibold text-slate-900">Certificate of Donation</h3>
+                        <p class="mt-1 text-xs text-slate-500">Request status: Pending. Upload the issued certificate to complete the request.</p>
+                        <form method="POST" action="{{ route('donations.certificate.issue', $contribution) }}" enctype="multipart/form-data" class="mt-3 space-y-2">
+                            @csrf
+                            @method('PATCH')
+                            <input type="file" name="certificate_of_donation" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" required class="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs text-slate-600 file:mr-3 file:rounded-md file:border-0 file:bg-blue-50 file:px-2.5 file:py-1.5 file:text-xs file:font-semibold file:text-blue-700">
+                            <x-form.error name="certificate_of_donation" />
+                            <x-button>Mark as Issued</x-button>
+                        </form>
+                    </div>
+                @elseif ($contribution->certificate_requested)
+                    <div class="mt-5 border-t border-slate-200 pt-4">
+                        <h3 class="text-sm font-semibold text-slate-900">Certificate of Donation</h3>
+                        <p class="mt-1 text-sm text-slate-600">{{ ucfirst($contribution->certificate_status) }}{{ $contribution->certificate_issued_at ? ' on '.$contribution->certificate_issued_at->format('M d, Y') : '' }}.</p>
+                        @if ($contribution->donor_tin)
+                            <p class="mt-1 text-xs text-slate-500">Donor TIN recorded for certificate processing.</p>
+                        @endif
+                    </div>
+                @endif
 
                 @can('update', $contribution)
                     @if (auth()->user()->hasRole('admin') && $contribution->status === 'pending')

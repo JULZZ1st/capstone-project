@@ -1,6 +1,6 @@
 @props(['search' => '', 'selectedType' => null])
 
-<form method="GET" action="{{ route('donors.index') }}" class="flex w-full flex-col gap-3 sm:flex-row sm:items-center lg:max-w-2xl" data-donor-search-form>
+<form method="GET" action="{{ route('donors.index') }}" class="flex w-full min-w-0 flex-col gap-3 sm:flex-row sm:items-center" data-donor-search-form>
     <div class="relative min-w-0 flex-1">
         <x-icon name="search" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
         <input
