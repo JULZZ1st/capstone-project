@@ -24,6 +24,10 @@ class ContributionPolicy
 
     public function update(User $user, Contribution $contribution): bool
     {
+        if ($contribution->isVoided()) {
+            return false;
+        }
+
         if ($user->hasRole('admin')) {
             return $this->sameWorkspace($user, $contribution);
         }
@@ -37,6 +41,7 @@ class ContributionPolicy
     public function verify(User $user, Contribution $contribution): bool
     {
         return $contribution->isCash()
+            && ! $contribution->isVoided()
             && $contribution->status === 'pending'
             && $this->sameWorkspace($user, $contribution)
             && $user->hasRole(['admin', 'staff']);
@@ -45,6 +50,7 @@ class ContributionPolicy
     public function requestDocuments(User $user, Contribution $contribution): bool
     {
         return $contribution->isCash()
+            && ! $contribution->isVoided()
             && $contribution->status === 'pending'
             && $this->sameWorkspace($user, $contribution)
             && $user->hasRole('admin');
@@ -53,6 +59,7 @@ class ContributionPolicy
     public function issueCertificate(User $user, Contribution $contribution): bool
     {
         return $user->hasRole('admin')
+            && ! $contribution->isVoided()
             && $contribution->certificate_requested
             && $contribution->certificate_status === 'pending'
             && $this->sameWorkspace($user, $contribution);

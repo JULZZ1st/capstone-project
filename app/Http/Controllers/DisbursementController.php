@@ -27,6 +27,7 @@ use Illuminate\Support\Facades\Storage;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Schoolees\Psgc\Models\Province;
 
@@ -116,6 +117,12 @@ class DisbursementController extends Controller
     {
         $file = $request->file('signed_voucher');
         $path = Storage::disk('local')->putFile("disbursements/{$disbursement->id}/signed-vouchers", $file);
+
+        if (! is_string($path) || $path === '') {
+            throw ValidationException::withMessages([
+                'signed_voucher' => 'The signed voucher could not be stored. Please try uploading it again.',
+            ]);
+        }
 
         $document = $disbursement->vouchers()->create([
             'document_type' => 'signed_voucher',

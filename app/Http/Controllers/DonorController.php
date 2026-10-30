@@ -26,7 +26,10 @@ class DonorController extends Controller
                 'workspace_id',
                 'donor_type',
                 'first_name',
+                'middle_name',
                 'last_name',
+                'suffix',
+                'tin',
                 'full_name',
                 'contact_person',
                 'email',
@@ -137,7 +140,7 @@ class DonorController extends Controller
             ->with('success', 'Donor profile updated successfully.');
     }
 
-    public function destroy(Request $request, Donor $donor, RemoveDonor $remover): RedirectResponse
+    public function destroy(Request $request, Donor $donor, RemoveDonor $remover): RedirectResponse|JsonResponse
     {
         Gate::authorize('delete', $donor);
 

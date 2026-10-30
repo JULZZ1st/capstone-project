@@ -162,6 +162,10 @@ class LogContribution
     private function storeDocument(Contribution $contribution, mixed $file, string $documentType, User $user, array &$storedPaths): void
     {
         $path = Storage::disk('local')->putFile("contributions/{$contribution->id}/documents", $file);
+        if (! is_string($path) || $path === '') {
+            throw new RuntimeException('The contribution document could not be stored.');
+        }
+
         $storedPaths[] = $path;
 
         $contribution->evidence()->create([

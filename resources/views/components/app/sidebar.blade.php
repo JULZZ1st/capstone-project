@@ -31,7 +31,14 @@
             #app-sidebar.collapsed #sidebar-toggle svg { transform: rotate(180deg); }
             #app-sidebar .nav-item { white-space: nowrap; }
         }
+        @media (max-width: 1023px) {
+            #app-sidebar #sidebar-menu { display: none; }
+            #app-sidebar.mobile-open #sidebar-menu { display: flex; max-height: calc(100dvh - 5rem); overflow-y: auto; }
+            #app-sidebar.mobile-open #sidebar-toggle svg { transform: rotate(180deg); }
+        }
     </style>
+
+    <noscript><style>@media (max-width: 1023px) { #app-sidebar #sidebar-menu { display: flex; } }</style></noscript>
 
     <div class="flex h-full flex-col">
         <div class="flex items-center gap-3 border-b border-white/10 px-4 py-4">
@@ -42,11 +49,12 @@
                 <p class="truncate text-base font-semibold tracking-tight text-slate-100 sidebar-logo-text">Donation Operations</p>
             </div>
 
-            <button id="sidebar-toggle" type="button" aria-label="Toggle sidebar" title="Toggle sidebar" class="ml-auto flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-slate-800/70 text-slate-200 shadow-sm transition hover:border-sky-300/40 hover:bg-slate-700/80 hover:text-white focus:outline-none focus:ring-2 focus:ring-sky-400/40">
-                <x-icon name="chevron-left" class="h-4 w-4" />
+            <button id="sidebar-toggle" type="button" aria-label="Toggle navigation" title="Toggle navigation" aria-controls="sidebar-menu" aria-expanded="false" class="ml-auto flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-slate-800/70 text-slate-200 shadow-sm transition hover:border-sky-300/40 hover:bg-slate-700/80 hover:text-white focus:outline-none focus:ring-2 focus:ring-sky-400/40">
+                <x-icon name="chevron-down" class="h-4 w-4" />
             </button>
         </div>
 
+        <div id="sidebar-menu" class="flex min-h-0 flex-1 flex-col">
         <nav class="flex-1 space-y-1.5 overflow-y-auto px-3 py-4" aria-label="Sidebar navigation">
             @foreach ($items as $item)
                 @php($isActive = request()->routeIs($item['active']))
@@ -71,65 +79,7 @@
                 </button>
             </form>
         </div>
+        </div>
     </div>
 
-    <script>
-        (function () {
-            const sidebar = document.getElementById('app-sidebar');
-            const storageKey = 'sidebarCollapsed';
-
-            function applyState(collapsed) {
-                if (!sidebar) return;
-                if (collapsed) {
-                    sidebar.classList.add('collapsed');
-                    document.documentElement.classList.add('sidebar-collapsed');
-                    sidebar.querySelector('#sidebar-toggle')?.setAttribute('aria-expanded','false');
-                } else {
-                    sidebar.classList.remove('collapsed');
-                    document.documentElement.classList.remove('sidebar-collapsed');
-                    sidebar.querySelector('#sidebar-toggle')?.setAttribute('aria-expanded','true');
-                }
-            }
-
-            // Read initial state from localStorage (guarded)
-            let collapsed = false;
-            try {
-                const raw = localStorage.getItem(storageKey);
-                collapsed = raw === '1' || raw === 'true';
-            } catch (e) {
-                collapsed = false;
-            }
-            applyState(collapsed);
-
-            // Use delegated click handler so listeners remain stable across navigations.
-            document.addEventListener('click', function (e) {
-                // robust closest for SVG and older browsers
-                var node = e.target;
-                while (node && node !== document) {
-                    try {
-                        if (node.matches && node.matches('#sidebar-toggle')) {
-                            // found the toggle
-                            collapsed = !collapsed;
-                            try { localStorage.setItem(storageKey, collapsed ? '1' : '0'); } catch (err) {}
-                            applyState(collapsed);
-                            return;
-                        }
-                    } catch (err) {
-                        // ignore
-                    }
-                    node = node.parentNode;
-                }
-            });
-
-            // Keep keyboard users informed
-            document.addEventListener('keyup', function (e) {
-                if (e.key === 'Escape' && document.documentElement.classList.contains('sidebar-collapsed')) {
-                    // allow Esc to expand back
-                    collapsed = false;
-                    try { localStorage.setItem(storageKey, '0'); } catch (err) {}
-                    applyState(collapsed);
-                }
-            });
-        }());
-    </script>
 </aside>

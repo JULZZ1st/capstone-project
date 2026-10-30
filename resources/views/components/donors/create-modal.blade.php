@@ -1,9 +1,11 @@
 @props(['open' => false, 'startStep' => 0, 'dialogId' => 'create-donor-modal'])
 
+@php($modalKey = $dialogId === 'create-donor-modal' ? 'create' : $dialogId)
+
 <dialog id="{{ $dialogId }}" class="m-auto w-[calc(100%-2rem)] max-w-2xl overflow-hidden rounded-xl p-0 shadow-2xl backdrop:bg-slate-950/55" @if($open) open @endif>
     <form method="POST" action="{{ route('donors.store') }}" class="flex max-h-[86vh] flex-col bg-white" data-donor-create-form data-donor-wizard-form novalidate>
         @csrf
-        <input type="hidden" name="_modal" value="create">
+        <input type="hidden" name="_modal" value="{{ $modalKey }}">
         @if (session('duplicate_donor_detected'))
             <input type="hidden" name="_confirm_duplicate" value="1">
         @endif
@@ -27,7 +29,7 @@
             @if (session('warning'))
                 <x-alert type="warning" class="mx-4 mt-3 sm:mx-6">{{ session('warning') }}</x-alert>
             @endif
-            <x-donors.form mode="create" :start-step="$startStep" />
+            <x-donors.form mode="create" :start-step="$startStep" :form-key="$modalKey" :id-prefix="$dialogId === 'create-donor-modal' ? '' : $dialogId.'_'" />
         </div>
 
         <div class="flex shrink-0 items-center justify-between gap-3 border-t border-slate-200 bg-slate-50/90 px-4 py-3 sm:px-6">

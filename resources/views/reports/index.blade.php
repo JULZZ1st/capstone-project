@@ -106,18 +106,24 @@
                         </div>
                     @endforeach
                 </div>
-                <div class="overflow-x-auto">
-                    <table class="min-w-full text-left text-sm">
-                        <caption class="mb-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Detailed transaction table</caption>
-                        <thead class="bg-slate-100 text-xs text-slate-600"><tr><th class="p-3">Type</th><th class="p-3">Donor / Requester</th><th class="p-3">Purpose</th><th class="p-3">Method</th><th class="p-3">Amount</th><th class="p-3">Date</th><th class="p-3">Status</th></tr></thead>
-                        <tbody>
+                <div class="min-w-0">
+                    <x-data-table caption="Detailed transaction table" min-width="55rem">
+<x-slot:head><x-data-table.heading>Type</x-data-table.heading>
+<x-data-table.heading>Donor / Requester</x-data-table.heading>
+<x-data-table.heading>Purpose</x-data-table.heading>
+<x-data-table.heading>Method</x-data-table.heading>
+<x-data-table.heading align="right">Amount</x-data-table.heading>
+<x-data-table.heading>Date</x-data-table.heading>
+<x-data-table.heading>Status</x-data-table.heading>
+</x-slot:head>
+
                             @forelse ($report['ledger'] as $row)
-                                <tr class="border-t border-slate-100"><td class="p-3">{{ $row['entry_type'] }}</td><td class="p-3">{{ $row['donor_name'] }}</td><td class="p-3">{{ $row['purpose'] }}</td><td class="p-3">{{ $row['payment_method_label'] }}</td><td class="p-3">₱{{ number_format($row['amount'], 2) }}</td><td class="p-3">{{ $row['received_at']->format('M d, Y') }}</td><td class="p-3">{{ $row['status_label'] }}</td></tr>
+                                <tr class="border-t border-slate-100"><td class="p-3">{{ $row['entry_type'] }}</td><td class="p-3">{{ $row['donor_name'] }}</td><td class="p-3">{{ $row['purpose'] }}</td><td class="p-3">{{ $row['payment_method_label'] }}</td><td class="data-table__number">₱{{ number_format($row['amount'], 2) }}</td><td class="p-3">{{ $row['received_at']->format('M d, Y') }}</td><td class="p-3">{{ $row['status_label'] }}</td></tr>
                             @empty
-                                <tr><td colspan="7" class="p-4 text-center text-slate-500">No financial transactions found for this period.</td></tr>
+                                <x-data-table.empty :columns="7" title="No financial transactions found for this period." />
                             @endforelse
-                        </tbody>
-                    </table>
+
+</x-data-table>
                 </div>
             </section>
         @elseif ($tab === 'inventory')
@@ -131,35 +137,44 @@
                         <div class="rounded-lg border border-slate-100 bg-slate-50 p-3"><p class="text-xs font-semibold text-slate-500">{{ $label }}</p><p class="mt-2 text-lg font-bold text-slate-950">{{ is_float($value) ? number_format($value, 2) : number_format($value) }}</p></div>
                     @endforeach
                 </div>
-                <div class="overflow-x-auto">
-                    <table class="min-w-full text-left text-sm">
-                        <caption class="mb-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Current stock by item</caption>
-                        <thead class="bg-slate-100 text-xs text-slate-600"><tr><th class="p-3">Item</th><th class="p-3">Category</th><th class="p-3">Current Stock</th><th class="p-3">Minimum Reserve</th><th class="p-3">Status</th><th class="p-3">Expires</th></tr></thead>
-                        <tbody>
+                <div class="min-w-0">
+                    <x-data-table caption="Inventory report records" min-width="47rem">
+<x-slot:head><x-data-table.heading>Item</x-data-table.heading>
+<x-data-table.heading>Category</x-data-table.heading>
+<x-data-table.heading align="right">Current Stock</x-data-table.heading>
+<x-data-table.heading align="right">Minimum Reserve</x-data-table.heading>
+<x-data-table.heading>Status</x-data-table.heading>
+<x-data-table.heading>Expires</x-data-table.heading>
+</x-slot:head>
+
                             @forelse ($inventoryReport['items'] as $item)
-                                <tr class="border-t border-slate-100"><td class="p-3">{{ $item->name }}</td><td class="p-3">{{ config('inventory.categories.'.$item->category, $item->category) }}</td><td class="p-3">{{ number_format((float) $item->current_quantity, 2) }} {{ $item->unit }}</td><td class="p-3">{{ number_format((float) $item->minimum_reserve_quantity, 2) }}</td><td class="p-3">{{ ucwords(str_replace('_', ' ', $item->stockStatus())) }}</td><td class="p-3">{{ $item->expires_at?->format('M d, Y') ?? '—' }}</td></tr>
+                                <tr class="border-t border-slate-100"><td class="p-3">{{ $item->name }}</td><td class="p-3">{{ config('inventory.categories.'.$item->category, $item->category) }}</td><td class="data-table__number">{{ number_format((float) $item->current_quantity, 2) }} {{ $item->unit }}</td><td class="data-table__number">{{ number_format((float) $item->minimum_reserve_quantity, 2) }}</td><td class="p-3">{{ ucwords(str_replace('_', ' ', $item->stockStatus())) }}</td><td class="p-3">{{ $item->expires_at?->format('M d, Y') ?? '—' }}</td></tr>
                             @empty
-                                <tr><td colspan="6" class="p-4 text-center text-slate-500">No inventory items found.</td></tr>
+                                <x-data-table.empty :columns="6" title="No inventory items found." />
                             @endforelse
-                        </tbody>
-                    </table>
+
+</x-data-table>
                 </div>
             </section>
         @elseif ($tab === 'audit')
             <section class="space-y-4 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
                 <div><p class="text-xs font-semibold uppercase tracking-wide text-emerald-700">Audit Trail Report</p><h2 class="text-lg font-bold text-slate-950">Recorded security activity</h2></div>
-                <div class="overflow-x-auto">
-                    <table class="min-w-full text-left text-sm">
-                        <caption class="mb-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">User activity</caption>
-                        <thead class="bg-slate-100 text-xs text-slate-600"><tr><th class="p-3">User</th><th class="p-3">Action</th><th class="p-3">Module</th><th class="p-3">Date / Time</th><th class="p-3">Details</th></tr></thead>
-                        <tbody>
+                <div class="min-w-0">
+                    <x-data-table caption="Audit activity records" min-width="48rem">
+<x-slot:head><x-data-table.heading>User</x-data-table.heading>
+<x-data-table.heading>Action</x-data-table.heading>
+<x-data-table.heading>Module</x-data-table.heading>
+<x-data-table.heading>Date / Time</x-data-table.heading>
+<x-data-table.heading>Details</x-data-table.heading>
+</x-slot:head>
+
                             @forelse ($auditReport['events'] as $event)
                                 <tr class="border-t border-slate-100"><td class="p-3">{{ $event['user'] }}</td><td class="p-3">{{ $event['action'] }}</td><td class="p-3">{{ $event['module'] }}</td><td class="p-3">{{ $event['occurred_at']?->format('M d, Y H:i') }}</td><td class="p-3">{{ $event['summary'] }}</td></tr>
                             @empty
-                                <tr><td colspan="5" class="p-4 text-center text-slate-500">No audit activity found for this date range.</td></tr>
+                                <x-data-table.empty :columns="5" title="No audit activity found for this date range." />
                             @endforelse
-                        </tbody>
-                    </table>
+
+</x-data-table>
                 </div>
             </section>
         @elseif ($tab === 'reconciliation')

@@ -16,9 +16,11 @@ use App\Models\InventorySubcategory;
 use App\Models\SecurityActivityEvent;
 use App\Services\Contributions\LogContribution;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Database\QueryException;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -200,12 +202,24 @@ class DonationPortalController extends Controller
 
     public function update(UpdateContributionRequest $request, Contribution $contribution): RedirectResponse
     {
-        $previousStatus = $contribution->status;
-        $contribution->update($request->validated());
+        DB::transaction(function () use ($request, $contribution): void {
+            $contribution = Contribution::query()->lockForUpdate()->findOrFail($contribution->id);
+            Gate::authorize('update', $contribution);
+            $data = $request->validated();
+            $previousStatus = $contribution->status;
 
-        if ($contribution->isCash() && $request->user()->hasRole('admin') && $previousStatus !== $contribution->status) {
-            $this->audit($request->user(), 'cash_donation_admin_decision', $contribution, "{$request->user()->name} changed cash donation {$contribution->receipt_number} from {$previousStatus} to {$contribution->status}.");
-        }
+            if ($data['status'] !== $previousStatus && $contribution->ledgerEntry()->exists()) {
+                throw ValidationException::withMessages([
+                    'status' => 'A bank-matched donation must retain its recorded status.',
+                ]);
+            }
+
+            $contribution->update($data);
+
+            if ($contribution->isCash() && $request->user()->hasRole('admin') && $previousStatus !== $contribution->status) {
+                $this->audit($request->user(), 'cash_donation_admin_decision', $contribution, "{$request->user()->name} changed cash donation {$contribution->receipt_number} from {$previousStatus} to {$contribution->status}.");
+            }
+        });
 
         return redirect()
             ->route('donations.show', $contribution)
@@ -214,13 +228,18 @@ class DonationPortalController extends Controller
 
     public function verify(VerifyContributionRequest $request, Contribution $contribution): RedirectResponse
     {
-        $contribution->update([
-            'status' => 'verified',
-            'verified_by' => $request->user()->id,
-            'verified_at' => now(),
-        ]);
+        DB::transaction(function () use ($request, $contribution): void {
+            $contribution = Contribution::query()->lockForUpdate()->findOrFail($contribution->id);
+            Gate::authorize('verify', $contribution);
 
-        $this->audit($request->user(), 'cash_donation_verified', $contribution, "{$request->user()->name} verified cash donation {$contribution->receipt_number}.");
+            $contribution->update([
+                'status' => 'verified',
+                'verified_by' => $request->user()->id,
+                'verified_at' => now(),
+            ]);
+
+            $this->audit($request->user(), 'cash_donation_verified', $contribution, "{$request->user()->name} verified cash donation {$contribution->receipt_number}.");
+        });
 
         return redirect()
             ->back()
@@ -249,6 +268,12 @@ class DonationPortalController extends Controller
     {
         $file = $request->file('certificate_of_donation');
         $path = Storage::disk('local')->putFile("contributions/{$contribution->id}/documents", $file);
+
+        if (! is_string($path) || $path === '') {
+            throw ValidationException::withMessages([
+                'certificate_of_donation' => 'The certificate could not be stored. Please try uploading it again.',
+            ]);
+        }
 
         $contribution->evidence()->create([
             'document_type' => 'certificate_of_donation',

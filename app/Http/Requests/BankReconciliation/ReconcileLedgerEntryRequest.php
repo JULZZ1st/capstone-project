@@ -24,6 +24,7 @@ class ReconcileLedgerEntryRequest extends FormRequest
                 WorkspaceValidationRules::exists('contributions')
                     ->where('type', 'cash')
                     ->where('status', 'verified')
+                    ->whereNull('voided_at')
                     ->whereIn('payment_method', config('donations.electronic_payment_methods')),
             ],
         ];

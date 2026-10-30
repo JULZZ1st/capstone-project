@@ -9,6 +9,7 @@ use App\Models\User;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 use SimpleXMLElement;
 use ZipArchive;
@@ -19,9 +20,7 @@ class ImportBankStatement
         private readonly LedgerChannelResolver $channelResolver,
         private readonly ReconciliationPeriodGuard $periodGuard,
         private readonly ReconciliationPeriodService $periods,
-    )
-    {
-    }
+    ) {}
 
     public function handle(UploadedFile $file, ?User $user = null): int
     {
@@ -33,7 +32,7 @@ class ImportBankStatement
 
         $created = 0;
 
-        DB::transaction(function () use ($rows, &$created) {
+        DB::transaction(function () use ($rows, &$created, $user) {
             foreach ($rows as $index => $row) {
                 $data = $this->normalize($row, $index + 2);
                 $this->periodGuard->assertMutableDate($data['transaction_date']);
@@ -46,7 +45,7 @@ class ImportBankStatement
 
                 if ($this->isDuplicateEntry($data)) {
                     throw ValidationException::withMessages([
-                        'statement' => "A matching bank entry already exists on row ".($index + 2).'.',
+                        'statement' => 'A matching bank entry already exists on row '.($index + 2).'.',
                     ]);
                 }
 
@@ -58,17 +57,17 @@ class ImportBankStatement
                 ->whereIn('status', ['draft', 'ready_for_review'])
                 ->get()
                 ->each(fn (BankReconciliation $period) => $this->periods->recalculate($period));
-        });
 
-        if ($user !== null) {
-            SecurityActivityEvent::query()->create([
-                'actor_id' => $user->id,
-                'action' => 'bank_statement_imported',
-                'summary' => "{$user->name} imported {$created} bank transaction(s) for reconciliation.",
-                'metadata' => ['imported_count' => $created],
-                'occurred_at' => now(),
-            ]);
-        }
+            if ($user !== null) {
+                SecurityActivityEvent::query()->create([
+                    'actor_id' => $user->id,
+                    'action' => 'bank_statement_imported',
+                    'summary' => "{$user->name} imported {$created} bank transaction(s) for reconciliation.",
+                    'metadata' => ['imported_count' => $created],
+                    'occurred_at' => now(),
+                ]);
+            }
+        });
 
         return $created;
     }
@@ -83,70 +82,126 @@ class ImportBankStatement
     private function csvRows(string $path): array
     {
         $handle = fopen($path, 'rb');
-        $headers = fgetcsv($handle);
-        $rows = [];
 
-        while (($values = fgetcsv($handle)) !== false) {
-            if (count(array_filter($values, fn ($value) => trim((string) $value) !== '')) === 0) {
-                continue;
+        try {
+            $rawHeaders = fgetcsv($handle);
+            if ($rawHeaders === false) {
+                return [];
+            }
+            $headers = $this->headers($rawHeaders);
+            $rows = [];
+
+            while (($values = fgetcsv($handle)) !== false) {
+                if (count(array_filter($values, fn ($value) => trim((string) $value) !== '')) === 0) {
+                    continue;
+                }
+
+                $rows[] = $this->combineRow($headers, $values);
             }
 
-            $rows[] = array_combine($headers, array_pad($values, count($headers), null));
+            return $rows;
+        } finally {
+            fclose($handle);
         }
-
-        fclose($handle);
-
-        return $rows;
     }
 
     private function xlsxRows(string $path): array
     {
-        $zip = new ZipArchive();
-
+        $zip = new ZipArchive;
         if ($zip->open($path) !== true) {
             throw ValidationException::withMessages(['statement' => 'The Excel file could not be opened.']);
         }
 
-        $sharedStrings = [];
-        if (($xml = $zip->getFromName('xl/sharedStrings.xml')) !== false) {
-            foreach ((new SimpleXMLElement($xml))->si as $string) {
-                $sharedStrings[] = (string) ($string->t ?? implode('', array_map('strval', $string->r->t ?? [])));
-            }
-        }
-
-        $sheet = new SimpleXMLElement($zip->getFromName('xl/worksheets/sheet1.xml'));
-        $rows = [];
-        $headers = [];
-
-        foreach ($sheet->sheetData->row as $row) {
-            $values = [];
-            foreach ($row->c as $cell) {
-                $value = (string) $cell->v;
-                if ((string) $cell['t'] === 's') {
-                    $value = $sharedStrings[(int) $value] ?? '';
+        try {
+            $sharedStrings = [];
+            if (($xml = $zip->getFromName('xl/sharedStrings.xml')) !== false) {
+                foreach ($this->xmlDocument($xml)->si as $string) {
+                    $sharedStrings[] = $this->xmlText($string);
                 }
-                $values[$this->columnIndex((string) $cell['r'])] = $value;
             }
 
-            ksort($values);
-            $columnCount = max(count($headers), (int) array_key_last($values));
-            $values = array_map(
-                fn (int $column) => $values[$column] ?? null,
-                range(1, $columnCount),
-            );
-            if ($headers === []) {
-                $headers = $values;
-                continue;
+            $sheet = $this->xmlDocument($zip->getFromName('xl/worksheets/sheet1.xml'));
+            if ($sheet->getName() !== 'worksheet' || ! isset($sheet->sheetData)) {
+                throw ValidationException::withMessages(['statement' => 'The Excel file does not contain valid worksheet data.']);
             }
-            $rows[] = array_combine(
-                $headers,
-                array_slice(array_pad($values, count($headers), null), 0, count($headers)),
-            );
+            $rows = [];
+            $headers = null;
+
+            foreach ($sheet->sheetData->row as $row) {
+                $values = [];
+                foreach ($row->c as $cell) {
+                    $value = match ((string) $cell['t']) {
+                        's' => $sharedStrings[(int) $cell->v] ?? '',
+                        'inlineStr' => $this->xmlText($cell->is),
+                        default => (string) $cell->v,
+                    };
+                    $values[$this->columnIndex((string) $cell['r'])] = $value;
+                }
+
+                $nonempty = array_filter($values, fn ($value) => trim((string) $value) !== '');
+                if ($nonempty === []) {
+                    continue;
+                }
+                $columnCount = max(count($headers ?? []), max(array_keys($nonempty)));
+                $values = array_map(fn (int $column) => $values[$column] ?? null, range(1, $columnCount));
+
+                if ($headers === null) {
+                    $headers = $this->headers($values);
+
+                    continue;
+                }
+                $rows[] = $this->combineRow($headers, $values);
+            }
+
+            return $rows;
+        } finally {
+            $zip->close();
+        }
+    }
+
+    private function headers(array $headers): array
+    {
+        $headers = array_map(
+            fn ($header) => strtolower(trim(preg_replace('/^\xEF\xBB\xBF/', '', (string) $header))),
+            $headers,
+        );
+        if (in_array('', $headers, true) || count(array_unique($headers)) !== count($headers)) {
+            throw ValidationException::withMessages(['statement' => 'Statement column headers must be nonempty and unique.']);
         }
 
-        $zip->close();
+        return $headers;
+    }
 
-        return $rows;
+    private function combineRow(array $headers, array $values): array
+    {
+        if (count($values) > count($headers)) {
+            throw ValidationException::withMessages(['statement' => 'A statement row has more values than its column headers.']);
+        }
+
+        return array_combine($headers, array_pad($values, count($headers), null));
+    }
+
+    private function xmlDocument(string|false $xml): SimpleXMLElement
+    {
+        $previous = libxml_use_internal_errors(true);
+        try {
+            $document = $xml === false ? false : simplexml_load_string($xml, SimpleXMLElement::class, LIBXML_NONET);
+            if ($document === false) {
+                throw ValidationException::withMessages(['statement' => 'The Excel file contains a missing or invalid worksheet or text document.']);
+            }
+
+            return $document;
+        } finally {
+            libxml_clear_errors();
+            libxml_use_internal_errors($previous);
+        }
+    }
+
+    private function xmlText(SimpleXMLElement $element): string
+    {
+        return implode('', array_map('strval', $element->xpath(
+            './*[local-name()="t"] | ./*[local-name()="r"]/*[local-name()="t"]',
+        )));
     }
 
     private function columnIndex(string $cellReference): int
@@ -180,7 +235,10 @@ class ImportBankStatement
             throw ValidationException::withMessages(['statement' => "Invalid transaction type on row {$line}."]);
         }
 
-        if (! is_numeric(str_replace(',', '', $amount))) {
+        $amount = str_replace(',', '', $amount);
+        if (Validator::make(['amount' => $amount], [
+            'amount' => ['required', 'numeric', 'gt:0', 'max:9999999999.99'],
+        ])->fails()) {
             throw ValidationException::withMessages(['statement' => "Invalid amount on row {$line}."]);
         }
 
@@ -204,7 +262,7 @@ class ImportBankStatement
             'statement_id' => $statementId,
             'description' => $description,
             'reference_number' => $this->value($row, ['reference_number', 'reference number', 'reference', 'transaction_reference']),
-            'amount' => str_replace(',', '', $amount),
+            'amount' => $amount,
             'transaction_date' => $transactionDate,
             'payment_method' => $this->value($row, ['payment_method', 'payment method', 'channel'])
                 ?? $this->channelResolver->resolve($description),
