@@ -13,14 +13,8 @@
     @endif
 
     <div class="space-y-4">
-        <div class="flex flex-col gap-3 lg:flex-row lg:items-center">
-            <div class="min-w-0 flex-1">
-                <x-donations.filter-bar
-                    :filters="$filters"
-                />
-            </div>
-
-            <div class="flex shrink-0 flex-col gap-2 sm:flex-row">
+        <div class="space-y-3">
+            <div class="flex flex-col gap-2 sm:flex-row sm:justify-end">
                 @can('viewAny', \App\Models\Donor::class)
                     <x-button
                         type="button"
@@ -44,6 +38,7 @@
                 @endcan
             </div>
 
+            <x-donations.filter-bar :filters="$filters" />
         </div>
 
         @if ($contributions->count())
