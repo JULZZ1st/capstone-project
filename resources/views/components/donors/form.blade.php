@@ -6,6 +6,21 @@
     $isOrganization = $donorType === 'organization';
     $barangay = old('barangay', $donor->barangay ?? $donor->barangay_area ?? null);
     $stepTitles = ['Basic Information', 'Contact Information', 'Address', 'Additional Information'];
+    $modalKey = $mode === 'edit' && $donor ? 'edit-'.$donor->id : 'create';
+
+    if ($errors->any() && old('_modal') === $modalKey) {
+        foreach ([
+            ['donor_type', 'first_name', 'last_name', 'organization_name', 'full_name', 'status'],
+            ['contact_number', 'email', 'preferred_contact_method', 'contact_person'],
+            ['address', 'barangay', 'city_municipality', 'province'],
+            ['notes'],
+        ] as $stepIndex => $fields) {
+            if ($errors->hasAny($fields)) {
+                $startStep = $stepIndex;
+                break;
+            }
+        }
+    }
 @endphp
 
 <div data-donor-form data-wizard-start-step="{{ $startStep }}" class="flex min-h-0 flex-1 flex-col">

@@ -51,6 +51,33 @@ class DisbursementWorkflowTest extends TestCase
             ->assertSee('Urgent dialysis support');
     }
 
+    public function test_request_modal_preserves_unicode_quotes_and_backslashes(): void
+    {
+        $requester = $this->userWithRole('staff');
+        $purpose = 'Tulong sa "Pamilya" – ₱1,250';
+        $notes = 'Drop-off at sitio Niño\\Relief & assistance';
+
+        $this->actingAs($requester)->post(route('disbursements.store'), [
+            'amount' => 1250,
+            'purpose' => $purpose,
+            'recipient' => 'José Niño',
+            'requested_date' => '2026-09-12',
+            'notes' => $notes,
+        ])->assertRedirect(route('disbursements.index'));
+
+        $disbursement = CashDisbursement::query()->firstOrFail();
+        $response = $this->get(route('disbursements.index'))->assertOk();
+        $document = new \DOMDocument();
+        $document->loadHTML($response->getContent(), LIBXML_NOERROR | LIBXML_NOWARNING);
+        $row = (new \DOMXPath($document))
+            ->query('//tr[@data-fund-request-id="'.$disbursement->id.'"]')
+            ->item(0);
+
+        $this->assertInstanceOf(\DOMElement::class, $row);
+        $this->assertSame($purpose, $row->getAttribute('data-purpose'));
+        $this->assertSame($notes, $row->getAttribute('data-notes'));
+    }
+
     public function test_disbursement_request_requires_new_required_fields(): void
     {
         $requester = $this->userWithRole('staff');

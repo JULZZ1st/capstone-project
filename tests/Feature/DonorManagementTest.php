@@ -112,6 +112,53 @@ class DonorManagementTest extends TestCase
         $response->assertSee('data-wizard-error role="alert" hidden', false);
     }
 
+    public function test_invalid_create_reopens_the_form_at_the_contact_step(): void
+    {
+        $admin = $this->userWithRole('admin');
+
+        $this->actingAs($admin)
+            ->from(route('donors.index'))
+            ->post(route('donors.store'), [
+                '_modal' => 'create',
+                'donor_type' => 'individual',
+                'first_name' => 'Maria',
+                'last_name' => 'Santos',
+                'address' => 'San Isidro',
+            ])
+            ->assertRedirect(route('donors.index'))
+            ->assertSessionHasErrors('contact_number');
+
+        $response = $this->get(route('donors.index'))->assertOk();
+
+        $this->assertMatchesRegularExpression('/<dialog id="create-donor-modal"[^>]*\\sopen\\s*>/', $response->getContent());
+        $response->assertSee('data-wizard-start-step="1"', false);
+        $this->assertDatabaseCount('donors', 0);
+    }
+
+    public function test_invalid_edit_reopens_the_form_at_the_address_step(): void
+    {
+        $admin = $this->userWithRole('admin');
+        $donor = $this->donor();
+
+        $this->actingAs($admin)
+            ->from(route('donors.index'))
+            ->patch(route('donors.update', $donor), [
+                '_modal' => 'edit-'.$donor->id,
+                'donor_type' => 'individual',
+                'first_name' => 'Maria',
+                'last_name' => 'Santos',
+                'contact_number' => '09171234567',
+            ])
+            ->assertRedirect(route('donors.index'))
+            ->assertSessionHasErrors('address');
+
+        $response = $this->get(route('donors.index'))->assertOk();
+
+        $this->assertMatchesRegularExpression('/<dialog id="edit-donor-modal-'.$donor->id.'"[^>]*\\sopen\\s*>/', $response->getContent());
+        $response->assertSee('data-wizard-start-step="2"', false);
+        $this->assertDatabaseHas('donors', ['id' => $donor->id, 'address' => $donor->address]);
+    }
+
     private function donor(): Donor
     {
         return Donor::query()->create([

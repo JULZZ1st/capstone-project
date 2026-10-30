@@ -35,6 +35,7 @@ class DonationPortalController extends Controller
                 'status',
                 'amount',
                 'payment_method',
+                'payment_method_name',
                 'receipt_number',
                 'reference_number',
                 'notes',

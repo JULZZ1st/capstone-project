@@ -586,7 +586,7 @@ class DonationsPortalTest extends TestCase
         $this->assertTrue(Contribution::query()->whereKey($donation)->eligibleForReconciliation()->exists());
     }
 
-    public function test_staff_cannot_verify_or_reject_a_pending_donation(): void
+    public function test_staff_can_verify_a_pending_donation_but_cannot_reject_it(): void
     {
         $staff = User::factory()->create();
         $donation = Contribution::query()->create([
@@ -601,14 +601,19 @@ class DonationsPortalTest extends TestCase
         ]);
 
         $this->actingAs($staff)
-            ->patch(route('donations.verify', $donation))
-            ->assertForbidden();
-
-        $this->actingAs($staff)
             ->patch(route('donations.update', $donation), ['status' => 'rejected'])
             ->assertForbidden();
 
         $this->assertDatabaseHas('contributions', ['id' => $donation->id, 'status' => 'pending']);
+
+        $this->actingAs($staff)
+            ->patch(route('donations.verify', $donation))
+            ->assertRedirect();
+
+        $donation->refresh();
+        $this->assertSame('verified', $donation->status);
+        $this->assertSame($staff->id, $donation->verified_by);
+        $this->assertNotNull($donation->verified_at);
     }
 
     public function test_admin_can_reject_pending_donation_and_it_is_not_reconcilable(): void
