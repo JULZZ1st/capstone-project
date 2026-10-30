@@ -51,7 +51,7 @@
         </div>
     </div>
 
-    <div class="min-h-0 flex-1 px-4 py-4 sm:px-6">
+    <div class="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 sm:px-6">
     <section data-wizard-step data-wizard-step-title="Basic & Contact Information">
         <div>
             <h3 class="text-xs font-semibold uppercase tracking-wide text-slate-800">Donor Details</h3>
@@ -126,7 +126,9 @@
             <div class="mt-3 grid gap-x-4 gap-y-4 sm:grid-cols-2">
                 <x-form.input name="contact_number" label="Contact Number" :value="$donor->contact_number ?? null" required autocomplete="tel" class="h-11 rounded-lg text-sm" />
                 <x-form.input name="email" label="Email" type="email" :value="$donor->email ?? null" autocomplete="email" class="h-11 rounded-lg text-sm" />
-                <x-form.input name="tin" label="TIN" :value="$donor->tin ?? null" class="h-11 rounded-lg text-sm" />
+                <div data-organization-optional-field @if (! $isOrganization) hidden @endif>
+                    <x-form.input name="tin" label="TIN" :value="$donor->tin ?? null" class="h-11 rounded-lg text-sm" @disabled(! $isOrganization) />
+                </div>
 
                 <div>
                     <label for="{{ $prefix }}preferred_contact_method" class="block text-sm font-medium text-slate-700">Preferred Contact Method</label>

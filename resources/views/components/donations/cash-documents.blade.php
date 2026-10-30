@@ -39,7 +39,7 @@
     </div>
     <fieldset class="rounded-lg border border-amber-200 bg-amber-50/60 p-3" data-deed-exception-section hidden>
         <label class="inline-flex items-start gap-2 text-sm font-medium text-slate-800">
-            <input id="deed_declined" name="deed_declined" type="checkbox" value="1" data-deed-declined class="mt-0.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+            <input id="deed_declined" name="deed_declined" type="checkbox" value="1" data-deed-declined @checked(old('deed_declined')) class="mt-0.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500">
             <span>Donor declined to sign a Deed of Donation.</span>
         </label>
         <p class="mt-1 text-xs text-amber-800">This saves the donation as Pending and sends it to Admin Review. It does not automatically waive the documentation requirement.</p>

@@ -61,8 +61,8 @@ class DonorManagementTest extends TestCase
         $response = $this->actingAs($admin)->get(route('donors.index'));
 
         $response->assertOk();
-        $response->assertSee('Donor Name');
-        $response->assertSee('City / Municipality');
+        $response->assertSee('Donor');
+        $response->assertSee('Location');
         $response->assertSee('sticky top-0', false);
         $response->assertSee('data-dialog-open="remove-donor-modal-'.$donor->id.'"', false);
         $response->assertSee('If donation history exists, the profile is deactivated instead of permanently deleted.');

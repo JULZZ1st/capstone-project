@@ -64,6 +64,8 @@ class DonationPortalController extends Controller
                 'donor:id,full_name,contact_number,email,status',
                 'campaign:id,name,status',
                 'creator:id,first_name,last_name,name',
+                'items',
+                'evidence',
             ])
             ->withCount('items')
             ->withSum('items', 'estimated_value')
@@ -93,6 +95,30 @@ class DonationPortalController extends Controller
                 ->active()
                 ->orderBy('full_name')
                 ->get(['id', 'full_name', 'contact_number']),
+            'donorDirectory' => Donor::query()
+                ->orderBy('full_name')
+                ->get([
+                    'id',
+                    'donor_type',
+                    'first_name',
+                    'middle_name',
+                    'last_name',
+                    'suffix',
+                    'full_name',
+                    'contact_person',
+                    'contact_number',
+                    'email',
+                    'preferred_contact_method',
+                    'tin',
+                    'address',
+                    'barangay',
+                    'barangay_area',
+                    'city_municipality',
+                    'province',
+                    'region',
+                    'notes',
+                    'status',
+                ]),
             'campaigns' => Campaign::query()
                 ->active()
                 ->orderBy('name')
@@ -159,11 +185,22 @@ class DonationPortalController extends Controller
         abort_unless($evidence->contribution_id === $contribution->id, 404);
         abort_unless(Storage::disk($evidence->disk)->exists($evidence->path), 404);
 
-        return Storage::disk($evidence->disk)->download(
-            $evidence->path,
-            $evidence->original_name,
-            ['Content-Type' => $evidence->mime_type],
-        );
+        abort_unless(in_array($evidence->mime_type, ['application/pdf', 'image/jpeg', 'image/png'], true), 415);
+
+        $stream = Storage::disk($evidence->disk)->readStream($evidence->path);
+        abort_unless(is_resource($stream), 404);
+
+        $filename = str_replace(['\\', '"'], '', basename($evidence->original_name ?: 'document'));
+
+        return response()->stream(function () use ($stream): void {
+            fpassthru($stream);
+            fclose($stream);
+        }, 200, [
+            'Content-Type' => $evidence->mime_type,
+            'Content-Disposition' => 'inline; filename="'.$filename.'"; filename*=UTF-8\'\''.rawurlencode($filename),
+            'X-Content-Type-Options' => 'nosniff',
+            'Cache-Control' => 'private, no-store, max-age=0',
+        ]);
     }
 
     public function update(UpdateContributionRequest $request, Contribution $contribution): RedirectResponse

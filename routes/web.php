@@ -94,7 +94,14 @@ Route::middleware([
     Route::post('/bank-reconciliation/reconcile', [BankReconciliationController::class, 'reconcile'])->name('bank-reconciliation.reconcile');
     Route::get('/disbursements', [DisbursementController::class, 'index'])->name('disbursements.index');
     Route::post('/disbursements', [DisbursementController::class, 'store'])->name('disbursements.store');
+    Route::patch('/disbursements/{disbursement}', [DisbursementController::class, 'update'])->name('disbursements.update');
     Route::get('/disbursements/{disbursement}', [DisbursementController::class, 'show'])->name('disbursements.show');
+    Route::get('/disbursements/{disbursement}/voucher', [DisbursementController::class, 'voucher'])->name('disbursements.voucher');
+    Route::post('/disbursements/{disbursement}/signed-voucher', [DisbursementController::class, 'uploadSignedVoucher'])->name('disbursements.signed-voucher.upload');
+    Route::get('/disbursements/{disbursement}/signed-voucher/preview', [DisbursementController::class, 'previewSignedVoucher'])->name('disbursements.signed-voucher.preview');
+    Route::patch('/disbursements/{disbursement}/signed-voucher/request', [DisbursementController::class, 'requestMissingSignedVoucher'])->name('disbursements.signed-voucher.request');
+    Route::post('/disbursements/{disbursement}/payment', [DisbursementController::class, 'recordPayment'])->name('disbursements.payment.store');
+    Route::post('/disbursements/{disbursement}/treasurer-certification', [DisbursementController::class, 'recordTreasurerCertification'])->name('disbursements.treasurer-certification.store');
     Route::patch('/disbursements/{disbursement}/approve', [DisbursementController::class, 'approve'])->name('disbursements.approve');
     Route::patch('/disbursements/{disbursement}/reject', [DisbursementController::class, 'reject'])->name('disbursements.reject');
     Route::patch('/disbursements/{disbursement}/void', [DisbursementController::class, 'voidDisbursement'])->name('disbursements.void');

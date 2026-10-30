@@ -48,6 +48,7 @@
                     min="0.01"
                     inputmode="decimal"
                     placeholder="0.00"
+                    required
                     class="block w-full rounded-md border-slate-300 py-2 pl-12 pr-3 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500"
                     @error('amount') aria-invalid="true" aria-describedby="amount-error" @enderror
                 >

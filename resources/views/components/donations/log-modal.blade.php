@@ -18,7 +18,7 @@
         @csrf
 
         <div class="flex shrink-0 items-center justify-between border-b border-slate-200 bg-white px-5 py-3.5 sm:px-6">
-            <h2 id="log-contribution-title" class="text-base font-semibold text-slate-950">Log New Contribution</h2>
+            <h2 id="log-contribution-title" class="text-base font-semibold text-slate-950">Add Donation</h2>
 
             <button
                 type="button"

@@ -41,7 +41,7 @@
         @if($searchable)
             <div class="sticky top-0 z-10 bg-white p-1" data-custom-select-search-wrapper>
                 <label class="sr-only" for="{{ $id }}-search">Search {{ $placeholder }}</label>
-                <input id="{{ $id }}-search" type="search" placeholder="Search donors" class="h-9 w-full rounded-md border border-slate-200 bg-slate-50 px-3 text-sm text-slate-700 outline-none focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20" data-custom-select-search>
+                <input id="{{ $id }}-search" type="search" placeholder="Search {{ strtolower($placeholder) }}" class="h-9 w-full rounded-md border border-slate-200 bg-slate-50 px-3 text-sm text-slate-700 outline-none focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20" data-custom-select-search>
             </div>
         @endif
         <div class="space-y-0.5" data-custom-select-options></div>

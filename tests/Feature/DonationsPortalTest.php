@@ -174,7 +174,8 @@ class DonationsPortalTest extends TestCase
         $this->actingAs($user)->get(route('donations.show', $contribution))->assertSee('receipt.pdf');
         $this->actingAs($user)->get(route('donations.evidence', [$contribution, $evidence]))
             ->assertOk()
-            ->assertHeader('Content-Disposition');
+            ->assertHeader('Content-Type', 'application/pdf')
+            ->assertHeader('Content-Disposition', 'inline; filename="receipt.pdf"; filename*=UTF-8\'\'receipt.pdf');
     }
 
     public function test_contribution_evidence_rejects_unsupported_or_oversized_files(): void

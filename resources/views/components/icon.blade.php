@@ -163,6 +163,12 @@
             <path d="m9 6 6 6-6 6" />
             @break
 
+        @case('dots-vertical')
+            <circle cx="12" cy="5" r="1" fill="currentColor" stroke="none" />
+            <circle cx="12" cy="12" r="1" fill="currentColor" stroke="none" />
+            <circle cx="12" cy="19" r="1" fill="currentColor" stroke="none" />
+            @break
+
         @case('check-circle')
             <circle cx="12" cy="12" r="8.25" />
             <path d="m8.5 12.3 2.4 2.4 4.6-4.9" />

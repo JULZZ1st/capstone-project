@@ -149,6 +149,12 @@ document.addEventListener('change', (event) => {
     }
 });
 
+document.addEventListener('custom-select-refresh', (event) => {
+    if (event.target.matches('[data-custom-select-native]')) {
+        refreshCustomSelect(event.target);
+    }
+});
+
 document.addEventListener('click', (event) => {
     const trigger = event.target.closest('[data-custom-select-trigger]');
     const option = event.target.closest('[data-custom-select-option]');
@@ -354,14 +360,27 @@ if (successToast) {
 }
 
 document.addEventListener('click', (event) => {
+    const previewButton = event.target.closest('[data-document-preview-open]');
     const openButton = event.target.closest('[data-dialog-open]');
     const closeButton = event.target.closest('[data-dialog-close]');
+
+    if (previewButton) {
+        const dialog = document.getElementById(previewButton.dataset.previewDialog);
+        if (dialog instanceof HTMLDialogElement) {
+            dialog.__returnFocus = previewButton;
+            dialog.__returnScrollPositions = [...document.querySelectorAll('dialog[open]')].flatMap((openDialog) => [...openDialog.querySelectorAll('.overflow-y-auto')].map((scrollable) => ({ scrollable, top: scrollable.scrollTop })));
+            dialog.__previewUrl = previewButton.dataset.previewUrl;
+            dialog.showModal();
+            loadDocumentPreview(dialog, previewButton);
+        }
+    }
 
     if (openButton) {
         const dialog = document.getElementById(openButton.dataset.dialogOpen);
 
         if (dialog instanceof HTMLDialogElement) {
-            dialog.showModal();
+            dialog.__returnFocus = openButton;
+            if (! dialog.open) dialog.showModal();
         }
     }
 
@@ -371,6 +390,87 @@ document.addEventListener('click', (event) => {
         if (dialog instanceof HTMLDialogElement) {
             dialog.close();
         }
+    }
+});
+
+const loadDocumentPreview = async (dialog, trigger) => {
+    const loading = dialog.querySelector('[data-preview-loading]');
+    const pdf = dialog.querySelector('[data-preview-pdf]');
+    const image = dialog.querySelector('[data-preview-image]');
+    const error = dialog.querySelector('[data-preview-error]');
+    const title = dialog.querySelector('[data-preview-document-title]');
+    const filename = dialog.querySelector('[data-preview-filename-label]');
+    const mime = trigger.dataset.previewMime || '';
+
+    title.textContent = trigger.dataset.previewDocument || 'Document Preview';
+    filename.textContent = trigger.dataset.previewFilename || '';
+    loading.classList.remove('hidden');
+    pdf.classList.add('hidden');
+    image.classList.add('hidden');
+    error.classList.add('hidden');
+    error.textContent = '';
+
+    try {
+        if (! ['application/pdf', 'image/jpeg', 'image/png'].includes(mime)) {
+            throw new Error('This document type is not supported for preview.');
+        }
+
+        const response = await fetch(trigger.dataset.previewUrl, { headers: { Accept: mime } });
+        if (! response.ok) throw new Error('The document could not be opened. It may be missing or no longer available.');
+        const blob = await response.blob();
+        if (! blob.type.startsWith('application/pdf') && ! blob.type.startsWith('image/')) {
+            throw new Error('The uploaded file is not a supported PDF or image.');
+        }
+
+        if (dialog.__previewObjectUrl) URL.revokeObjectURL(dialog.__previewObjectUrl);
+        dialog.__previewObjectUrl = URL.createObjectURL(blob);
+        loading.classList.add('hidden');
+
+        if (mime === 'application/pdf') {
+            pdf.src = dialog.__previewObjectUrl;
+            pdf.classList.remove('hidden');
+        } else {
+            image.src = dialog.__previewObjectUrl;
+            image.alt = trigger.dataset.previewFilename || 'Uploaded image';
+            image.classList.remove('hidden');
+        }
+    } catch (previewError) {
+        loading.classList.add('hidden');
+        error.textContent = previewError.message || 'Unable to preview this document.';
+        error.classList.remove('hidden');
+        error.classList.add('flex');
+    }
+};
+
+document.querySelectorAll('[data-document-preview-dialog]').forEach((dialog) => {
+    dialog.addEventListener('close', () => {
+        const returnScrollPositions = dialog.__returnScrollPositions;
+        const returnFocus = dialog.__returnFocus;
+        dialog.__returnFocus = null;
+        window.setTimeout(() => {
+            if (returnFocus instanceof HTMLElement && document.contains(returnFocus)) returnFocus.focus();
+            window.setTimeout(() => returnScrollPositions?.forEach(({ scrollable, top }) => {
+                scrollable.scrollTop = top;
+            }), 0);
+        }, 0);
+        dialog.__returnScrollPositions = null;
+        if (dialog.__previewObjectUrl) {
+            URL.revokeObjectURL(dialog.__previewObjectUrl);
+            dialog.__previewObjectUrl = null;
+        }
+        const pdf = dialog.querySelector('[data-preview-pdf]');
+        const image = dialog.querySelector('[data-preview-image]');
+        if (pdf) pdf.removeAttribute('src');
+        if (image) image.removeAttribute('src');
+    });
+});
+
+document.addEventListener('close', (event) => {
+    const dialog = event.target;
+    if (!(dialog instanceof HTMLDialogElement)) return;
+    const returnFocus = dialog.__returnFocus;
+    if (returnFocus instanceof HTMLElement && document.contains(returnFocus)) {
+        window.setTimeout(() => returnFocus.focus(), 0);
     }
 });
 
@@ -924,10 +1024,12 @@ const updateCashDocumentRequirements = (form) => {
     const amount = Number.parseFloat(cashSection.querySelector('[name="amount"]')?.value || '0');
     const deedExceptionSection = cashSection.querySelector('[data-deed-exception-section]');
     const deedDeclined = cashSection.querySelector('[name="deed_declined"]')?.checked === true;
+    const deedExceptionReasonField = cashSection.querySelector('[data-deed-exception-reason]');
     const deedExceptionReason = cashSection.querySelector('[name="deed_decline_reason"]');
     const deedRequired = amount >= 5000 && ! deedDeclined;
 
     if (deedExceptionSection) deedExceptionSection.hidden = amount < 5000;
+    if (deedExceptionReasonField) deedExceptionReasonField.hidden = ! deedDeclined || amount < 5000;
     if (deedExceptionReason) {
         deedExceptionReason.disabled = amount < 5000 || ! deedDeclined;
         deedExceptionReason.required = amount >= 5000 && deedDeclined;
@@ -1499,7 +1601,7 @@ document.addEventListener('change', (event) => {
 
 const updateDonorCreateForm = (form) => {
     const donorType = form.querySelector('[data-donor-type]')?.value;
-    const organizationNameWrappers = form.querySelectorAll('[data-organization-name-field]');
+    const organizationNameWrappers = form.querySelectorAll('[data-organization-name-field], [data-organization-optional-field]');
     const individualNameWrappers = form.querySelectorAll('[data-individual-name-field]');
     const isOrganization = donorType === 'organization';
 
@@ -1508,8 +1610,8 @@ const updateDonorCreateForm = (form) => {
         wrapper.hidden = ! isOrganization;
         if (! input) return;
         input.disabled = ! isOrganization;
-        input.required = isOrganization;
-        if (! isOrganization) input.value = '';
+        input.required = isOrganization && ! wrapper.hasAttribute('data-organization-optional-field');
+        if (! isOrganization && ! wrapper.hasAttribute('data-organization-optional-field')) input.value = '';
     });
 
     individualNameWrappers.forEach((wrapper) => {
@@ -1534,6 +1636,112 @@ document.querySelectorAll('[data-donor-form]').forEach(updateDonorCreateForm);
 document.addEventListener('change', (event) => {
     if (event.target.matches('[data-donor-type]')) {
         updateDonorCreateForm(event.target.closest('[data-donor-form]'));
+    }
+});
+
+const donorDirectory = document.getElementById('donor-directory-modal');
+
+if (donorDirectory) {
+    const rows = Array.from(donorDirectory.querySelectorAll('[data-donor-directory-row]'));
+    const search = donorDirectory.querySelector('[data-donor-directory-search]');
+    const type = donorDirectory.querySelector('[data-donor-directory-type]');
+    const status = donorDirectory.querySelector('[data-donor-directory-status]');
+    const count = donorDirectory.querySelector('[data-donor-directory-count]');
+    const pageLabel = donorDirectory.querySelector('[data-donor-directory-page]');
+    const empty = donorDirectory.querySelector('[data-donor-directory-empty]');
+    const previous = donorDirectory.querySelector('[data-donor-directory-prev]');
+    const next = donorDirectory.querySelector('[data-donor-directory-next]');
+    const pageSize = 8;
+    let page = 1;
+
+    const renderDonorDirectory = () => {
+        const query = (search?.value || '').trim().toLowerCase();
+        const matches = rows.filter((row) => (row.dataset.search || '').includes(query)
+            && (! type?.value || row.dataset.donorType === type.value)
+            && (! status?.value || row.dataset.donorStatus === status.value));
+        const pageCount = Math.max(1, Math.ceil(matches.length / pageSize));
+
+        page = Math.min(page, pageCount);
+        rows.forEach((row) => { row.hidden = true; });
+        matches.slice((page - 1) * pageSize, page * pageSize).forEach((row) => { row.hidden = false; });
+
+        if (count) count.textContent = `${matches.length} ${matches.length === 1 ? 'donor' : 'donors'}`;
+        if (pageLabel) pageLabel.textContent = matches.length ? `Page ${page} of ${pageCount}` : 'No results';
+        if (empty) empty.hidden = matches.length > 0;
+        if (previous) previous.disabled = page <= 1 || matches.length === 0;
+        if (next) next.disabled = page >= pageCount || matches.length === 0;
+    };
+
+    search?.addEventListener('input', () => {
+        page = 1;
+        renderDonorDirectory();
+    });
+    type?.addEventListener('change', () => { page = 1; renderDonorDirectory(); });
+    status?.addEventListener('change', () => { page = 1; renderDonorDirectory(); });
+    previous?.addEventListener('click', () => { page -= 1; renderDonorDirectory(); });
+    next?.addEventListener('click', () => { page += 1; renderDonorDirectory(); });
+    donorDirectory.addEventListener('close', () => {
+        if (search) search.value = '';
+        if (type) type.value = '';
+        if (status) status.value = '';
+        page = 1;
+        renderDonorDirectory();
+    });
+    renderDonorDirectory();
+}
+
+document.addEventListener('submit', async (event) => {
+    const form = event.target.closest('#donor-directory-modal form[action*="/donors/"] , #donor-directory-modal form[action$="/donors"]');
+    if (! form || form.matches('[data-quick-donor-form]')) return;
+    event.preventDefault();
+
+    const submit = form.querySelector('button[type="submit"], [data-wizard-submit]');
+    const originalLabel = submit?.textContent;
+    if (submit) { submit.disabled = true; submit.textContent = 'Saving...'; }
+
+    try {
+        let response;
+        let payload;
+        let duplicateConfirmed = Boolean(form.querySelector('input[name="_confirm_duplicate"]'));
+
+        do {
+            response = await fetch(form.action, {
+                method: form.querySelector('input[name="_method"]')?.value || 'POST',
+                headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                body: new FormData(form),
+            });
+            payload = await response.json().catch(() => ({}));
+
+            if (response.status !== 409 || duplicateConfirmed || ! window.confirm(payload.message || 'A similar donor already exists. Create this profile anyway?')) {
+                break;
+            }
+
+            const confirmation = document.createElement('input');
+            confirmation.type = 'hidden';
+            confirmation.name = '_confirm_duplicate';
+            confirmation.value = '1';
+            form.appendChild(confirmation);
+            duplicateConfirmed = true;
+        } while (true);
+
+        if (! response.ok) {
+            const message = payload.errors ? Object.values(payload.errors).flat().join(' ') : payload.message;
+            throw new Error(message || 'Unable to save the donor profile.');
+        }
+        form.closest('dialog')?.close();
+        document.getElementById('donor-directory-modal')?.close();
+        window.location.reload();
+    } catch (requestError) {
+        let error = form.querySelector('[data-directory-donor-error]');
+        if (! error) {
+            error = document.createElement('p');
+            error.dataset.directoryDonorError = 'true';
+            error.className = 'mx-4 mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 sm:mx-6';
+            form.querySelector('[data-donor-form]')?.before(error);
+        }
+        error.textContent = requestError.message;
+    } finally {
+        if (submit) { submit.disabled = false; submit.textContent = originalLabel || 'Save'; }
     }
 });
 
