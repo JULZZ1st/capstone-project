@@ -39,7 +39,7 @@ class ContributionPolicy
         return $contribution->isCash()
             && $contribution->status === 'pending'
             && $this->sameWorkspace($user, $contribution)
-            && $user->hasRole(['admin', 'staff']);
+            && $user->hasRole('admin');
     }
 
     public function void(User $user, Contribution $contribution): bool

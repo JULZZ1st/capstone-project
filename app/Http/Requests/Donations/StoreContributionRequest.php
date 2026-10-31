@@ -23,11 +23,16 @@ class StoreContributionRequest extends FormRequest
 
         return [
             'donation_type' => ['required', Rule::in(array_keys(config('donations.types')))],
-            'donor_id' => ['required', WorkspaceValidationRules::exists('donors')],
+            'donor_id' => [
+                'required',
+                WorkspaceValidationRules::exists('donors')
+                    ->where('status', config('donors.defaults.status')),
+            ],
+            'campaign_id' => ['nullable', WorkspaceValidationRules::exists('campaigns')],
             'received_at' => ['nullable', 'date_format:Y-m-d'],
             'amount' => ['required_if:donation_type,cash', 'nullable', 'numeric', 'min:0.01', 'max:99999999.99'],
-            'payment_method' => ['required_if:donation_type,cash', 'nullable', Rule::in(array_keys(array_diff_key(config('donations.payment_methods'), ['money_order' => true])))],
-            'payment_method_name' => ['nullable', 'string', 'max:255', Rule::requiredIf(fn () => $this->input('payment_method') === 'other')],
+            'payment_method' => ['required_if:donation_type,cash', 'nullable', Rule::in(array_keys(config('donations.payment_methods')))],
+            'payment_method_name' => ['required_if:payment_method,other', 'nullable', 'string', 'max:100'],
             'reference_number' => [
                 Rule::requiredIf(fn () => $this->requiresExternalReference()),
                 'nullable',
@@ -140,9 +145,7 @@ class StoreContributionRequest extends FormRequest
     private function requiresExternalReference(): bool
     {
         return $this->input('donation_type') === 'cash'
-            && filled($this->input('payment_method'))
-            && $this->input('payment_method') !== 'cash'
-            && $this->input('payment_method') !== 'other';
+            && in_array($this->input('payment_method'), config('donations.electronic_payment_methods'), true);
     }
 
     private function nullableValue(mixed $value): ?string

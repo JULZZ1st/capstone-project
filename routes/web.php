@@ -33,7 +33,7 @@ Route::middleware('auth')->group(function () {
 Route::middleware([
     'auth',
     'password.change',
-    'role:admin,staff',
+    'role:admin,staff,secretary,treasurer',
     'workspace',
     'workspace.required',
     'workspace.models',

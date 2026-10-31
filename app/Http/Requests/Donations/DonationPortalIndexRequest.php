@@ -19,6 +19,7 @@ class DonationPortalIndexRequest extends FormRequest
             'search' => ['nullable', 'string', 'max:255'],
             'type' => ['nullable', Rule::in(array_keys(config('donations.types')))],
             'status' => ['nullable', Rule::in(array_keys(config('donations.statuses')))],
+            'campaign_id' => ['nullable', WorkspaceValidationRules::exists('campaigns')],
         ];
     }
 
@@ -28,6 +29,7 @@ class DonationPortalIndexRequest extends FormRequest
             'search' => $this->nullableTrim('search'),
             'type' => $this->nullableTrim('type'),
             'status' => $this->nullableTrim('status'),
+            'campaign_id' => $this->nullableTrim('campaign_id'),
         ]);
     }
 

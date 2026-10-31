@@ -16,6 +16,7 @@ class Contribution extends Model
     protected $fillable = [
         'workspace_id',
         'donor_id',
+        'campaign_id',
         'created_by',
         'verified_by',
         'type',
@@ -45,6 +46,11 @@ class Contribution extends Model
     public function donor(): BelongsTo
     {
         return $this->belongsTo(Donor::class);
+    }
+
+    public function campaign(): BelongsTo
+    {
+        return $this->belongsTo(Campaign::class);
     }
 
     public function creator(): BelongsTo
@@ -121,6 +127,21 @@ class Contribution extends Model
     public function isCash(): bool
     {
         return $this->type === 'cash';
+    }
+
+    public function paymentMethodLabel(): ?string
+    {
+        if ($this->payment_method === null) {
+            return null;
+        }
+
+        if ($this->payment_method === 'other') {
+            return $this->payment_method_name ?: 'Other';
+        }
+
+        return config("donations.payment_methods.{$this->payment_method}")
+            ?? config("donations.legacy_payment_methods.{$this->payment_method}")
+            ?? ucfirst($this->payment_method);
     }
 
     public function isVoided(): bool

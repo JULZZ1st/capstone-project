@@ -7,6 +7,7 @@ use App\Http\Requests\Donations\StoreContributionRequest;
 use App\Http\Requests\Donations\UpdateContributionRequest;
 use App\Http\Requests\Donations\VerifyContributionRequest;
 use App\Models\Contribution;
+use App\Models\Campaign;
 use App\Models\Donor;
 use App\Models\InventoryCategory;
 use App\Models\InventorySubcategory;
@@ -14,6 +15,7 @@ use App\Services\Contributions\LogContribution;
 use App\Services\Inventory\ResolveInventoryClassification;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Database\QueryException;
 use Illuminate\View\View;
 
 class DonationPortalController extends Controller
@@ -50,6 +52,7 @@ class DonationPortalController extends Controller
             ->search($filters['search'] ?? null)
             ->type($filters['type'] ?? null)
             ->status($filters['status'] ?? null)
+            ->when($filters['campaign_id'] ?? null, fn ($query, $campaignId) => $query->where('campaign_id', $campaignId))
             ->latest('received_at')
             ->latest()
             ->paginate(config('donations.pagination.per_page'))
@@ -73,6 +76,7 @@ class DonationPortalController extends Controller
         return view('donations.index', [
             'contributions' => $contributions,
             'filters' => $filters,
+            'campaigns' => Campaign::query()->active()->orderBy('name')->get(['id', 'name']),
             'summary' => $summary,
             'donors' => Donor::query()
                 ->active()
@@ -90,7 +94,23 @@ class DonationPortalController extends Controller
 
     public function store(StoreContributionRequest $request, LogContribution $logger, ResolveInventoryClassification $resolver): RedirectResponse
     {
-        $contribution = $logger->handle($request->validated(), $request->user(), $resolver);
+        try {
+            $contribution = $logger->handle($request->validated(), $request->user(), $resolver);
+        } catch (QueryException $exception) {
+            $message = $exception->getMessage();
+
+            if (
+                $exception->getCode() !== '23000'
+                || ! str_contains($message, '1452')
+                || (! str_contains($message, 'donor_id') && ! str_contains($message, 'contributions_donor_id_foreign'))
+            ) {
+                throw $exception;
+            }
+
+            return back()
+                ->withInput()
+                ->withErrors(['donor_id' => 'The selected donor is no longer available in this workspace. Please select an active donor and try again.']);
+        }
 
         return redirect()
             ->route('donations.index')
@@ -139,6 +159,6 @@ class DonationPortalController extends Controller
 
         return redirect()
             ->back()
-            ->with('success', 'Cash contribution verified successfully.');
+            ->with('success', 'Donation verified successfully.');
     }
 }
