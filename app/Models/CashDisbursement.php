@@ -133,6 +133,30 @@ class CashDisbursement extends Model
             ->whereNull('voided_at');
     }
 
+    public function scopeEligibleForWithdrawalMatching($query, ?int $withdrawalId = null)
+    {
+        return $query->approvedActive()
+            ->where(function ($query) {
+                $query->whereDoesntHave('payment')
+                    ->orWhereHas('payment', fn ($payment) => $payment->where('payment_method', 'bank_transfer'));
+            })
+            ->where(function ($query) use ($withdrawalId) {
+                $query->whereDoesntHave('withdrawalMatch');
+                if ($withdrawalId !== null) {
+                    $query->orWhereHas('withdrawalMatch', fn ($match) => $match->where('bank_ledger_entry_id', $withdrawalId));
+                }
+            });
+    }
+
+    public function isCancellable(): bool
+    {
+        return $this->status === 'approved'
+            && ! $this->isVoided()
+            && $this->payment_status !== 'disbursed'
+            && ! $this->payment()->exists()
+            && ! $this->withdrawalMatch()->exists();
+    }
+
     public function isPending(): bool
     {
         return $this->status === 'pending';

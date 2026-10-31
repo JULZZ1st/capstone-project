@@ -46,6 +46,8 @@
                     </div>
                 </dl>
 
+                <x-donations.deed-upload-form :contribution="$contribution" />
+
                 @if ($contribution->photo_path)
                     <div class="mt-6">
                         <h3 class="text-sm font-semibold text-slate-900">Donation Photo</h3>

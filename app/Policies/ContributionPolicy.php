@@ -47,6 +47,16 @@ class ContributionPolicy
             && $user->hasRole(['admin', 'staff']);
     }
 
+    public function uploadDeed(User $user, Contribution $contribution): bool
+    {
+        return $contribution->isCash()
+            && $contribution->status === 'pending'
+            && ! $contribution->isVoided()
+            && $this->sameWorkspace($user, $contribution)
+            && ($user->hasRole('admin')
+                || ($user->hasRole('staff') && (int) $contribution->created_by === (int) $user->id));
+    }
+
     public function requestDocuments(User $user, Contribution $contribution): bool
     {
         return $contribution->isCash()

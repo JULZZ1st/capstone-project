@@ -8,6 +8,7 @@ use App\Http\Requests\Donations\RequestContributionDocumentsRequest;
 use App\Http\Requests\Donations\StoreContributionRequest;
 use App\Http\Requests\Donations\UpdateContributionRequest;
 use App\Http\Requests\Donations\VerifyContributionRequest;
+use App\Http\Requests\Donations\UploadContributionDeedRequest;
 use App\Models\Contribution;
 use App\Models\ContributionEvidence;
 use App\Models\Donor;
@@ -15,6 +16,7 @@ use App\Models\InventoryCategory;
 use App\Models\InventorySubcategory;
 use App\Models\SecurityActivityEvent;
 use App\Services\Contributions\LogContribution;
+use App\Services\Contributions\UploadContributionDeed;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -53,6 +55,11 @@ class DonationPortalController extends Controller
                 'certificate_requested',
                 'certificate_status',
                 'deed_declined',
+                'deed_decline_reason',
+                'document_request_reason',
+                'voided_at',
+                'voided_by',
+                'void_reason',
                 'document_review_status',
                 'donor_tin',
                 'notes',
@@ -244,6 +251,14 @@ class DonationPortalController extends Controller
         return redirect()
             ->back()
             ->with('success', 'Donation verified successfully.');
+    }
+
+    public function uploadDeed(UploadContributionDeedRequest $request, Contribution $contribution, UploadContributionDeed $uploader): RedirectResponse
+    {
+        $uploader->handle($contribution, $request->file('deed_of_donation'), $request->user());
+
+        return redirect()->route('donations.show', $contribution)
+            ->with('success', 'Deed of Donation uploaded. Review the documents before verifying the donation.');
     }
 
     public function requestDocuments(RequestContributionDocumentsRequest $request, Contribution $contribution): RedirectResponse

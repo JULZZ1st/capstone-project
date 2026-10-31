@@ -17,16 +17,14 @@ use App\Models\Contribution;
 use App\Models\ReconciliationDiscrepancy;
 use App\Services\BankReconciliation\ImportBankStatement;
 use App\Services\BankReconciliation\LedgerMatchFinder;
+use App\Services\BankReconciliation\MatchWithdrawalDisbursements;
 use App\Services\BankReconciliation\ReconcileLedgerEntry;
 use App\Services\BankReconciliation\ReconciliationPeriodService;
 use App\Services\BankReconciliation\ReconciliationPeriodGuard;
 use App\Services\BankReconciliation\ReconciliationDiscrepancyService;
 use App\Services\BankReconciliation\ReconciliationApprovalService;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\DB;
-use App\Support\Workspaces\WorkspaceContext;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class BankReconciliationController extends Controller
@@ -50,12 +48,7 @@ class BankReconciliationController extends Controller
             ->get();
 
         $eligibleDisbursements = CashDisbursement::query()
-            ->approvedActive()
-            ->whereDoesntHave('withdrawalMatch')
-            ->where(function ($query): void {
-                $query->whereDoesntHave('payment')
-                    ->orWhereHas('payment', fn ($payment) => $payment->where('payment_method', 'bank_transfer'));
-            })
+            ->eligibleForWithdrawalMatching()
             ->with('requester:id,name,first_name,last_name')
             ->latest('approved_at')
             ->get();
@@ -212,64 +205,20 @@ class BankReconciliationController extends Controller
             ->with('success', 'Bank withdrawal entry recorded for review.');
     }
 
-    public function storeWithdrawalMatches(StoreWithdrawalDisbursementMatchRequest $request, BankLedgerEntry $withdrawal, ReconciliationPeriodGuard $periodGuard): RedirectResponse
+    public function storeWithdrawalMatches(StoreWithdrawalDisbursementMatchRequest $request, BankLedgerEntry $withdrawal, MatchWithdrawalDisbursements $matcher): RedirectResponse
     {
         Gate::authorize('matchWithdrawal', $withdrawal);
-
-        $periodGuard->assertMutableEntry($withdrawal);
-        $disbursementIds = $request->disbursementIds();
-        DB::transaction(function () use ($disbursementIds, $request, $withdrawal): void {
-            $lockedWithdrawal = BankLedgerEntry::query()->whereKey($withdrawal->id)->lockForUpdate()->firstOrFail();
-            $disbursements = CashDisbursement::query()->whereIn('id', $disbursementIds)->lockForUpdate()->get();
-            $selectedTotal = $disbursements->sum('amount');
-            $difference = (float) $lockedWithdrawal->amount - (float) $selectedTotal;
-            $lockedWithdrawal->matchedDisbursements()->syncWithPivotValues(
-                $disbursementIds,
-                ['workspace_id' => app(WorkspaceContext::class)->requireId()],
-            );
-            $lockedWithdrawal->forceFill([
-                'discrepancy_amount' => abs($difference) >= 0.005 ? $difference : null,
-                'discrepancy_reason' => abs($difference) >= 0.005 ? trim($request->input('discrepancy_reason')) : null,
-            ])->save();
-        });
+        $matcher->handle($withdrawal, $request->disbursementIds(), $request->user(), $request->validated('discrepancy_reason'));
 
         return redirect()
             ->route('bank-reconciliation.index', ['tab' => 'outgoing'])
             ->with('success', 'Withdrawal match selection updated.');
     }
 
-    public function finalizeWithdrawal(StoreWithdrawalDisbursementMatchRequest $request, BankLedgerEntry $withdrawal): RedirectResponse
+    public function finalizeWithdrawal(StoreWithdrawalDisbursementMatchRequest $request, BankLedgerEntry $withdrawal, MatchWithdrawalDisbursements $matcher): RedirectResponse
     {
         Gate::authorize('matchWithdrawal', $withdrawal);
-
-        $disbursementIds = $request->disbursementIds();
-
-        DB::transaction(function () use ($disbursementIds, $request, $withdrawal): void {
-            $withdrawal = BankLedgerEntry::query()->whereKey($withdrawal->id)->lockForUpdate()->firstOrFail();
-            $selectedTotal = CashDisbursement::query()->whereIn('id', $disbursementIds)->sum('amount');
-            $difference = (float) $withdrawal->amount - (float) $selectedTotal;
-
-            if ($withdrawal->isReconciled()) {
-                throw ValidationException::withMessages(['withdrawal' => 'This bank withdrawal has already been reconciled.']);
-            }
-
-            $period = BankReconciliation::query()->whereDate('period_start', '<=', $withdrawal->transaction_date)->whereDate('period_end', '>=', $withdrawal->transaction_date)->first();
-            if ($period?->isLocked()) {
-                throw ValidationException::withMessages(['period' => 'Transactions in a locked reconciliation period cannot be modified.']);
-            }
-            if (abs($difference) >= 0.005) {
-                throw ValidationException::withMessages(['finalize' => 'The withdrawal can only be reconciled when the difference is zero.']);
-            }
-
-            $withdrawal->matchedDisbursements()->sync($disbursementIds);
-            $withdrawal->forceFill([
-                'status' => 'reconciled',
-                'discrepancy_amount' => null,
-                'discrepancy_reason' => null,
-                'reconciled_by' => $request->user()->id,
-                'reconciled_at' => now(),
-            ])->save();
-        });
+        $matcher->handle($withdrawal, $request->disbursementIds(), $request->user(), $request->validated('discrepancy_reason'), true);
 
         return redirect()
             ->route('bank-reconciliation.index', ['tab' => 'outgoing'])

@@ -23,6 +23,12 @@ class RecordDisbursementPayment
                 throw ValidationException::withMessages(['disbursement' => 'This fund request already has an actual payment recorded.']);
             }
 
+            if ($data['payment_method'] !== 'bank_transfer' && $disbursement->withdrawalMatch()->lockForUpdate()->exists()) {
+                throw ValidationException::withMessages([
+                    'payment_method' => 'A bank-matched fund request must be paid by bank transfer.',
+                ]);
+            }
+
             $difference = abs((float) $data['amount'] - (float) $disbursement->amount);
             if ($difference >= 0.005) {
                 throw ValidationException::withMessages(['amount' => 'The recorded payment must equal the approved request amount. Partial payments are not supported by the current workflow.']);

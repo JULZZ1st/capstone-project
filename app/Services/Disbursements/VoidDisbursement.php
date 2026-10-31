@@ -25,6 +25,14 @@ class VoidDisbursement
                 throw ValidationException::withMessages(['disbursement' => 'Only approved, active fund requests can be cancelled.']);
             }
 
+            if ($disbursement->payment_status === 'disbursed'
+                || $disbursement->payment()->lockForUpdate()->exists()
+                || $disbursement->withdrawalMatch()->lockForUpdate()->exists()) {
+                throw ValidationException::withMessages([
+                    'disbursement' => 'Paid or bank-matched fund requests cannot be cancelled.',
+                ]);
+            }
+
             $disbursement->forceFill(['voided_at' => now(), 'voided_by' => $actor->id, 'void_reason' => $reason])->save();
             SecurityActivityEvent::query()->create([
                 'user_id' => $disbursement->requested_by,

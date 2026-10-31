@@ -55,6 +55,7 @@ Route::middleware([
     Route::get('/donations/{contribution}/evidence/{evidence}', [DonationPortalController::class, 'downloadEvidence'])->name('donations.evidence');
     Route::patch('/donations/{contribution}', [DonationPortalController::class, 'update'])->name('donations.update');
     Route::patch('/donations/{contribution}/verify', [DonationPortalController::class, 'verify'])->name('donations.verify');
+    Route::patch('/donations/{contribution}/deed', [DonationPortalController::class, 'uploadDeed'])->name('donations.deed.upload');
     Route::patch('/donations/{contribution}/request-documents', [DonationPortalController::class, 'requestDocuments'])->name('donations.request-documents');
     Route::patch('/donations/{contribution}/certificate', [DonationPortalController::class, 'issueCertificate'])->name('donations.certificate.issue');
 
