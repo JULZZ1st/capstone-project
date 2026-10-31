@@ -12,7 +12,7 @@
         </x-alert>
     @endif
 
-    <div class="space-y-6">
+    <div class="space-y-4">
         <div class="flex flex-col gap-3 lg:flex-row lg:items-center">
             <div class="min-w-0 flex-1">
                 <x-donations.filter-bar
@@ -20,18 +20,29 @@
                 />
             </div>
 
-            @can('create', \App\Models\Contribution::class)
-                <div class="shrink-0">
+            <div class="flex shrink-0 flex-col gap-2 sm:flex-row">
+                @can('viewAny', \App\Models\Donor::class)
+                    <x-button
+                        type="button"
+                        class="h-10 w-full gap-2 border border-blue-200 bg-white px-4 !text-blue-700 hover:border-blue-300 hover:bg-blue-50 hover:!text-blue-800 sm:w-auto"
+                        data-dialog-open="donor-directory-modal"
+                    >
+                        <x-icon name="users" class="h-4 w-4" />
+                        View All Donors
+                    </x-button>
+                @endcan
+
+                @can('create', \App\Models\Contribution::class)
                     <x-button
                         type="button"
                         class="h-10 w-full gap-2 px-4 shadow-sm sm:w-auto"
                         data-dialog-open="log-contribution-dialog"
                     >
                         <x-icon name="plus" class="h-4 w-4" />
-                        Log New Contribution
+                        Add Donation
                     </x-button>
-                </div>
-            @endcan
+                @endcan
+            </div>
 
         </div>
 
@@ -48,13 +59,13 @@
                 <div class="p-8">
                     <x-dashboard.empty-state
                         icon="cube"
-                        :message="request()->hasAny(['search', 'type', 'status'])
+                        :message="request()->hasAny(['search', 'type', 'campaign_id', 'status'])
                             ? 'No contributions match the current filters.'
                             : 'No contributions have been logged yet.'"
                     />
                     <p class="mt-1 text-center text-sm text-slate-400">
 
-                        @if (request()->hasAny(['search', 'type', 'status']))
+                        @if (request()->hasAny(['search', 'type', 'campaign_id', 'status']))
 
                             Try adjusting your search or filters.
 
@@ -67,7 +78,7 @@
                     </p>
 
                     <div class="mt-4 flex flex-wrap items-center justify-center gap-3">
-                        @if (request()->hasAny(['search', 'type', 'status']))
+                        @if (request()->hasAny(['search', 'type', 'campaign_id', 'status']))
                             <a
                                 href="{{ route('donations.index') }}"
                                 class="text-sm font-semibold text-blue-700 hover:text-blue-800"
@@ -86,7 +97,7 @@
                                     name="plus"
                                     class="-ml-0.5 mr-1.5 h-4 w-4"
                                 />
-                                Log New Contribution
+                                Add Donation
                             </x-button>
                         @endcan
 
@@ -105,9 +116,12 @@
     @can('create', \App\Models\Contribution::class)
         <x-donations.log-modal
             :donors="$donors"
-            :categories="$categories"
-            :subcategories-by-category="$subcategoriesByCategory"
+            :campaigns="$campaigns"
         />
+    @endcan
+
+    @can('viewAny', \App\Models\Donor::class)
+        <x-donations.donor-directory-modal :donors="$donorDirectory" />
     @endcan
 
 @endsection

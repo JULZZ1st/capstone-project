@@ -7,17 +7,17 @@
     <title>@yield('title', config('dashboard.barangay_name'))</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="bg-slate-50 text-slate-900 antialiased">
+<body class="overflow-x-hidden bg-slate-50 text-slate-900 antialiased">
     <div class="min-h-screen lg:flex">
         <x-app.sidebar />
 
-        <div class="min-w-0 flex-1">
+        <div class="min-w-0 flex-1 overflow-x-hidden">
             <x-app.header
                 :title="$title ?? trim($__env->yieldContent('page-title', 'Dashboard'))"
                 :subtitle="$subtitle ?? trim($__env->yieldContent('page-subtitle', ''))"
             />
 
-            <main class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+            <main class="min-w-0 w-full px-4 py-6 sm:px-5 lg:px-6">
 
                 @yield('content')
             </main>

@@ -24,6 +24,12 @@ class RejectDisbursement
             }
 
             $disbursement->forceFill(['status' => 'rejected', 'rejected_at' => now(), 'rejection_reason' => $reason])->save();
+            $disbursement->latestVoucher?->forceFill([
+                'review_status' => 'rejected',
+                'reviewed_by' => $actor->id,
+                'reviewed_at' => now(),
+                'review_reason' => $reason,
+            ])->save();
             SecurityActivityEvent::query()->create([
                 'user_id' => $disbursement->requested_by,
                 'actor_id' => $actor->id,
