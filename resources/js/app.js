@@ -1,5 +1,10 @@
 import './bootstrap';
-import './charts';
+
+if (document.querySelector('[data-chart]')) {
+    import('./charts').then(({ initCharts }) => initCharts()).catch((error) => {
+        console.error('Unable to load charts.', error);
+    });
+}
 
 const donorSearchTimers = new WeakMap();
 const donorSearchRequests = new WeakMap();
@@ -50,7 +55,7 @@ const refreshCustomSelect = (select) => {
 
     if (! wrapper || ! menu || ! optionsContainer || ! value || ! trigger || ! empty) return;
 
-    const selected = Array.from(select.options).find((option) => option.value === select.value);
+    const selected = select.selectedOptions[0];
     const placeholder = wrapper.dataset.customSelectPlaceholder || 'Select an option';
     value.textContent = selected?.value ? selected.textContent.trim() : placeholder;
     trigger.disabled = select.disabled;
@@ -63,6 +68,8 @@ const refreshCustomSelect = (select) => {
     menu.setAttribute('aria-labelledby', trigger.id);
 
     optionsContainer.replaceChildren();
+    if (! wrapper.hasAttribute('data-custom-select-open')) return;
+
     Array.from(select.options).forEach((option) => {
         if (option.disabled) return;
 
@@ -99,6 +106,7 @@ const openCustomSelect = (wrapper) => {
     menu.classList.remove('hidden');
     trigger.setAttribute('aria-expanded', 'true');
     trigger.querySelector('[data-custom-select-chevron]')?.classList.add('rotate-180');
+    refreshCustomSelect(wrapper.querySelector('[data-custom-select-native]'));
 
     if (search) {
         search.value = '';
@@ -175,7 +183,6 @@ document.addEventListener('click', (event) => {
         if (select) {
             select.value = option.dataset.customSelectOption;
             select.dispatchEvent(new Event('change', { bubbles: true }));
-            refreshCustomSelect(select);
         }
         closeCustomSelect(wrapper, true);
         return;

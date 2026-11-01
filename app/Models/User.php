@@ -113,11 +113,8 @@ class User extends Authenticatable
 
     public function roleName(): ?string
     {
-        if ($this->relationLoaded('role')) {
-            return $this->getRelation('role')?->name;
-        }
-
-        $name = $this->role()->value('name');
+        $this->loadMissing('role');
+        $name = $this->getRelation('role')?->name;
 
         if ($name !== null) {
             return $name;
@@ -126,16 +123,13 @@ class User extends Authenticatable
         // Fallback for legacy schema where `users` may still have a string `role` column
         // (kept during migrations). This preserves access checks for existing seeded
         // or migrated users until `role_id` is populated.
-        return $this->getAttribute('role');
+        return $this->getAttributes()['role'] ?? null;
     }
 
     public function roleDisplayName(): string
     {
-        if ($this->relationLoaded('role')) {
-            return $this->getRelation('role')?->display_name ?? ucfirst((string) $this->roleName());
-        }
-
-        $display = $this->role()->value('display_name');
+        $this->loadMissing('role');
+        $display = $this->getRelation('role')?->display_name;
 
         if ($display !== null) {
             return $display;

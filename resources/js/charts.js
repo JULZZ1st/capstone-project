@@ -73,5 +73,3 @@ export function initCharts(root = document) {
         canvas.dataset.chartRendered = 'true';
     });
 }
-
-document.addEventListener('DOMContentLoaded', () => initCharts());
