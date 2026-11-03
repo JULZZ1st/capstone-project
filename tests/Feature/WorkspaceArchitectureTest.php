@@ -24,23 +24,21 @@ class WorkspaceArchitectureTest extends TestCase
         })->middleware(['web', 'auth', 'workspace']);
     }
 
-    public function test_gina_is_seeded_as_platform_only_super_admin(): void
+    public function test_gina_is_seeded_as_an_admin_with_an_active_legacy_workspace(): void
     {
         $this->seed();
 
         $gina = User::query()->where('email', 'gina@gmail.com')->firstOrFail();
 
-        $this->assertTrue($gina->isSuperAdmin());
-        $this->assertNull($gina->role_id);
-        $this->assertDatabaseMissing('workspace_memberships', ['user_id' => $gina->id]);
+        $this->assertSame(Role::ADMIN, $gina->roleName());
         $this->assertDatabaseHas('workspaces', ['slug' => 'legacy']);
+        $this->assertDatabaseHas('workspace_memberships', [
+            'user_id' => $gina->id,
+            'status' => 'active',
+        ]);
 
         $this->actingAs($gina)
             ->get(route('dashboard'))
-            ->assertForbidden();
-
-        $this->actingAs($gina)
-            ->get(route('workspaces.index'))
             ->assertOk();
     }
 
@@ -77,18 +75,6 @@ class WorkspaceArchitectureTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_super_admin_cannot_activate_a_workspace_context(): void
-    {
-        $superAdmin = User::factory()->create(['is_super_admin' => true]);
-        $workspace = Workspace::query()->create(['name' => 'Managed Workspace', 'slug' => 'managed-workspace']);
-
-        $this->actingAs($superAdmin)
-            ->withSession(['active_workspace_id' => $workspace->id])
-            ->get('/__workspace-context-test')
-            ->assertOk()
-            ->assertJson(['workspace_id' => null]);
-    }
-
     public function test_staff_created_with_an_active_workspace_receives_that_membership(): void
     {
         $adminRole = Role::query()->where('name', 'admin')->firstOrCreate([
@@ -97,12 +83,9 @@ class WorkspaceArchitectureTest extends TestCase
             'display_name' => 'Administrator',
             'description' => 'Administrator',
         ]);
-        $secretaryRole = Role::query()->firstOrCreate([
-            'name' => 'secretary',
-        ], [
-            'display_name' => 'Secretary',
-            'description' => 'Secretary',
-        ]);
+        $staffRole = Role::query()->firstOrCreate([
+            'name' => 'staff',
+        ], config('auth_defaults.roles.staff'));
         $admin = User::factory()->create(['role_id' => $adminRole->id]);
         $workspace = Workspace::query()->create(['name' => 'Staff Workspace', 'slug' => 'staff-workspace']);
         $workspace->memberships()->create(['user_id' => $admin->id, 'role_id' => $adminRole->id]);
@@ -113,17 +96,17 @@ class WorkspaceArchitectureTest extends TestCase
             ->assertOk();
 
         $staff = app(CreateStaffAccount::class)->handle([
-            'role' => 'secretary',
+            'role' => 'staff',
             'first_name' => 'Workspace',
-            'last_name' => 'Secretary',
-            'email' => 'workspace.secretary@example.test',
+            'last_name' => 'Staff',
+            'email' => 'workspace.staff@example.test',
             'password' => 'A secure password 123!',
         ], $admin);
 
         $this->assertDatabaseHas('workspace_memberships', [
             'workspace_id' => $workspace->id,
             'user_id' => $staff->id,
-            'role_id' => $secretaryRole->id,
+            'role_id' => $staffRole->id,
             'created_by' => $admin->id,
             'status' => 'active',
         ]);

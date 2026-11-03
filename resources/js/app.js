@@ -3,6 +3,28 @@ import './charts';
 
 const donorSearchTimers = new WeakMap();
 const donorSearchRequests = new WeakMap();
+const donationFilterTimers = new WeakMap();
+
+const submitDonationFilters = (form) => {
+    if (form) form.requestSubmit();
+};
+
+document.addEventListener('input', (event) => {
+    const input = event.target.closest('[data-donation-live-search]');
+    const form = input?.closest('[data-donation-filter-form]');
+
+    if (! form) return;
+
+    window.clearTimeout(donationFilterTimers.get(form));
+    donationFilterTimers.set(form, window.setTimeout(() => submitDonationFilters(form), 300));
+});
+
+document.addEventListener('change', (event) => {
+    const filter = event.target.closest('[data-donation-live-filter]');
+    const form = filter?.closest('[data-donation-filter-form]');
+
+    if (form) submitDonationFilters(form);
+});
 
 const refreshDonorResults = async (form, targetUrl) => {
     const results = document.querySelector('[data-donor-results]');
@@ -311,19 +333,33 @@ const updateReferenceRequirement = (form) => {
     const reference = form.querySelector('[data-reference-number]');
     const referenceField = form.querySelector('[data-reference-field]');
     const referenceLabel = form.querySelector('[data-reference-label]');
+    const methodName = form.querySelector('[data-payment-method-name]');
+    const methodNameField = form.querySelector('[data-payment-method-name-field]');
+
+    if (methodName && methodNameField) {
+        const isOther = method === 'other';
+
+        methodNameField.hidden = ! isOther;
+        methodName.disabled = ! isOther;
+        methodName.required = isOther;
+
+        if (! isOther) {
+            methodName.value = '';
+        }
+    }
 
     if (! reference || ! referenceField) {
         return;
     }
 
-    const isElectronic = method !== '' && method !== 'cash';
+    const isElectronic = method !== '' && method !== 'cash' && method !== 'other';
     const methodLabel = form.querySelector('[data-payment-method] option:checked')?.textContent?.trim();
 
     referenceField.hidden = ! isElectronic;
     reference.disabled = ! isElectronic;
     reference.required = isElectronic;
-    referenceLabel.textContent = methodLabel && method !== 'other'
-        ? `${methodLabel} ${method === 'check' || method === 'money_order' ? 'No.' : 'Reference No.'}`
+    referenceLabel.textContent = methodLabel
+        ? `${methodLabel} ${method === 'check' ? 'No.' : 'Reference No.'}`
         : 'External Payment Reference No.';
     reference.placeholder = isElectronic
         ? 'Enter the reference from the payment provider'
@@ -493,6 +529,21 @@ document.querySelectorAll('[data-contribution-form]').forEach((form) => {
     updateContributionSections(form);
     updateReferenceRequirement(form);
 });
+
+document.addEventListener('submit', (event) => {
+    const form = event.target.closest('[data-contribution-form]');
+    const submit = form?.querySelector('[data-contribution-submit]');
+
+    if (! form || ! submit) {
+        return;
+    }
+
+    submit.disabled = true;
+    submit.setAttribute('aria-busy', 'true');
+    const label = submit.querySelector('[data-contribution-submit-label]');
+    if (label) label.textContent = 'Saving…';
+});
+
 document.querySelectorAll('[data-inventory-item-form]').forEach((form) => updateInventorySubcategorySelect(form));
 initializeSubcategorySelects();
 

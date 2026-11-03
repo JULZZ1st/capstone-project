@@ -53,7 +53,7 @@ class InventoryCategoryManagementTest extends TestCase
     public function test_inventory_category_policy_restricts_mutations_to_admin(): void
     {
         $admin = $this->userWithRole('admin');
-        $secretary = $this->userWithRole('secretary');
+        $secretary = $this->userWithRole('staff');
         $category = InventoryCategory::query()->first();
 
         $this->assertTrue($admin->can('create', InventoryCategory::class));
@@ -68,7 +68,7 @@ class InventoryCategoryManagementTest extends TestCase
     public function test_inventory_unit_policy_restricts_mutations_to_admin(): void
     {
         $admin = $this->userWithRole('admin');
-        $secretary = $this->userWithRole('secretary');
+        $secretary = $this->userWithRole('staff');
 
         $this->assertTrue($admin->can('create', InventoryUnit::class));
         $this->assertFalse($secretary->can('create', InventoryUnit::class));
@@ -118,7 +118,7 @@ class InventoryCategoryManagementTest extends TestCase
 
     public function test_non_admin_cannot_manage_categories(): void
     {
-        $secretary = $this->userWithRole('secretary');
+        $secretary = $this->userWithRole('staff');
 
         $this->actingAs($secretary)->post(route('inventory.categories.store'), ['key' => 'blocked', 'label' => 'Blocked'])->assertForbidden();
     }
@@ -183,14 +183,14 @@ class InventoryCategoryManagementTest extends TestCase
 
     public function test_non_admin_cannot_view_categories_index(): void
     {
-        $secretary = $this->userWithRole('secretary');
+        $secretary = $this->userWithRole('staff');
 
         $this->actingAs($secretary)->get(route('inventory.categories.index'))->assertForbidden();
     }
 
     public function test_manage_categories_button_hidden_from_non_admin_on_inventory_index(): void
     {
-        $secretary = $this->userWithRole('secretary');
+        $secretary = $this->userWithRole('staff');
 
         $response = $this->actingAs($secretary)->get(route('inventory.index'));
 
@@ -355,7 +355,7 @@ class InventoryCategoryManagementTest extends TestCase
 
     public function test_non_admin_cannot_create_custom_inventory_classifications(): void
     {
-        $response = $this->actingAs($this->userWithRole('secretary'))->post(route('inventory.store'), [
+        $response = $this->actingAs($this->userWithRole('staff'))->post(route('inventory.store'), [
             'name' => 'Unauthorized Custom Item',
             'category' => '__other__',
             'custom_category' => 'Restricted Category',

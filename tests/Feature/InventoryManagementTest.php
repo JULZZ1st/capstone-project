@@ -203,22 +203,27 @@ class InventoryManagementTest extends TestCase
         $this->get(route('inventory.export.pdf'))->assertRedirect(route('login'));
     }
 
-    public function test_policy_blocks_treasurer_stock_adjustments(): void
+    public function test_staff_can_make_stock_adjustments_within_their_workspace(): void
     {
-        $treasurerRole = Role::query()->firstOrCreate(
-            ['name' => 'treasurer'],
-            config('auth_defaults.roles.treasurer')
+        $staffRole = Role::query()->firstOrCreate(
+            ['name' => 'staff'],
+            config('auth_defaults.roles.staff')
         );
-        $treasurer = User::factory()->create(['role_id' => $treasurerRole->id]);
+        $staff = User::factory()->create(['role_id' => $staffRole->id]);
         $item = $this->inventoryItem();
 
-        $response = $this->actingAs($treasurer)->post(route('inventory.adjustments.store', $item), [
+        $response = $this->actingAs($staff)->post(route('inventory.adjustments.store', $item), [
             'movement_type' => 'stock_in',
             'quantity' => 1,
             'reason' => 'correction',
         ]);
 
-        $response->assertForbidden();
+        $response->assertRedirect();
+        $this->assertDatabaseHas('inventory_stock_movements', [
+            'inventory_item_id' => $item->id,
+            'movement_type' => 'stock_in',
+            'quantity' => 1,
+        ]);
     }
 
     private function inventoryItem(array $overrides = []): InventoryItem

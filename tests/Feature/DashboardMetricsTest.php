@@ -9,6 +9,7 @@ use App\Models\Contribution;
 use App\Models\Donation;
 use App\Models\Donor;
 use App\Models\User;
+use App\Support\Dashboard\DashboardMetrics;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -96,11 +97,13 @@ class DashboardMetricsTest extends TestCase
             'received_at' => now(),
         ]);
 
-        $response = $this->actingAs(User::factory()->create())->get('/');
+        // Funding distribution is no longer rendered on the dashboard (intentional UI redesign),
+        // but the underlying calculation is still used elsewhere (e.g. reports), so verify it directly.
+        $dashboard = app(DashboardMetrics::class)->build();
 
-        $response->assertOk();
-        $response->assertSee('Typhoon Relief Drive');
-        $response->assertSee('2,000.00');
+        $this->assertCount(1, $dashboard['funding_distribution']);
+        $this->assertSame('Typhoon Relief Drive', $dashboard['funding_distribution']->first()->label);
+        $this->assertEquals(2000, $dashboard['funding_distribution']->first()->total);
     }
 
     public function test_recent_donations_stream_shows_cash_and_in_kind_contributions(): void
@@ -137,7 +140,7 @@ class DashboardMetricsTest extends TestCase
         $response->assertSee('1 item(s)');
     }
 
-    public function test_treasurer_action_items_reflect_bank_ledger_reconciliation_state(): void
+    public function test_staff_finance_action_items_reflect_bank_ledger_reconciliation_state(): void
     {
         $donor = $this->donor();
         $contribution = Contribution::query()->create([
@@ -173,15 +176,16 @@ class DashboardMetricsTest extends TestCase
             'status' => 'unmatched',
         ]);
 
-        $response = $this->actingAs(User::factory()->create())->get('/');
+        // Staff finance action items are no longer rendered on the dashboard (intentional UI
+        // redesign), but the underlying calculation still drives other workflows, so verify it directly.
+        $actionItems = app(DashboardMetrics::class)->build()['staff_finance_action_items'];
 
-        $response->assertOk();
-        $response->assertSee('Bank ledger entries awaiting review');
-        $response->assertSeeInOrder(['Bank ledger entries awaiting review', '1']);
-        $response->assertSee('Latest reconciliation');
+        $this->assertSame(1, $actionItems['unreconciled_ledger_count']);
+        $this->assertNotNull($actionItems['latest_reconciliation']);
+        $this->assertEquals(5000, $actionItems['latest_reconciliation']->amount);
     }
 
-    public function test_treasurer_action_items_show_outgoing_reconciliation_work(): void
+    public function test_staff_finance_action_items_show_outgoing_reconciliation_work(): void
     {
         BankLedgerEntry::query()->create([
             'statement_id' => 'stmt-dash-withdrawal-1',
@@ -205,16 +209,13 @@ class DashboardMetricsTest extends TestCase
             'discrepancy_reason' => 'Pending liquidation.',
         ]);
 
-        $response = $this->actingAs(User::factory()->create())->get('/');
+        // Staff finance action items are no longer rendered on the dashboard (intentional UI
+        // redesign), but the underlying calculation still drives other workflows, so verify it directly.
+        $actionItems = app(DashboardMetrics::class)->build()['staff_finance_action_items'];
 
-        $response->assertOk()
-            ->assertSee('Bank Withdrawals Awaiting Reconciliation')
-            ->assertSee('Discrepancies Requiring Review')
-            ->assertSee('Pending Liquidation / Unresolved Difference')
-            ->assertSeeInOrder(['Bank Withdrawals Awaiting Reconciliation', '2'])
-            ->assertSeeInOrder(['Discrepancies Requiring Review', '1'])
-            ->assertSee('PHP 500.00')
-            ->assertSee(route('bank-reconciliation.index', ['tab' => 'outgoing']));
+        $this->assertSame(2, $actionItems['bank_withdrawals_awaiting_reconciliation']);
+        $this->assertSame(1, $actionItems['discrepancies_requiring_review']);
+        $this->assertEquals(500, $actionItems['unresolved_difference_amount']);
     }
 
     public function test_dashboard_totals_ignore_legacy_cash_transactions_and_donations_tables(): void

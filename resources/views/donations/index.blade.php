@@ -13,44 +13,7 @@
     @endif
 
     <div class="space-y-6">
-        <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-
-            <x-dashboard.summary-card
-                label="Total Contributions"
-                :value="number_format((int) $summary->total_contributions)"
-                description="All time."
-                icon="gift"
-                tone="neutral"
-            />
-
-            <x-dashboard.summary-card
-                label="Cash Contributions"
-                :value="number_format((int) $summary->cash_contributions)"
-                description="All time."
-                icon="wallet"
-                tone="positive"
-            />
-
-            <x-dashboard.summary-card
-                label="In-Kind Contributions"
-                :value="number_format((int) $summary->in_kind_contributions)"
-                description="All time."
-                icon="cube"
-                tone="purple"
-            />
-
-            <x-dashboard.summary-card
-                label="Pending Verification"
-                :value="number_format((int) $summary->pending_verification)"
-                description="Awaiting review."
-                icon="clock"
-                tone="warning"
-            />
-
-        </section>
-
-
-        <<div class="flex flex-col gap-4 lg:flex-row lg:items-center">
+        <div class="flex flex-col gap-3 lg:flex-row lg:items-center">
             <div class="min-w-0 flex-1">
                 <x-donations.filter-bar
                     :filters="$filters"
@@ -62,7 +25,7 @@
                 <div class="shrink-0">
                     <x-button
                         type="button"
-                        class="w-full gap- shadow-sm lg:w-auto"
+                        class="h-10 w-full gap-2 px-4 shadow-sm sm:w-auto"
                         data-dialog-open="log-contribution-dialog"
                     >
                         <x-icon name="plus" class="h-4 w-4" />

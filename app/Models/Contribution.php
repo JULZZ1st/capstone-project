@@ -23,6 +23,7 @@ class Contribution extends Model
         'status',
         'amount',
         'payment_method',
+        'payment_method_name',
         'reference_number',
         'notes',
         'received_at',
@@ -132,6 +133,21 @@ class Contribution extends Model
     public function isCash(): bool
     {
         return $this->type === 'cash';
+    }
+
+    public function paymentMethodLabel(): ?string
+    {
+        if ($this->payment_method === null) {
+            return null;
+        }
+
+        if ($this->payment_method === 'other') {
+            return $this->payment_method_name ?: 'Other';
+        }
+
+        return config("donations.payment_methods.{$this->payment_method}")
+            ?? config("donations.legacy_payment_methods.{$this->payment_method}")
+            ?? ucfirst($this->payment_method);
     }
 
     public function isVoided(): bool

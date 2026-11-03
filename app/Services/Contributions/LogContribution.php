@@ -23,7 +23,10 @@ class LogContribution
                 'status' => config("donations.default_status.{$type}"),
                 'amount' => $type === 'cash' ? $data['amount'] : null,
                 'payment_method' => $type === 'cash' ? $data['payment_method'] : null,
-                'reference_number' => $type === 'cash' && ($data['payment_method'] ?? null) !== 'cash'
+                'payment_method_name' => $type === 'cash' && ($data['payment_method'] ?? null) === 'other'
+                    ? ($data['payment_method_name'] ?? null)
+                    : null,
+                'reference_number' => $type === 'cash' && in_array($data['payment_method'] ?? null, config('donations.electronic_payment_methods'), true)
                     ? ($data['reference_number'] ?? null)
                     : null,
                 'notes' => $data['notes'] ?? null,

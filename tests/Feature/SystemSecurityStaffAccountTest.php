@@ -22,7 +22,7 @@ class SystemSecurityStaffAccountTest extends TestCase
             'first_name' => 'New',
             'last_name' => 'Staff',
             'email' => 'new.staff@example.test',
-            'role' => 'secretary',
+            'role' => 'staff',
             'password' => 'LongPassword123!',
             'password_confirmation' => 'LongPassword123!',
         ]);
@@ -32,7 +32,7 @@ class SystemSecurityStaffAccountTest extends TestCase
         $this->assertDatabaseHas('security_activity_events', ['action' => 'staff_account_created']);
     }
 
-    public function test_admin_can_create_treasurer_account(): void
+    public function test_admin_can_create_a_staff_account_for_treasurer_duties(): void
     {
         $admin = $this->userWithRole('admin');
 
@@ -42,7 +42,7 @@ class SystemSecurityStaffAccountTest extends TestCase
             'first_name' => 'New',
             'last_name' => 'Treasurer',
             'email' => 'new.treasurer@example.test',
-            'role' => 'treasurer',
+            'role' => 'staff',
             'password' => 'LongPassword123!',
             'password_confirmation' => 'LongPassword123!',
         ]);
@@ -50,7 +50,7 @@ class SystemSecurityStaffAccountTest extends TestCase
         $response->assertRedirect(route('system-security.index'));
         $this->assertDatabaseHas('users', [
             'email' => 'new.treasurer@example.test',
-            'role_id' => Role::query()->where('name', 'treasurer')->value('id'),
+            'role_id' => Role::query()->where('name', 'staff')->value('id'),
         ]);
         $this->assertDatabaseHas('security_activity_events', ['action' => 'staff_account_created']);
     }
@@ -99,7 +99,7 @@ class SystemSecurityStaffAccountTest extends TestCase
         $this->actingAs($admin)
             ->get(route('system-security.index'))
             ->assertOk()
-            ->assertSee('id="create-staff-account-modal"', false)
+            ->assertSee('id="create-staff-account-details"', false)
             ->assertSee('open', false)
             ->assertSee('The password field must be at least 12 characters.', false)
             ->assertSee('value="New"', false);
@@ -111,7 +111,7 @@ class SystemSecurityStaffAccountTest extends TestCase
         $temporaryPassword = 'TemporaryPassword123!';
         $newPassword = 'PermanentPassword456!';
 
-        foreach (['secretary', 'treasurer'] as $role) {
+        foreach (['staff'] as $role) {
             $email = "new.{$role}@example.test";
 
             $response = $this->actingAs($admin)->post(route('system-security.users.store'), [
@@ -162,41 +162,36 @@ class SystemSecurityStaffAccountTest extends TestCase
         }
     }
 
-    public function test_secretary_and_treasurer_cannot_access_user_management(): void
+    public function test_staff_cannot_access_user_management(): void
     {
-        $secretary = $this->userWithRole('secretary');
-        $treasurer = $this->userWithRole('treasurer');
+        $staff = $this->userWithRole('staff');
 
-        $this->actingAs($secretary)
-            ->get(route('system-security.index'))
-            ->assertForbidden();
-
-        $this->actingAs($treasurer)
+        $this->actingAs($staff)
             ->get(route('system-security.index'))
             ->assertForbidden();
     }
 
     public function test_non_admin_cannot_create_staff_account(): void
     {
-        $secretary = $this->userWithRole('secretary');
+        $staff = $this->userWithRole('staff');
 
-        $this->actingAs($secretary)
+        $this->actingAs($staff)
             ->post(route('system-security.users.store'), [
                 'first_name' => 'New',
                 'last_name' => 'Staff',
                 'email' => 'new.staff2@example.test',
-                'role' => 'secretary',
+                'role' => 'staff',
                 'password' => 'LongPassword123!',
                 'password_confirmation' => 'LongPassword123!',
             ])
             ->assertForbidden();
     }
 
-    public function test_treasurer_cannot_create_or_assign_an_admin_account(): void
+    public function test_staff_cannot_create_or_assign_an_admin_account(): void
     {
-        $treasurer = $this->userWithRole('treasurer');
+        $staff = $this->userWithRole('staff');
 
-        $this->actingAs($treasurer)
+        $this->actingAs($staff)
             ->post(route('system-security.users.store'), [
                 'first_name' => 'Unauthorized',
                 'last_name' => 'Administrator',
@@ -213,13 +208,13 @@ class SystemSecurityStaffAccountTest extends TestCase
     public function test_admin_can_edit_staff_account(): void
     {
         $admin = $this->userWithRole('admin');
-        $user = User::factory()->create(['role_id' => Role::query()->firstOrCreate(['name'=>'secretary'])->id]);
+        $user = User::factory()->create(['role_id' => Role::query()->firstOrCreate(['name'=>'staff'], config('auth_defaults.roles.staff'))->id]);
 
         $response = $this->actingAs($admin)->patch(route('system-security.users.update', $user), [
             'first_name' => 'Edited',
             'last_name' => 'Name',
             'email' => 'edited@example.test',
-            'role' => 'treasurer',
+            'role' => 'staff',
         ]);
 
         $response->assertRedirect(route('system-security.index'));
@@ -239,7 +234,7 @@ class SystemSecurityStaffAccountTest extends TestCase
                 'first_name' => 'Edited',
                 'last_name' => 'Admin',
                 'email' => 'edited-admin@example.test',
-                'role' => 'secretary',
+                'role' => 'staff',
             ])
             ->assertForbidden();
 
@@ -256,15 +251,15 @@ class SystemSecurityStaffAccountTest extends TestCase
 
     public function test_non_admin_cannot_edit_staff_account(): void
     {
-        $secretary = $this->userWithRole('secretary');
-        $user = User::factory()->create(['role_id' => Role::query()->firstOrCreate(['name'=>'secretary'])->id]);
+        $staff = $this->userWithRole('staff');
+        $user = User::factory()->create(['role_id' => Role::query()->firstOrCreate(['name'=>'staff'], config('auth_defaults.roles.staff'))->id]);
 
-        $this->actingAs($secretary)
+        $this->actingAs($staff)
             ->patch(route('system-security.users.update', $user), [
                 'first_name' => 'Edited',
                 'last_name' => 'Name',
                 'email' => 'edited2@example.test',
-                'role' => 'treasurer',
+                'role' => 'staff',
             ])
             ->assertForbidden();
     }
@@ -272,7 +267,7 @@ class SystemSecurityStaffAccountTest extends TestCase
     public function test_workspace_admin_can_deactivate_staff_but_not_an_admin_account(): void
     {
         $admin = $this->userWithRole('admin');
-        $other = $this->userWithRole('secretary');
+        $other = $this->userWithRole('staff');
 
         // Deactivate non-last admin should work
         $response = $this->actingAs($admin)->patch(route('system-security.users.deactivate', $other));
@@ -290,7 +285,7 @@ class SystemSecurityStaffAccountTest extends TestCase
     {
         $admin = $this->userWithRole('admin');
         $user = User::factory()->create([
-            'role_id' => Role::query()->firstOrCreate(['name' => 'secretary'])->id,
+            'role_id' => Role::query()->firstOrCreate(['name' => 'staff'], config('auth_defaults.roles.staff'))->id,
             'status' => 'deactivated',
         ]);
 
@@ -305,7 +300,7 @@ class SystemSecurityStaffAccountTest extends TestCase
             'first_name' => $user->first_name,
             'last_name' => $user->last_name,
             'email' => $user->email,
-            'role' => 'secretary',
+            'role' => 'staff',
             'status' => config('auth_defaults.user_status'),
         ]);
 
@@ -316,10 +311,10 @@ class SystemSecurityStaffAccountTest extends TestCase
 
     public function test_non_admin_cannot_deactivate_staff_account(): void
     {
-        $secretary = $this->userWithRole('secretary');
-        $user = User::factory()->create(['role_id' => Role::query()->firstOrCreate(['name'=>'secretary'])->id]);
+        $staff = $this->userWithRole('staff');
+        $user = User::factory()->create(['role_id' => Role::query()->firstOrCreate(['name'=>'staff'], config('auth_defaults.roles.staff'))->id]);
 
-        $this->actingAs($secretary)
+        $this->actingAs($staff)
             ->patch(route('system-security.users.deactivate', $user))
             ->assertForbidden();
     }
