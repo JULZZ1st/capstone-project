@@ -81,6 +81,11 @@ class BankLedgerEntry extends Model
         return $this->hasOne(ReconciliationDiscrepancy::class, 'cleared_bank_ledger_entry_id');
     }
 
+    public function discrepancies(): HasMany
+    {
+        return $this->hasMany(ReconciliationDiscrepancy::class);
+    }
+
     public function scopeNeedsReview($query)
     {
         return $query->where('status', '!=', 'reconciled');

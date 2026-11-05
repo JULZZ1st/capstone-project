@@ -31,6 +31,7 @@ class CashDisbursement extends Model
         'treasurer_certification_notes',
         'requested_date',
         'notes',
+        'supporting_reference',
         'requested_by',
         'approved_by',
         'status',

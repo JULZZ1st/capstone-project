@@ -34,6 +34,121 @@ class BankReconciliationTest extends TestCase
         $response->assertSee('Bank Reconciliation Workspace');
         $response->assertSee($entry->description);
         $response->assertSee($contribution->donor->full_name);
+        $response->assertSee('Discrepancy Status');
+        $response->assertSee('No Report');
+    }
+
+    public function test_staff_can_create_a_month_based_period_and_is_redirected_to_it(): void
+    {
+        $staff = $this->userWithRole('staff');
+
+        $response = $this->actingAs($staff)->post(route('bank-reconciliation.periods.store'), [
+            'period_month' => 11,
+            'period_year' => 2026,
+            'bank_account' => 'LANDBANK Barangay Operating Account',
+            'opening_balance' => 25000,
+            'opening_balance_explanation' => 'Opening balance taken from the initial LANDBANK statement.',
+        ]);
+
+        $period = \App\Models\BankReconciliation::query()->latest('id')->firstOrFail();
+
+        $response->assertRedirect(route('bank-reconciliation.index', ['period_id' => $period->id]));
+        $this->assertSame('2026-11-01', $period->period_start->toDateString());
+        $this->assertSame('2026-11-30', $period->period_end->toDateString());
+        $this->assertSame('LANDBANK Barangay Operating Account', $period->bank_account);
+        $this->assertSame('draft', $period->status);
+    }
+
+    public function test_periods_for_different_bank_accounts_do_not_overlap_each_other(): void
+    {
+        $service = app(\App\Services\BankReconciliation\ReconciliationPeriodService::class);
+
+        $service->create([
+            'period_start' => '2026-12-01', 'period_end' => '2026-12-31',
+            'opening_balance' => 0, 'bank_account' => 'LANDBANK Barangay Operating Account',
+        ]);
+
+        $second = $service->create([
+            'period_start' => '2026-12-01', 'period_end' => '2026-12-31',
+            'opening_balance' => 0, 'bank_account' => 'LANDBANK Special Account',
+        ]);
+
+        $this->assertSame('LANDBANK Special Account', $second->bank_account);
+    }
+
+    public function test_statement_import_can_target_the_selected_period(): void
+    {
+        $staff = $this->userWithRole('staff');
+        $period = app(\App\Services\BankReconciliation\ReconciliationPeriodService::class)->create([
+            'period_start' => '2026-11-01', 'period_end' => '2026-11-30',
+            'opening_balance' => 1000, 'bank_account' => 'LANDBANK Barangay Operating Account', 'prepared_by' => $staff->id,
+        ]);
+
+        $response = $this->actingAs($staff)->post(route('bank-reconciliation.import'), [
+            'period_id' => $period->id,
+            'bank_account' => 'LANDBANK Barangay Operating Account',
+            'statement' => UploadedFile::fake()->createWithContent(
+                'statement.csv',
+                "statement_id,description,reference_number,amount,transaction_date,payment_method\nperiod-target-1,Period target,PERIOD-1,100,2026-11-05,bank_transfer\n",
+            ),
+        ]);
+
+        $response->assertRedirect(route('bank-reconciliation.index', ['period_id' => $period->id]));
+        $this->assertDatabaseHas('bank_ledger_entries', ['statement_id' => 'period-target-1']);
+    }
+
+    public function test_manual_starting_balance_requires_an_explanation_when_no_confirmed_previous_period_exists(): void
+    {
+        $response = $this->actingAs($this->userWithRole('staff'))->post(route('bank-reconciliation.periods.store'), [
+            'period_month' => 11,
+            'period_year' => 2026,
+            'bank_account' => 'LANDBANK Barangay Operating Account',
+            'opening_balance' => 25000,
+        ]);
+
+        $response->assertSessionHasErrors('opening_balance_explanation');
+        $this->assertDatabaseMissing('bank_reconciliations', ['period_start' => '2026-11-01']);
+    }
+
+    public function test_confirmed_previous_period_allows_the_carried_forward_starting_balance(): void
+    {
+        $staff = $this->userWithRole('staff');
+        \App\Models\BankReconciliation::query()->create([
+            'date' => '2026-10-31', 'period_start' => '2026-10-01', 'period_end' => '2026-10-31',
+            'opening_balance' => 4000, 'bank_ending_balance' => 5250,
+            'bank_account' => 'LANDBANK Barangay Operating Account', 'status' => 'locked',
+        ]);
+
+        $response = $this->actingAs($staff)->post(route('bank-reconciliation.periods.store'), [
+            'period_month' => 11,
+            'period_year' => 2026,
+            'bank_account' => 'LANDBANK Barangay Operating Account',
+            'opening_balance' => 5250,
+        ]);
+
+        $response->assertRedirect();
+        $period = \App\Models\BankReconciliation::query()->whereDate('period_start', '2026-11-01')->latest('id')->firstOrFail();
+        $this->assertSame(5250.0, (float) $period->opening_balance);
+    }
+
+    public function test_previous_draft_period_blocks_starting_a_new_period(): void
+    {
+        $staff = $this->userWithRole('staff');
+        \App\Models\BankReconciliation::query()->create([
+            'date' => '2026-10-31', 'period_start' => '2026-10-01', 'period_end' => '2026-10-31',
+            'opening_balance' => 4000, 'bank_account' => 'LANDBANK Barangay Operating Account', 'status' => 'draft',
+            'prepared_by' => $staff->id,
+        ]);
+
+        $response = $this->actingAs($staff)->post(route('bank-reconciliation.periods.store'), [
+            'period_month' => 11,
+            'period_year' => 2026,
+            'bank_account' => 'LANDBANK Barangay Operating Account',
+            'opening_balance' => 4000,
+            'opening_balance_explanation' => 'Not used because the previous draft must be completed first.',
+        ]);
+
+        $response->assertSessionHasErrors('period_start');
     }
 
     public function test_treasurer_can_import_csv_bank_transactions(): void
@@ -694,6 +809,106 @@ XML);
 
         $response->assertRedirect(route('bank-reconciliation.index'));
         $this->assertDatabaseHas('bank_ledger_entries', ['id' => $entry->id, 'status' => 'reconciled']);
+    }
+
+    public function test_admin_can_review_staff_discrepancy_separately_from_period_approval(): void
+    {
+        $staff = $this->userWithRole('staff');
+        $admin = $this->userWithRole('admin');
+        $period = app(\App\Services\BankReconciliation\ReconciliationPeriodService::class)->create([
+            'period_start' => '2026-09-01',
+            'period_end' => '2026-09-30',
+            'opening_balance' => 10000,
+            'prepared_by' => $staff->id,
+        ]);
+
+        $this->actingAs($staff)->post(route('bank-reconciliation.discrepancies.store', $period), [
+            'type' => 'bank_charge',
+            'classification' => 'accounting_adjustment',
+            'amount' => 50,
+            'explanation' => 'LANDBANK charged a service fee that needs Admin review.',
+            'evidence_reference' => 'CHG-ADMIN-001',
+            'resolution_status' => 'unresolved',
+            'carry_forward' => 0,
+        ])->assertRedirect();
+
+        $discrepancy = ReconciliationDiscrepancy::query()->latest('id')->firstOrFail();
+        $this->assertSame($staff->id, $discrepancy->reported_by);
+
+        $this->actingAs($admin)
+            ->get(route('bank-reconciliation.index', ['period_id' => $period->id]))
+            ->assertOk()
+            ->assertSee('Resolve Discrepancies')
+            ->assertSee('LANDBANK charged a service fee that needs Admin review.')
+            ->assertSee('CHG-ADMIN-001')
+            ->assertSee($staff->name)
+            ->assertSee('Accept Explanation')
+            ->assertSee('Request Correction');
+
+        $this->actingAs($admin)->post(route('bank-reconciliation.discrepancies.review', [$period, $discrepancy, 'accepted']), [
+            'note' => 'Explanation and evidence are sufficient for Admin review.',
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('reconciliation_discrepancies', [
+            'id' => $discrepancy->id,
+            'admin_review_status' => 'accepted',
+            'admin_reviewed_by' => $admin->id,
+            'resolution_status' => 'unresolved',
+        ]);
+        $this->assertSame('draft', $period->fresh()->status);
+    }
+
+    public function test_staff_cannot_review_a_discrepancy(): void
+    {
+        $staff = $this->userWithRole('staff');
+        $period = app(\App\Services\BankReconciliation\ReconciliationPeriodService::class)->create([
+            'period_start' => '2026-09-01',
+            'period_end' => '2026-09-30',
+            'opening_balance' => 10000,
+            'prepared_by' => $staff->id,
+        ]);
+        $discrepancy = ReconciliationDiscrepancy::query()->create([
+            'bank_reconciliation_id' => $period->id,
+            'reported_by' => $staff->id,
+            'type' => 'bank_charge',
+            'classification' => 'accounting_adjustment',
+            'amount' => 50,
+            'explanation' => 'Needs review.',
+            'resolution_status' => 'unresolved',
+        ]);
+
+        $this->actingAs($staff)
+            ->post(route('bank-reconciliation.discrepancies.review', [$period, $discrepancy, 'accepted']))
+            ->assertForbidden();
+    }
+
+    public function test_staff_can_resolve_an_admin_accepted_discrepancy_with_evidence(): void
+    {
+        $staff = $this->userWithRole('staff');
+        $period = app(\App\Services\BankReconciliation\ReconciliationPeriodService::class)->create([
+            'period_start' => '2026-09-01', 'period_end' => '2026-09-30', 'opening_balance' => 10000, 'prepared_by' => $staff->id,
+        ]);
+        $discrepancy = ReconciliationDiscrepancy::query()->create([
+            'bank_reconciliation_id' => $period->id, 'reported_by' => $staff->id, 'type' => 'bank_charge',
+            'classification' => 'accounting_adjustment', 'amount' => 50, 'explanation' => 'Original explanation.',
+            'resolution_status' => 'unresolved', 'admin_review_status' => 'accepted',
+        ]);
+
+        $this->actingAs($staff)->post(route('bank-reconciliation.discrepancies.resolve', [$period, $discrepancy]), [
+            'resolution_explanation' => 'Verified the bank advice and documented the correction.',
+            'resolution_evidence' => UploadedFile::fake()->create('bank-advice.pdf', 20, 'application/pdf'),
+        ])->assertRedirect();
+
+        $saved = $discrepancy->fresh();
+        $this->assertSame('resolved', $saved->resolution_status);
+        $this->assertSame('Verified the bank advice and documented the correction.', $saved->resolution_explanation);
+        $this->assertSame($staff->id, $saved->resolved_by);
+        $this->assertNotNull($saved->resolved_at);
+        $this->assertNotNull($saved->resolution_evidence_path);
+        $this->assertSame('accepted', $saved->admin_review_status);
+        $this->assertDatabaseHas('security_activity_events', ['action' => 'bank_reconciliation_discrepancy_resolved', 'actor_id' => $staff->id]);
+        $this->actingAs($staff)->get(route('bank-reconciliation.index', ['period_id' => $period->id]))
+            ->assertOk()->assertSee('Verified the bank advice and documented the correction.');
     }
 
     private function ledgerEntry(array $overrides = []): BankLedgerEntry

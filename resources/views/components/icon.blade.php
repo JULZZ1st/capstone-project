@@ -84,6 +84,18 @@
             <path d="M20 12H9" />
             @break
 
+        @case('panel-left-close')
+            <rect x="3" y="4" width="18" height="16" rx="2" />
+            <path d="M9 4v16" />
+            <path d="m15 9-3 3 3 3" />
+            @break
+
+        @case('panel-left-open')
+            <rect x="3" y="4" width="18" height="16" rx="2" />
+            <path d="M9 4v16" />
+            <path d="m13 9 3 3-3 3" />
+            @break
+
         @case('refresh')
             <path d="M4 9.5A8 8 0 0 1 18.5 6.5L20 8" />
             <path d="M20 4v4h-4" />

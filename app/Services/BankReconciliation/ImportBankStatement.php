@@ -22,7 +22,7 @@ class ImportBankStatement
         private readonly ReconciliationPeriodService $periods,
     ) {}
 
-    public function handle(UploadedFile $file, ?User $user = null): int
+    public function handle(UploadedFile $file, ?User $user = null, ?BankReconciliation $period = null): int
     {
         $rows = $this->rows($file);
 
@@ -32,10 +32,16 @@ class ImportBankStatement
 
         $created = 0;
 
-        DB::transaction(function () use ($rows, &$created, $user) {
+        DB::transaction(function () use ($rows, &$created, $user, $period) {
             foreach ($rows as $index => $row) {
                 $data = $this->normalize($row, $index + 2);
                 $this->periodGuard->assertMutableDate($data['transaction_date']);
+                if ($period !== null && ! Carbon::parse($data['transaction_date'])->betweenIncluded($period->period_start, $period->period_end)) {
+                    $rowNumber = $index + 2;
+                    throw ValidationException::withMessages([
+                        'statement' => "Transaction on row {$rowNumber} falls outside the selected reconciliation period.",
+                    ]);
+                }
 
                 if (BankLedgerEntry::query()->where('statement_id', $data['statement_id'])->exists()) {
                     throw ValidationException::withMessages([

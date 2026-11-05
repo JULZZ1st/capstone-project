@@ -19,6 +19,14 @@ class BankReconciliationPolicy
     {
         return $this->sameWorkspace($user, $period) && $user->hasRole('admin') && $period->isReadyForReview() && (int) $period->prepared_by !== (int) $user->id;
     }
+    public function reviewDiscrepancy(User $user, BankReconciliation $period): bool
+    {
+        return $this->sameWorkspace($user, $period) && $user->hasRole('admin') && ! $period->isApproved();
+    }
+    public function resolveDiscrepancy(User $user, BankReconciliation $period): bool
+    {
+        return $this->sameWorkspace($user, $period) && $user->hasRole('staff') && ! $period->isLocked();
+    }
     public function reopen(User $user, BankReconciliation $period): bool { return $this->sameWorkspace($user, $period) && $user->hasRole('admin') && $period->isApproved(); }
 
     private function active(User $user): bool { return app(\App\Support\Workspaces\WorkspaceAuthorizer::class)->hasActiveWorkspace(); }

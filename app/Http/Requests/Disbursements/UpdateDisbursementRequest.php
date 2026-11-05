@@ -28,6 +28,8 @@ class UpdateDisbursementRequest extends FormRequest
             'obr_number' => ['nullable', 'string', 'max:255'],
             'requested_date' => ['required', 'date'],
             'notes' => ['nullable', 'string', 'max:2000'],
+            // The UI intentionally omits this legacy field; do not clear existing values on edit.
+            'supporting_reference' => ['sometimes', 'nullable', 'string', 'max:255'],
         ];
     }
 

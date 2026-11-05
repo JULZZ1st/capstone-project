@@ -76,11 +76,11 @@ class DonationsPortalTest extends TestCase
         $this->actingAs($viewer)->get(route('donations.photo', $contribution))->assertForbidden();
     }
 
-    public function test_campaign_and_supporting_reference_features_are_removed_from_the_schema(): void
+    public function test_campaign_features_are_removed_while_legacy_fund_request_references_are_preserved(): void
     {
-        $this->assertFalse(Schema::hasTable('campaigns'));
-        $this->assertFalse(Schema::hasColumn('contributions', 'campaign_id'));
-        $this->assertFalse(Schema::hasColumn('cash_disbursements', 'supporting_reference'));
+        $this->assertTrue(Schema::hasTable('campaigns'));
+        $this->assertTrue(Schema::hasColumn('contributions', 'campaign_id'));
+        $this->assertTrue(Schema::hasColumn('cash_disbursements', 'supporting_reference'));
     }
 
     public function test_donations_portal_has_compact_filters_and_no_campaign_controls_or_summary_cards(): void

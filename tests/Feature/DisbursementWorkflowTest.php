@@ -108,7 +108,7 @@ class DisbursementWorkflowTest extends TestCase
         $this->assertDatabaseCount('cash_disbursements', 0);
     }
 
-    public function test_editing_a_request_works_without_the_removed_supporting_reference_field(): void
+    public function test_editing_a_request_preserves_a_hidden_legacy_supporting_reference(): void
     {
         $requester = $this->userWithRole('staff');
         $disbursement = CashDisbursement::query()->create([
@@ -118,6 +118,7 @@ class DisbursementWorkflowTest extends TestCase
             'payee_address' => 'Test Address',
             'fund_source' => 'General Fund',
             'requested_date' => '2026-09-12',
+            'supporting_reference' => 'Legacy purchase request 001',
             'requested_by' => $requester->id,
             'status' => 'pending',
         ]);
@@ -136,6 +137,7 @@ class DisbursementWorkflowTest extends TestCase
         $this->assertDatabaseHas('cash_disbursements', [
             'id' => $disbursement->id,
             'amount' => 150,
+            'supporting_reference' => 'Legacy purchase request 001',
         ]);
     }
 
