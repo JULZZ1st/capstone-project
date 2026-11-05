@@ -25,21 +25,21 @@ class WorkspaceArchitectureTest extends TestCase
         })->middleware(['web', 'auth', 'workspace']);
     }
 
-    public function test_gina_is_seeded_as_admin_and_resolves_the_single_workspace_automatically(): void
+    public function test_seeded_admin_resolves_the_single_workspace_automatically(): void
     {
         $this->seed();
 
-        $gina = User::query()->where('email', 'gina@gmail.com')->firstOrFail();
+        $admin = User::query()->where('email', 'admin@barangay.test')->firstOrFail();
 
-        $this->assertTrue($gina->hasRole(Role::ADMIN));
-        $this->assertSame('Admin', $gina->roleDisplayName());
+        $this->assertTrue($admin->hasRole(Role::ADMIN));
+        $this->assertSame('Admin', $admin->roleDisplayName());
         $this->assertDatabaseMissing('roles', ['name' => 'super_admin']);
         $this->assertFalse(Schema::hasColumn('users', 'is_super_admin'));
-        $this->assertDatabaseMissing('workspace_memberships', ['user_id' => $gina->id]);
+        $this->assertDatabaseHas('workspace_memberships', ['user_id' => $admin->id, 'status' => 'active']);
         $workspace = Workspace::query()->where('slug', 'legacy')->firstOrFail();
-        $this->assertTrue(app(\App\Support\Workspaces\WorkspaceAuthorizer::class)->canAccess($gina, $workspace));
+        $this->assertTrue(app(\App\Support\Workspaces\WorkspaceAuthorizer::class)->canAccess($admin, $workspace));
 
-        $this->actingAs($gina)
+        $this->actingAs($admin)
             ->withSession(['active_workspace_id' => $workspace->id])
             ->get('/__workspace-context-test')
             ->assertOk()
