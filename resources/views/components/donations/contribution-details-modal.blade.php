@@ -32,7 +32,24 @@
             @if($contribution->evidence->isNotEmpty())<section class="mt-4 rounded-xl border border-slate-200 bg-white" aria-labelledby="{{ $modalId }}-attachments-title"><div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-4 py-3"><div class="flex items-center gap-2"><span class="flex h-7 w-7 items-center justify-center rounded-md bg-blue-50 text-blue-700"><x-icon name="upload" class="h-4 w-4" /></span><div><h3 id="{{ $modalId }}-attachments-title" class="text-sm font-bold text-slate-900">Legal Documents / Attachments</h3><p class="text-xs text-slate-500">Supporting documents uploaded for this donation.</p></div></div><button type="button" class="rounded-lg border border-blue-200 px-3 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-50" data-dialog-open="{{ $attachmentsModalId }}">View All Attachments</button></div><div class="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-4">@foreach($contribution->evidence as $evidence)<div class="group flex min-w-0 flex-col justify-between rounded-xl border border-slate-200 bg-slate-50 p-3 transition hover:border-blue-300 hover:bg-blue-50"><div class="flex items-start gap-2"><span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-700"><x-icon name="document" class="h-4 w-4" /></span><span class="min-w-0"><span class="block truncate text-xs font-bold text-slate-900" title="{{ $evidence->original_name }}">{{ $documentLabel($evidence) }}</span><span class="mt-0.5 block truncate text-[11px] text-slate-500">{{ $evidence->original_name }}</span></span></div><button type="button" class="mt-3 inline-flex items-center justify-center rounded-lg border border-blue-300 bg-white px-2 py-1.5 text-xs font-semibold text-blue-700 group-hover:bg-blue-50" data-document-preview-open data-preview-dialog="{{ $previewModalId }}" data-preview-url="{{ route('donations.evidence', [$contribution, $evidence]) }}" data-preview-document="{{ $documentLabel($evidence) }}" data-preview-filename="{{ $evidence->original_name }}" data-preview-mime="{{ $evidence->mime_type }}">View Attachment</button></div>@endforeach</div></section>@endif
         </div>
 
-        <footer class="sticky bottom-0 z-20 flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-slate-200 bg-white px-4 py-3 sm:px-6">@can('verify', $contribution)<form method="POST" action="{{ route('donations.verify', $contribution) }}">@csrf @method('PATCH')<button type="submit" class="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800">Verify Donation</button></form>@endcan @can('update', $contribution) @if(auth()->user()->hasRole('admin') && $contribution->status === 'pending')<form method="POST" action="{{ route('donations.update', $contribution) }}">@csrf @method('PATCH')<input type="hidden" name="status" value="rejected"><button type="submit" class="rounded-lg border border-rose-200 px-4 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-50">Reject Donation</button></form>@endif @endcan<button type="button" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50" data-dialog-close="{{ $modalId }}">Close</button>@can('update', $contribution)<button type="button" class="rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800" data-dialog-open="{{ $updateModalId }}">Update Record</button>@endcan</footer>
+        <footer class="sticky bottom-0 z-20 shrink-0 space-y-3 border-t border-slate-200 bg-white px-4 py-3 sm:px-6">
+            @can('verify', $contribution)
+                <x-donations.verification-form :contribution="$contribution" />
+            @endcan
+            <div class="flex flex-wrap items-center justify-end gap-2">
+                @can('update', $contribution)
+                    @if(auth()->user()->hasRole('admin') && $contribution->status === 'pending')
+                        <form method="POST" action="{{ route('donations.update', $contribution) }}">
+                            @csrf @method('PATCH')
+                            <input type="hidden" name="status" value="rejected">
+                            <button type="submit" class="rounded-lg border border-rose-200 px-4 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-50">Reject Donation</button>
+                        </form>
+                    @endif
+                    <button type="button" class="rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800" data-dialog-open="{{ $updateModalId }}">Update Record</button>
+                @endcan
+                <button type="button" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50" data-dialog-close="{{ $modalId }}">Close</button>
+            </div>
+        </footer>
     </div>
 </dialog>
 
@@ -45,4 +62,21 @@
     </div>
 </dialog>
 
-@can('update', $contribution)<dialog id="{{ $updateModalId }}" class="m-auto w-[min(520px,calc(100vw-2rem))] rounded-2xl p-0 shadow-xl backdrop:bg-slate-950/50"><form method="POST" action="{{ route('donations.update', $contribution) }}" class="flex max-h-[90vh] flex-col">@csrf @method('PATCH')<div class="flex shrink-0 items-center justify-between border-b border-slate-200 px-5 py-4"><div><h2 class="text-lg font-semibold text-slate-950">Update Contribution</h2><p class="text-sm text-slate-500">{{ $contribution->receipt_number ?? '#'.str_pad((string) $contribution->id, 5, '0', STR_PAD_LEFT) }}</p></div><button type="button" class="rounded-md px-2 py-1 text-2xl leading-none text-slate-400 hover:bg-slate-100" data-dialog-close="{{ $updateModalId }}" aria-label="Close update modal">&times;</button></div><div class="space-y-5 overflow-y-auto px-5 py-5"><div><x-form.label for="status-{{ $contribution->id }}">Status</x-form.label><select id="status-{{ $contribution->id }}" name="status" class="mt-1 block w-full rounded-lg border-slate-300 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500" required>@foreach (array_values(array_filter(['pending', 'received', 'rejected', $contribution->status === 'verified' ? 'verified' : null])) as $status)<option value="{{ $status }}" @selected($contribution->status === $status)>{{ ucfirst($status) }}</option>@endforeach</select></div><div><x-form.label for="notes-{{ $contribution->id }}">Notes</x-form.label><textarea id="notes-{{ $contribution->id }}" name="notes" rows="4" class="mt-1 block w-full rounded-lg border-slate-300 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500">{{ $contribution->notes }}</textarea></div></div><div class="flex shrink-0 justify-end gap-3 border-t border-slate-200 px-5 py-4"><button type="button" class="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50" data-dialog-close="{{ $updateModalId }}">Close</button><x-button type="submit">Save Update</x-button></div></form></dialog>@endcan
+@can('update', $contribution)
+    <dialog id="{{ $updateModalId }}" class="m-auto w-[min(520px,calc(100vw-2rem))] rounded-2xl p-0 shadow-xl backdrop:bg-slate-950/50" aria-labelledby="{{ $updateModalId }}-title">
+        <form method="POST" action="{{ route('donations.update', $contribution) }}" class="flex max-h-[90vh] flex-col">
+            @csrf @method('PATCH')
+            <header class="flex shrink-0 items-center justify-between border-b border-slate-200 px-5 py-4">
+                <div><h2 id="{{ $updateModalId }}-title" class="text-lg font-semibold text-slate-950">Update Contribution</h2><p class="text-sm text-slate-500">{{ $contribution->receipt_number ?? '#'.str_pad((string) $contribution->id, 5, '0', STR_PAD_LEFT) }}</p></div>
+                <button type="button" class="rounded-md px-2 py-1 text-2xl leading-none text-slate-400 hover:bg-slate-100" data-dialog-close="{{ $updateModalId }}" aria-label="Close update modal">&times;</button>
+            </header>
+            <div class="space-y-5 overflow-y-auto px-5 py-5">
+                <x-donations.update-fields :contribution="$contribution" :prefix="$updateModalId.'-'" />
+            </div>
+            <footer class="flex shrink-0 justify-end gap-3 border-t border-slate-200 px-5 py-4">
+                <button type="button" class="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50" data-dialog-close="{{ $updateModalId }}">Close</button>
+                <x-button class="w-auto">Save Update</x-button>
+            </footer>
+        </form>
+    </dialog>
+@endcan

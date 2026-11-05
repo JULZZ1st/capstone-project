@@ -75,6 +75,7 @@ class DonationPortalController extends Controller
                 'evidence',
             ])
             ->withCount('items')
+            ->withExists('ledgerEntry')
             ->withSum('items', 'estimated_value')
             ->search($filters['search'] ?? null)
             ->type($filters['type'] ?? null)
@@ -96,6 +97,7 @@ class DonationPortalController extends Controller
                 ->orderBy('full_name')
                 ->get([
                     'id',
+                    'workspace_id',
                     'donor_type',
                     'first_name',
                     'middle_name',
@@ -238,6 +240,11 @@ class DonationPortalController extends Controller
         DB::transaction(function () use ($request, $contribution): void {
             $contribution = Contribution::query()->lockForUpdate()->findOrFail($contribution->id);
             Gate::authorize('verify', $contribution);
+
+            if ($errors = $contribution->verificationErrors()) {
+                throw ValidationException::withMessages($errors)
+                    ->redirectTo(route('donations.show', $contribution));
+            }
 
             $contribution->update([
                 'status' => 'verified',

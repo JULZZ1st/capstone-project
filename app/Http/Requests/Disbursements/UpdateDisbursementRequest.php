@@ -44,4 +44,9 @@ class UpdateDisbursementRequest extends FormRequest
             $this->merge([$key => $value === '' ? null : $value]);
         }
     }
+
+    protected function getRedirectUrl(): string
+    {
+        return route('disbursements.show', $this->route('disbursement'));
+    }
 }

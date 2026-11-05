@@ -66,7 +66,7 @@ class DonorManagementTest extends TestCase
         $response->assertSee('sticky top-0', false);
         $response->assertSee('data-dialog-open="remove-donor-modal-'.$donor->id.'"', false);
         $response->assertSee('Confirm Delete');
-        $response->assertSee('Donation History');
+        $response->assertDontSee('Donation History');
         $response->assertSee('view-donor-modal-'.$donor->id);
         $response->assertSee('aria-label="Actions for '.$donor->full_name.'"', false);
         $response->assertDontSee('onsubmit="return confirm(', false);
@@ -191,7 +191,8 @@ class DonorManagementTest extends TestCase
 
         $response->assertOk()
             ->assertSee('class="m-auto w-[min(920px,calc(100vw-2rem))] max-h-[90vh]', false)
-            ->assertSee('sticky top-0 z-10', false)
+            ->assertSee('Profile Information')
+            ->assertDontSee('Donation History')
             ->assertSee('Confirm Deactivation');
     }
 

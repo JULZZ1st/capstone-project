@@ -1,8 +1,10 @@
 @props(['dialogId', 'action', 'method', 'item', 'title'])
+@php($restoreInput = old('_modal') === $dialogId)
 
-<dialog id="{{ $dialogId }}" class="w-[min(480px,calc(100vw-2rem))] rounded-lg p-0 shadow-xl backdrop:bg-slate-950/50">
+<dialog id="{{ $dialogId }}" class="m-auto w-[min(480px,calc(100vw-2rem))] rounded-lg p-0 shadow-xl backdrop:bg-slate-950/50" @if($restoreInput && $errors->any()) open @endif>
     <form method="POST" action="{{ $action }}" class="bg-white">
         @csrf
+        <input type="hidden" name="_modal" value="{{ $dialogId }}">
         @if (strtoupper($method) !== 'POST')
             @method($method)
         @endif
@@ -13,13 +15,13 @@
         </div>
 
         <div class="space-y-4 px-5 py-4">
-            <x-form.input name="key" label="Key" :value="$item?->key" required />
-            <x-form.input name="label" label="Label" :value="$item?->label" required />
+            <x-form.input name="key" :id="$dialogId.'-key'" :use-old="$restoreInput" label="Key" :value="$item?->key" required />
+            <x-form.input name="label" :id="$dialogId.'-label'" :use-old="$restoreInput" label="Label" :value="$item?->label" required />
 
             <div>
                 <input type="hidden" name="is_active" value="0">
                 <label class="inline-flex items-center gap-2 text-sm text-slate-700">
-                    <input type="checkbox" name="is_active" value="1" class="rounded border-slate-300" @checked(old('is_active', $item?->is_active ?? true))>
+                    <input type="checkbox" name="is_active" value="1" class="rounded border-slate-300" @checked($restoreInput ? old('is_active') : ($item?->is_active ?? true))>
                     Active
                 </label>
             </div>

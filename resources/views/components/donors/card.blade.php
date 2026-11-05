@@ -48,7 +48,7 @@
 
     <div class="mt-auto flex flex-wrap gap-2 pt-5">
         <a href="{{ route('donors.show', $donor) }}" class="inline-flex items-center justify-center rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
-            View History
+            View Profile
         </a>
         @can('update', $donor)
             <button type="button" class="inline-flex items-center justify-center rounded-md bg-blue-700 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-800" data-dialog-open="edit-donor-modal-{{ $donor->id }}">

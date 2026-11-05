@@ -49,11 +49,6 @@ class DonorController extends Controller
             ->type($type)
             ->withDonationMetrics()
             ->withCount('contributions')
-            ->with(['contributions' => fn ($query) => $query
-                ->select(['id', 'donor_id', 'type', 'status', 'amount', 'received_at', 'voided_at'])
-                ->latest('received_at')
-                ->latest()
-                ->limit(20)])
             ->latest()
             ->paginate(config('donors.pagination.per_page'))
             ->withQueryString();
@@ -114,17 +109,9 @@ class DonorController extends Controller
     {
         Gate::authorize('view', $donor);
 
-        $donor->loadCount([
-            'contributions',
-            'contributions as donations_count' => fn ($query) => $query->whereNull('voided_at'),
-        ]);
+        $donor->loadCount('contributions');
 
-        $donations = $donor->contributions()
-            ->latest('received_at')
-            ->latest()
-            ->paginate(config('donors.pagination.history_per_page'));
-
-        return view('donors.show', compact('donor', 'donations'));
+        return view('donors.show', compact('donor'));
     }
 
     public function update(UpdateDonorRequest $request, Donor $donor)

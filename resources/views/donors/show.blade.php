@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
-@section('title', $donor->full_name.' | Donor History')
-@section('page-title', 'Donor History')
+@section('title', $donor->full_name.' | Donor Profile')
+@section('page-title', 'Donor Profile')
 
 @section('content')
     <div class="space-y-6">
@@ -50,44 +50,6 @@
                 </table>
             </div>
         </section>
-
-        <x-dashboard.panel title="Donation History">
-            <div class="overflow-x-auto">
-                <table class="min-w-full text-sm">
-                    <thead>
-                    <tr class="bg-slate-100">
-                        <th class="p-2 text-left">Type</th>
-                        <th class="p-2 text-left">Amount</th>
-                        <th class="p-2 text-left">Notes</th>
-                        <th class="p-2 text-left">Date</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    @forelse ($donations as $donation)
-                        <tr class="border-t">
-                            <td class="p-2">
-                                {{ config("donations.types.{$donation->type}") ?? ucfirst($donation->type) }}
-                                @if ($donation->voided_at)
-                                    <span class="ml-1 inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-800 ring-1 ring-inset ring-red-200">Voided</span>
-                                @endif
-                            </td>
-                            <td class="p-2">PHP {{ number_format((float) $donation->amount, 2) }}</td>
-                            <td class="p-2">{{ $donation->notes ?: 'Not provided' }}</td>
-                            <td class="p-2">{{ optional($donation->received_at)->toFormattedDateString() ?: 'Not provided' }}</td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="4" class="p-4 text-center text-slate-500">No donation history for this donor yet.</td>
-                        </tr>
-                    @endforelse
-                    </tbody>
-                </table>
-            </div>
-
-            <div class="mt-4">
-                {{ $donations->links() }}
-            </div>
-        </x-dashboard.panel>
     </div>
 
     @can('update', $donor)

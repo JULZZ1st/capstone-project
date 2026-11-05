@@ -24,18 +24,7 @@ class UpdateContributionRequest extends FormRequest
 
     public function rules(): array
     {
-        $allowedStatuses = array_keys(config('donations.statuses'));
-
-        // A pending donation must use the dedicated verification endpoint so
-        // the reviewer and verification timestamp are recorded. Existing
-        // verified records may still be edited for administrative notes.
-        if ($this->route('contribution')?->status !== 'verified') {
-            $allowedStatuses = array_values(array_diff($allowedStatuses, ['verified']));
-        }
-
-        if ($this->route('contribution')?->ledgerEntry()->exists()) {
-            $allowedStatuses = [$this->route('contribution')->status];
-        }
+        $allowedStatuses = $this->route('contribution')->editableStatuses();
 
         return [
             'status' => [
@@ -51,6 +40,11 @@ class UpdateContributionRequest extends FormRequest
         if ($this->has('notes')) {
             $this->merge(['notes' => $this->blankToNull('notes')]);
         }
+    }
+
+    protected function getRedirectUrl(): string
+    {
+        return route('donations.show', $this->route('contribution'));
     }
 
     private function blankToNull(string $key): ?string

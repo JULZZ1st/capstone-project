@@ -163,6 +163,47 @@ class Contribution extends Model
         return $this->type === 'cash';
     }
 
+    public function verificationErrors(): array
+    {
+        $this->loadMissing('evidence');
+        $documents = $this->evidence->pluck('document_type');
+        $errors = [];
+
+        if ($this->payment_method === 'bank_transfer'
+            && ! $documents->intersect(['bank_transfer_proof', 'supporting_evidence'])->count()) {
+            $errors['bank_transfer_proof'] = 'Bank Deposit/Transfer Proof must be uploaded before this donation can be verified.';
+        }
+
+        if (! $this->isCash()) {
+            return $errors;
+        }
+
+        if (blank($this->official_receipt_number)) {
+            $errors['official_receipt_number'] = 'Official Receipt Number is required before verification.';
+        }
+        if (! $documents->contains('official_receipt')) {
+            $errors['official_receipt_document'] = 'Official Receipt upload is required before verification.';
+        }
+        if (! $documents->contains('certificate_of_acceptance')) {
+            $errors['certificate_of_acceptance'] = 'Certificate of Acceptance is required before verification.';
+        }
+        if ((float) $this->amount >= 5000 && ! $documents->contains('deed_of_donation')) {
+            $errors['deed_of_donation'] = 'This cash donation cannot be verified while the required Deed of Donation is missing. Review the donor exception and obtain the written document before verification.';
+        }
+
+        return $errors;
+    }
+
+    public function editableStatuses(): array
+    {
+        if ($this->ledger_entry_exists ?? $this->ledgerEntry()->exists()) {
+            return [$this->status];
+        }
+
+        return array_values(array_filter(array_keys(config('donations.statuses')),
+            fn (string $status) => $status !== 'verified' || $this->status === 'verified'));
+    }
+
     public function paymentMethodLabel(): ?string
     {
         if ($this->payment_method === null) {
