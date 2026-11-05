@@ -15,6 +15,55 @@ class DonorInteractionRegressionTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_directory_creation_returns_to_the_portal_with_the_directory_open(): void
+    {
+        $response = $this->actingAs($this->admin())->post(route('donors.store'), [
+            '_modal' => 'directory-add-donor-modal',
+            'donor_type' => 'individual', 'first_name' => 'Maria', 'last_name' => 'Santos',
+            'contact_number' => '09170000123',
+        ]);
+
+        $response->assertRedirect(route('donations.index'))->assertSessionHas('donor_directory_open', true);
+        $this->assertDatabaseHas('donors', ['full_name' => 'Maria Santos']);
+        $page = $this->get(route('donations.index'))->assertOk();
+        $document = new \DOMDocument();
+        $document->loadHTML($page->getContent(), LIBXML_NOERROR | LIBXML_NOWARNING);
+        $xpath = new \DOMXPath($document);
+        $this->assertSame(1, $xpath->query('//dialog[@id="donor-directory-modal"][@data-reopen="true"]')->length);
+        $this->assertSame(0, $xpath->query('//dialog[@id="directory-add-donor-modal"][@open]')->length);
+    }
+
+    public function test_directory_validation_keeps_the_form_values_and_both_dialogs_available(): void
+    {
+        $this->actingAs($this->admin())->post(route('donors.store'), [
+            '_modal' => 'directory-add-donor-modal',
+            'donor_type' => 'individual', 'first_name' => 'Maria',
+            'contact_number' => '09170000123',
+        ])->assertRedirect(route('donations.index'))->assertSessionHasErrors('last_name');
+
+        $page = $this->get(route('donations.index'))->assertOk();
+        $document = new \DOMDocument();
+        $document->loadHTML($page->getContent(), LIBXML_NOERROR | LIBXML_NOWARNING);
+        $xpath = new \DOMXPath($document);
+        $this->assertSame(1, $xpath->query('//dialog[@id="donor-directory-modal"][@data-reopen="true"]')->length);
+        $this->assertSame(1, $xpath->query('//dialog[@id="directory-add-donor-modal"][@open]')->length);
+        $this->assertSame('Maria', $xpath->evaluate('string(//dialog[@id="directory-add-donor-modal"]//input[@name="first_name"]/@value)'));
+        $this->assertDatabaseCount('donors', 0);
+    }
+
+    public function test_duplicate_directory_creation_returns_to_the_same_form_for_review(): void
+    {
+        $donor = $this->donor();
+        $this->actingAs($this->admin())->post(route('donors.store'), [
+            '_modal' => 'directory-add-donor-modal',
+            'donor_type' => 'individual', 'first_name' => $donor->first_name, 'last_name' => $donor->last_name,
+            'contact_number' => $donor->contact_number,
+        ])->assertRedirect(route('donations.index'))->assertSessionHas('duplicate_donor_detected', true);
+
+        $this->assertDatabaseCount('donors', 1);
+        $this->get(route('donations.index'))->assertOk()->assertSee('name="_confirm_duplicate" value="1"', false);
+    }
+
     public function test_ajax_donor_removal_returns_success_instead_of_a_server_error(): void
     {
         $donor = $this->donor();

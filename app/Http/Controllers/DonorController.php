@@ -72,6 +72,8 @@ class DonorController extends Controller
 
     public function store(StoreDonorRequest $request)
     {
+        $fromDirectory = $request->input('_modal') === 'directory-add-donor-modal';
+        $returnRoute = $fromDirectory ? 'donations.index' : 'donors.index';
         $data = $request->donorData();
         $data['status'] = config('donors.defaults.status');
 
@@ -83,7 +85,7 @@ class DonorController extends Controller
             }
 
             return redirect()
-                ->route('donors.index')
+                ->route($returnRoute)
                 ->withInput($request->except('_confirm_duplicate'))
                 ->with('warning', 'A donor with matching name and contact details may already exist. Review the information, then save again only if this should be a separate donor profile.')
                 ->with('duplicate_donor_detected', true);
@@ -101,7 +103,8 @@ class DonorController extends Controller
         }
 
         return redirect()
-            ->route('donors.index')
+            ->route($returnRoute)
+            ->with('donor_directory_open', $fromDirectory)
             ->with('success', 'Donor profile created successfully.');
     }
 

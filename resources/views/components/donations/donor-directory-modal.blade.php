@@ -1,6 +1,8 @@
 @props(['donors'])
 
-<dialog id="donor-directory-modal" class="m-auto w-[min(1180px,calc(100vw-1rem))] rounded-2xl p-0 shadow-2xl backdrop:bg-slate-950/55" aria-labelledby="donor-directory-title">
+@php($createModalOpen = old('_modal') === 'directory-add-donor-modal')
+
+<dialog id="donor-directory-modal" class="m-auto w-[min(1180px,calc(100vw-1rem))] rounded-2xl p-0 shadow-2xl backdrop:bg-slate-950/55" aria-labelledby="donor-directory-title" @if(session('donor_directory_open') || $createModalOpen) data-reopen="true" @endif>
     <div class="flex h-[min(780px,calc(100vh-2rem))] max-h-[92vh] flex-col overflow-hidden bg-white">
         <header class="flex shrink-0 items-start justify-between gap-4 border-b border-slate-200 bg-white px-4 py-4 sm:px-6">
             <div class="min-w-0"><div class="flex items-center gap-2"><span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-700"><x-icon name="users" class="h-4 w-4" /></span><h2 id="donor-directory-title" class="text-lg font-bold text-slate-950">All Donors</h2></div><p class="mt-1 text-xs text-slate-500">Search, filter, and manage donor profiles without leaving Donations Portal.</p></div>
@@ -22,7 +24,7 @@
         <footer class="flex shrink-0 items-center justify-between gap-3 border-t border-slate-200 bg-white px-4 py-3 sm:px-6"><p class="text-xs text-slate-500" data-donor-directory-page></p><div class="flex items-center gap-2"><button type="button" class="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40" data-donor-directory-prev>Previous</button><button type="button" class="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40" data-donor-directory-next>Next</button><button type="button" class="hidden rounded-lg bg-blue-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-800 sm:inline-flex" data-dialog-close="donor-directory-modal">Close</button></div></footer>
     </div>
 </dialog>
-@can('create', \App\Models\Donor::class)<x-donors.create-modal dialog-id="directory-add-donor-modal" />@endcan
+@can('create', \App\Models\Donor::class)<x-donors.create-modal dialog-id="directory-add-donor-modal" :open="$createModalOpen" />@endcan
 @foreach ($donors as $donor)
     @can('view', $donor)<x-donations.donor-view-modal :donor="$donor" />@endcan
     @can('update', $donor)<x-donors.edit-modal :donor="$donor" :open="false" />@endcan
