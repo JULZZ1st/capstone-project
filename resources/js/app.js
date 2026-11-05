@@ -1863,7 +1863,10 @@ if (sidebar && sidebarToggle) {
         document.documentElement.classList.toggle('sidebar-collapsed', desktop.matches && collapsed);
         const expanded = desktop.matches ? !collapsed : mobileOpen;
         sidebarToggle.setAttribute('aria-expanded', String(expanded));
-        sidebarToggle.setAttribute('aria-label', desktop.matches ? 'Toggle sidebar' : (expanded ? 'Close navigation' : 'Open navigation'));
+        sidebarToggle.setAttribute('aria-label', desktop.matches ? (collapsed ? 'Expand sidebar' : 'Collapse sidebar') : (expanded ? 'Close navigation' : 'Open navigation'));
+        sidebarToggle.setAttribute('title', desktop.matches ? (collapsed ? 'Expand sidebar' : 'Collapse sidebar') : (expanded ? 'Close navigation' : 'Open navigation'));
+        sidebarToggle.querySelector('.sidebar-expanded-icon')?.classList.toggle('hidden', desktop.matches && collapsed);
+        sidebarToggle.querySelector('.sidebar-collapsed-icon')?.classList.toggle('hidden', !(desktop.matches && collapsed));
     };
     sidebarToggle.addEventListener('click', () => {
         if (desktop.matches) {

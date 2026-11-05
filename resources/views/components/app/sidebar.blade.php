@@ -17,7 +17,7 @@
         /* Smooth width transition and label hiding when collapsed. Avoid display:none to keep transitions smooth. */
         .transition-width { transition: width 200ms ease; }
         #sidebar-toggle { position: relative; z-index: 50; }
-        #sidebar-toggle svg { transition: transform 180ms ease; }
+        #sidebar-toggle svg { transition: opacity 180ms ease, transform 180ms ease; }
 
         .sidebar-label { display: inline-block; max-width: 1000px; overflow: hidden; vertical-align: middle; transition: opacity 180ms ease, max-width 180ms ease; }
         .sidebar-logo-text { display: inline-block; transition: opacity 180ms ease, max-width 180ms ease; overflow: hidden; }
@@ -28,7 +28,14 @@
             #app-sidebar.collapsed { width: 5.25rem; }
             #app-sidebar.collapsed .sidebar-label { opacity: 0; max-width: 0; }
             #app-sidebar.collapsed .sidebar-logo-text { opacity: 0; max-width: 0; }
-            #app-sidebar.collapsed #sidebar-toggle svg { transform: rotate(180deg); }
+            #app-sidebar.collapsed #sidebar-toggle { opacity: 0; pointer-events: none; }
+            #app-sidebar.collapsed #sidebar-logo:hover #sidebar-toggle,
+            #app-sidebar.collapsed #sidebar-logo:focus-within #sidebar-toggle { opacity: 1; pointer-events: auto; }
+            #app-sidebar.collapsed #sidebar-logo { justify-content: center; }
+            #app-sidebar.collapsed .nav-item,
+            #app-sidebar.collapsed .border-t button { justify-content: center; }
+            #app-sidebar.collapsed .sidebar-expanded-icon { display: none; }
+            #app-sidebar.collapsed .sidebar-collapsed-icon { display: block; }
             #app-sidebar .nav-item { white-space: nowrap; }
         }
         @media (max-width: 1023px) {
@@ -41,7 +48,7 @@
     <noscript><style>@media (max-width: 1023px) { #app-sidebar #sidebar-menu { display: flex; } }</style></noscript>
 
     <div class="flex h-full flex-col">
-        <div class="flex items-center gap-3 border-b border-white/10 px-4 py-4">
+        <div id="sidebar-logo" class="group flex items-center gap-3 border-b border-white/10 px-4 py-4">
             <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-sky-400 to-indigo-500 text-white shadow-lg shadow-blue-500/20 ring-1 ring-inset ring-white/15">
                 <x-icon name="heart" class="h-5 w-5" />
             </span>
@@ -50,7 +57,8 @@
             </div>
 
             <button id="sidebar-toggle" type="button" aria-label="Toggle navigation" title="Toggle navigation" aria-controls="sidebar-menu" aria-expanded="false" class="ml-auto flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-slate-800/70 text-slate-200 shadow-sm transition hover:border-sky-300/40 hover:bg-slate-700/80 hover:text-white focus:outline-none focus:ring-2 focus:ring-sky-400/40">
-                <x-icon name="chevron-down" class="h-4 w-4" />
+                <x-icon name="panel-left-close" class="h-4 w-4 sidebar-expanded-icon" />
+                <x-icon name="panel-left-open" class="hidden h-4 w-4 sidebar-collapsed-icon" />
             </button>
         </div>
 

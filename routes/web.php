@@ -84,6 +84,10 @@ Route::middleware([
     Route::post('/bank-reconciliation/periods', [BankReconciliationController::class, 'createPeriod'])->name('bank-reconciliation.periods.store');
     Route::patch('/bank-reconciliation/periods/{period}', [BankReconciliationController::class, 'updatePeriod'])->name('bank-reconciliation.periods.update');
     Route::post('/bank-reconciliation/periods/{period}/discrepancies', [BankReconciliationController::class, 'createDiscrepancy'])->name('bank-reconciliation.discrepancies.store');
+    Route::patch('/bank-reconciliation/periods/{period}/discrepancies/{discrepancy}', [BankReconciliationController::class, 'updateDiscrepancy'])->name('bank-reconciliation.discrepancies.update');
+    Route::post('/bank-reconciliation/periods/{period}/discrepancies/{discrepancy}/review/{decision}', [BankReconciliationController::class, 'reviewDiscrepancy'])->whereIn('decision', ['accepted', 'correction_requested'])->name('bank-reconciliation.discrepancies.review');
+    Route::post('/bank-reconciliation/periods/{period}/discrepancies/{discrepancy}/resolve', [BankReconciliationController::class, 'resolveDiscrepancy'])->name('bank-reconciliation.discrepancies.resolve');
+    Route::get('/bank-reconciliation/periods/{period}/discrepancies/{discrepancy}/resolution-evidence', [BankReconciliationController::class, 'discrepancyResolutionEvidence'])->name('bank-reconciliation.discrepancies.resolution-evidence');
     Route::post('/bank-reconciliation/periods/{period}/submit', [BankReconciliationController::class, 'submitPeriod'])->name('bank-reconciliation.periods.submit');
     Route::post('/bank-reconciliation/periods/{period}/approve', [BankReconciliationController::class, 'approvePeriod'])->name('bank-reconciliation.periods.approve');
     Route::post('/bank-reconciliation/periods/{period}/reject', [BankReconciliationController::class, 'rejectPeriod'])->name('bank-reconciliation.periods.reject');

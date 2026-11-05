@@ -12,6 +12,7 @@ class BankReconciliation extends Model
 
     protected $fillable = [
         'workspace_id',
+        'bank_account',
         'date',
         'period_start',
         'period_end',
