@@ -32,7 +32,6 @@ class DisbursementWorkflowTest extends TestCase
             'obr_number' => 'OBR-2026-001',
             'requested_date' => '2026-09-12',
             'notes' => 'Urgent dialysis support',
-            'supporting_reference' => 'BRGY-REF-2026-001',
         ]);
 
         $response->assertRedirect(route('disbursements.index'));
@@ -41,7 +40,6 @@ class DisbursementWorkflowTest extends TestCase
             'purpose' => 'Medical assistance payout',
             'recipient' => 'Juan Dela Cruz',
             'notes' => 'Urgent dialysis support',
-            'supporting_reference' => 'BRGY-REF-2026-001',
             'requested_by' => $requester->id,
             'status' => 'pending',
             'payee_address' => '123 Main Street, Poblacion',
@@ -64,8 +62,36 @@ class DisbursementWorkflowTest extends TestCase
             ->assertSee('Save Request')
             ->assertSee('View Details')
             ->assertSee(route('disbursements.show', CashDisbursement::query()->firstOrFail()), false)
-            ->assertSee('BRGY-REF-2026-001')
             ->assertSee('Urgent dialysis support');
+    }
+
+    public function test_request_modal_preserves_unicode_quotes_and_backslashes(): void
+    {
+        $requester = $this->userWithRole('staff');
+        $purpose = 'Tulong sa "Pamilya" – ₱1,250';
+        $notes = 'Drop-off at sitio Niño\\Relief & assistance';
+
+        $this->actingAs($requester)->post(route('disbursements.store'), [
+            'amount' => 1250,
+            'payee_address' => 'Test Address',
+            'fund_source' => 'General Fund',
+            'purpose' => $purpose,
+            'recipient' => 'José Niño',
+            'requested_date' => '2026-09-12',
+            'notes' => $notes,
+        ])->assertRedirect(route('disbursements.index'));
+
+        $disbursement = CashDisbursement::query()->firstOrFail();
+        $response = $this->get(route('disbursements.index'))->assertOk();
+        $document = new \DOMDocument();
+        $document->loadHTML($response->getContent(), LIBXML_NOERROR | LIBXML_NOWARNING);
+        $row = (new \DOMXPath($document))
+            ->query('//tr[@data-fund-request-id="'.$disbursement->id.'"]')
+            ->item(0);
+
+        $this->assertInstanceOf(\DOMElement::class, $row);
+        $this->assertSame($purpose, $row->getAttribute('data-purpose'));
+        $this->assertSame($notes, $row->getAttribute('data-notes'));
     }
 
     public function test_disbursement_request_requires_new_required_fields(): void
@@ -82,7 +108,7 @@ class DisbursementWorkflowTest extends TestCase
         $this->assertDatabaseCount('cash_disbursements', 0);
     }
 
-    public function test_editing_a_request_keeps_a_legacy_supporting_reference_when_the_ui_omits_it(): void
+    public function test_editing_a_request_preserves_a_hidden_legacy_supporting_reference(): void
     {
         $requester = $this->userWithRole('staff');
         $disbursement = CashDisbursement::query()->create([
@@ -92,7 +118,7 @@ class DisbursementWorkflowTest extends TestCase
             'payee_address' => 'Test Address',
             'fund_source' => 'General Fund',
             'requested_date' => '2026-09-12',
-            'supporting_reference' => 'LEGACY-REF-001',
+            'supporting_reference' => 'Legacy purchase request 001',
             'requested_by' => $requester->id,
             'status' => 'pending',
         ]);
@@ -111,7 +137,7 @@ class DisbursementWorkflowTest extends TestCase
         $this->assertDatabaseHas('cash_disbursements', [
             'id' => $disbursement->id,
             'amount' => 150,
-            'supporting_reference' => 'LEGACY-REF-001',
+            'supporting_reference' => 'Legacy purchase request 001',
         ]);
     }
 
@@ -182,7 +208,6 @@ class DisbursementWorkflowTest extends TestCase
             'recipient' => 'Community Pharmacy',
             'requested_date' => '2026-09-12',
             'notes' => 'Prescription support',
-            'supporting_reference' => 'MED-001',
             'requested_by' => $requester->id,
             'status' => 'pending',
         ]);
@@ -336,7 +361,10 @@ class DisbursementWorkflowTest extends TestCase
         $disbursement = $this->pendingDisbursement($requester);
 
         $this->actingAs($requester)->post(route('disbursements.signed-voucher.upload', $disbursement), [
-            'signed_voucher' => UploadedFile::fake()->image('signed-voucher.png'),
+            'signed_voucher' => UploadedFile::fake()->createWithContent(
+                'signed-voucher.png',
+                base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII='),
+            ),
         ])->assertRedirect();
 
         $preview = $this->actingAs($requester)->get(route('disbursements.signed-voucher.preview', $disbursement));

@@ -218,7 +218,7 @@ class InventoryManagementTest extends TestCase
             'reason' => 'correction',
         ]);
 
-        $response->assertRedirect();
+        $response->assertRedirect(route('inventory.index'));
         $this->assertDatabaseHas('inventory_stock_movements', [
             'inventory_item_id' => $item->id,
             'movement_type' => 'stock_in',

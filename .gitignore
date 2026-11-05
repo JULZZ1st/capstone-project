@@ -44,6 +44,14 @@
 /database/*.sqlite
 /database/*.sqlite3
 
+# Generated database documentation, backups, and verification output
+/database-design.dbml
+/database-erd.drawio
+/database-schema.sql
+/artifacts/
+/output/
+/reports/
+
 # Logs and package manager diagnostics
 *.log
 npm-debug.log*

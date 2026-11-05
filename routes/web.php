@@ -34,7 +34,7 @@ Route::middleware('auth')->group(function () {
 Route::middleware([
     'auth',
     'password.change',
-    'role:admin,staff,secretary,treasurer',
+    'role:admin,staff',
     'workspace',
     'workspace.required',
     'workspace.models',
@@ -50,10 +50,12 @@ Route::middleware([
     Route::get('/locations/barangays', [LocationController::class, 'barangays'])->name('locations.barangays');
     Route::get('/donations', [DonationPortalController::class, 'index'])->name('donations.index');
     Route::post('/donations', [DonationPortalController::class, 'store'])->name('donations.store');
+    Route::get('/donations/{contribution}/photo', [DonationPortalController::class, 'photo'])->name('donations.photo');
     Route::get('/donations/{contribution}', [DonationPortalController::class, 'show'])->name('donations.show');
     Route::get('/donations/{contribution}/evidence/{evidence}', [DonationPortalController::class, 'downloadEvidence'])->name('donations.evidence');
     Route::patch('/donations/{contribution}', [DonationPortalController::class, 'update'])->name('donations.update');
     Route::patch('/donations/{contribution}/verify', [DonationPortalController::class, 'verify'])->name('donations.verify');
+    Route::patch('/donations/{contribution}/deed', [DonationPortalController::class, 'uploadDeed'])->name('donations.deed.upload');
     Route::patch('/donations/{contribution}/request-documents', [DonationPortalController::class, 'requestDocuments'])->name('donations.request-documents');
     Route::patch('/donations/{contribution}/certificate', [DonationPortalController::class, 'issueCertificate'])->name('donations.certificate.issue');
 

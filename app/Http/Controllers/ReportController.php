@@ -106,12 +106,12 @@ class ReportController extends Controller
         $report = $builder->build($request->year(), $request->month());
 
         $rows = collect($report['ledger'])->map(fn (array $row) => [
-            $row['entry_type'], $row['donor_name'], $row['campaign_name'] ?? 'General Fund',
+            $row['entry_type'], $row['donor_name'], $row['purpose'],
             $row['payment_method_label'], number_format($row['amount'], 2, '.', ''),
             $row['received_at']->format('Y-m-d'), $row['status_label'],
         ]);
 
-        return $exporter->handle($rows, ['Entry Type', 'Donor / Requester', 'Campaign / Purpose', 'Payment Method', 'Amount (PHP)', 'Date', 'Status'], sprintf('financial-report-%04d-%02d.csv', $request->year(), $request->month()));
+        return $exporter->handle($rows, ['Entry Type', 'Donor / Requester', 'Purpose', 'Payment Method', 'Amount (PHP)', 'Date', 'Status'], sprintf('financial-report-%04d-%02d.csv', $request->year(), $request->month()));
     }
 
     public function financialPdf(

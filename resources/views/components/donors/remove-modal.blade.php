@@ -14,7 +14,7 @@
                 <x-icon name="alert-triangle" class="h-5 w-5" />
             </span>
             <div class="min-w-0 flex-1">
-                <h2 id="{{ $dialogId }}-title" class="text-base font-semibold text-slate-950">Remove donor profile?</h2>
+                <h2 id="{{ $dialogId }}-title" class="text-base font-semibold text-slate-950">Confirm donor removal</h2>
                 <p class="mt-1 text-sm font-medium text-slate-700">{{ $donor->full_name }}</p>
             </div>
             <button
@@ -28,7 +28,11 @@
         </div>
 
         <p id="{{ $dialogId }}-description" class="px-5 py-4 text-sm leading-6 text-slate-600">
-            If donation history exists, the profile is deactivated instead of permanently deleted. Otherwise, it will be permanently deleted.
+            @if ($donor->contributions_count > 0)
+                This donor has donation history, so the profile will be deactivated and the history preserved.
+            @else
+                This will permanently delete the donor profile. This action cannot be undone.
+            @endif
         </p>
 
         <div class="flex justify-end gap-2 border-t border-slate-200 bg-slate-50/90 px-5 py-3">
@@ -43,7 +47,11 @@
                 @csrf
                 @method('DELETE')
                 <button type="submit" class="h-9 rounded-lg bg-red-700 px-4 text-sm font-semibold text-white transition hover:bg-red-800 focus:outline-none focus:ring-2 focus:ring-red-600 focus:ring-offset-2">
-                    Remove Donor
+                    @if ($donor->contributions_count > 0)
+                        Confirm Deactivation
+                    @else
+                        Confirm Delete
+                    @endif
                 </button>
             </form>
         </div>

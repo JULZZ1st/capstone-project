@@ -1,5 +1,10 @@
 import './bootstrap';
-import './charts';
+
+if (document.querySelector('[data-chart]')) {
+    import('./charts').then(({ initCharts }) => initCharts()).catch((error) => {
+        console.error('Unable to load charts.', error);
+    });
+}
 
 const donorSearchTimers = new WeakMap();
 const donorSearchRequests = new WeakMap();
@@ -50,7 +55,7 @@ const refreshCustomSelect = (select) => {
 
     if (! wrapper || ! menu || ! optionsContainer || ! value || ! trigger || ! empty) return;
 
-    const selected = Array.from(select.options).find((option) => option.value === select.value);
+    const selected = select.selectedOptions[0];
     const placeholder = wrapper.dataset.customSelectPlaceholder || 'Select an option';
     value.textContent = selected?.value ? selected.textContent.trim() : placeholder;
     trigger.disabled = select.disabled;
@@ -63,6 +68,8 @@ const refreshCustomSelect = (select) => {
     menu.setAttribute('aria-labelledby', trigger.id);
 
     optionsContainer.replaceChildren();
+    if (! wrapper.hasAttribute('data-custom-select-open')) return;
+
     Array.from(select.options).forEach((option) => {
         if (option.disabled) return;
 
@@ -99,6 +106,7 @@ const openCustomSelect = (wrapper) => {
     menu.classList.remove('hidden');
     trigger.setAttribute('aria-expanded', 'true');
     trigger.querySelector('[data-custom-select-chevron]')?.classList.add('rotate-180');
+    refreshCustomSelect(wrapper.querySelector('[data-custom-select-native]'));
 
     if (search) {
         search.value = '';
@@ -175,7 +183,6 @@ document.addEventListener('click', (event) => {
         if (select) {
             select.value = option.dataset.customSelectOption;
             select.dispatchEvent(new Event('change', { bubbles: true }));
-            refreshCustomSelect(select);
         }
         closeCustomSelect(wrapper, true);
         return;
@@ -556,6 +563,15 @@ document.addEventListener('change', (event) => {
         barangay.disabled = true;
 
         const provinceCode = selectedLocationCode(provinceSelect);
+        const independentCity = provinceSelect.selectedOptions[0]?.hasAttribute('data-none-province');
+        const regionCode = section.querySelector('input[name="region"]')?.dataset.code || '';
+
+        if (independentCity && regionCode) {
+            city.disabled = true;
+            fetchLocationOptions('/locations/cities?region_code=' + encodeURIComponent(regionCode))
+                .then((items) => populateLocationSelect(city, items, 'Select City / Municipality'));
+            return;
+        }
 
         if (! provinceCode) {
             populateLocationSelect(city, [], 'Select City / Municipality');
@@ -1812,3 +1828,59 @@ document.addEventListener('submit', async (event) => {
         }
     }
 });
+
+
+// Keep wide records in one scroll surface with a matching sticky header.
+document.querySelectorAll('[data-table]').forEach((table) => {
+    const scroll = table.querySelector('[data-table-scroll]');
+    const hint = table.querySelector('[data-table-hint]');
+    if (!scroll || !hint) return;
+
+    const updateOverflow = () => {
+        table.style.setProperty('--table-viewport-width', scroll.clientWidth + 'px');
+        const horizontal = scroll.scrollWidth > scroll.clientWidth + 1;
+        hint.hidden = !horizontal;
+        scroll.tabIndex = horizontal || scroll.scrollHeight > scroll.clientHeight + 1 ? 0 : -1;
+    };
+    const observer = new ResizeObserver(updateOverflow);
+    observer.observe(scroll);
+    observer.observe(scroll.querySelector('table'));
+    updateOverflow();
+});
+
+// Mobile navigation stays compact; desktop keeps its independent collapse preference.
+const sidebar = document.getElementById('app-sidebar');
+const sidebarToggle = document.getElementById('sidebar-toggle');
+if (sidebar && sidebarToggle) {
+    const desktop = window.matchMedia('(min-width: 1024px)');
+    const storageKey = 'sidebarCollapsed';
+    let collapsed = false;
+    let mobileOpen = false;
+    try { collapsed = ['1', 'true'].includes(localStorage.getItem(storageKey)); } catch {}
+    const applySidebar = () => {
+        sidebar.classList.toggle('collapsed', desktop.matches && collapsed);
+        sidebar.classList.toggle('mobile-open', !desktop.matches && mobileOpen);
+        document.documentElement.classList.toggle('sidebar-collapsed', desktop.matches && collapsed);
+        const expanded = desktop.matches ? !collapsed : mobileOpen;
+        sidebarToggle.setAttribute('aria-expanded', String(expanded));
+        sidebarToggle.setAttribute('aria-label', desktop.matches ? 'Toggle sidebar' : (expanded ? 'Close navigation' : 'Open navigation'));
+    };
+    sidebarToggle.addEventListener('click', () => {
+        if (desktop.matches) {
+            collapsed = !collapsed;
+            try { localStorage.setItem(storageKey, collapsed ? '1' : '0'); } catch {}
+        } else {
+            mobileOpen = !mobileOpen;
+        }
+        applySidebar();
+    });
+    desktop.addEventListener('change', () => { mobileOpen = false; applySidebar(); });
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && !desktop.matches && mobileOpen) {
+            mobileOpen = false;
+            applySidebar();
+            sidebarToggle.focus();
+        }
+    });
+    applySidebar();
+}

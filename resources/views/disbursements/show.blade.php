@@ -185,10 +185,6 @@
                 <h3 class="text-xs font-semibold uppercase tracking-wide text-slate-500">Additional Information</h3>
                 <dl class="mt-3 grid gap-4 md:grid-cols-2">
                     <div>
-                        <dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">Supporting Reference (Optional)</dt>
-                        <dd class="mt-1 text-sm font-medium text-slate-950">{{ $disbursement->supporting_reference ?? 'Not provided' }}</dd>
-                    </div>
-                    <div>
                         <dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">Notes / Remarks (Optional)</dt>
                         <dd class="mt-1 whitespace-pre-line text-sm text-slate-700">{{ $disbursement->notes ?? 'Not provided' }}</dd>
                     </div>
@@ -312,7 +308,7 @@
                         <div><label for="edit_obr_number" class="block text-sm font-medium text-slate-700">ObR No. <span class="font-normal text-slate-500">(Optional)</span></label><input id="edit_obr_number" name="obr_number" value="{{ $disbursement->obr_number }}" class="mt-1 block h-11 w-full rounded-lg border-slate-300 text-sm"></div>
                     </div>
                     <div><label for="edit_purpose" class="block text-sm font-medium text-slate-700">Purpose</label><textarea id="edit_purpose" name="purpose" rows="3" required class="mt-1 block w-full rounded-lg border-slate-300 text-sm">{{ $disbursement->purpose }}</textarea><x-form.error name="purpose" /></div>
-                    <div class="grid gap-4 sm:grid-cols-2"><div><label for="edit_supporting_reference" class="block text-sm font-medium text-slate-700">Supporting Reference (Optional)</label><input id="edit_supporting_reference" name="supporting_reference" value="{{ $disbursement->supporting_reference }}" class="mt-1 block h-11 w-full rounded-lg border-slate-300 text-sm"></div><div><label for="edit_notes" class="block text-sm font-medium text-slate-700">Notes / Remarks (Optional)</label><textarea id="edit_notes" name="notes" rows="2" class="mt-1 block w-full rounded-lg border-slate-300 text-sm">{{ $disbursement->notes }}</textarea></div></div>
+                    <div class="grid gap-4 sm:grid-cols-2"><div><label for="edit_notes" class="block text-sm font-medium text-slate-700">Notes / Remarks (Optional)</label><textarea id="edit_notes" name="notes" rows="2" class="mt-1 block w-full rounded-lg border-slate-300 text-sm">{{ $disbursement->notes }}</textarea></div></div>
                 </div>
                 <footer class="flex justify-end gap-3 border-t border-slate-200 bg-slate-50 px-5 py-3"><button type="button" data-close-edit-fund-request class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700">Cancel</button><button type="submit" class="rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white">Save Changes</button></footer>
             </form>

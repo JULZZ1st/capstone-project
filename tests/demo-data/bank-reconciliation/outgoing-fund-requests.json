@@ -1,0 +1,12 @@
+[
+  {"key":"001","amount":8500.00,"purpose":"Emergency food packs for senior citizens","recipient":"Barangay Senior Citizens Office","status":"approved"},
+  {"key":"002","amount":6400.00,"purpose":"School supplies for the community learning hub","recipient":"Poblacion Learning Hub","status":"approved"},
+  {"key":"003","amount":5800.00,"purpose":"Additional sound system rental for the barangay assembly","recipient":"Barangay Events Committee","status":"approved"},
+  {"key":"004","amount":4100.00,"purpose":"Community garden seedlings and soil amendments","recipient":"Urban Gardening Volunteers","status":"approved"},
+  {"key":"005","amount":7200.00,"purpose":"First-aid and over-the-counter medicines","recipient":"Barangay Health Station","status":"pending"},
+  {"key":"006","amount":3750.00,"purpose":"Drinking water and snacks for disaster preparedness training","recipient":"Barangay Disaster Risk Reduction Team","status":"pending"},
+  {"key":"007","amount":12600.00,"purpose":"Roof repair materials for the multipurpose hall","recipient":"Barangay Maintenance Committee","status":"pending"},
+  {"key":"008","amount":3000.00,"purpose":"Replacement storage labels and bins","recipient":"Barangay Supply Office","status":"rejected"},
+  {"key":"009","amount":4950.00,"purpose":"Transportation allowance for relief distribution","recipient":"Barangay Relief Volunteers","status":"rejected"},
+  {"key":"010","amount":8900.00,"purpose":"Portable tents for the temporary evacuation area","recipient":"Barangay Emergency Operations Team","status":"rejected"}
+]

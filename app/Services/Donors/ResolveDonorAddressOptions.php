@@ -10,9 +10,18 @@ use Schoolees\Psgc\Models\Region;
 
 class ResolveDonorAddressOptions
 {
+    private ?Collection $regions = null;
+
+    private array $provincesByRegion = [];
+
+    private array $citiesByParent = [];
+
+    private array $barangaysByCity = [];
+
     public function handle(?string $regionName, ?string $provinceName, ?string $cityName, ?string $barangayName): array
     {
-        $region = $this->matchByName(Region::query()->orderBy('name')->get(['code', 'name']), $regionName);
+        $this->regions ??= Region::query()->orderBy('name')->get(['code', 'name']);
+        $region = $this->matchByName($this->regions, $regionName);
 
         $provinces = collect();
         $province = null;
@@ -22,17 +31,20 @@ class ResolveDonorAddressOptions
         $barangay = null;
 
         if ($region) {
-            $provinces = Province::query()->where('region_code', $region->code)->orderBy('name')->get(['code', 'name']);
+            $provinces = $this->provincesByRegion[$region->code]
+                ??= Province::query()->where('region_code', $region->code)->orderBy('name')->get(['code', 'name']);
             $province = $this->matchByName($provinces, $provinceName);
 
-            $cities = $province
+            $cityKey = $province ? 'province:'.$province->code : 'region:'.$region->code;
+            $cities = $this->citiesByParent[$cityKey] ??= $province
                 ? City::query()->where('province_code', $province->code)->orderBy('name')->get(['code', 'name'])
                 : City::query()->where('region_code', $region->code)->whereNull('province_code')->orderBy('name')->get(['code', 'name']);
 
             $city = $this->matchByName($cities, $cityName);
 
             if ($city) {
-                $barangays = Barangay::query()->where('city_code', $city->code)->orderBy('name')->get(['code', 'name']);
+                $barangays = $this->barangaysByCity[$city->code]
+                    ??= Barangay::query()->where('city_code', $city->code)->orderBy('name')->get(['code', 'name']);
                 $barangay = $this->matchByName($barangays, $barangayName);
             }
         }

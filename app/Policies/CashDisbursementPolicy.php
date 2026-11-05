@@ -80,7 +80,7 @@ class CashDisbursementPolicy
 
     public function void(User $user, CashDisbursement $disbursement): bool
     {
-        return $this->sameWorkspace($user, $disbursement) && $user->hasRole('admin') && $disbursement->status === 'approved' && ! $disbursement->isVoided();
+        return $this->sameWorkspace($user, $disbursement) && $user->hasRole('admin') && $disbursement->isCancellable();
     }
 
     private function active(User $user): bool { return app(\App\Support\Workspaces\WorkspaceAuthorizer::class)->hasActiveWorkspace(); }

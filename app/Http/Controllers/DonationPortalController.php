@@ -8,7 +8,7 @@ use App\Http\Requests\Donations\RequestContributionDocumentsRequest;
 use App\Http\Requests\Donations\StoreContributionRequest;
 use App\Http\Requests\Donations\UpdateContributionRequest;
 use App\Http\Requests\Donations\VerifyContributionRequest;
-use App\Models\Campaign;
+use App\Http\Requests\Donations\UploadContributionDeedRequest;
 use App\Models\Contribution;
 use App\Models\ContributionEvidence;
 use App\Models\Donor;
@@ -16,10 +16,13 @@ use App\Models\InventoryCategory;
 use App\Models\InventorySubcategory;
 use App\Models\SecurityActivityEvent;
 use App\Services\Contributions\LogContribution;
+use App\Services\Contributions\UploadContributionDeed;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Database\QueryException;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -34,7 +37,6 @@ class DonationPortalController extends Controller
                 'id',
                 'workspace_id',
                 'donor_id',
-                'campaign_id',
                 'created_by',
                 'verified_by',
                 'type',
@@ -53,16 +55,21 @@ class DonationPortalController extends Controller
                 'certificate_requested',
                 'certificate_status',
                 'deed_declined',
+                'deed_decline_reason',
+                'document_request_reason',
+                'voided_at',
+                'voided_by',
+                'void_reason',
                 'document_review_status',
                 'donor_tin',
                 'notes',
+                'photo_path',
                 'received_at',
                 'verified_at',
                 'created_at',
             ])
             ->with([
                 'donor:id,full_name,contact_number,email,status',
-                'campaign:id,name,status',
                 'creator:id,first_name,last_name,name',
                 'items',
                 'evidence',
@@ -71,26 +78,16 @@ class DonationPortalController extends Controller
             ->withSum('items', 'estimated_value')
             ->search($filters['search'] ?? null)
             ->type($filters['type'] ?? null)
-            ->campaign(isset($filters['campaign_id']) ? (int) $filters['campaign_id'] : null)
             ->status($filters['status'] ?? null)
             ->latest('received_at')
             ->latest()
             ->paginate(config('donations.pagination.per_page'))
             ->withQueryString();
 
-        $summary = Contribution::query()
-            ->selectRaw(<<<'SQL'
-                COUNT(*) as total_contributions,
-                SUM(CASE WHEN type = 'cash' THEN 1 ELSE 0 END) as cash_contributions,
-                SUM(CASE WHEN type = 'in_kind' THEN 1 ELSE 0 END) as in_kind_contributions,
-                SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending_verification
-            SQL)
-            ->first();
 
         return view('donations.index', [
             'contributions' => $contributions,
             'filters' => $filters,
-            'summary' => $summary,
             'donors' => Donor::query()
                 ->active()
                 ->orderBy('full_name')
@@ -119,10 +116,6 @@ class DonationPortalController extends Controller
                     'notes',
                     'status',
                 ]),
-            'campaigns' => Campaign::query()
-                ->active()
-                ->orderBy('name')
-                ->get(['id', 'name']),
         ]);
     }
 
@@ -158,7 +151,6 @@ class DonationPortalController extends Controller
 
         $contribution->load([
             'donor',
-            'campaign',
             'creator.role',
             'verifier.role',
             'certificateIssuer.role',
@@ -176,6 +168,18 @@ class DonationPortalController extends Controller
             ]);
 
         return view('donations.show', compact('contribution', 'categoryLabels', 'subcategoryLabels'));
+    }
+
+    public function photo(Contribution $contribution)
+    {
+        Gate::authorize('view', $contribution);
+
+        abort_if(blank($contribution->photo_path), 404);
+
+        $storage = Storage::disk('local');
+        abort_unless($storage->exists($contribution->photo_path), 404);
+
+        return $storage->response($contribution->photo_path);
     }
 
     public function downloadEvidence(Contribution $contribution, ContributionEvidence $evidence): StreamedResponse
@@ -205,12 +209,24 @@ class DonationPortalController extends Controller
 
     public function update(UpdateContributionRequest $request, Contribution $contribution): RedirectResponse
     {
-        $previousStatus = $contribution->status;
-        $contribution->update($request->validated());
+        DB::transaction(function () use ($request, $contribution): void {
+            $contribution = Contribution::query()->lockForUpdate()->findOrFail($contribution->id);
+            Gate::authorize('update', $contribution);
+            $data = $request->validated();
+            $previousStatus = $contribution->status;
 
-        if ($contribution->isCash() && $request->user()->hasRole('admin') && $previousStatus !== $contribution->status) {
-            $this->audit($request->user(), 'cash_donation_admin_decision', $contribution, "{$request->user()->name} changed cash donation {$contribution->receipt_number} from {$previousStatus} to {$contribution->status}.");
-        }
+            if ($data['status'] !== $previousStatus && $contribution->ledgerEntry()->exists()) {
+                throw ValidationException::withMessages([
+                    'status' => 'A bank-matched donation must retain its recorded status.',
+                ]);
+            }
+
+            $contribution->update($data);
+
+            if ($contribution->isCash() && $request->user()->hasRole('admin') && $previousStatus !== $contribution->status) {
+                $this->audit($request->user(), 'cash_donation_admin_decision', $contribution, "{$request->user()->name} changed cash donation {$contribution->receipt_number} from {$previousStatus} to {$contribution->status}.");
+            }
+        });
 
         return redirect()
             ->route('donations.show', $contribution)
@@ -219,17 +235,30 @@ class DonationPortalController extends Controller
 
     public function verify(VerifyContributionRequest $request, Contribution $contribution): RedirectResponse
     {
-        $contribution->update([
-            'status' => 'verified',
-            'verified_by' => $request->user()->id,
-            'verified_at' => now(),
-        ]);
+        DB::transaction(function () use ($request, $contribution): void {
+            $contribution = Contribution::query()->lockForUpdate()->findOrFail($contribution->id);
+            Gate::authorize('verify', $contribution);
 
-        $this->audit($request->user(), 'cash_donation_verified', $contribution, "{$request->user()->name} verified cash donation {$contribution->receipt_number}.");
+            $contribution->update([
+                'status' => 'verified',
+                'verified_by' => $request->user()->id,
+                'verified_at' => now(),
+            ]);
+
+            $this->audit($request->user(), 'cash_donation_verified', $contribution, "{$request->user()->name} verified cash donation {$contribution->receipt_number}.");
+        });
 
         return redirect()
             ->back()
             ->with('success', 'Donation verified successfully.');
+    }
+
+    public function uploadDeed(UploadContributionDeedRequest $request, Contribution $contribution, UploadContributionDeed $uploader): RedirectResponse
+    {
+        $uploader->handle($contribution, $request->file('deed_of_donation'), $request->user());
+
+        return redirect()->route('donations.show', $contribution)
+            ->with('success', 'Deed of Donation uploaded. Review the documents before verifying the donation.');
     }
 
     public function requestDocuments(RequestContributionDocumentsRequest $request, Contribution $contribution): RedirectResponse
@@ -254,6 +283,12 @@ class DonationPortalController extends Controller
     {
         $file = $request->file('certificate_of_donation');
         $path = Storage::disk('local')->putFile("contributions/{$contribution->id}/documents", $file);
+
+        if (! is_string($path) || $path === '') {
+            throw ValidationException::withMessages([
+                'certificate_of_donation' => 'The certificate could not be stored. Please try uploading it again.',
+            ]);
+        }
 
         $contribution->evidence()->create([
             'document_type' => 'certificate_of_donation',

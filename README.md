@@ -43,11 +43,52 @@ A web-based donation management system for barangay operations. It helps manage 
    ```bash
    php artisan migrate
    ```
-5. Start the development servers
+5. Seed the bundled address reference data for donor and fund-request dropdowns
+   (safe to rerun; existing locations are preserved):
+   ~~~bash
+   php artisan db:seed --class=PSGCSeeder
+   ~~~
+   For a new development database, php artisan db:seed also creates the default
+   admin/staff accounts and loads these address options.
+6. Start the development servers
    ```bash
    php artisan serve
    npm run dev
    ```
+
+For local testing or demonstrations with built assets and PHP OPcache, stop the
+existing PHP server and run:
+
+~~~bash
+composer dev:fast
+~~~
+
+Open http://127.0.0.1:8000. This command builds the frontend once and starts the
+local server with OPcache when the extension is installed. It does not require
+Vite to stay running. PHP edits are picked up within two seconds; rebuild with
+`npm run build` after changing JavaScript or CSS. Normal development with hot
+reload can continue using the two development servers above.
+
+Use the printed `127.0.0.1` address to connect directly to this server. Keep using
+the same address after signing in so the browser retains the local session.
+
+To use another port after building, run `php scripts/serve-local.php 8001`.
+This server requires `APP_ENV=local` and an uncached local configuration
+(`php artisan config:clear`). It remains PHP's development server; simultaneous
+testing from multiple computers should use the shared web server deployment.
+
+## After pulling changes
+
+Install changed dependencies, apply pending migrations, and rebuild the frontend:
+~~~bash
+composer install
+php artisan migrate
+php artisan db:seed --class=PSGCSeeder
+npm run build
+~~~
+Applying migrations keeps existing records and adds the tables and columns
+required by the current code. Use migrate, rather than migrate:fresh, on a
+database containing records you want to keep.
 
 ## License
 

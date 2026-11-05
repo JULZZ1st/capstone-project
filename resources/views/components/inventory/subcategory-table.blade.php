@@ -9,18 +9,16 @@
     @if ($categories->flatMap->subcategories->isEmpty())
         <x-dashboard.empty-state message="No subcategories recorded yet." />
     @else
-        <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-slate-200 text-sm">
-                <thead class="bg-slate-50 text-left text-xs font-semibold uppercase text-slate-500">
-                    <tr>
-                        <th class="px-3 py-2">Category</th>
-                        <th class="px-3 py-2">Key</th>
-                        <th class="px-3 py-2">Label</th>
-                        <th class="px-3 py-2">Status</th>
-                        <th class="px-3 py-2 text-right">Actions</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-200">
+        <div class="min-w-0">
+            <x-data-table caption="Inventory subcategories" min-width="44rem">
+<x-slot:head>
+                        <x-data-table.heading>Category</x-data-table.heading>
+                        <x-data-table.heading>Key</x-data-table.heading>
+                        <x-data-table.heading>Label</x-data-table.heading>
+                        <x-data-table.heading>Status</x-data-table.heading>
+                        <x-data-table.heading align="right">Actions</x-data-table.heading>
+                    </x-slot:head>
+
                     @foreach ($categories as $category)
                         @foreach ($category->subcategories as $subcategory)
                             <tr>
@@ -43,18 +41,11 @@
                                     </div>
                                 </td>
                             </tr>
-                            <x-inventory.subcategory-form-modal
-                                dialog-id="subcategory-edit-{{ $subcategory->id }}"
-                                :action="route('inventory.subcategories.update', $subcategory)"
-                                method="PATCH"
-                                :subcategory="$subcategory"
-                                :categories="$categories"
-                                title="Edit Subcategory"
-                            />
+
                         @endforeach
                     @endforeach
-                </tbody>
-            </table>
+
+</x-data-table>
         </div>
     @endif
 </div>
@@ -67,3 +58,16 @@
     :categories="$categories"
     title="Add Subcategory"
 />
+
+@foreach ($categories as $category)
+    @foreach ($category->subcategories as $subcategory)
+<x-inventory.subcategory-form-modal
+                                dialog-id="subcategory-edit-{{ $subcategory->id }}"
+                                :action="route('inventory.subcategories.update', $subcategory)"
+                                method="PATCH"
+                                :subcategory="$subcategory"
+                                :categories="$categories"
+                                title="Edit Subcategory"
+                            />
+    @endforeach
+@endforeach

@@ -33,20 +33,24 @@ class UpdateContributionRequest extends FormRequest
             $allowedStatuses = array_values(array_diff($allowedStatuses, ['verified']));
         }
 
+        if ($this->route('contribution')?->ledgerEntry()->exists()) {
+            $allowedStatuses = [$this->route('contribution')->status];
+        }
+
         return [
             'status' => [
                 'required',
                 Rule::in($allowedStatuses),
             ],
-            'notes' => ['nullable', 'string', 'max:2000'],
+            'notes' => ['sometimes', 'nullable', 'string', 'max:2000'],
         ];
     }
 
     protected function prepareForValidation(): void
     {
-        $this->merge([
-            'notes' => $this->blankToNull('notes'),
-        ]);
+        if ($this->has('notes')) {
+            $this->merge(['notes' => $this->blankToNull('notes')]);
+        }
     }
 
     private function blankToNull(string $key): ?string

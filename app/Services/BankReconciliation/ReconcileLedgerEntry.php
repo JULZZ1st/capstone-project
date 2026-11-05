@@ -23,6 +23,21 @@ class ReconcileLedgerEntry
 
             $this->periodGuard->assertMutableEntry($entry);
 
+            if ($entry->status !== 'unmatched' || $entry->matched_contribution_id !== null) {
+                throw ValidationException::withMessages([
+                    'bank_ledger_entry_id' => 'Only unmatched bank deposits can be reconciled.',
+                ]);
+            }
+
+            if (! $contribution->isCash()
+                || $contribution->status !== 'verified'
+                || $contribution->isVoided()
+                || ! in_array($contribution->payment_method, config('donations.electronic_payment_methods'), true)) {
+                throw ValidationException::withMessages([
+                    'contribution_id' => 'Only verified, active electronic cash donations can be reconciled.',
+                ]);
+            }
+
             if (! in_array($entry->transaction_type, ['deposit', null], true) || bccomp((string) $entry->amount, (string) $contribution->amount, 2) !== 0) {
                 throw ValidationException::withMessages(['contribution_id' => 'Only deposits with an exact contribution amount can be reconciled.']);
             }

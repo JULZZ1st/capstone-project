@@ -125,6 +125,38 @@
             <path d="m20 20-4.8-4.8" />
             @break
 
+        @case('ellipsis-vertical')
+            <circle cx="12" cy="5" r="1" fill="currentColor" />
+            <circle cx="12" cy="12" r="1" fill="currentColor" />
+            <circle cx="12" cy="19" r="1" fill="currentColor" />
+            @break
+
+        @case('eye')
+            <path d="M2.5 12s3.2-6 9.5-6 9.5 6 9.5 6-3.2 6-9.5 6-9.5-6-9.5-6Z" />
+            <circle cx="12" cy="12" r="2.5" />
+            @break
+
+        @case('edit')
+            <path d="m14 5 5 5" />
+            <path d="M4 20h4l11-11a2.1 2.1 0 0 0-4-2L4 18v2Z" />
+            @break
+
+        @case('trash')
+            <path d="M4 7h16" />
+            <path d="M10 11v6M14 11v6" />
+            <path d="m5.5 7 .8 13h11.4l.8-13" />
+            <path d="M9 7V4h6v3" />
+            @break
+
+        @case('filter')
+            <path d="M4 6h16l-6.5 7.2v5.3l-3 1.5v-6.8L4 6Z" />
+            @break
+
+        @case('reset')
+            <path d="M4 7v5h5" />
+            <path d="M5.5 12a7 7 0 1 0 2-5" />
+            @break
+
         @case('terminal')
             <rect x="3" y="4" width="18" height="16" rx="2" />
             <path d="m7 9 3 3-3 3" />

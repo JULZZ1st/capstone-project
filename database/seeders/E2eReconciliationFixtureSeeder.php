@@ -27,8 +27,9 @@ class E2eReconciliationFixtureSeeder extends Seeder
         ]);
 
         foreach ([['E2E-DISB-001', 150], ['E2E-DISB-002', 150]] as [$reference, $amount]) {
-            CashDisbursement::query()->updateOrCreate(['supporting_reference' => $reference], [
-                'amount' => $amount, 'purpose' => 'E2E approved disbursement '.$reference,
+            $purpose = 'E2E approved disbursement '.$reference;
+            CashDisbursement::query()->updateOrCreate(['purpose' => $purpose], [
+                'amount' => $amount, 'purpose' => $purpose,
                 'recipient' => 'E2E Recipient', 'requested_date' => '2026-10-06',
                 'requested_by' => $staff->id, 'approved_by' => $admin->id,
                 'approved_at' => '2026-10-06 10:00:00', 'status' => 'approved',

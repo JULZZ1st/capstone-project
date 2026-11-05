@@ -33,7 +33,6 @@ class RequestDisbursement
                 'obr_number' => $data['obr_number'] ?? null,
                 'dv_number' => $this->dvNumberGenerator->handle($workspaceId, $requestedDate),
                 'notes' => $data['notes'] ?? null,
-                'supporting_reference' => $data['supporting_reference'] ?? null,
                 'requested_by' => $user->id,
                 'status' => 'pending',
             ]);
@@ -49,7 +48,6 @@ class RequestDisbursement
                     'recipient' => $disbursement->recipient,
                     'dv_number' => $disbursement->dv_number,
                     'requested_date' => $disbursement->requested_date?->toDateString(),
-                    'supporting_reference' => $disbursement->supporting_reference,
                 ],
                 'occurred_at' => now(),
             ]);

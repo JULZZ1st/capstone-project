@@ -13,14 +13,8 @@
     @endif
 
     <div class="space-y-4">
-        <div class="flex flex-col gap-3 lg:flex-row lg:items-center">
-            <div class="min-w-0 flex-1">
-                <x-donations.filter-bar
-                    :filters="$filters"
-                />
-            </div>
-
-            <div class="flex shrink-0 flex-col gap-2 sm:flex-row">
+        <div class="space-y-3">
+            <div class="flex flex-col gap-2 sm:flex-row sm:justify-end">
                 @can('viewAny', \App\Models\Donor::class)
                     <x-button
                         type="button"
@@ -44,6 +38,7 @@
                 @endcan
             </div>
 
+            <x-donations.filter-bar :filters="$filters" />
         </div>
 
         @if ($contributions->count())
@@ -59,13 +54,13 @@
                 <div class="p-8">
                     <x-dashboard.empty-state
                         icon="cube"
-                        :message="request()->hasAny(['search', 'type', 'campaign_id', 'status'])
+                        :message="request()->hasAny(['search', 'type', 'status'])
                             ? 'No contributions match the current filters.'
                             : 'No contributions have been logged yet.'"
                     />
                     <p class="mt-1 text-center text-sm text-slate-400">
 
-                        @if (request()->hasAny(['search', 'type', 'campaign_id', 'status']))
+                        @if (request()->hasAny(['search', 'type', 'status']))
 
                             Try adjusting your search or filters.
 
@@ -78,7 +73,7 @@
                     </p>
 
                     <div class="mt-4 flex flex-wrap items-center justify-center gap-3">
-                        @if (request()->hasAny(['search', 'type', 'campaign_id', 'status']))
+                        @if (request()->hasAny(['search', 'type', 'status']))
                             <a
                                 href="{{ route('donations.index') }}"
                                 class="text-sm font-semibold text-blue-700 hover:text-blue-800"
@@ -116,7 +111,6 @@
     @can('create', \App\Models\Contribution::class)
         <x-donations.log-modal
             :donors="$donors"
-            :campaigns="$campaigns"
         />
     @endcan
 

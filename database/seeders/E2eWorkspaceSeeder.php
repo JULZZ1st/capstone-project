@@ -3,7 +3,6 @@
 namespace Database\Seeders;
 
 use App\Models\BankLedgerEntry;
-use App\Models\Campaign;
 use App\Models\Contribution;
 use App\Models\Donor;
 use App\Models\InventoryCategory;
@@ -74,15 +73,10 @@ class E2eWorkspaceSeeder extends Seeder
                     'status' => 'active',
                 ],
             );
-            $campaign = Campaign::query()->updateOrCreate(
-                ['slug' => "e2e-campaign-{$suffix}"],
-                ['name' => "E2E Campaign {$suffix}", 'status' => 'active'],
-            );
             Contribution::query()->updateOrCreate(
                 ['reference_number' => "E2E-REF-{$suffix}"],
                 [
                     'donor_id' => $donor->id,
-                    'campaign_id' => $campaign->id,
                     'created_by' => $users['staff']->id,
                     'type' => 'cash',
                     'status' => 'verified',
