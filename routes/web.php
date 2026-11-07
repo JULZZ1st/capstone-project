@@ -13,7 +13,9 @@ use App\Http\Controllers\InventoryStockAdjustmentController;
 use App\Http\Controllers\InventorySubcategoryController;
 use App\Http\Controllers\InventoryUnitController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\StaffAccountController;
 use App\Http\Controllers\SystemSecurityController;
+use App\Http\Controllers\WorkspaceManagementController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function () {
@@ -113,13 +115,19 @@ Route::middleware([
     Route::patch('/system-security/users/{user}/two-factor-enforcement', [SystemSecurityController::class, 'updateTwoFactorEnforcement'])
         ->middleware('role:admin')
         ->name('system-security.two-factor-enforcement.update');
-    Route::post('/system-security/users', [App\Http\Controllers\StaffAccountController::class, 'store'])
+    Route::post('/system-security/users', [StaffAccountController::class, 'store'])
         ->middleware('role:admin')
         ->name('system-security.users.store');
-    Route::patch('/system-security/users/{user}', [App\Http\Controllers\StaffAccountController::class, 'update'])
+    Route::patch('/system-security/users/{user}', [StaffAccountController::class, 'update'])
         ->middleware('role:admin')
         ->name('system-security.users.update');
-    Route::patch('/system-security/users/{user}/deactivate', [App\Http\Controllers\StaffAccountController::class, 'deactivate'])
+    Route::patch('/system-security/users/{user}/deactivate', [StaffAccountController::class, 'deactivate'])
         ->middleware('role:admin')
         ->name('system-security.users.deactivate');
+});
+
+Route::middleware(['auth', 'password.change', 'role:admin'])->group(function () {
+    Route::get('/workspaces', [WorkspaceManagementController::class, 'index'])->name('workspaces.index');
+    Route::post('/workspaces', [WorkspaceManagementController::class, 'store'])->name('workspaces.store');
+    Route::patch('/workspaces/{workspace}/toggle', [WorkspaceManagementController::class, 'toggle'])->name('workspaces.toggle');
 });
