@@ -11,7 +11,7 @@ class PSGCSeeder extends Seeder
 {
     public function run(): void
     {
-        if ((bool) config('psgc.truncate_before_seed', true)) {
+        if ((bool) config('psgc.truncate_before_seed', false)) {
             $this->truncateConfiguredTables();
         }
 

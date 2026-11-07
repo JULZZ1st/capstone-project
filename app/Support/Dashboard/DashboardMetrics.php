@@ -7,6 +7,7 @@ use App\Models\CashDisbursement;
 use App\Models\Contribution;
 use App\Models\Donor;
 use App\Models\InventoryItem;
+use App\Support\Workspaces\WorkspaceContext;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -15,6 +16,7 @@ class DashboardMetrics
 {
     public function build(): array
     {
+        $workspaceId = app(WorkspaceContext::class)->requireId();
         $limit = config('dashboard.limits.recent_items');
         $pendingStatus = config('dashboard.cash_statuses.pending');
         $verifiedStatus = config('dashboard.cash_statuses.verified');
@@ -24,18 +26,17 @@ class DashboardMetrics
                 'total_cash_ledger' => Contribution::query()->where('type', 'cash')->where('status', $verifiedStatus)->sum('amount'),
                 'pending_cash_verification' => Contribution::query()->where('type', 'cash')->where('status', $pendingStatus)->count(),
                 'in_kind_batches' => Cache::remember(
-                    'dashboard.summary.in_kind_batches',
+                    "dashboard.workspace.{$workspaceId}.summary.in_kind_batches",
                     config('dashboard.cache.safe_summary_ttl'),
                     fn (): int => InventoryItem::query()->count(),
                 ),
                 'registered_donors' => Cache::remember(
-                    'dashboard.summary.registered_donors',
+                    "dashboard.workspace.{$workspaceId}.summary.registered_donors",
                     config('dashboard.cache.safe_summary_ttl'),
                     fn (): int => Donor::query()->count(),
                 ),
             ],
             'staff_finance_action_items' => $this->staffFinanceActionItems($pendingStatus),
-            'funding_distribution' => $this->fundingDistribution($verifiedStatus),
             'recent_cash_awaiting_audit' => Contribution::query()
                 ->select(['id', 'donor_id', 'amount', 'payment_method', 'received_at', 'created_at'])
                 ->with('donor:id,full_name')
@@ -101,23 +102,6 @@ class DashboardMetrics
                 ->get()
                 ->sum(fn (BankLedgerEntry $entry): float => abs((float) $entry->discrepancy_amount)),
         ];
-    }
-
-    private function fundingDistribution(string $verifiedStatus): Collection
-    {
-        return Contribution::query()
-            ->select('campaign_id', DB::raw('sum(amount) as total'))
-            ->where('type', 'cash')
-            ->where('status', $verifiedStatus)
-            ->groupBy('campaign_id')
-            ->with('campaign:id,name')
-            ->orderByDesc('total')
-            ->limit(config('dashboard.limits.funding_categories'))
-            ->get()
-            ->map(fn (Contribution $row): object => (object) [
-                'label' => $row->campaign?->name ?? 'Uncategorized',
-                'total' => $row->total,
-            ]);
     }
 
     private function systemLogActivity(int $limit): Collection

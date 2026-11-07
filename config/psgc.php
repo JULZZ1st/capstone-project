@@ -102,6 +102,6 @@ return [
     |
     */
     'resources_path' => base_path('resources/psgc'),
-    'truncate_before_seed' => true,
+    'truncate_before_seed' => false,
 
 ];

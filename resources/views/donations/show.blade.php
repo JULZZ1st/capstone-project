@@ -46,6 +46,15 @@
                     </div>
                 </dl>
 
+                <x-donations.deed-upload-form :contribution="$contribution" />
+
+                @if ($contribution->photo_path)
+                    <div class="mt-6">
+                        <h3 class="text-sm font-semibold text-slate-900">Donation Photo</h3>
+                        <img src="{{ route('donations.photo', $contribution) }}" alt="Photo attached to contribution {{ $contribution->receipt_number }}" class="mt-2 max-h-96 rounded-lg border border-slate-200 object-contain">
+                    </div>
+                @endif
+
                 @if ($contribution->isCash())
                     <div class="mt-6 rounded-md bg-slate-50 p-4">
                         <p class="text-sm font-semibold text-slate-600">Amount</p>

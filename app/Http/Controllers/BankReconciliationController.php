@@ -7,6 +7,8 @@ use App\Http\Requests\BankReconciliation\CreateReconciliationPeriodRequest;
 use App\Http\Requests\BankReconciliation\UpdateReconciliationPeriodRequest;
 use App\Http\Requests\BankReconciliation\CreateReconciliationDiscrepancyRequest;
 use App\Http\Requests\BankReconciliation\ReconciliationCorrectionRequest;
+use App\Http\Requests\BankReconciliation\ReviewReconciliationDiscrepancyRequest;
+use App\Http\Requests\BankReconciliation\ResolveReconciliationDiscrepancyRequest;
 use App\Http\Requests\BankReconciliation\ReconcileLedgerEntryRequest;
 use App\Http\Requests\BankReconciliation\StoreBankWithdrawalRequest;
 use App\Http\Requests\BankReconciliation\StoreWithdrawalDisbursementMatchRequest;
@@ -17,16 +19,17 @@ use App\Models\Contribution;
 use App\Models\ReconciliationDiscrepancy;
 use App\Services\BankReconciliation\ImportBankStatement;
 use App\Services\BankReconciliation\LedgerMatchFinder;
+use App\Services\BankReconciliation\MatchWithdrawalDisbursements;
 use App\Services\BankReconciliation\ReconcileLedgerEntry;
 use App\Services\BankReconciliation\ReconciliationPeriodService;
 use App\Services\BankReconciliation\ReconciliationPeriodGuard;
 use App\Services\BankReconciliation\ReconciliationDiscrepancyService;
 use App\Services\BankReconciliation\ReconciliationApprovalService;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\DB;
-use App\Support\Workspaces\WorkspaceContext;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
+use App\Support\Workspaces\WorkspaceContext;
 use Illuminate\View\View;
 
 class BankReconciliationController extends Controller
@@ -35,34 +38,42 @@ class BankReconciliationController extends Controller
     {
         Gate::authorize('viewAny', BankLedgerEntry::class);
 
+        $selectedPeriod = request()->integer('period_id')
+            ? BankReconciliation::query()->with(['discrepancies.reporter', 'discrepancies.adminReviewer', 'discrepancies.resolver'])->findOrFail(request()->integer('period_id'))
+            : null;
+        $activePeriod = $selectedPeriod ?: BankReconciliation::query()->with(['discrepancies.reporter', 'discrepancies.adminReviewer', 'discrepancies.resolver'])->latest('period_end')->first();
+        $confirmedPeriods = BankReconciliation::query()
+            ->whereIn('status', ['locked', 'approved_locked'])
+            ->whereNotNull('bank_ending_balance')
+            ->whereNotNull('period_end')
+            ->orderByDesc('period_end')
+            ->get(['bank_account', 'period_end', 'bank_ending_balance']);
+        $reconciliationPeriods = BankReconciliation::query()->orderByDesc('period_end')->get();
+
         $ledgerEntries = BankLedgerEntry::query()
             ->incoming()
             ->needsReview()
+            ->with(['discrepancies.reporter', 'discrepancies.adminReviewer', 'discrepancies.resolver'])
             ->latest('transaction_date')
             ->limit(config('bank_reconciliation.limits.feed'))
             ->get();
 
         $withdrawals = BankLedgerEntry::query()
             ->withdrawalsToReview()
-            ->with(['matchedDisbursements.requester:id,name,first_name,last_name'])
+            ->with(['matchedDisbursements.requester:id,name,first_name,last_name', 'discrepancies.reporter', 'discrepancies.adminReviewer', 'discrepancies.resolver'])
             ->latest('transaction_date')
             ->limit(config('bank_reconciliation.limits.feed'))
             ->get();
 
         $eligibleDisbursements = CashDisbursement::query()
-            ->approvedActive()
-            ->whereDoesntHave('withdrawalMatch')
-            ->where(function ($query): void {
-                $query->whereDoesntHave('payment')
-                    ->orWhereHas('payment', fn ($payment) => $payment->where('payment_method', 'bank_transfer'));
-            })
+            ->eligibleForWithdrawalMatching()
             ->with('requester:id,name,first_name,last_name')
             ->latest('approved_at')
             ->get();
 
         $pendingReceipts = Contribution::query()
             ->eligibleForReconciliation()
-            ->with(['donor:id,full_name', 'campaign:id,name'])
+            ->with('donor:id,full_name')
             ->latest('received_at')
             ->limit(config('bank_reconciliation.limits.pending_receipts'))
             ->get();
@@ -72,6 +83,7 @@ class BankReconciliationController extends Controller
             ->with([
                 'matchedContribution.donor:id,full_name',
                 'matcher:id,first_name,last_name,name',
+                'discrepancies.reporter', 'discrepancies.adminReviewer', 'discrepancies.resolver',
             ])
             ->latest('matched_at')
             ->limit(config('bank_reconciliation.limits.history', 20))
@@ -83,6 +95,7 @@ class BankReconciliationController extends Controller
             ->with([
                 'matchedDisbursements',
                 'reconciler:id,first_name,last_name,name',
+                'discrepancies.reporter', 'discrepancies.adminReviewer', 'discrepancies.resolver',
             ])
             ->latest('reconciled_at')
             ->limit(config('bank_reconciliation.limits.history', 20))
@@ -91,9 +104,26 @@ class BankReconciliationController extends Controller
         $suggestions = $ledgerEntries->mapWithKeys(
             fn (BankLedgerEntry $entry) => [$entry->id => $matchFinder->suggest($entry, $pendingReceipts)]
         );
+        $boardBankTransactions = $activePeriod
+            ? BankLedgerEntry::query()->whereDate('transaction_date', '>=', $activePeriod->period_start)->whereDate('transaction_date', '<=', $activePeriod->period_end)->with(['matchedContribution', 'matchedDisbursements'])->orderBy('transaction_date')->get()
+            : collect();
+        $boardContributions = Contribution::query()->where('type', 'cash')->whereIn('payment_method', config('donations.electronic_payment_methods'))->where('status', 'verified')->whereNull('voided_at')->with(['donor:id,full_name', 'ledgerEntry'])->when($activePeriod, fn ($query) => $query->whereDate('received_at', '>=', $activePeriod->period_start)->whereDate('received_at', '<=', $activePeriod->period_end))->orderBy('received_at')->get();
+        $boardDisbursements = CashDisbursement::query()
+            ->approvedActive()
+            ->where(function ($query) {
+                $query->whereDoesntHave('payment')
+                    ->orWhereHas('payment', fn ($payment) => $payment->where('payment_method', 'bank_transfer'));
+            })
+            ->with(['requester:id,first_name,last_name,name', 'withdrawalMatch'])
+            ->when($activePeriod, fn ($query) => $query->whereDate('approved_at', '>=', $activePeriod->period_start)->whereDate('approved_at', '<=', $activePeriod->period_end))
+            ->orderBy('approved_at')
+            ->get();
 
         return view('bank-reconciliation', [
-            'latestReconciliationPeriod' => BankReconciliation::query()->with('discrepancies')->latest('period_end')->first(),
+            'bankAccounts' => config('bank_reconciliation.bank_accounts', []),
+            'latestReconciliationPeriod' => $activePeriod,
+            'reconciliationPeriods' => $reconciliationPeriods,
+            'confirmedPeriods' => $confirmedPeriods,
             'ledgerEntries' => $ledgerEntries,
             'pendingReceipts' => $pendingReceipts,
             'suggestions' => $suggestions,
@@ -104,15 +134,23 @@ class BankReconciliationController extends Controller
             'withdrawalsToReviewCount' => BankLedgerEntry::query()->withdrawalsToReview()->count(),
             'history' => $history,
             'withdrawalHistory' => $withdrawalHistory,
+            'boardBankTransactions' => $boardBankTransactions,
+            'boardContributions' => $boardContributions,
+            'boardDisbursements' => $boardDisbursements,
         ]);
     }
 
     public function createPeriod(CreateReconciliationPeriodRequest $request, ReconciliationPeriodService $periods): RedirectResponse
     {
-        $periods->create([...$request->validated(), 'prepared_by' => $request->user()->id]);
+        $data = $request->validated();
+        if (filled($data['opening_balance_explanation'] ?? null)) {
+            $data['notes'] = $data['notes'] ?? $data['opening_balance_explanation'];
+        }
+        unset($data['opening_balance_explanation']);
+        $period = $periods->create([...$data, 'prepared_by' => $request->user()->id]);
 
         return redirect()
-            ->route('bank-reconciliation.index')
+            ->route('bank-reconciliation.index', ['period_id' => $period->id])
             ->with('success', 'Reconciliation period created and calculated from current records.');
     }
 
@@ -154,13 +192,78 @@ class BankReconciliationController extends Controller
     public function createDiscrepancy(CreateReconciliationDiscrepancyRequest $request, BankReconciliation $period, ReconciliationDiscrepancyService $discrepancies): RedirectResponse
     {
         $data = $request->validated();
+        $data['custom_type'] = $data['type'] === 'other' ? trim((string) ($data['custom_type'] ?? '')) : null;
+        $data['reported_by'] = $request->user()->id;
+        abort_unless((int) $period->workspace_id === (int) app(WorkspaceContext::class)->requireId(), 404);
+        if (! empty($data['bank_ledger_entry_id'])) {
+            $entry = BankLedgerEntry::query()->whereKey($data['bank_ledger_entry_id'])->firstOrFail();
+            abort_unless($entry->workspace_id === $period->workspace_id && $entry->transaction_date?->between($period->period_start, $period->period_end), 422);
+            if ($entry->status === 'reconciled') {
+                throw ValidationException::withMessages(['bank_ledger_entry_id' => 'A reconciled bank transaction cannot receive a new discrepancy report.']);
+            }
+        }
+        if (! empty($data['system_record_type']) && ! empty($data['system_record_id'])) {
+            $record = $data['system_record_type'] === 'contribution'
+                ? Contribution::query()->findOrFail($data['system_record_id'])
+                : CashDisbursement::query()->findOrFail($data['system_record_id']);
+            abort_unless($record->workspace_id === $period->workspace_id, 422);
+        }
+        if ($request->hasFile('supporting_evidence')) {
+            $data['evidence_path'] = $request->file('supporting_evidence')->store('bank-reconciliation/discrepancies/'.$period->id);
+        }
+        unset($data['supporting_evidence']);
         $data['adjustment_amount'] = $data['classification'] === 'accounting_adjustment'
             ? (float) ($data['adjustment_amount'] ?? 0)
             : 0;
         $data['carry_forward'] = $data['classification'] === 'timing_difference' && $request->boolean('carry_forward');
         $discrepancies->create($period, $data, $request->user());
 
-        return redirect()->route('bank-reconciliation.index')->with('success', 'Discrepancy recorded for investigation.');
+        return redirect()->route('bank-reconciliation.index', ['period_id' => $period->id])->with('success', 'Unmatched record reported for investigation.');
+    }
+
+    public function updateDiscrepancy(CreateReconciliationDiscrepancyRequest $request, BankReconciliation $period, ReconciliationDiscrepancy $discrepancy, ReconciliationDiscrepancyService $discrepancies): RedirectResponse
+    {
+        abort_unless((int) $period->workspace_id === (int) app(WorkspaceContext::class)->requireId(), 404);
+        $data = $request->validated();
+        $data['custom_type'] = $data['type'] === 'other' ? trim((string) ($data['custom_type'] ?? '')) : null;
+        $data['adjustment_amount'] = $data['classification'] === 'accounting_adjustment' ? (float) ($data['adjustment_amount'] ?? 0) : 0;
+        $data['carry_forward'] = $data['classification'] === 'timing_difference' && $request->boolean('carry_forward');
+        if ($request->hasFile('supporting_evidence')) $data['evidence_path'] = $request->file('supporting_evidence')->store('bank-reconciliation/discrepancies/'.$period->id);
+        unset($data['supporting_evidence'], $data['bank_ledger_entry_id'], $data['system_record_type'], $data['system_record_id']);
+        $discrepancies->update($period, $discrepancy, $data, $request->user());
+        return redirect()->route('bank-reconciliation.index', ['period_id' => $period->id])->with('success', 'Discrepancy report updated.');
+    }
+
+    public function reviewDiscrepancy(ReviewReconciliationDiscrepancyRequest $request, BankReconciliation $period, ReconciliationDiscrepancy $discrepancy, string $decision, ReconciliationDiscrepancyService $discrepancies): RedirectResponse
+    {
+        Gate::authorize('reviewDiscrepancy', $period);
+        abort_unless((int) $period->workspace_id === (int) app(WorkspaceContext::class)->requireId(), 404);
+
+        $discrepancies->review($period, $discrepancy, $decision, $request->validated('note'), $request->user());
+
+        return redirect()->route('bank-reconciliation.index', ['period_id' => $period->id])
+            ->with('success', $decision === 'accepted' ? 'Discrepancy explanation accepted for Admin review.' : 'Correction requested from Staff for this discrepancy.');
+    }
+
+    public function resolveDiscrepancy(ResolveReconciliationDiscrepancyRequest $request, BankReconciliation $period, ReconciliationDiscrepancy $discrepancy, ReconciliationDiscrepancyService $discrepancies): RedirectResponse
+    {
+        Gate::authorize('resolveDiscrepancy', $period);
+        abort_unless((int) $period->workspace_id === (int) app(WorkspaceContext::class)->requireId(), 404);
+        $path = $request->hasFile('resolution_evidence')
+            ? $request->file('resolution_evidence')->store('bank-reconciliation/discrepancies/'.$period->id.'/resolutions')
+            : null;
+        $discrepancies->resolve($period, $discrepancy, $request->validated('resolution_explanation'), $path, $request->user());
+        return redirect()->route('bank-reconciliation.index', ['period_id' => $period->id])->with('success', 'Discrepancy resolution saved.');
+    }
+
+    public function discrepancyResolutionEvidence(BankReconciliation $period, ReconciliationDiscrepancy $discrepancy)
+    {
+        Gate::authorize('viewAny', BankLedgerEntry::class);
+        abort_unless((int) $period->workspace_id === (int) app(WorkspaceContext::class)->requireId(), 404);
+        abort_unless((int) $discrepancy->bank_reconciliation_id === (int) $period->id && filled($discrepancy->resolution_evidence_path), 404);
+        $storage = Storage::disk('local');
+        abort_unless($storage->exists($discrepancy->resolution_evidence_path), 404);
+        return $storage->response($discrepancy->resolution_evidence_path);
     }
 
     public function withdrawalDetails(BankLedgerEntry $withdrawal): View
@@ -182,10 +285,19 @@ class BankReconciliationController extends Controller
 
     public function import(ImportBankStatementRequest $request, ImportBankStatement $importer): RedirectResponse
     {
-        $count = $importer->handle($request->file('statement'), $request->user());
+        $period = $request->integer('period_id')
+            ? BankReconciliation::query()->findOrFail($request->integer('period_id'))
+            : null;
+        if ($period !== null) {
+            Gate::authorize('update', $period);
+        }
+        $count = $importer->handle($request->file('statement'), $request->user(), $period);
         $routeParameters = $request->input('return_tab') === 'outgoing'
             ? ['tab' => 'outgoing']
             : [];
+        if ($period !== null) {
+            $routeParameters['period_id'] = $period->id;
+        }
 
         return redirect()
             ->route('bank-reconciliation.index', $routeParameters)
@@ -212,68 +324,24 @@ class BankReconciliationController extends Controller
             ->with('success', 'Bank withdrawal entry recorded for review.');
     }
 
-    public function storeWithdrawalMatches(StoreWithdrawalDisbursementMatchRequest $request, BankLedgerEntry $withdrawal, ReconciliationPeriodGuard $periodGuard): RedirectResponse
+    public function storeWithdrawalMatches(StoreWithdrawalDisbursementMatchRequest $request, BankLedgerEntry $withdrawal, MatchWithdrawalDisbursements $matcher): RedirectResponse
     {
         Gate::authorize('matchWithdrawal', $withdrawal);
-
-        $periodGuard->assertMutableEntry($withdrawal);
-        $disbursementIds = $request->disbursementIds();
-        DB::transaction(function () use ($disbursementIds, $request, $withdrawal): void {
-            $lockedWithdrawal = BankLedgerEntry::query()->whereKey($withdrawal->id)->lockForUpdate()->firstOrFail();
-            $disbursements = CashDisbursement::query()->whereIn('id', $disbursementIds)->lockForUpdate()->get();
-            $selectedTotal = $disbursements->sum('amount');
-            $difference = (float) $lockedWithdrawal->amount - (float) $selectedTotal;
-            $lockedWithdrawal->matchedDisbursements()->syncWithPivotValues(
-                $disbursementIds,
-                ['workspace_id' => app(WorkspaceContext::class)->requireId()],
-            );
-            $lockedWithdrawal->forceFill([
-                'discrepancy_amount' => abs($difference) >= 0.005 ? $difference : null,
-                'discrepancy_reason' => abs($difference) >= 0.005 ? trim($request->input('discrepancy_reason')) : null,
-            ])->save();
-        });
+        $matcher->handle($withdrawal, $request->disbursementIds(), $request->user(), $request->validated('discrepancy_reason'));
 
         return redirect()
             ->route('bank-reconciliation.index', ['tab' => 'outgoing'])
             ->with('success', 'Withdrawal match selection updated.');
     }
 
-    public function finalizeWithdrawal(StoreWithdrawalDisbursementMatchRequest $request, BankLedgerEntry $withdrawal): RedirectResponse
+    public function finalizeWithdrawal(StoreWithdrawalDisbursementMatchRequest $request, BankLedgerEntry $withdrawal, MatchWithdrawalDisbursements $matcher): RedirectResponse
     {
         Gate::authorize('matchWithdrawal', $withdrawal);
-
-        $disbursementIds = $request->disbursementIds();
-
-        DB::transaction(function () use ($disbursementIds, $request, $withdrawal): void {
-            $withdrawal = BankLedgerEntry::query()->whereKey($withdrawal->id)->lockForUpdate()->firstOrFail();
-            $selectedTotal = CashDisbursement::query()->whereIn('id', $disbursementIds)->sum('amount');
-            $difference = (float) $withdrawal->amount - (float) $selectedTotal;
-
-            if ($withdrawal->isReconciled()) {
-                throw ValidationException::withMessages(['withdrawal' => 'This bank withdrawal has already been reconciled.']);
-            }
-
-            $period = BankReconciliation::query()->whereDate('period_start', '<=', $withdrawal->transaction_date)->whereDate('period_end', '>=', $withdrawal->transaction_date)->first();
-            if ($period?->isLocked()) {
-                throw ValidationException::withMessages(['period' => 'Transactions in a locked reconciliation period cannot be modified.']);
-            }
-            if (abs($difference) >= 0.005) {
-                throw ValidationException::withMessages(['finalize' => 'The withdrawal can only be reconciled when the difference is zero.']);
-            }
-
-            $withdrawal->matchedDisbursements()->sync($disbursementIds);
-            $withdrawal->forceFill([
-                'status' => 'reconciled',
-                'discrepancy_amount' => null,
-                'discrepancy_reason' => null,
-                'reconciled_by' => $request->user()->id,
-                'reconciled_at' => now(),
-            ])->save();
-        });
+        $matcher->handle($withdrawal, $request->disbursementIds(), $request->user(), $request->validated('discrepancy_reason'), true);
 
         return redirect()
             ->route('bank-reconciliation.index', ['tab' => 'outgoing'])
-            ->with('success', 'Bank withdrawal reconciled successfully.');
+            ->with('success', 'Match confirmed successfully. The bank transaction and disbursement records were updated.');
     }
 
     public function reconcile(ReconcileLedgerEntryRequest $request, ReconcileLedgerEntry $reconciler): RedirectResponse
@@ -288,7 +356,7 @@ class BankReconciliationController extends Controller
 
         return redirect()
             ->route('bank-reconciliation.index')
-            ->with('success', 'Bank ledger entry reconciled successfully.');
+            ->with('success', 'Match confirmed successfully. The bank transaction and system record were updated.');
     }
 
     private function withdrawalStatementId(array $data): string

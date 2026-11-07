@@ -1,4 +1,4 @@
-@props(['donors', 'campaigns'])
+@props(['donors'])
 
 @php($selectedType = old('donation_type', 'cash'))
 
@@ -73,6 +73,18 @@
                     :donors="$donors"
                 />
 
+                <div>
+                    <x-form.label for="photo">Donation Photo (Optional)</x-form.label>
+                    <input
+                        id="photo"
+                        name="photo"
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        class="mt-1 block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm file:mr-4 file:rounded-md file:border-0 file:bg-blue-50 file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-blue-700 hover:file:bg-blue-100"
+                    >
+                    <p class="mt-1 text-xs text-slate-500">Upload one JPG, PNG, or WEBP image up to 5 MB.</p>
+                    <x-form.error name="photo" />
+                </div>
             </div>
         </div>
 
@@ -116,7 +128,7 @@
                 <button type="button" class="rounded-md px-2 py-1 text-2xl leading-none text-slate-500 hover:bg-slate-100" data-dialog-close="quick-create-donor-dialog" aria-label="Close modal">&times;</button>
             </div>
             <div class="min-h-0 flex-1 overflow-y-auto">
-                <x-donors.form mode="create" />
+                <x-donors.form mode="create" form-key="quick-create" id-prefix="quick-create_" />
                 <p class="mx-5 mb-4 hidden rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700" data-quick-donor-error role="alert"></p>
             </div>
             <div class="flex shrink-0 items-center justify-between gap-3 border-t border-slate-200 bg-slate-50 px-5 py-3">

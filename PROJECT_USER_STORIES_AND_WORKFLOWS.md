@@ -564,4 +564,4 @@ For groupmates who want to verify a feature in the source code:
 | Reports | `app/Http/Controllers/ReportController.php`, `app/Services/Reports/` |
 | Security/audit | `app/Models/SecurityActivityEvent.php`, `app/Http/Controllers/SystemSecurityController.php` |
 | Database history | `database/migrations/` |
-| Automated verification | `tests/Feature/`, `tests/Unit/`, and isolated Playwright artifacts under `artifacts/` |
+| Automated verification | `tests/Feature/` and `tests/Unit/`; generated screenshots, exports, and database backups stay local and are excluded from Git |

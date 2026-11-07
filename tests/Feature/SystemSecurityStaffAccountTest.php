@@ -32,7 +32,7 @@ class SystemSecurityStaffAccountTest extends TestCase
         $this->assertDatabaseHas('security_activity_events', ['action' => 'staff_account_created']);
     }
 
-    public function test_admin_can_create_a_staff_account_for_treasurer_duties(): void
+    public function test_admin_created_account_persists_staff_role(): void
     {
         $admin = $this->userWithRole('admin');
 
@@ -40,8 +40,8 @@ class SystemSecurityStaffAccountTest extends TestCase
             ->from(route('system-security.index'))
             ->post(route('system-security.users.store'), [
             'first_name' => 'New',
-            'last_name' => 'Treasurer',
-            'email' => 'new.treasurer@example.test',
+            'last_name' => 'Member',
+            'email' => 'new.staff.member@example.test',
             'role' => 'staff',
             'password' => 'LongPassword123!',
             'password_confirmation' => 'LongPassword123!',
@@ -49,7 +49,7 @@ class SystemSecurityStaffAccountTest extends TestCase
 
         $response->assertRedirect(route('system-security.index'));
         $this->assertDatabaseHas('users', [
-            'email' => 'new.treasurer@example.test',
+            'email' => 'new.staff.member@example.test',
             'role_id' => Role::query()->where('name', 'staff')->value('id'),
         ]);
         $this->assertDatabaseHas('security_activity_events', ['action' => 'staff_account_created']);
@@ -105,61 +105,48 @@ class SystemSecurityStaffAccountTest extends TestCase
             ->assertSee('value="New"', false);
     }
 
-    public function test_created_staff_accounts_complete_the_temporary_password_flow_for_each_role(): void
+    public function test_created_staff_account_completes_the_temporary_password_flow(): void
     {
         $admin = $this->userWithRole('admin');
         $temporaryPassword = 'TemporaryPassword123!';
         $newPassword = 'PermanentPassword456!';
 
-        foreach (['staff'] as $role) {
-            $email = "new.{$role}@example.test";
+        $email = 'new.staff@example.test';
 
-            $response = $this->actingAs($admin)->post(route('system-security.users.store'), [
-                'first_name' => 'New',
-                'last_name' => ucfirst($role),
-                'email' => $email,
-                'role' => $role,
-                'password' => $temporaryPassword,
-                'password_confirmation' => $temporaryPassword,
-            ]);
+        $response = $this->actingAs($admin)->post(route('system-security.users.store'), [
+            'first_name' => 'New',
+            'last_name' => 'Staff',
+            'email' => $email,
+            'role' => 'staff',
+            'password' => $temporaryPassword,
+            'password_confirmation' => $temporaryPassword,
+        ]);
 
-            $response->assertRedirect(route('system-security.index'));
+        $response->assertRedirect(route('system-security.index'));
+        $this->assertDatabaseHas('users', [
+            'email' => $email,
+            'role_id' => Role::query()->where('name', 'staff')->value('id'),
+            'must_change_password' => true,
+            'status' => config('auth_defaults.user_status'),
+        ]);
 
-            $this->assertDatabaseHas('users', [
-                'email' => $email,
-                'role_id' => Role::query()->where('name', $role)->value('id'),
-                'must_change_password' => true,
-                'status' => config('auth_defaults.user_status'),
-            ]);
-
-            $this->post(route('logout'));
-
-            $this->post(route('login.store'), [
-                'email' => $email,
-                'password' => $temporaryPassword,
-            ])->assertRedirect(route('dashboard', absolute: false));
-
-            $this->get(route('dashboard'))
-                ->assertRedirect(route('password.change'));
-
-            $this->post(route('password.change.store'), [
-                'current_password' => $temporaryPassword,
-                'password' => $newPassword,
-                'password_confirmation' => $newPassword,
-            ])->assertRedirect(route('dashboard', absolute: false));
-
-            $this->assertDatabaseHas('users', [
-                'email' => $email,
-                'must_change_password' => false,
-            ]);
-
-            $this->post(route('logout'));
-
-            $this->post(route('login.store'), [
-                'email' => $email,
-                'password' => $newPassword,
-            ])->assertRedirect(route('dashboard', absolute: false));
-        }
+        $this->post(route('logout'));
+        $this->post(route('login.store'), [
+            'email' => $email,
+            'password' => $temporaryPassword,
+        ])->assertRedirect(route('dashboard', absolute: false));
+        $this->get(route('dashboard'))->assertRedirect(route('password.change'));
+        $this->post(route('password.change.store'), [
+            'current_password' => $temporaryPassword,
+            'password' => $newPassword,
+            'password_confirmation' => $newPassword,
+        ])->assertRedirect(route('dashboard', absolute: false));
+        $this->assertDatabaseHas('users', ['email' => $email, 'must_change_password' => false]);
+        $this->post(route('logout'));
+        $this->post(route('login.store'), [
+            'email' => $email,
+            'password' => $newPassword,
+        ])->assertRedirect(route('dashboard', absolute: false));
     }
 
     public function test_staff_cannot_access_user_management(): void

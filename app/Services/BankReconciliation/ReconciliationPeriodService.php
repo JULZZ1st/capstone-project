@@ -25,6 +25,7 @@ class ReconciliationPeriodService
 
     public function create(array $data): BankReconciliation
     {
+        $bankAccount = $data['bank_account'] ?? config('bank_reconciliation.bank_accounts.0', 'LANDBANK Barangay Operating Account');
         $start = Carbon::parse($data['period_start'])->startOfDay();
         $end = Carbon::parse($data['period_end'])->startOfDay();
 
@@ -32,18 +33,46 @@ class ReconciliationPeriodService
             throw ValidationException::withMessages(['period_end' => 'The period end must be on or after the period start.']);
         }
 
-        return DB::transaction(function () use ($data, $start, $end) {
+        return DB::transaction(function () use ($data, $bankAccount, $start, $end) {
             if (BankReconciliation::query()
                 ->whereNotNull('period_start')
                 ->whereNotNull('period_end')
+                ->where(function ($query) use ($bankAccount) {
+                    $query->where('bank_account', $bankAccount);
+                    if ($bankAccount === config('bank_reconciliation.bank_accounts.0')) {
+                        $query->orWhereNull('bank_account');
+                    }
+                })
                 ->where('period_start', '<=', $end->toDateString())
                 ->where('period_end', '>=', $start->toDateString())
                 ->exists()) {
-                throw ValidationException::withMessages(['period_start' => 'The reconciliation period overlaps an existing period.']);
+                throw ValidationException::withMessages(['period_start' => 'This bank account already has an overlapping reconciliation period. Resume the existing period instead.']);
+            }
+
+            $draftPrevious = BankReconciliation::query()
+                ->where('status', 'draft')
+                ->where(function ($query) use ($bankAccount) {
+                    $query->where('bank_account', $bankAccount);
+                    if ($bankAccount === config('bank_reconciliation.bank_accounts.0')) {
+                        $query->orWhereNull('bank_account');
+                    }
+                })
+                ->whereDate('period_end', '<', $start->toDateString())
+                ->orderByDesc('period_end')
+                ->first();
+
+            if ($draftPrevious !== null) {
+                throw ValidationException::withMessages(['period_start' => 'Complete and submit the previous Draft period before starting a new period for this account.']);
             }
 
             $previous = BankReconciliation::query()
                 ->whereIn('status', ['locked', 'approved_locked'])
+                ->where(function ($query) use ($bankAccount) {
+                    $query->where('bank_account', $bankAccount);
+                    if ($bankAccount === config('bank_reconciliation.bank_accounts.0')) {
+                        $query->orWhereNull('bank_account');
+                    }
+                })
                 ->whereDate('period_end', '<', $start->toDateString())
                 ->orderByDesc('period_end')
                 ->lockForUpdate()
@@ -65,6 +94,7 @@ class ReconciliationPeriodService
 
             $period = BankReconciliation::query()->create([
                 ...$data,
+                'bank_account' => $bankAccount,
                 'date' => $end->toDateString(),
                 'period_start' => $start->toDateString(),
                 'period_end' => $end->toDateString(),

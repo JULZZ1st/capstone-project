@@ -28,7 +28,6 @@ class StoreDisbursementRequest extends FormRequest
             'obr_number' => ['nullable', 'string', 'max:255'],
             'requested_date' => ['required', 'date'],
             'notes' => ['nullable', 'string', 'max:2000'],
-            'supporting_reference' => ['nullable', 'string', 'max:255'],
         ];
     }
 
@@ -45,7 +44,6 @@ class StoreDisbursementRequest extends FormRequest
             'fund_source' => trim((string) $this->input('fund_source')),
             'obr_number' => $this->nullableTrim('obr_number'),
             'notes' => $this->nullableTrim('notes'),
-            'supporting_reference' => $this->nullableTrim('supporting_reference'),
         ]);
     }
 

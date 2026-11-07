@@ -7,19 +7,12 @@
 @endphp
 
 <tr @class(['bg-blue-50/60' => session('highlight_inventory_item') === $item->id, 'hover:bg-slate-50' => session('highlight_inventory_item') !== $item->id])>
-    <td class="px-5 py-4 align-top">
-        <a href="{{ route('inventory.show', $item) }}" class="font-semibold text-slate-950 hover:text-blue-700">{{ $item->name }}</a>
-        <p class="mt-1 max-w-md text-xs text-slate-500">{{ $item->storage_location }}</p>
-        @if ($item->batch_number)
-            <p class="mt-1 text-xs text-slate-400">Batch {{ $item->batch_number }}</p>
-        @endif
+    <td>
+        <a href="{{ route('inventory.show', $item) }}" class="data-table__primary hover:text-blue-700">{{ $item->name }}</a>
+        <span class="data-table__secondary">{{ $categoryLabel }}@if ($item->subcategory) / {{ $item->subcategory->label }}@endif</span>
+        <span class="data-table__secondary max-w-56">{{ $item->storage_location }}@if ($item->batch_number) / Batch {{ $item->batch_number }}@endif</span>
     </td>
-    <td class="px-4 py-4 align-top">
-        <span class="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700 ring-1 ring-inset ring-slate-200">
-            {{ $categoryLabel }}@if ($item->subcategory) · {{ $item->subcategory->label }} @endif
-        </span>
-    </td>
-    <td class="px-4 py-4 text-right align-top">
+    <td class="data-table__number">
         <span class="font-semibold text-slate-950">{{ number_format((float) $item->current_quantity, 2) }}</span>
         <span class="block text-xs text-slate-500">{{ $unitLabel }}</span>
     </td>
@@ -35,17 +28,15 @@
     <td class="px-4 py-4 align-top">
         <x-inventory.status-badge :status="$item->stockStatus()" />
     </td>
-    <td class="hidden px-4 py-4 text-slate-600 align-top lg:table-cell">
-        {{ $item->last_audited_at?->format('M d, Y') ?? 'Not audited' }}
-    </td>
-    <td class="hidden px-4 py-4 text-slate-600 align-top md:table-cell">
-        {{ $item->updated_at?->diffForHumans() }}
+    <td>
+        <span class="block min-w-28">{{ $item->updated_at?->diffForHumans() }}</span>
+        <span class="data-table__secondary">Audited: {{ $item->last_audited_at?->format('M d, Y') ?? 'Not audited' }}</span>
     </td>
     <td class="px-5 py-4 text-right align-top">
-        <div class="flex justify-end gap-2">
-            <a href="{{ route('inventory.show', $item) }}" class="rounded-md border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">View</a>
+        <div class="data-table__actions">
+            <a href="{{ route('inventory.show', $item) }}" class="data-table__action">View</a>
             @can('adjustStock', $item)
-                <button type="button" class="rounded-md bg-blue-700 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-800" data-dialog-open="adjust-stock-dialog-{{ $item->id }}">
+                <button type="button" class="data-table__action" data-dialog-open="adjust-stock-dialog-{{ $item->id }}">
                     Adjust Stock
                 </button>
             @endcan

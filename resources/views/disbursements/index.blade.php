@@ -5,7 +5,7 @@
 @section('page-subtitle', 'Submit and review cash requests with maker-checker approval.')
 
 @section('content')
-    <div class="flex min-h-[calc(100vh-10rem)] flex-col gap-4">
+    <div class="space-y-4">
         @php
             $canApproveAny = $disbursements->contains(fn ($disbursement) => auth()->user()->can('approve', $disbursement));
         @endphp
@@ -103,19 +103,10 @@
 
                         <fieldset class="space-y-4 border-t border-slate-200 pt-5">
                             <legend class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Additional Information</legend>
-
-                            <div class="grid gap-5 md:grid-cols-2">
-                                <div class="space-y-2">
-                                    <label for="supporting_reference" class="block text-sm font-medium text-slate-700">Supporting Reference (Optional)</label>
-                                    <input id="supporting_reference" name="supporting_reference" type="text" value="{{ old('supporting_reference') }}" placeholder="e.g. Purchase Request No., Receipt No., Check No., or supporting document reference" class="block h-12 w-full rounded-lg border border-slate-300 bg-slate-50/60 px-3 text-sm text-slate-900 shadow-sm transition focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200">
-                                    <x-form.error name="supporting_reference" />
-                                </div>
-
-                                <div class="space-y-2">
+                            <div class="space-y-2">
                                     <label for="notes" class="block text-sm font-medium text-slate-700">Notes / Remarks (Optional)</label>
                                     <textarea id="notes" name="notes" rows="3" class="block w-full rounded-lg border border-slate-300 bg-slate-50/60 px-3 py-2.5 text-sm text-slate-900 shadow-sm transition focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200">{{ old('notes') }}</textarea>
                                     <x-form.error name="notes" />
-                                </div>
                             </div>
                         </fieldset>
                     </div>
@@ -138,84 +129,8 @@
             </dialog>
             @endcan
             @include('disbursements.partials.fund-request-location-script')
-            <div data-fund-request-results class="flex min-h-0 flex-1 flex-col">
-                <div data-fund-request-table class="flex min-h-0 flex-1 flex-col overflow-x-auto">
-                    <table class="w-full min-w-0 max-md:min-w-[900px] table-fixed text-left text-sm">
-                        <caption class="sr-only">Fund requests</caption>
-                        <colgroup>
-                            <col class="w-[12%]"><col class="w-[16%]"><col class="w-[26%]"><col class="w-[12%]"><col class="w-[14%]"><col class="w-[12%]"><col class="w-[16%]">
-                        </colgroup>
-                        <thead class="bg-slate-100 text-xs uppercase tracking-wide text-slate-500 shadow-[0_1px_0_0_rgba(226,232,240,1)]">
-                            <tr>
-                                <th scope="col" class="px-4 py-3 font-semibold">Date</th>
-                                <th scope="col" class="px-4 py-3 font-semibold">Recipient / Payee</th>
-                                <th scope="col" class="px-4 py-3 font-semibold">Purpose</th>
-                                <th scope="col" class="px-4 py-3 text-right font-semibold">Amount</th>
-                                <th scope="col" class="px-4 py-3 font-semibold">Requested By</th>
-                                <th scope="col" class="px-4 py-3 font-semibold">Status</th>
-                                <th scope="col" class="px-4 py-3 text-right font-semibold">Actions</th>
-                            </tr>
-                        </thead>
-                    </table>
-                    <div data-fund-request-scroll class="min-h-0 flex-1 overflow-y-auto overflow-x-clip overscroll-contain">
-                        <table class="w-full min-w-0 max-md:min-w-[900px] table-fixed text-left text-sm">
-                            <caption class="sr-only">Fund request records</caption>
-                            <colgroup>
-                                <col class="w-[12%]"><col class="w-[16%]"><col class="w-[26%]"><col class="w-[12%]"><col class="w-[14%]"><col class="w-[12%]"><col class="w-[16%]">
-                            </colgroup>
-                            <tbody class="divide-y divide-slate-100 bg-white">
-                                @forelse ($disbursements as $disbursement)
-                                    @php
-                                        $statusLabel = $disbursement->isVoided()
-                                            ? 'Cancelled'
-                                            : ($disbursement->status === 'pending'
-                                                ? 'Pending Approval'
-                                                : ($disbursement->status === 'approved' ? 'Approved Fund Request' : ucfirst($disbursement->status)));
-                                    @endphp
-                                    <tr class="align-top hover:bg-slate-50/70" data-fund-request-id="{{ $disbursement->id }}" data-requested-date="{{ ($disbursement->requested_date ?? $disbursement->created_at)->format('Y-m-d') }}" data-amount="{{ $disbursement->amount }}" data-recipient="{{ $disbursement->recipient ?? '' }}" data-payee-address="{{ $disbursement->payee_address ?? '' }}" data-payee-tin="{{ $disbursement->payee_tin ?? '' }}" data-fund-source="{{ $disbursement->fund_source ?? '' }}" data-obr-number="{{ $disbursement->obr_number ?? '' }}" data-purpose="{{ str_replace(['"','\\'], ['&quot;','\\\\'], $disbursement->purpose) }}" data-supporting-reference="{{ $disbursement->supporting_reference ?? '' }}" data-notes="{{ str_replace(['"','\\'], ['&quot;','\\\\'], $disbursement->notes ?? '') }}" data-status="{{ $disbursement->status }}" data-approval-url="{{ route('disbursements.approve', $disbursement) }}" data-rejection-url="{{ route('disbursements.reject', $disbursement) }}" data-can-approve="{{ auth()->user()->can('approve', $disbursement) ? 'true' : 'false' }}" data-treasurer-certified="{{ $disbursement->hasTreasurerCertification() ? 'true' : 'false' }}">
-                                        <td class="whitespace-nowrap px-4 py-3 text-slate-600">{{ ($disbursement->requested_date ?? $disbursement->created_at)->format('M d, Y') }}</td>
-                                        <td class="truncate px-4 py-3 text-slate-700" title="{{ $disbursement->recipient ?? 'Not provided' }}">{{ $disbursement->recipient ?? 'Not provided' }}</td>
-                                        <td class="px-4 py-3 text-slate-700">
-                                            <div class="min-w-0">
-                                                <p class="truncate font-medium text-slate-900" title="{{ $disbursement->purpose }}">{{ $disbursement->purpose }}</p>
-                                                @if ($disbursement->supporting_reference)
-                                                    <p class="truncate text-xs text-slate-500" title="Ref: {{ $disbursement->supporting_reference }}">Ref: {{ $disbursement->supporting_reference }}</p>
-                                                @endif
-                                                @if ($disbursement->notes)
-                                                    <p class="truncate text-xs text-slate-500" title="{{ $disbursement->notes }}">{{ $disbursement->notes }}</p>
-                                                @endif
-                                                @if ($disbursement->isVoided())
-                                                    <p class="truncate text-xs font-semibold text-red-700" title="Cancellation Reason: {{ $disbursement->void_reason }}">Cancellation Reason: {{ $disbursement->void_reason }}</p>
-                                                @endif
-                                            </div>
-                                        </td>
-                                        <td class="whitespace-nowrap px-4 py-3 text-right font-semibold text-slate-950">PHP {{ number_format((float) $disbursement->amount, 2) }}</td>
-                                        <td class="truncate px-4 py-3 text-slate-600" title="{{ $disbursement->requester->name }}">{{ $disbursement->requester->name }}</td>
-                                        <td class="px-4 py-3 whitespace-nowrap"><span class="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">{{ $statusLabel }}</span><span class="sr-only">{{ $disbursement->status }}</span></td>
-                                        <td class="px-4 py-3">
-                                            <div class="flex justify-end" data-fund-request-action>
-                                                <button type="button" data-fund-request-menu-toggle aria-haspopup="menu" aria-expanded="false" aria-label="Actions for {{ $disbursement->purpose }}" class="flex h-8 w-8 items-center justify-center rounded-md text-lg font-bold leading-none text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                                    <span aria-hidden="true">⋮</span>
-                                                </button>
-                                                <div data-fund-request-menu-panel hidden class="fixed z-[120] w-36 rounded-lg border border-slate-200 bg-white p-1 shadow-xl ring-1 ring-black/5">
-                                                    <button type="button" data-open-fund-request-details="fund-request-details-modal-{{ $disbursement->id }}" data-fund-request-action data-testid="view-fund-request-{{ $disbursement->id }}" class="flex w-full items-center rounded-md px-3 py-2 text-left text-sm font-medium text-slate-700 hover:bg-slate-50">View Details</button>
-                                                    @can('update', $disbursement)
-                                                        <button type="button" data-open-fund-request-edit="fund-request-details-modal-{{ $disbursement->id }}-edit" data-fund-request-action class="flex w-full items-center rounded-md px-3 py-2 text-left text-sm font-medium text-slate-700 hover:bg-slate-50">Edit</button>
-                                                    @endcan
-                                                </div>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                @empty
-                                    <tr><td colspan="7" class="h-56 px-4 py-8 text-center"><p class="font-semibold text-slate-800">No fund requests found</p><p class="mt-1 text-sm text-slate-500">Create a fund request to begin the approval workflow.</p></td></tr>
-                                @endforelse
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-                <div data-fund-request-pagination class="shrink-0 pt-3">
-                    {{ $disbursements->links() }}
-                </div>
+            <div data-fund-request-results>
+                <x-disbursements.table :disbursements="$disbursements" />
             </div>
     </div>
 
@@ -292,11 +207,6 @@
             <fieldset class="space-y-4 border-t border-slate-200 pt-4">
                 <legend class="text-xs font-semibold uppercase tracking-wide text-slate-500">Additional Information</legend>
                 <div class="grid gap-4 sm:grid-cols-2">
-                <div class="space-y-2">
-                    <label for="modal_supporting_reference" class="block text-sm font-medium text-slate-700">Supporting Reference (Optional)</label>
-                    <input id="modal_supporting_reference" name="supporting_reference" type="text" class="block h-11 w-full rounded-lg border border-slate-300 bg-slate-50/60 px-3 text-sm text-slate-900 shadow-sm focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200">
-                </div>
-
                 <div class="space-y-2">
                     <label for="modal_notes" class="block text-sm font-medium text-slate-700">Notes / Remarks (Optional)</label>
                     <textarea id="modal_notes" name="notes" rows="2" class="block w-full rounded-lg border border-slate-300 bg-slate-50/60 px-3 py-2.5 text-sm text-slate-900 shadow-sm focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200"></textarea>
@@ -446,9 +356,8 @@
                     document.getElementById('modal_fund_source').value = row.dataset.fundSource || '';
                     document.getElementById('modal_obr_number').value = row.dataset.obrNumber || '';
                     document.getElementById('modal_amount').value = row.dataset.amount || '';
-                    document.getElementById('modal_purpose').value = row.dataset.purpose ? decodeURIComponent(escape(row.dataset.purpose)) : '';
-                    document.getElementById('modal_supporting_reference').value = row.dataset.supportingReference || '';
-                    document.getElementById('modal_notes').value = row.dataset.notes ? decodeURIComponent(escape(row.dataset.notes)) : '';
+                    document.getElementById('modal_purpose').value = row.dataset.purpose || '';
+                    document.getElementById('modal_notes').value = row.dataset.notes || '';
                     const rejectionReason = document.getElementById('modal_rejection_reason');
                     if (rejectionReason) {
                         rejectionReason.value = '';

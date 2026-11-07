@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Models\BankLedgerEntry;
-use App\Models\Campaign;
 use App\Models\CashTransaction;
 use App\Models\Contribution;
 use App\Models\Donation;
@@ -78,18 +77,12 @@ class DashboardMetricsTest extends TestCase
         $response->assertSeeInOrder(['Pending Cash Verification', '1']);
     }
 
-    public function test_funding_distribution_groups_verified_cash_contributions_by_campaign(): void
+    public function test_dashboard_keeps_verified_cash_totals_without_campaigns(): void
     {
         $donor = $this->donor();
-        $campaign = Campaign::query()->create([
-            'name' => 'Typhoon Relief Drive',
-            'slug' => 'typhoon-relief-drive',
-            'status' => 'active',
-        ]);
 
         Contribution::query()->create([
             'donor_id' => $donor->id,
-            'campaign_id' => $campaign->id,
             'type' => 'cash',
             'status' => 'verified',
             'amount' => 2000,
@@ -97,13 +90,11 @@ class DashboardMetricsTest extends TestCase
             'received_at' => now(),
         ]);
 
-        // Funding distribution is no longer rendered on the dashboard (intentional UI redesign),
-        // but the underlying calculation is still used elsewhere (e.g. reports), so verify it directly.
-        $dashboard = app(DashboardMetrics::class)->build();
+        $response = $this->actingAs(User::factory()->create())->get('/');
 
-        $this->assertCount(1, $dashboard['funding_distribution']);
-        $this->assertSame('Typhoon Relief Drive', $dashboard['funding_distribution']->first()->label);
-        $this->assertEquals(2000, $dashboard['funding_distribution']->first()->total);
+        $response->assertOk();
+        $response->assertSee('2,000.00');
+        $response->assertDontSee('Funding Distribution');
     }
 
     public function test_recent_donations_stream_shows_cash_and_in_kind_contributions(): void

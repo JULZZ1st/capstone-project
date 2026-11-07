@@ -32,12 +32,12 @@
 ## 2. Page / Module Review
 
 ### Dashboard
-- **Purpose:** At-a-glance summary of cash ledger totals, pending-verification counts, funding distribution by campaign, recent donation activity, and staff action items.
+- **Purpose:** At-a-glance summary of cash ledger totals, pending-verification counts, recent donation activity, and staff action items.
 - **Access:** Admin and Staff (both roles; content is the same, not role-filtered).
-- **Main functionality:** Single invokable `DashboardController` delegating all computation to `App\Support\Dashboard\DashboardMetrics::build()`. Computes cash ledger totals live from `Contribution` (verified cash only), disbursement totals from `CashDisbursement` (approved + not voided), funding distribution grouped by campaign, and a recent-activity feed.
-- **Connects to:** Reads from Contributions, Campaigns, Bank Ledger Entries, Cash Disbursements — i.e., it's a read-only rollup of every other module.
+- **Main functionality:** Single invokable `DashboardController` delegating all computation to `App\Support\Dashboard\DashboardMetrics::build()`. Computes cash ledger totals live from `Contribution` (verified cash only), disbursement totals from `CashDisbursement` (approved + not voided), and a recent-activity feed.
+- **Connects to:** Reads from Contributions, Bank Ledger Entries, and Cash Disbursements — i.e., it's a read-only rollup of the operational modules.
 - **Status:** **Complete.** Fully implemented and tested (`tests/Feature/DashboardMetricsTest.php`, 6 tests), including a regression test that explicitly confirms legacy tables (see below) are excluded from totals.
-- **Manually check before the meeting:** Load the dashboard as each of the 3 roles and confirm numbers look sane against what's in the Donation Portal/Ledger. Confirm the "recent donations" feed shows both cash and in-kind entries.
+- **Manually check before the meeting:** Load the dashboard as Admin and Staff and confirm numbers look sane against what's in the Donation Portal/Ledger. Confirm the "recent donations" feed shows both cash and in-kind entries.
 - **Remaining issues:** No per-widget error isolation — `docs/dashboard-data-sources.md` notes one failing query can break the whole page (no try/catch per widget). No caching on the money-total queries (only donor/batch counts are cached), so the page may feel slow with a large dataset — not a concern at demo scale.
 
 ### Donation Portal / Contributions

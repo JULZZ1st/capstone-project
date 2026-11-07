@@ -12,6 +12,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
 class DonationsPortalTest extends TestCase
@@ -41,6 +42,96 @@ class DonationsPortalTest extends TestCase
             'payment_method' => 'cash',
             'created_by' => $user->id,
         ]);
+    }
+
+    public function test_contribution_photo_is_optional_and_served_only_to_authorized_users(): void
+    {
+        Storage::fake('local');
+        $donor = $this->donor();
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->post(route('donations.store'), [
+            'donation_type' => 'cash',
+            'donor_id' => $donor->id,
+            'amount' => 250,
+            ...$this->cashDocuments(250),
+            'payment_method' => 'cash',
+            'photo' => UploadedFile::fake()->createWithContent(
+                'donation.png',
+                base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII='),
+            ),
+        ]);
+
+        $response->assertSessionDoesntHaveErrors();
+        $contribution = Contribution::query()->firstOrFail();
+        $this->assertNotNull($contribution->photo_path);
+        Storage::disk('local')->assertExists($contribution->photo_path);
+
+        $this->actingAs($user)->get(route('donations.photo', $contribution))->assertOk();
+        $viewerRole = Role::query()->firstOrCreate(
+            ['name' => 'viewer'],
+            ['display_name' => 'Viewer', 'description' => 'Read-only test role.'],
+        );
+        $viewer = User::factory()->create(['role_id' => $viewerRole->id]);
+        $this->actingAs($viewer)->get(route('donations.photo', $contribution))->assertForbidden();
+    }
+
+    public function test_campaign_features_are_removed_while_legacy_fund_request_references_are_preserved(): void
+    {
+        $this->assertTrue(Schema::hasTable('campaigns'));
+        $this->assertTrue(Schema::hasColumn('contributions', 'campaign_id'));
+        $this->assertTrue(Schema::hasColumn('cash_disbursements', 'supporting_reference'));
+    }
+
+    public function test_donations_portal_has_compact_filters_and_no_campaign_controls_or_summary_cards(): void
+    {
+        $response = $this->actingAs(User::factory()->create())->get(route('donations.index'));
+
+        $response->assertOk()
+            ->assertSee('All statuses')
+            ->assertSee('Cash starts as Pending')
+            ->assertSee('Reset filters')
+            ->assertDontSee('Campaign')
+            ->assertDontSee('Total Contributions')
+            ->assertDontSee('Log New Contribution')
+            ->assertDontSee('<<div', false);
+    }
+
+    public function test_admin_can_approve_a_pending_cash_contribution_from_donations_portal(): void
+    {
+        $adminRole = Role::query()->firstOrCreate(
+            ['name' => Role::ADMIN],
+            ['display_name' => 'Admin', 'description' => 'Administers barangay operations.'],
+        );
+        $admin = User::factory()->create(['role_id' => $adminRole->id]);
+        $contribution = Contribution::query()->create([
+            'donor_id' => $this->donor()->id,
+            'created_by' => $admin->id,
+            'type' => 'cash',
+            'status' => 'pending',
+            'amount' => 10000,
+            'payment_method' => 'cash',
+            'received_at' => now(),
+        ]);
+
+        $this->attachVerificationDocuments($contribution);
+        $this->assertTrue($admin->can('verify', $contribution));
+
+        $this->actingAs($admin)
+            ->get(route('donations.index'))
+            ->assertOk()
+            ->assertSee('Verify Donation');
+
+        $this->actingAs($admin)
+            ->patch(route('donations.verify', $contribution))
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('contributions', [
+            'id' => $contribution->id,
+            'status' => 'verified',
+            'verified_by' => $admin->id,
+        ]);
+        $this->assertNotNull($contribution->fresh()->verified_at);
     }
 
     public function test_staff_can_log_a_bank_transfer_contribution_for_an_active_workspace_donor(): void
@@ -717,7 +808,7 @@ class DonationsPortalTest extends TestCase
         $this->assertDatabaseHas('contributions', ['id' => $donation->id, 'status' => 'pending']);
     }
 
-    public function test_staff_cannot_verify_or_reject_a_pending_donation(): void
+    public function test_staff_can_verify_a_pending_donation_but_cannot_reject_it(): void
     {
         $staff = User::factory()->create();
         $donation = Contribution::query()->create([
@@ -731,15 +822,22 @@ class DonationsPortalTest extends TestCase
             'received_at' => now(),
         ]);
 
-        $this->actingAs($staff)
-            ->patch(route('donations.verify', $donation))
-            ->assertForbidden();
+        $this->attachVerificationDocuments($donation);
 
         $this->actingAs($staff)
             ->patch(route('donations.update', $donation), ['status' => 'rejected'])
             ->assertForbidden();
 
         $this->assertDatabaseHas('contributions', ['id' => $donation->id, 'status' => 'pending']);
+
+        $this->actingAs($staff)
+            ->patch(route('donations.verify', $donation))
+            ->assertRedirect();
+
+        $donation->refresh();
+        $this->assertSame('verified', $donation->status);
+        $this->assertSame($staff->id, $donation->verified_by);
+        $this->assertNotNull($donation->verified_at);
     }
 
     public function test_admin_can_reject_pending_donation_and_it_is_not_reconcilable(): void
@@ -763,6 +861,22 @@ class DonationsPortalTest extends TestCase
 
         $this->assertDatabaseHas('contributions', ['id' => $donation->id, 'status' => 'rejected']);
         $this->assertFalse(Contribution::query()->whereKey($donation)->eligibleForReconciliation()->exists());
+    }
+
+    private function attachVerificationDocuments(Contribution $contribution): void
+    {
+        $contribution->update(['official_receipt_number' => 'VERIFY-'.$contribution->id]);
+        foreach (['official_receipt', 'certificate_of_acceptance', 'deed_of_donation', 'bank_transfer_proof'] as $type) {
+            $contribution->evidence()->create([
+                'document_type' => $type,
+                'disk' => 'local',
+                'path' => 'test/'.$type.'.pdf',
+                'original_name' => $type.'.pdf',
+                'mime_type' => 'application/pdf',
+                'size' => 100,
+                'uploaded_by' => $contribution->created_by,
+            ]);
+        }
     }
 
     private function donor(array $overrides = []): Donor

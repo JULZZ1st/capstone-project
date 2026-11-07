@@ -28,6 +28,8 @@ return [
 
     'env' => env('APP_ENV', 'production'),
 
+    'local_built_assets' => (bool) env('LOCAL_BUILT_ASSETS', false),
+
     /*
     |--------------------------------------------------------------------------
     | Application Debug Mode

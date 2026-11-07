@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'bank_accounts' => array_values(array_filter(array_map('trim', explode(',', env('BANK_RECONCILIATION_ACCOUNTS', 'LANDBANK Barangay Operating Account'))))),
     'audit_lockout_enabled' => (bool) env('BANK_RECONCILIATION_AUDIT_LOCKOUT', true),
 
     'statuses' => [

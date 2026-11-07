@@ -16,7 +16,6 @@ class Contribution extends Model
     protected $fillable = [
         'workspace_id',
         'donor_id',
-        'campaign_id',
         'created_by',
         'verified_by',
         'type',
@@ -43,6 +42,7 @@ class Contribution extends Model
         'documents_requested_at',
         'donor_tin',
         'notes',
+        'photo_path',
         'received_at',
         'verified_at',
         'voided_at',
@@ -67,11 +67,6 @@ class Contribution extends Model
     public function donor(): BelongsTo
     {
         return $this->belongsTo(Donor::class);
-    }
-
-    public function campaign(): BelongsTo
-    {
-        return $this->belongsTo(Campaign::class);
     }
 
     public function creator(): BelongsTo
@@ -120,6 +115,7 @@ class Contribution extends Model
             ->where('type', 'cash')
             ->whereIn('payment_method', config('donations.electronic_payment_methods'))
             ->where('status', 'verified')
+            ->whereNull('voided_at')
             ->whereDoesntHave('ledgerEntry');
     }
 
@@ -145,6 +141,8 @@ class Contribution extends Model
             $query
                 ->where('receipt_number', 'like', "%{$term}%")
                 ->orWhere('reference_number', 'like', "%{$term}%")
+                ->orWhere('official_receipt_number', 'like', "%{$term}%")
+                ->orWhere('check_number', 'like', "%{$term}%")
                 ->orWhere('notes', 'like', "%{$term}%")
                 ->orWhereHas('donor', function ($query) use ($term) {
                     $query

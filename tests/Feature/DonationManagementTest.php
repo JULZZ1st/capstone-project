@@ -334,7 +334,7 @@ class DonationManagementTest extends TestCase
         $response->assertDontSee('Other donor support');
     }
 
-    public function test_staff_can_view_and_manage_shared_donors_within_their_workspace(): void
+    public function test_staff_can_view_and_modify_donors(): void
     {
         $donor = Donor::query()->create([
             'donor_type' => 'individual',
@@ -356,18 +356,20 @@ class DonationManagementTest extends TestCase
         $this->actingAs($staff)
             ->patch(route('donors.update', $donor), [
                 'donor_type' => 'individual',
-                'first_name' => 'Changed',
+                'first_name' => 'Updated',
                 'last_name' => 'Donor',
                 'address' => 'Changed Address',
                 'contact_number' => '09170000000',
             ])
             ->assertRedirect(route('donors.index'));
 
-        $this->assertDatabaseHas('donors', ['id' => $donor->id, 'full_name' => 'Changed Donor']);
+        $this->assertDatabaseHas('donors', ['id' => $donor->id, 'full_name' => 'Updated Donor']);
 
         $this->actingAs($staff)
             ->delete(route('donors.destroy', $donor))
             ->assertRedirect(route('donors.index'));
+
+        $this->assertDatabaseMissing('donors', ['id' => $donor->id]);
     }
 
     private function userWithRole(string $role): User

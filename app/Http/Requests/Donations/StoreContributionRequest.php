@@ -27,7 +27,6 @@ class StoreContributionRequest extends FormRequest
                 WorkspaceValidationRules::exists('donors')
                     ->where('status', config('donors.defaults.status')),
             ],
-            'campaign_id' => ['nullable', WorkspaceValidationRules::exists('campaigns')],
             'received_at' => ['nullable', 'date_format:Y-m-d'],
             'amount' => ['required_if:donation_type,cash', 'nullable', 'numeric', 'min:0.01', 'max:99999999.99'],
             'purpose_type' => ['nullable', Rule::in(['general', 'specific'])],
@@ -49,6 +48,7 @@ class StoreContributionRequest extends FormRequest
                 WorkspaceValidationRules::unique('contributions', 'reference_number')->where(fn ($query) => $query->where('payment_method', $this->input('payment_method'))),
             ],
             'notes' => ['nullable', 'string', 'max:2000'],
+            'photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
             'evidence' => ['nullable', 'array', 'max:5'],
             'evidence.*' => ['file', 'mimes:pdf,jpg,jpeg,png', 'max:10240'],
             'bank_transfer_proof' => ['nullable', 'array', 'max:5'],

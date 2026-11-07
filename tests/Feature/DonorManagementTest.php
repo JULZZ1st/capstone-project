@@ -65,7 +65,10 @@ class DonorManagementTest extends TestCase
         $response->assertSee('Location');
         $response->assertSee('sticky top-0', false);
         $response->assertSee('data-dialog-open="remove-donor-modal-'.$donor->id.'"', false);
-        $response->assertSee('If donation history exists, the profile is deactivated instead of permanently deleted.');
+        $response->assertSee('Confirm Delete');
+        $response->assertSee('Donation History');
+        $response->assertSee('view-donor-modal-'.$donor->id);
+        $response->assertSee('aria-label="Actions for '.$donor->full_name.'"', false);
         $response->assertDontSee('onsubmit="return confirm(', false);
     }
 
@@ -169,6 +172,75 @@ class DonorManagementTest extends TestCase
         $response->assertRedirect(route('donors.index'));
         $response->assertSessionDoesntHaveErrors();
         $this->assertDatabaseHas('donors', ['id' => $donor->id, 'first_name' => 'Updated']);
+    }
+
+    public function test_donor_with_history_gets_a_centered_view_modal_and_safe_deactivation_confirmation(): void
+    {
+        $admin = $this->userWithRole('admin');
+        $donor = $this->donor();
+        Contribution::query()->create([
+            'donor_id' => $donor->id,
+            'type' => 'cash',
+            'status' => 'verified',
+            'amount' => 125,
+            'payment_method' => 'cash',
+            'received_at' => now(),
+        ]);
+
+        $response = $this->actingAs($admin)->get(route('donors.index'));
+
+        $response->assertOk()
+            ->assertSee('class="m-auto w-[min(920px,calc(100vw-2rem))] max-h-[90vh]', false)
+            ->assertSee('sticky top-0 z-10', false)
+            ->assertSee('Confirm Deactivation');
+    }
+
+    public function test_invalid_create_reopens_the_form_at_the_basic_and_contact_step(): void
+    {
+        $admin = $this->userWithRole('admin');
+
+        $this->actingAs($admin)
+            ->from(route('donors.index'))
+            ->post(route('donors.store'), [
+                '_modal' => 'create',
+                'donor_type' => 'individual',
+                'first_name' => 'Maria',
+                'last_name' => 'Santos',
+                'address' => 'San Isidro',
+            ])
+            ->assertRedirect(route('donors.index'))
+            ->assertSessionHasErrors('contact_number');
+
+        $response = $this->get(route('donors.index'))->assertOk();
+
+        $this->assertMatchesRegularExpression('/<dialog id="create-donor-modal"[^>]*\\sopen\\s*>/', $response->getContent());
+        $response->assertSee('data-wizard-start-step="0"', false);
+        $this->assertDatabaseCount('donors', 0);
+    }
+
+    public function test_invalid_edit_reopens_the_form_at_the_address_step(): void
+    {
+        $admin = $this->userWithRole('admin');
+        $donor = $this->donor();
+
+        $this->actingAs($admin)
+            ->from(route('donors.index'))
+            ->patch(route('donors.update', $donor), [
+                '_modal' => 'edit-'.$donor->id,
+                'donor_type' => 'individual',
+                'first_name' => 'Maria',
+                'last_name' => 'Santos',
+                'contact_number' => '09171234567',
+                'region' => str_repeat('x', 256),
+            ])
+            ->assertRedirect(route('donors.index'))
+            ->assertSessionHasErrors('region');
+
+        $response = $this->get(route('donors.index'))->assertOk();
+
+        $this->assertMatchesRegularExpression('/<dialog id="edit-donor-modal-'.$donor->id.'"[^>]*\\sopen\\s*>/', $response->getContent());
+        $response->assertSee('data-wizard-start-step="1"', false);
+        $this->assertDatabaseHas('donors', ['id' => $donor->id, 'address' => $donor->address]);
     }
 
     private function donor(): Donor

@@ -34,7 +34,7 @@ Route::middleware('auth')->group(function () {
 Route::middleware([
     'auth',
     'password.change',
-    'role:admin,staff,secretary,treasurer',
+    'role:admin,staff',
     'workspace',
     'workspace.required',
     'workspace.models',
@@ -50,10 +50,12 @@ Route::middleware([
     Route::get('/locations/barangays', [LocationController::class, 'barangays'])->name('locations.barangays');
     Route::get('/donations', [DonationPortalController::class, 'index'])->name('donations.index');
     Route::post('/donations', [DonationPortalController::class, 'store'])->name('donations.store');
+    Route::get('/donations/{contribution}/photo', [DonationPortalController::class, 'photo'])->name('donations.photo');
     Route::get('/donations/{contribution}', [DonationPortalController::class, 'show'])->name('donations.show');
     Route::get('/donations/{contribution}/evidence/{evidence}', [DonationPortalController::class, 'downloadEvidence'])->name('donations.evidence');
     Route::patch('/donations/{contribution}', [DonationPortalController::class, 'update'])->name('donations.update');
     Route::patch('/donations/{contribution}/verify', [DonationPortalController::class, 'verify'])->name('donations.verify');
+    Route::patch('/donations/{contribution}/deed', [DonationPortalController::class, 'uploadDeed'])->name('donations.deed.upload');
     Route::patch('/donations/{contribution}/request-documents', [DonationPortalController::class, 'requestDocuments'])->name('donations.request-documents');
     Route::patch('/donations/{contribution}/certificate', [DonationPortalController::class, 'issueCertificate'])->name('donations.certificate.issue');
 
@@ -82,6 +84,10 @@ Route::middleware([
     Route::post('/bank-reconciliation/periods', [BankReconciliationController::class, 'createPeriod'])->name('bank-reconciliation.periods.store');
     Route::patch('/bank-reconciliation/periods/{period}', [BankReconciliationController::class, 'updatePeriod'])->name('bank-reconciliation.periods.update');
     Route::post('/bank-reconciliation/periods/{period}/discrepancies', [BankReconciliationController::class, 'createDiscrepancy'])->name('bank-reconciliation.discrepancies.store');
+    Route::patch('/bank-reconciliation/periods/{period}/discrepancies/{discrepancy}', [BankReconciliationController::class, 'updateDiscrepancy'])->name('bank-reconciliation.discrepancies.update');
+    Route::post('/bank-reconciliation/periods/{period}/discrepancies/{discrepancy}/review/{decision}', [BankReconciliationController::class, 'reviewDiscrepancy'])->whereIn('decision', ['accepted', 'correction_requested'])->name('bank-reconciliation.discrepancies.review');
+    Route::post('/bank-reconciliation/periods/{period}/discrepancies/{discrepancy}/resolve', [BankReconciliationController::class, 'resolveDiscrepancy'])->name('bank-reconciliation.discrepancies.resolve');
+    Route::get('/bank-reconciliation/periods/{period}/discrepancies/{discrepancy}/resolution-evidence', [BankReconciliationController::class, 'discrepancyResolutionEvidence'])->name('bank-reconciliation.discrepancies.resolution-evidence');
     Route::post('/bank-reconciliation/periods/{period}/submit', [BankReconciliationController::class, 'submitPeriod'])->name('bank-reconciliation.periods.submit');
     Route::post('/bank-reconciliation/periods/{period}/approve', [BankReconciliationController::class, 'approvePeriod'])->name('bank-reconciliation.periods.approve');
     Route::post('/bank-reconciliation/periods/{period}/reject', [BankReconciliationController::class, 'rejectPeriod'])->name('bank-reconciliation.periods.reject');

@@ -8,6 +8,7 @@ use App\Models\User;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use RuntimeException;
 use Throwable;
 
 class LogContribution
@@ -22,7 +23,6 @@ class LogContribution
 
                 $contribution = Contribution::query()->create([
                     'donor_id' => $data['donor_id'],
-                    'campaign_id' => $data['campaign_id'] ?? null,
                     'created_by' => $user->id,
                     'type' => $type,
                     'status' => config("donations.default_status.{$type}"),
@@ -67,6 +67,17 @@ class LogContribution
                 $contribution->forceFill([
                     'receipt_number' => $this->receiptNumberFor($contribution),
                 ])->save();
+
+                if ($photo = Arr::get($data, 'photo')) {
+                    $photoPath = $photo->store('contribution-photos', 'local');
+
+                    if (! is_string($photoPath)) {
+                        throw new RuntimeException('The contribution photo could not be stored.');
+                    }
+
+                    $storedPaths[] = $photoPath;
+                    $contribution->forceFill(['photo_path' => $photoPath])->save();
+                }
 
                 if ($type === 'in_kind') {
                     $contribution->items()->createMany(
@@ -151,6 +162,10 @@ class LogContribution
     private function storeDocument(Contribution $contribution, mixed $file, string $documentType, User $user, array &$storedPaths): void
     {
         $path = Storage::disk('local')->putFile("contributions/{$contribution->id}/documents", $file);
+        if (! is_string($path) || $path === '') {
+            throw new RuntimeException('The contribution document could not be stored.');
+        }
+
         $storedPaths[] = $path;
 
         $contribution->evidence()->create([
