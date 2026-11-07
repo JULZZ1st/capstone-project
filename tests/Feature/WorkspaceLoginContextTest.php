@@ -133,12 +133,14 @@ class WorkspaceLoginContextTest extends TestCase
         $this->assertSame($workspace->id, session('active_workspace_id'));
     }
 
-    public function test_workspace_management_routes_are_not_available(): void
+    public function test_workspace_management_routes_are_available_to_admins(): void
     {
         $admin = User::factory()->create(['role_id' => $this->adminRole()->id]);
 
-        $this->actingAs($admin)->get('/workspaces')->assertNotFound();
-        $this->actingAs($admin)->post('/workspaces')->assertNotFound();
+        $this->actingAs($admin)->get('/workspaces')->assertOk();
+        $this->actingAs($admin)
+            ->post('/workspaces')
+            ->assertSessionHasErrors(['name', 'admin_first_name', 'admin_last_name', 'admin_email', 'admin_password']);
     }
 
     private function adminRole(): Role
