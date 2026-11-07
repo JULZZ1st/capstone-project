@@ -10,14 +10,14 @@
         $createModalOpen = ($errors->any() && $modal === 'create') || session('duplicate_donor_detected');
     @endphp
 
-    <div class="space-y-6">
+    <div class="space-y-4">
         @if ($errors->any())
             <x-alert type="error">
                 Please review the highlighted donor profile fields and try again.
             </x-alert>
         @endif
 
-        <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-end">
+        <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <x-donors.search-bar :search="$search" :selected-type="$selectedType" />
 
             @can('create', \App\Models\Donor::class)
@@ -29,41 +29,17 @@
         </div>
 
         <div data-donor-results>
-            <div class="overflow-x-auto">
-                <table class="min-w-[980px] w-full table-fixed text-left text-sm">
-                    <caption class="sr-only">Registered donors</caption>
-                    <colgroup>
-                        <col class="w-[18%]"><col class="w-[12%]"><col class="w-[13%]"><col class="w-[17%]"><col class="w-[12%]"><col class="w-[13%]"><col class="w-[8%]"><col class="w-[17%]">
-                    </colgroup>
-                    <thead class="bg-slate-100 text-xs uppercase tracking-wide text-slate-500 shadow-[0_1px_0_0_rgba(226,232,240,1)]">
-                        <tr>
-                            <th scope="col" class="px-4 py-3 font-semibold">Donor Name</th>
-                            <th scope="col" class="px-4 py-3 font-semibold">Donor Type</th>
-                            <th scope="col" class="px-4 py-3 font-semibold">Contact Number</th>
-                            <th scope="col" class="px-4 py-3 font-semibold">Email</th>
-                            <th scope="col" class="px-4 py-3 font-semibold">Barangay</th>
-                            <th scope="col" class="px-4 py-3 font-semibold">City / Municipality</th>
-                            <th scope="col" class="px-4 py-3 font-semibold">Status</th>
-                            <th scope="col" class="px-4 py-3 text-right font-semibold">Actions</th>
-                        </tr>
-                    </thead>
-                </table>
-                <div data-donor-scroll class="max-h-[calc(100vh-17rem)] overflow-y-auto overscroll-contain">
-                    <table class="min-w-[980px] w-full table-fixed text-left text-sm">
-                        <caption class="sr-only">Donor records</caption>
-                        <colgroup>
-                            <col class="w-[18%]"><col class="w-[12%]"><col class="w-[13%]"><col class="w-[17%]"><col class="w-[12%]"><col class="w-[13%]"><col class="w-[8%]"><col class="w-[17%]">
-                        </colgroup>
-                        <tbody data-donor-tbody class="divide-y divide-slate-100">
-                            @include('donors.partials.rows', ['donors' => $donors])
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <div data-donor-pagination class="mt-3">
-                {{ $donors->links() }}
-            </div>
+            <x-data-table caption="Registered donors" title="Donor directory" description="Contact information and locations for your registered donors." min-width="47rem" body-hook="data-donor-tbody">
+                <x-slot:head>
+                    <x-data-table.heading>Donor</x-data-table.heading>
+                    <x-data-table.heading>Contact</x-data-table.heading>
+                    <x-data-table.heading>Location</x-data-table.heading>
+                    <x-data-table.heading>Status</x-data-table.heading>
+                    <x-data-table.heading align="right">Actions</x-data-table.heading>
+                </x-slot:head>
+                @include('donors.partials.rows', ['donors' => $donors])
+            </x-data-table>
+            <div data-donor-pagination class="mt-3">{{ $donors->links() }}</div>
 
             <div data-donor-modals>
                 @include('donors.partials.modals', ['donors' => $donors])
@@ -72,6 +48,6 @@
     </div>
 
     @can('create', \App\Models\Donor::class)
-        <x-donors.create-modal :open="$createModalOpen" :start-step="$createModalOpen ? $wizardStartStep : 0" />
+        <x-donors.create-modal :open="$createModalOpen" />
     @endcan
 @endsection

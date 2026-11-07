@@ -16,10 +16,15 @@ class ContributionItem extends Model
         'contribution_id',
         'name',
         'category',
+        'category_description',
         'subcategory',
         'quantity',
         'unit',
         'condition',
+        'expiration_date',
+        'brand',
+        'model',
+        'serial_number',
         'estimated_value',
         'notes',
     ];
@@ -29,6 +34,7 @@ class ContributionItem extends Model
         return [
             'quantity' => 'decimal:2',
             'estimated_value' => 'decimal:2',
+            'expiration_date' => 'date',
         ];
     }
 

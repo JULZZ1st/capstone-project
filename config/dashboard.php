@@ -5,7 +5,6 @@ return [
 
     'limits' => [
         'recent_items' => (int) env('DASHBOARD_RECENT_ITEMS_LIMIT', 5),
-        'funding_categories' => (int) env('DASHBOARD_FUNDING_CATEGORIES_LIMIT', 5),
     ],
 
     'cache' => [

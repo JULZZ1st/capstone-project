@@ -28,18 +28,13 @@ class ResolveActiveWorkspace
         }
 
         if ($user->hasRole('admin')) {
-            $sessionWorkspaceId = $request->session()->get('active_workspace_id');
-            $workspace = $sessionWorkspaceId !== null ? Workspace::query()->find($sessionWorkspaceId) : null;
-
-            if ($workspace === null || ! $this->authorizer->canAccess($user, $workspace)) {
-                $workspace = $user->workspaceMemberships()
-                    ->with('workspace')
-                    ->where('status', 'active')
-                    ->whereHas('workspace', fn ($query) => $query->where('status', 'active'))
-                    ->latest('id')
-                    ->first()?->workspace
-                    ?? Workspace::query()->where('status', 'active')->orderBy('id')->first();
-            }
+            $workspace = $user->workspaceMemberships()
+                ->with('workspace')
+                ->where('status', 'active')
+                ->whereHas('workspace', fn ($query) => $query->where('status', 'active'))
+                ->latest('id')
+                ->first()?->workspace
+                ?? Workspace::query()->where('status', 'active')->orderBy('id')->first();
 
             if ($workspace !== null) {
                 $this->context->set($workspace);

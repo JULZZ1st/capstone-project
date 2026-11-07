@@ -12,6 +12,7 @@ use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\InventoryStockAdjustmentController;
 use App\Http\Controllers\InventorySubcategoryController;
 use App\Http\Controllers\InventoryUnitController;
+use App\Http\Controllers\LocationController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\StaffAccountController;
 use App\Http\Controllers\SystemSecurityController;
@@ -35,7 +36,7 @@ Route::middleware('auth')->group(function () {
 Route::middleware([
     'auth',
     'password.change',
-    'role:admin,staff,secretary,treasurer',
+    'role:admin,staff',
     'workspace',
     'workspace.required',
     'workspace.models',
@@ -46,11 +47,19 @@ Route::middleware([
     Route::get('/donors/{donor}', [DonorController::class, 'show'])->name('donors.show');
     Route::patch('/donors/{donor}', [DonorController::class, 'update'])->name('donors.update');
     Route::delete('/donors/{donor}', [DonorController::class, 'destroy'])->name('donors.destroy');
+    Route::get('/locations/provinces', [LocationController::class, 'provinces'])->name('locations.provinces');
+    Route::get('/locations/cities', [LocationController::class, 'cities'])->name('locations.cities');
+    Route::get('/locations/barangays', [LocationController::class, 'barangays'])->name('locations.barangays');
     Route::get('/donations', [DonationPortalController::class, 'index'])->name('donations.index');
     Route::post('/donations', [DonationPortalController::class, 'store'])->name('donations.store');
+    Route::get('/donations/{contribution}/photo', [DonationPortalController::class, 'photo'])->name('donations.photo');
     Route::get('/donations/{contribution}', [DonationPortalController::class, 'show'])->name('donations.show');
+    Route::get('/donations/{contribution}/evidence/{evidence}', [DonationPortalController::class, 'downloadEvidence'])->name('donations.evidence');
     Route::patch('/donations/{contribution}', [DonationPortalController::class, 'update'])->name('donations.update');
     Route::patch('/donations/{contribution}/verify', [DonationPortalController::class, 'verify'])->name('donations.verify');
+    Route::patch('/donations/{contribution}/deed', [DonationPortalController::class, 'uploadDeed'])->name('donations.deed.upload');
+    Route::patch('/donations/{contribution}/request-documents', [DonationPortalController::class, 'requestDocuments'])->name('donations.request-documents');
+    Route::patch('/donations/{contribution}/certificate', [DonationPortalController::class, 'issueCertificate'])->name('donations.certificate.issue');
 
     Route::get('/inventory', [InventoryController::class, 'index'])->name('inventory.index');
     Route::post('/inventory', [InventoryController::class, 'store'])->name('inventory.store');
@@ -77,6 +86,10 @@ Route::middleware([
     Route::post('/bank-reconciliation/periods', [BankReconciliationController::class, 'createPeriod'])->name('bank-reconciliation.periods.store');
     Route::patch('/bank-reconciliation/periods/{period}', [BankReconciliationController::class, 'updatePeriod'])->name('bank-reconciliation.periods.update');
     Route::post('/bank-reconciliation/periods/{period}/discrepancies', [BankReconciliationController::class, 'createDiscrepancy'])->name('bank-reconciliation.discrepancies.store');
+    Route::patch('/bank-reconciliation/periods/{period}/discrepancies/{discrepancy}', [BankReconciliationController::class, 'updateDiscrepancy'])->name('bank-reconciliation.discrepancies.update');
+    Route::post('/bank-reconciliation/periods/{period}/discrepancies/{discrepancy}/review/{decision}', [BankReconciliationController::class, 'reviewDiscrepancy'])->whereIn('decision', ['accepted', 'correction_requested'])->name('bank-reconciliation.discrepancies.review');
+    Route::post('/bank-reconciliation/periods/{period}/discrepancies/{discrepancy}/resolve', [BankReconciliationController::class, 'resolveDiscrepancy'])->name('bank-reconciliation.discrepancies.resolve');
+    Route::get('/bank-reconciliation/periods/{period}/discrepancies/{discrepancy}/resolution-evidence', [BankReconciliationController::class, 'discrepancyResolutionEvidence'])->name('bank-reconciliation.discrepancies.resolution-evidence');
     Route::post('/bank-reconciliation/periods/{period}/submit', [BankReconciliationController::class, 'submitPeriod'])->name('bank-reconciliation.periods.submit');
     Route::post('/bank-reconciliation/periods/{period}/approve', [BankReconciliationController::class, 'approvePeriod'])->name('bank-reconciliation.periods.approve');
     Route::post('/bank-reconciliation/periods/{period}/reject', [BankReconciliationController::class, 'rejectPeriod'])->name('bank-reconciliation.periods.reject');
@@ -89,7 +102,14 @@ Route::middleware([
     Route::post('/bank-reconciliation/reconcile', [BankReconciliationController::class, 'reconcile'])->name('bank-reconciliation.reconcile');
     Route::get('/disbursements', [DisbursementController::class, 'index'])->name('disbursements.index');
     Route::post('/disbursements', [DisbursementController::class, 'store'])->name('disbursements.store');
+    Route::patch('/disbursements/{disbursement}', [DisbursementController::class, 'update'])->name('disbursements.update');
     Route::get('/disbursements/{disbursement}', [DisbursementController::class, 'show'])->name('disbursements.show');
+    Route::get('/disbursements/{disbursement}/voucher', [DisbursementController::class, 'voucher'])->name('disbursements.voucher');
+    Route::post('/disbursements/{disbursement}/signed-voucher', [DisbursementController::class, 'uploadSignedVoucher'])->name('disbursements.signed-voucher.upload');
+    Route::get('/disbursements/{disbursement}/signed-voucher/preview', [DisbursementController::class, 'previewSignedVoucher'])->name('disbursements.signed-voucher.preview');
+    Route::patch('/disbursements/{disbursement}/signed-voucher/request', [DisbursementController::class, 'requestMissingSignedVoucher'])->name('disbursements.signed-voucher.request');
+    Route::post('/disbursements/{disbursement}/payment', [DisbursementController::class, 'recordPayment'])->name('disbursements.payment.store');
+    Route::post('/disbursements/{disbursement}/treasurer-certification', [DisbursementController::class, 'recordTreasurerCertification'])->name('disbursements.treasurer-certification.store');
     Route::patch('/disbursements/{disbursement}/approve', [DisbursementController::class, 'approve'])->name('disbursements.approve');
     Route::patch('/disbursements/{disbursement}/reject', [DisbursementController::class, 'reject'])->name('disbursements.reject');
     Route::patch('/disbursements/{disbursement}/void', [DisbursementController::class, 'voidDisbursement'])->name('disbursements.void');

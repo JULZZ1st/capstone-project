@@ -74,7 +74,7 @@ class ReconciliationApprovalService
             ->where('classification', 'timing_difference')
             ->where('resolution_status', 'unresolved')
             ->where(function ($query) {
-                $query->whereNotIn('type', ['outstanding_check', 'deposit_in_transit'])
+                $query->whereNotIn('type', ['outstanding_check', 'deposit_in_transit', 'cash_not_deposited'])
                     ->orWhere('amount', '<=', 0)
                     ->orWhereNull('evidence_reference')
                     ->orWhere('evidence_reference', '')
@@ -83,7 +83,7 @@ class ReconciliationApprovalService
         $unexplained = $period->discrepancies()
             ->where('resolution_status', 'unresolved')
             ->where(function ($query) {
-                $query->where('classification', '!=', 'timing_difference')->orWhereNotIn('type', ['outstanding_check', 'deposit_in_transit']);
+                $query->where('classification', '!=', 'timing_difference')->orWhereNotIn('type', ['outstanding_check', 'deposit_in_transit', 'cash_not_deposited']);
             })->exists();
         if ($invalidTiming || $unexplained) $errors['discrepancies'] = 'Unexplained differences must be resolved; timing items require valid evidence and review.';
         $unmatched = BankLedgerEntry::query()->whereDate('transaction_date', '>=', $period->period_start->toDateString())->whereDate('transaction_date', '<=', $period->period_end->toDateString())->whereIn('status', ['unmatched', 'unreconciled'])->exists();

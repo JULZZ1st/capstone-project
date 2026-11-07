@@ -47,7 +47,7 @@
             <tr>
                 <th>Entry Type</th>
                 <th>Donor / Requester</th>
-                <th>Campaign / Purpose</th>
+                <th>Purpose</th>
                 <th>Payment Method</th>
                 <th class="text-right">Amount (PHP)</th>
                 <th>Received At</th>
@@ -59,7 +59,7 @@
                 <tr>
                     <td>{{ $row['entry_type'] ?? 'Contribution' }}</td>
                     <td>{{ $row['donor_name'] }}</td>
-                    <td>{{ $row['campaign_name'] ?? 'General Fund' }}</td>
+                    <td>{{ $row['purpose'] }}</td>
                     <td>{{ $row['payment_method_label'] }}</td>
                     <td class="text-right">{{ number_format($row['amount'], 2) }}</td>
                     <td>{{ $row['received_at']->format('Y-m-d') }}</td>

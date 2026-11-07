@@ -10,6 +10,7 @@ use App\Models\InventorySubcategory;
 use App\Models\InventoryUnit;
 use App\Models\Role;
 use App\Models\User;
+use App\Models\Workspace;
 use App\Services\Inventory\ManageInventoryReferenceItem;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -109,6 +110,70 @@ class InventoryCategoryManagementTest extends TestCase
         $this->expectException(ValidationException::class);
 
         $manager->delete($category);
+    }
+
+    public function test_used_category_and_unit_keys_cannot_be_renamed(): void
+    {
+        $item = $this->referenceItem();
+        foreach ([InventoryCategory::class => 'food', InventoryUnit::class => 'piece'] as $model => $key) {
+            $reference = $model::query()->where('key', $key)->firstOrFail();
+            try {
+                app(ManageInventoryReferenceItem::class)->update($reference, [
+                    'key' => 'renamed_'.$key, 'label' => 'Renamed', 'is_active' => true,
+                ]);
+                $this->fail('Renaming an in-use reference must be rejected.');
+            } catch (ValidationException $error) {
+                $this->assertArrayHasKey('key', $error->errors());
+            }
+            $this->assertSame($key, $reference->fresh()->key);
+        }
+        $this->assertSame('food', $item->fresh()->category);
+        $this->assertSame('piece', $item->fresh()->unit);
+    }
+
+    public function test_reference_used_in_another_workspace_cannot_be_deleted(): void
+    {
+        $workspace = Workspace::query()->create([
+            'slug' => 'reference-other', 'name' => 'Other Workspace', 'status' => 'active',
+        ]);
+        $this->referenceItem(['workspace_id' => $workspace->id]);
+        $category = InventoryCategory::query()->where('key', 'food')->firstOrFail();
+
+        $this->expectException(ValidationException::class);
+        app(ManageInventoryReferenceItem::class)->delete($category);
+    }
+
+    public function test_reference_used_in_another_workspace_cannot_be_renamed(): void
+    {
+        $workspace = Workspace::query()->create([
+            'slug' => 'rename-other', 'name' => 'Other Workspace', 'status' => 'active',
+        ]);
+        $this->referenceItem(['workspace_id' => $workspace->id]);
+        $category = InventoryCategory::query()->where('key', 'food')->firstOrFail();
+
+        $this->expectException(ValidationException::class);
+        app(ManageInventoryReferenceItem::class)->update($category, [
+            'key' => 'renamed_food', 'label' => 'Renamed', 'is_active' => true,
+        ]);
+    }
+
+    public function test_unused_reference_can_be_renamed(): void
+    {
+        $category = InventoryCategory::query()->create(['key' => 'unused', 'label' => 'Unused']);
+        app(ManageInventoryReferenceItem::class)->update($category, [
+            'key' => 'unused_renamed', 'label' => 'Renamed', 'is_active' => true,
+        ]);
+        $this->assertSame('unused_renamed', $category->fresh()->key);
+    }
+
+    private function referenceItem(array $overrides = []): InventoryItem
+    {
+        return InventoryItem::query()->create(array_merge([
+            'name' => 'Reference regression', 'category' => 'food', 'unit' => 'piece',
+            'quantity' => 1, 'current_quantity' => 1, 'minimum_reserve_quantity' => 0,
+            'storage_location' => 'Main Storage', 'status' => config('inventory.defaults.status'),
+            'received_at' => now(),
+        ], $overrides));
     }
 
     public function test_guest_is_redirected_from_categories_index(): void
@@ -456,6 +521,7 @@ class InventoryCategoryManagementTest extends TestCase
 
         $this->assertDatabaseMissing('inventory_subcategories', ['id' => $subcategory->id]);
     }
+
     public function test_referenced_subcategory_can_be_deactivated_but_not_renamed(): void
     {
         $admin = $this->userWithRole('admin');

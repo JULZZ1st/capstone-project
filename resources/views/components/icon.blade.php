@@ -84,6 +84,18 @@
             <path d="M20 12H9" />
             @break
 
+        @case('panel-left-close')
+            <rect x="3" y="4" width="18" height="16" rx="2" />
+            <path d="M9 4v16" />
+            <path d="m15 9-3 3 3 3" />
+            @break
+
+        @case('panel-left-open')
+            <rect x="3" y="4" width="18" height="16" rx="2" />
+            <path d="M9 4v16" />
+            <path d="m13 9 3 3-3 3" />
+            @break
+
         @case('refresh')
             <path d="M4 9.5A8 8 0 0 1 18.5 6.5L20 8" />
             <path d="M20 4v4h-4" />
@@ -125,6 +137,38 @@
             <path d="m20 20-4.8-4.8" />
             @break
 
+        @case('ellipsis-vertical')
+            <circle cx="12" cy="5" r="1" fill="currentColor" />
+            <circle cx="12" cy="12" r="1" fill="currentColor" />
+            <circle cx="12" cy="19" r="1" fill="currentColor" />
+            @break
+
+        @case('eye')
+            <path d="M2.5 12s3.2-6 9.5-6 9.5 6 9.5 6-3.2 6-9.5 6-9.5-6-9.5-6Z" />
+            <circle cx="12" cy="12" r="2.5" />
+            @break
+
+        @case('edit')
+            <path d="m14 5 5 5" />
+            <path d="M4 20h4l11-11a2.1 2.1 0 0 0-4-2L4 18v2Z" />
+            @break
+
+        @case('trash')
+            <path d="M4 7h16" />
+            <path d="M10 11v6M14 11v6" />
+            <path d="m5.5 7 .8 13h11.4l.8-13" />
+            <path d="M9 7V4h6v3" />
+            @break
+
+        @case('filter')
+            <path d="M4 6h16l-6.5 7.2v5.3l-3 1.5v-6.8L4 6Z" />
+            @break
+
+        @case('reset')
+            <path d="M4 7v5h5" />
+            <path d="M5.5 12a7 7 0 1 0 2-5" />
+            @break
+
         @case('terminal')
             <rect x="3" y="4" width="18" height="16" rx="2" />
             <path d="m7 9 3 3-3 3" />
@@ -163,6 +207,12 @@
             <path d="m9 6 6 6-6 6" />
             @break
 
+        @case('dots-vertical')
+            <circle cx="12" cy="5" r="1" fill="currentColor" stroke="none" />
+            <circle cx="12" cy="12" r="1" fill="currentColor" stroke="none" />
+            <circle cx="12" cy="19" r="1" fill="currentColor" stroke="none" />
+            @break
+
         @case('check-circle')
             <circle cx="12" cy="12" r="8.25" />
             <path d="m8.5 12.3 2.4 2.4 4.6-4.9" />
@@ -177,6 +227,25 @@
         @case('plus')
             <path d="M12 5v14" />
             <path d="M5 12h14" />
+            @break
+
+        @case('upload')
+            <path d="M12 16V4" />
+            <path d="m7 9 5-5 5 5" />
+            <path d="M5 15v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3" />
+            @break
+
+        @case('pencil')
+            <path d="M15.2 4.3 19.7 8.8" />
+            <path d="M5 19l.9-3.8L15.5 5.6a1.8 1.8 0 0 1 2.5 0l1.4 1.4a1.8 1.8 0 0 1 0 2.5L9.8 19.1 5 19Z" />
+            @break
+
+        @case('trash')
+            <path d="M4.5 7h15" />
+            <path d="M9 7V4.8c0-.4.3-.8.8-.8h4.4c.5 0 .8.4.8.8V7" />
+            <path d="M6.5 7l.7 12c0 .8.7 1.5 1.5 1.5h6.6c.8 0 1.5-.7 1.5-1.5L18 7" />
+            <path d="M10 11v6" />
+            <path d="M14 11v6" />
             @break
 
         @default

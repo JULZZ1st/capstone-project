@@ -1,5 +1,7 @@
 # Dashboard Module Design
 
+> Historical design specification: the current dashboard has no campaign-based funding-distribution panel. Campaign records and contribution links have been removed.
+
 ## Purpose and Scope
 
 This document describes the implementation design for a responsive authenticated dashboard for the Barangay Donation Platform.

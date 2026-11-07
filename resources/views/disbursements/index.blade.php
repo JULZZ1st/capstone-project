@@ -5,7 +5,7 @@
 @section('page-subtitle', 'Submit and review cash requests with maker-checker approval.')
 
 @section('content')
-    <div class="flex min-h-[calc(100vh-10rem)] flex-col gap-4">
+    <div class="space-y-4">
         @php
             $canApproveAny = $disbursements->contains(fn ($disbursement) => auth()->user()->can('approve', $disbursement));
         @endphp
@@ -33,6 +33,7 @@
                     @csrf
                     <input type="hidden" name="_modal" value="create">
 
+                    @if(false)
                     <div class="min-h-0 flex-1 space-y-5 overflow-y-auto px-4 py-4 sm:px-6">
                         <fieldset class="space-y-4">
                             <legend class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Request Details</legend>
@@ -48,6 +49,12 @@
                                     <label for="recipient" class="block text-sm font-medium text-slate-700">Recipient / Payee</label>
                                     <input id="recipient" name="recipient" type="text" value="{{ old('recipient') }}" required class="block h-12 w-full rounded-lg border border-slate-300 bg-slate-50/60 px-3 text-sm text-slate-900 shadow-sm transition focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200">
                                     <x-form.error name="recipient" />
+                                </div>
+
+                                <div class="space-y-2 md:col-span-2">
+                                    <label for="payee_address" class="block text-sm font-medium text-slate-700">Payee Address <span class="text-red-600">*</span></label>
+                                    <input id="payee_address" name="payee_address" type="text" value="{{ old('payee_address') }}" required class="block h-12 w-full rounded-lg border border-slate-300 bg-slate-50/60 px-3 text-sm text-slate-900 transition focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200">
+                                    <x-form.error name="payee_address" />
                                 </div>
 
                                 <div class="space-y-2">
@@ -69,123 +76,67 @@
                                 <textarea id="purpose" name="purpose" rows="3" required class="block w-full rounded-lg border border-slate-300 bg-slate-50/60 px-3 py-2.5 text-sm text-slate-900 shadow-sm transition focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200">{{ old('purpose') }}</textarea>
                                 <x-form.error name="purpose" />
                             </div>
+
+                            <div class="grid gap-5 md:grid-cols-3">
+                                <div class="space-y-2">
+                                    <label for="payee_tin" class="block text-sm font-medium text-slate-700">Payee TIN <span class="font-normal text-slate-500">(Optional)</span></label>
+                                    <input id="payee_tin" name="payee_tin" type="text" value="{{ old('payee_tin') }}" class="block h-12 w-full rounded-lg border border-slate-300 bg-slate-50/60 px-3 text-sm text-slate-900 transition focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200">
+                                    <x-form.error name="payee_tin" />
+                                </div>
+                                <div class="space-y-2">
+                                    <label for="fund_source" class="block text-sm font-medium text-slate-700">Fund Source <span class="text-red-600">*</span></label>
+                                    <select id="fund_source" name="fund_source" required class="block h-12 w-full rounded-lg border border-slate-300 bg-slate-50/60 px-3 text-sm text-slate-900 transition focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200">
+                                        <option value="">Select Fund Source</option>
+                                        @foreach (config('disbursements.fund_sources', []) as $fundSource)
+                                            <option value="{{ $fundSource }}" @selected(old('fund_source') === $fundSource)>{{ $fundSource }}</option>
+                                        @endforeach
+                                    </select>
+                                    <x-form.error name="fund_source" />
+                                </div>
+                                <div class="space-y-2">
+                                    <label for="obr_number" class="block text-sm font-medium text-slate-700">ObR No. <span class="font-normal text-slate-500">(Optional)</span></label>
+                                    <input id="obr_number" name="obr_number" type="text" value="{{ old('obr_number') }}" class="block h-12 w-full rounded-lg border border-slate-300 bg-slate-50/60 px-3 text-sm text-slate-900 transition focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200">
+                                    <x-form.error name="obr_number" />
+                                </div>
+                            </div>
                         </fieldset>
 
                         <fieldset class="space-y-4 border-t border-slate-200 pt-5">
                             <legend class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Additional Information</legend>
-
-                            <div class="grid gap-5 md:grid-cols-2">
-                                <div class="space-y-2">
-                                    <label for="supporting_reference" class="block text-sm font-medium text-slate-700">Supporting Reference (Optional)</label>
-                                    <input id="supporting_reference" name="supporting_reference" type="text" value="{{ old('supporting_reference') }}" placeholder="e.g. Purchase Request No., Receipt No., Check No., or supporting document reference" class="block h-12 w-full rounded-lg border border-slate-300 bg-slate-50/60 px-3 text-sm text-slate-900 shadow-sm transition focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200">
-                                    <x-form.error name="supporting_reference" />
-                                </div>
-
-                                <div class="space-y-2">
+                            <div class="space-y-2">
                                     <label for="notes" class="block text-sm font-medium text-slate-700">Notes / Remarks (Optional)</label>
                                     <textarea id="notes" name="notes" rows="3" class="block w-full rounded-lg border border-slate-300 bg-slate-50/60 px-3 py-2.5 text-sm text-slate-900 shadow-sm transition focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200">{{ old('notes') }}</textarea>
                                     <x-form.error name="notes" />
-                                </div>
                             </div>
                         </fieldset>
                     </div>
+                    @endif
+
+                    @include('disbursements.partials.fund-request-form-fields', [
+                        'formId' => 'create-fund-request',
+                        'values' => [],
+                        'useOld' => true,
+                        'locationDefaults' => $fundRequestLocationDefaults ?? [],
+                        'fundRequestProvinces' => $fundRequestProvinces ?? collect(),
+                    ])
 
                     <div class="flex shrink-0 justify-end border-t border-slate-200 bg-slate-50/90 px-4 py-3 sm:px-6">
                         <button type="button" data-close-create-fund-request class="mr-3 h-10 rounded-lg border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50">Cancel</button>
-                        <button type="submit" class="h-10 rounded-lg bg-blue-700 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-200">Submit Request</button>
+                        <button type="submit" class="h-10 rounded-lg bg-blue-700 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-200">Save Request</button>
                     </div>
                 </form>
                 </div>
             </dialog>
             @endcan
-            <div data-fund-request-results class="flex min-h-0 flex-1 flex-col">
-                <div data-fund-request-table class="flex min-h-0 flex-1 flex-col overflow-x-auto">
-                    <table class="w-full min-w-0 max-md:min-w-[900px] table-fixed text-left text-sm">
-                        <caption class="sr-only">Fund requests</caption>
-                        <colgroup>
-                            <col class="w-[12%]"><col class="w-[16%]"><col class="w-[26%]"><col class="w-[12%]"><col class="w-[14%]"><col class="w-[12%]"><col class="w-[16%]">
-                        </colgroup>
-                        <thead class="bg-slate-100 text-xs uppercase tracking-wide text-slate-500 shadow-[0_1px_0_0_rgba(226,232,240,1)]">
-                            <tr>
-                                <th scope="col" class="px-4 py-3 font-semibold">Date</th>
-                                <th scope="col" class="px-4 py-3 font-semibold">Recipient / Payee</th>
-                                <th scope="col" class="px-4 py-3 font-semibold">Purpose</th>
-                                <th scope="col" class="px-4 py-3 text-right font-semibold">Amount</th>
-                                <th scope="col" class="px-4 py-3 font-semibold">Requested By</th>
-                                <th scope="col" class="px-4 py-3 font-semibold">Status</th>
-                                <th scope="col" class="px-4 py-3 text-right font-semibold">Actions</th>
-                            </tr>
-                        </thead>
-                    </table>
-                    <div data-fund-request-scroll class="min-h-0 flex-1 overflow-y-auto overflow-x-clip overscroll-contain">
-                        <table class="w-full min-w-0 max-md:min-w-[900px] table-fixed text-left text-sm">
-                            <caption class="sr-only">Fund request records</caption>
-                            <colgroup>
-                                <col class="w-[12%]"><col class="w-[16%]"><col class="w-[26%]"><col class="w-[12%]"><col class="w-[14%]"><col class="w-[12%]"><col class="w-[16%]">
-                            </colgroup>
-                            <tbody class="divide-y divide-slate-100 bg-white">
-                                @forelse ($disbursements as $disbursement)
-                                    @php
-                                        $statusLabel = $disbursement->isVoided()
-                                            ? 'Cancelled'
-                                            : ($disbursement->status === 'pending'
-                                                ? 'Pending Approval'
-                                                : ($disbursement->status === 'approved' ? 'Approved Fund Request' : ucfirst($disbursement->status)));
-                                    @endphp
-                                    <tr class="align-top hover:bg-slate-50/70" data-fund-request-id="{{ $disbursement->id }}" data-requested-date="{{ ($disbursement->requested_date ?? $disbursement->created_at)->format('Y-m-d') }}" data-amount="{{ $disbursement->amount }}" data-recipient="{{ $disbursement->recipient ?? '' }}" data-purpose="{{ str_replace(['"','\\'], ['&quot;','\\\\'], $disbursement->purpose) }}" data-supporting-reference="{{ $disbursement->supporting_reference ?? '' }}" data-notes="{{ str_replace(['"','\\'], ['&quot;','\\\\'], $disbursement->notes ?? '') }}" data-status="{{ $disbursement->status }}" data-approval-url="{{ route('disbursements.approve', $disbursement) }}" data-rejection-url="{{ route('disbursements.reject', $disbursement) }}" data-can-approve="{{ auth()->user()->can('approve', $disbursement) ? 'true' : 'false' }}">
-                                        <td class="whitespace-nowrap px-4 py-3 text-slate-600">{{ ($disbursement->requested_date ?? $disbursement->created_at)->format('M d, Y') }}</td>
-                                        <td class="truncate px-4 py-3 text-slate-700" title="{{ $disbursement->recipient ?? 'Not provided' }}">{{ $disbursement->recipient ?? 'Not provided' }}</td>
-                                        <td class="px-4 py-3 text-slate-700">
-                                            <div class="min-w-0">
-                                                <p class="truncate font-medium text-slate-900" title="{{ $disbursement->purpose }}">{{ $disbursement->purpose }}</p>
-                                                @if ($disbursement->supporting_reference)
-                                                    <p class="truncate text-xs text-slate-500" title="Ref: {{ $disbursement->supporting_reference }}">Ref: {{ $disbursement->supporting_reference }}</p>
-                                                @endif
-                                                @if ($disbursement->notes)
-                                                    <p class="truncate text-xs text-slate-500" title="{{ $disbursement->notes }}">{{ $disbursement->notes }}</p>
-                                                @endif
-                                                @if ($disbursement->isVoided())
-                                                    <p class="truncate text-xs font-semibold text-red-700" title="Cancellation Reason: {{ $disbursement->void_reason }}">Cancellation Reason: {{ $disbursement->void_reason }}</p>
-                                                @endif
-                                            </div>
-                                        </td>
-                                        <td class="whitespace-nowrap px-4 py-3 text-right font-semibold text-slate-950">PHP {{ number_format((float) $disbursement->amount, 2) }}</td>
-                                        <td class="truncate px-4 py-3 text-slate-600" title="{{ $disbursement->requester->name }}">{{ $disbursement->requester->name }}</td>
-                                        <td class="px-4 py-3 whitespace-nowrap"><span class="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">{{ $statusLabel }}</span><span class="sr-only">{{ $disbursement->status }}</span></td>
-                                        <td class="px-4 py-3">
-                                            <div class="flex justify-end" data-fund-request-action>
-                                                <button type="button" data-fund-request-menu-toggle aria-haspopup="menu" aria-expanded="false" aria-label="Actions for {{ $disbursement->purpose }}" class="flex h-8 w-8 items-center justify-center rounded-md text-lg font-bold leading-none text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                                    <span aria-hidden="true">⋮</span>
-                                                </button>
-                                                <div data-fund-request-menu-panel hidden class="fixed z-[120] w-36 rounded-lg border border-slate-200 bg-white p-1 shadow-xl ring-1 ring-black/5">
-                                                    <button type="button" data-open-fund-request-modal="{{ $disbursement->id }}" data-fund-request-action class="flex w-full items-center rounded-md px-3 py-2 text-left text-sm font-medium text-slate-700 hover:bg-slate-50">View</button>
-                                                    @can('void', $disbursement)
-                                                        <button type="button" data-fund-request-cancel-toggle data-fund-request-action class="flex w-full items-center rounded-md px-3 py-2 text-left text-sm font-medium text-red-700 hover:bg-red-50">Cancel</button>
-                                                        <div data-fund-request-cancel-confirm hidden class="mt-1 border-t border-slate-100 p-2">
-                                                            <form method="POST" action="{{ route('disbursements.void', $disbursement) }}" class="space-y-2">
-                                                                @csrf @method('PATCH')
-                                                                <x-form.label for="void_reason_{{ $disbursement->id }}">Cancellation Reason</x-form.label>
-                                                                <textarea id="void_reason_{{ $disbursement->id }}" name="void_reason" rows="2" required class="block w-full rounded-md border-slate-300 text-sm shadow-sm focus:border-red-500 focus:ring-red-500"></textarea>
-                                                                <x-button class="w-full">Confirm Cancellation</x-button>
-                                                            </form>
-                                                        </div>
-                                                    @endcan
-                                                </div>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                @empty
-                                    <tr><td colspan="7" class="h-56 px-4 py-8 text-center"><p class="font-semibold text-slate-800">No fund requests found</p><p class="mt-1 text-sm text-slate-500">Create a fund request to begin the approval workflow.</p></td></tr>
-                                @endforelse
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-                <div data-fund-request-pagination class="shrink-0 pt-3">
-                    {{ $disbursements->links() }}
-                </div>
+            @include('disbursements.partials.fund-request-location-script')
+            <div data-fund-request-results>
+                <x-disbursements.table :disbursements="$disbursements" />
             </div>
     </div>
+
+    @foreach ($disbursements as $disbursement)
+        @include('disbursements.partials.details-modal', ['disbursement' => $disbursement, 'modalId' => 'fund-request-details-modal-'.$disbursement->id, 'directPage' => false])
+    @endforeach
 
     <dialog id="fund-request-detail-modal" class="m-auto w-[calc(100%-2rem)] max-w-3xl overflow-hidden rounded-xl border-0 p-0 shadow-2xl backdrop:bg-slate-950/55">
         <form id="fund-request-detail-form" class="flex max-h-[86vh] flex-col bg-white" method="POST">
@@ -216,9 +167,34 @@
                     <input id="modal_recipient" name="recipient" type="text" class="block h-11 w-full rounded-lg border border-slate-300 bg-slate-50/60 px-3 text-sm text-slate-900 shadow-sm focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200">
                 </div>
 
+                <div class="space-y-2 sm:col-span-2">
+                    <label for="modal_payee_address" class="block text-sm font-medium text-slate-700">Payee Address</label>
+                    <input id="modal_payee_address" name="payee_address" type="text" class="block h-11 w-full rounded-lg border border-slate-300 bg-slate-50/60 px-3 text-sm text-slate-900 shadow-sm focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200">
+                </div>
+
                 <div class="space-y-2">
                     <label for="modal_amount" class="block text-sm font-medium text-slate-700">Amount</label>
                     <input id="modal_amount" name="amount" type="number" step="0.01" min="0.01" class="block h-11 w-full rounded-lg border border-slate-300 bg-slate-50/60 px-3 text-sm text-slate-900 shadow-sm focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200">
+                </div>
+
+                <div class="space-y-2">
+                    <label for="modal_payee_tin" class="block text-sm font-medium text-slate-700">Payee TIN</label>
+                    <input id="modal_payee_tin" name="payee_tin" type="text" class="block h-11 w-full rounded-lg border border-slate-300 bg-slate-50/60 px-3 text-sm text-slate-900 shadow-sm focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200">
+                </div>
+
+                <div class="space-y-2">
+                    <label for="modal_fund_source" class="block text-sm font-medium text-slate-700">Fund Source</label>
+                    <select id="modal_fund_source" name="fund_source" class="block h-11 w-full rounded-lg border border-slate-300 bg-slate-50/60 px-3 text-sm text-slate-900 shadow-sm focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200">
+                        <option value="">Not provided</option>
+                        @foreach (config('disbursements.fund_sources', []) as $fundSource)
+                            <option value="{{ $fundSource }}">{{ $fundSource }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div class="space-y-2">
+                    <label for="modal_obr_number" class="block text-sm font-medium text-slate-700">ObR No.</label>
+                    <input id="modal_obr_number" name="obr_number" type="text" class="block h-11 w-full rounded-lg border border-slate-300 bg-slate-50/60 px-3 text-sm text-slate-900 shadow-sm focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200">
                 </div>
 
                     <div class="space-y-2 sm:col-span-2">
@@ -231,11 +207,6 @@
             <fieldset class="space-y-4 border-t border-slate-200 pt-4">
                 <legend class="text-xs font-semibold uppercase tracking-wide text-slate-500">Additional Information</legend>
                 <div class="grid gap-4 sm:grid-cols-2">
-                <div class="space-y-2">
-                    <label for="modal_supporting_reference" class="block text-sm font-medium text-slate-700">Supporting Reference (Optional)</label>
-                    <input id="modal_supporting_reference" name="supporting_reference" type="text" class="block h-11 w-full rounded-lg border border-slate-300 bg-slate-50/60 px-3 text-sm text-slate-900 shadow-sm focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200">
-                </div>
-
                 <div class="space-y-2">
                     <label for="modal_notes" class="block text-sm font-medium text-slate-700">Notes / Remarks (Optional)</label>
                     <textarea id="modal_notes" name="notes" rows="2" class="block w-full rounded-lg border border-slate-300 bg-slate-50/60 px-3 py-2.5 text-sm text-slate-900 shadow-sm focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200"></textarea>
@@ -277,7 +248,7 @@
             const createModal = document.getElementById('create-fund-request-modal');
             const modal = document.getElementById('fund-request-detail-modal');
             const form = document.getElementById('fund-request-detail-form');
-            const fields = form.querySelectorAll('input:not([form]), textarea:not([form])');
+            const fields = form.querySelectorAll('input:not([form]), textarea:not([form]), select:not([form])');
             const approvalActions = document.getElementById('fund-request-approval-actions');
             const approvalNotice = document.getElementById('fund-request-approval-notice');
             const approvalButton = document.getElementById('approve-fund-request-button');
@@ -380,23 +351,28 @@
                     form.dataset.requestId = row.dataset.fundRequestId;
                     document.getElementById('modal_requested_date').value = row.dataset.requestedDate || '';
                     document.getElementById('modal_recipient').value = row.dataset.recipient || '';
+                    document.getElementById('modal_payee_address').value = row.dataset.payeeAddress || '';
+                    document.getElementById('modal_payee_tin').value = row.dataset.payeeTin || '';
+                    document.getElementById('modal_fund_source').value = row.dataset.fundSource || '';
+                    document.getElementById('modal_obr_number').value = row.dataset.obrNumber || '';
                     document.getElementById('modal_amount').value = row.dataset.amount || '';
-                    document.getElementById('modal_purpose').value = row.dataset.purpose ? decodeURIComponent(escape(row.dataset.purpose)) : '';
-                    document.getElementById('modal_supporting_reference').value = row.dataset.supportingReference || '';
-                    document.getElementById('modal_notes').value = row.dataset.notes ? decodeURIComponent(escape(row.dataset.notes)) : '';
+                    document.getElementById('modal_purpose').value = row.dataset.purpose || '';
+                    document.getElementById('modal_notes').value = row.dataset.notes || '';
                     const rejectionReason = document.getElementById('modal_rejection_reason');
                     if (rejectionReason) {
                         rejectionReason.value = '';
                     }
 
                     const isPending = row.dataset.status === 'pending';
-                    const canApprove = row.dataset.canApprove === 'true';
+                    const canApprove = row.dataset.canApprove === 'true' && row.dataset.treasurerCertified === 'true';
+                    const approvalReadyNotice = row.dataset.canApprove === 'true' && ! canApprove;
                      if (approvalActions) {
                          approvalActions.classList.toggle('hidden', ! isPending);
                          approvalActions.classList.toggle('flex', isPending);
                          approvalButton.classList.toggle('hidden', ! canApprove);
                          rejectionButton.classList.toggle('hidden', ! canApprove);
                          rejectionField.classList.toggle('hidden', ! canApprove);
+                         approvalNotice.textContent = approvalReadyNotice ? "Staff must record the Treasurer's physical Box B certification before approval." : 'Only a different administrator can approve this pending request.';
                          approvalNotice.classList.toggle('hidden', ! isPending || canApprove);
                          approvalForm.action = row.dataset.approvalUrl;
                          rejectionForm.action = row.dataset.rejectionUrl;
@@ -433,6 +409,10 @@
             });
         });
     </script>
+@endpush
+
+@push('scripts')
+    @include('disbursements.partials.details-modal-script')
 @endpush
 
 @endsection

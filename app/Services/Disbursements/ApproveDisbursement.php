@@ -23,7 +23,17 @@ class ApproveDisbursement
                 throw ValidationException::withMessages(['disbursement' => 'The requester cannot approve their own fund request.']);
             }
 
+            if (! $disbursement->hasTreasurerCertification()) {
+                throw ValidationException::withMessages(['disbursement' => 'The Treasurer\'s physical certification must be recorded before this fund request can be approved.']);
+            }
+
             $disbursement->forceFill(['status' => 'approved', 'approved_by' => $approver->id, 'approved_at' => now()])->save();
+            $disbursement->latestVoucher?->forceFill([
+                'review_status' => 'approved',
+                'reviewed_by' => $approver->id,
+                'reviewed_at' => now(),
+                'review_reason' => null,
+            ])->save();
             $this->audit($disbursement, $approver, 'disbursement_approved');
 
             return $disbursement;

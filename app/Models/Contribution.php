@@ -16,16 +16,33 @@ class Contribution extends Model
     protected $fillable = [
         'workspace_id',
         'donor_id',
-        'campaign_id',
         'created_by',
         'verified_by',
         'type',
         'status',
         'amount',
+        'purpose_type',
+        'purpose_name',
         'payment_method',
         'payment_method_name',
         'reference_number',
+        'check_number',
+        'bank_name',
+        'registered_bank_account',
+        'official_receipt_number',
+        'certificate_requested',
+        'certificate_status',
+        'certificate_issued_by',
+        'certificate_issued_at',
+        'deed_declined',
+        'deed_decline_reason',
+        'document_review_status',
+        'document_request_reason',
+        'documents_requested_by',
+        'documents_requested_at',
+        'donor_tin',
         'notes',
+        'photo_path',
         'received_at',
         'verified_at',
         'voided_at',
@@ -40,17 +57,16 @@ class Contribution extends Model
             'received_at' => 'datetime',
             'verified_at' => 'datetime',
             'voided_at' => 'datetime',
+            'certificate_requested' => 'boolean',
+            'certificate_issued_at' => 'datetime',
+            'deed_declined' => 'boolean',
+            'documents_requested_at' => 'datetime',
         ];
     }
 
     public function donor(): BelongsTo
     {
         return $this->belongsTo(Donor::class);
-    }
-
-    public function campaign(): BelongsTo
-    {
-        return $this->belongsTo(Campaign::class);
     }
 
     public function creator(): BelongsTo
@@ -63,6 +79,16 @@ class Contribution extends Model
         return $this->belongsTo(User::class, 'verified_by');
     }
 
+    public function certificateIssuer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'certificate_issued_by');
+    }
+
+    public function documentsRequester(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'documents_requested_by');
+    }
+
     public function voider(): BelongsTo
     {
         return $this->belongsTo(User::class, 'voided_by');
@@ -71,6 +97,11 @@ class Contribution extends Model
     public function items(): HasMany
     {
         return $this->hasMany(ContributionItem::class);
+    }
+
+    public function evidence(): HasMany
+    {
+        return $this->hasMany(ContributionEvidence::class);
     }
 
     public function ledgerEntry(): HasOne
@@ -84,6 +115,7 @@ class Contribution extends Model
             ->where('type', 'cash')
             ->whereIn('payment_method', config('donations.electronic_payment_methods'))
             ->where('status', 'verified')
+            ->whereNull('voided_at')
             ->whereDoesntHave('ledgerEntry');
     }
 
@@ -95,11 +127,6 @@ class Contribution extends Model
     public function scopeStatus($query, ?string $status)
     {
         return $status ? $query->where('status', $status) : $query;
-    }
-
-    public function scopeCampaign($query, ?int $campaignId)
-    {
-        return $campaignId ? $query->where('campaign_id', $campaignId) : $query;
     }
 
     public function scopeSearch($query, ?string $term)
@@ -114,6 +141,8 @@ class Contribution extends Model
             $query
                 ->where('receipt_number', 'like', "%{$term}%")
                 ->orWhere('reference_number', 'like', "%{$term}%")
+                ->orWhere('official_receipt_number', 'like', "%{$term}%")
+                ->orWhere('check_number', 'like', "%{$term}%")
                 ->orWhere('notes', 'like', "%{$term}%")
                 ->orWhereHas('donor', function ($query) use ($term) {
                     $query
@@ -121,7 +150,6 @@ class Contribution extends Model
                         ->orWhere('contact_number', 'like', "%{$term}%")
                         ->orWhere('email', 'like', "%{$term}%");
                 })
-                ->orWhereHas('campaign', fn ($query) => $query->where('name', 'like', "%{$term}%"))
                 ->orWhereHas('items', function ($query) use ($term) {
                     $query
                         ->where('name', 'like', "%{$term}%")

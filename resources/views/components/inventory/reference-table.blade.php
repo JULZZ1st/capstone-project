@@ -9,17 +9,15 @@
     @if ($items->isEmpty())
         <x-dashboard.empty-state :message="'No '.Illuminate\Support\Str::lower($title).' recorded yet.'" />
     @else
-        <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-slate-200 text-sm">
-                <thead class="bg-slate-50 text-left text-xs font-semibold uppercase text-slate-500">
-                    <tr>
-                        <th class="px-3 py-2">Key</th>
-                        <th class="px-3 py-2">Label</th>
-                        <th class="px-3 py-2">Status</th>
-                        <th class="px-3 py-2 text-right">Actions</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-200">
+        <div class="min-w-0">
+            <x-data-table caption="{{ $title }}" min-width="38rem">
+<x-slot:head>
+                        <x-data-table.heading>Key</x-data-table.heading>
+                        <x-data-table.heading>Label</x-data-table.heading>
+                        <x-data-table.heading>Status</x-data-table.heading>
+                        <x-data-table.heading align="right">Actions</x-data-table.heading>
+                    </x-slot:head>
+
                     @foreach ($items as $item)
                         <tr>
                             <td class="px-3 py-2 font-mono text-xs text-slate-600">{{ $item->key }}</td>
@@ -40,16 +38,10 @@
                                 </div>
                             </td>
                         </tr>
-                        <x-inventory.reference-form-modal
-                            :dialog-id="$dialogId.'-edit-'.$item->id"
-                            :action="route($updateRouteName, $item)"
-                            method="PATCH"
-                            :item="$item"
-                            :title="'Edit '.Illuminate\Support\Str::singular($title)"
-                        />
+
                     @endforeach
-                </tbody>
-            </table>
+
+</x-data-table>
         </div>
     @endif
 </div>
@@ -61,3 +53,13 @@
     :item="null"
     :title="'Add '.Illuminate\Support\Str::singular($title)"
 />
+
+@foreach ($items as $item)
+<x-inventory.reference-form-modal
+                            :dialog-id="$dialogId.'-edit-'.$item->id"
+                            :action="route($updateRouteName, $item)"
+                            method="PATCH"
+                            :item="$item"
+                            :title="'Edit '.Illuminate\Support\Str::singular($title)"
+                        />
+@endforeach

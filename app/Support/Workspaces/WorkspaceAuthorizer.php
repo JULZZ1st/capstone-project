@@ -17,12 +17,12 @@ class WorkspaceAuthorizer
 
     public function canAccessRecord(User $user, Model $record): bool
     {
-        $workspaceId = app(WorkspaceContext::class)->id();
+        $workspace = app(WorkspaceContext::class)->get();
 
-        return $workspaceId !== null
+        return $workspace !== null
             && $record->getAttribute('workspace_id') !== null
-            && (int) $record->getAttribute('workspace_id') === (int) $workspaceId
-            && $this->canAccess($user, $record->workspace()->firstOrFail());
+            && (int) $record->getAttribute('workspace_id') === (int) $workspace->getKey()
+            && $this->canAccess($user, $workspace);
     }
 
     public function canManageMember(User $actor, User $member): bool

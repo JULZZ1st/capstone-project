@@ -12,10 +12,10 @@ The Donation Portal logs every gift as one `contributions` row, branching into a
 
 ```mermaid
 flowchart TD
-    Start([Log New Contribution<br/>modal opened]) --> Select{donation_type}
+    Start([Add Contribution<br/>modal opened]) --> Select{donation_type}
 
-    Select -- cash --> C1[Fields: donor_id, campaign_id,<br/>amount, payment_method,<br/>reference_number, notes]
-    Select -- in_kind --> K1[Fields: donor_id, campaign_id,<br/>items[] rows, notes]
+    Select -- cash --> C1[Fields: donor_id, amount,<br/>payment_method, reference_number,<br/>notes, optional photo]
+    Select -- in_kind --> K1[Fields: donor_id, items[] rows,<br/>notes, optional photo]
 
     C1 --> Submit[POST /donations<br/>StoreContributionRequest]
     K1 --> Submit
@@ -50,10 +50,12 @@ flowchart TD
 - Required: `donor_id`, `amount`, `payment_method`; `reference_number` required for electronic methods (`config('donations.electronic_payment_methods')`: bank transfer, GCash, Maya, check, money order).
 - Default status: `pending` (`config('donations.default_status.cash')`).
 - No child rows — `amount`, `payment_method`, `reference_number` live directly on `contributions`.
+- One optional JPG, PNG, or WEBP photo (up to 5 MB) can be attached to the contribution. It is stored privately and served only to authorized users.
 
 ### In-Kind Goods (`type = in_kind`)
 - Required: `donor_id`, at least one row in `items[]` (`name`, `category`, `quantity`, `unit`, `condition`; `estimated_value` optional).
 - Default status: `received` (`config('donations.default_status.in_kind')`).
+- One optional JPG, PNG, or WEBP photo (up to 5 MB) can be attached to the contribution.
 - Each item row becomes one `contribution_items` row, created in the same transaction as the parent `contributions` row — an in-kind contribution can never exist with a missing or partial item list.
 - In-kind contributions are **not** part of the verify flow (verification is cash-specific — staff/admin sign-off on money received).
 
@@ -70,8 +72,12 @@ flowchart TD
 | `pending` | Cash logged, awaiting staff/admin verification |
 | `verified` | Cash confirmed |
 | `received` | In-kind goods accepted (default, no separate approval step) |
-| `distributed` | In-kind goods have left inventory via relief operations |
+| `distributed` | Contribution has been marked distributed; inventory stock-out is tracked separately |
 | `cancelled` | Voided record, retained for audit |
+
+The portal's **All statuses** filter includes the configured states above. Cash begins as `pending` and is changed to `verified` by an authorized reviewer; in-kind begins as `received`. `distributed` is a later contribution state (inventory stock-out is recorded separately), while `cancelled` is used when a pending cash contribution is voided.
+
+Campaigns and their historical contribution links have been removed. External payment `reference_number` remains for bank reconciliation; the separate Fund Request Supporting Reference field has been removed.
 
 ## Where Donor Data Comes From
 
