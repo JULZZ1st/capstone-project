@@ -25,6 +25,12 @@ trait WorkspaceScoped
         static::creating(function ($model): void {
             $context = app(WorkspaceContext::class);
 
+            if ($model->getAttribute('workspace_id') === null
+                && ! $context->hasWorkspace()
+                && ! app()->runningInConsole()) {
+                throw new \LogicException('A workspace context is required to create workspace-scoped records.');
+            }
+
             if ($model->getAttribute('workspace_id') === null && $context->hasWorkspace()) {
                 $model->setAttribute('workspace_id', $context->id());
             }

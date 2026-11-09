@@ -69,6 +69,11 @@ class Contribution extends Model
         return $this->belongsTo(Donor::class);
     }
 
+    public function campaign(): BelongsTo
+    {
+        return $this->belongsTo(Campaign::class);
+    }
+
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');

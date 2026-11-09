@@ -181,6 +181,7 @@ class ReconciliationPeriodService
                 ->whereDate('transaction_date', '<=', $end->toDateString())
                 ->where('transaction_type', $transactionType)
                 ->where('amount', $item->amount)
+                ->when($item->bank_ledger_entry_id, fn ($query, $entryId) => $query->where('id', '!=', $entryId))
                 ->where(function ($query) use ($item) {
                     $query->where('reference_number', $item->evidence_reference)
                         ->orWhere('statement_id', $item->evidence_reference);

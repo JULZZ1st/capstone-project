@@ -28,12 +28,17 @@ class ApproveDisbursement
             }
 
             $disbursement->forceFill(['status' => 'approved', 'approved_by' => $approver->id, 'approved_at' => now()])->save();
-            $disbursement->latestVoucher?->forceFill([
-                'review_status' => 'approved',
-                'reviewed_by' => $approver->id,
-                'reviewed_at' => now(),
-                'review_reason' => null,
-            ])->save();
+            $voucher = $disbursement->latestVoucher;
+            if ($voucher !== null) {
+                $voucher->forceFill([
+                    'review_status' => 'approved',
+                    'reviewed_by' => $approver->id,
+                    'reviewed_at' => now(),
+                    'review_reason' => null,
+                ])->save();
+
+                $disbursement->forceFill(['signed_voucher_status' => 'approved'])->save();
+            }
             $this->audit($disbursement, $approver, 'disbursement_approved');
 
             return $disbursement;

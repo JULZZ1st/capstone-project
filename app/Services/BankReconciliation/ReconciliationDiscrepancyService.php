@@ -3,6 +3,8 @@
 namespace App\Services\BankReconciliation;
 
 use App\Models\BankReconciliation;
+use App\Models\CashDisbursement;
+use App\Models\Contribution;
 use App\Models\ReconciliationDiscrepancy;
 use App\Models\SecurityActivityEvent;
 use App\Models\User;
@@ -40,6 +42,8 @@ class ReconciliationDiscrepancyService
             throw ValidationException::withMessages(['period' => 'Locked reconciliation periods cannot be changed.']);
         }
 
+        $this->validateSourceRecord($period, $data);
+
         return DB::transaction(function () use ($period, $data, $user) {
             $duplicate = $period->discrepancies()
                 ->where('resolution_status', 'unresolved')
@@ -71,6 +75,40 @@ class ReconciliationDiscrepancyService
             app(ReconciliationPeriodService::class)->recalculate($period->fresh());
             return $discrepancy;
         });
+    }
+
+    private function validateSourceRecord(BankReconciliation $period, array $data): void
+    {
+        $type = $data['system_record_type'] ?? null;
+        $id = $data['system_record_id'] ?? null;
+
+        if (($type === null) !== ($id === null)) {
+            throw ValidationException::withMessages([
+                'system_record_id' => 'A system record type and ID must be provided together.',
+            ]);
+        }
+
+        if ($type === null) {
+            return;
+        }
+
+        $model = match ($type) {
+            'contribution' => Contribution::query()->find($id),
+            'cash_disbursement' => CashDisbursement::query()->find($id),
+            default => null,
+        };
+
+        if ($model === null) {
+            throw ValidationException::withMessages([
+                'system_record_id' => 'The selected system record does not exist in this workspace.',
+            ]);
+        }
+
+        if ((int) $model->workspace_id !== (int) $period->workspace_id) {
+            throw ValidationException::withMessages([
+                'system_record_id' => 'The selected system record belongs to another workspace.',
+            ]);
+        }
     }
 
     public function update(BankReconciliation $period, ReconciliationDiscrepancy $discrepancy, array $data, User $user): ReconciliationDiscrepancy
