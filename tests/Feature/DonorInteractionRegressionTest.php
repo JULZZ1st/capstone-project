@@ -149,6 +149,43 @@ class DonorInteractionRegressionTest extends TestCase
         }
     }
 
+    public function test_organization_profile_details_are_complete_in_both_directories(): void
+    {
+        $donor = $this->donor([
+            'donor_type' => 'organization', 'full_name' => 'Community Relief Foundation',
+            'contact_person' => 'Maria Santos', 'contact_number' => '09170000123',
+            'email' => 'community.relief.foundation@example.test', 'preferred_contact_method' => 'email',
+            'tin' => '123-456-789', 'address' => '123 Community Road',
+            'barangay' => 'Test Barangay', 'city_municipality' => 'Test City',
+            'province' => 'Test Province', 'region' => 'Test Region',
+            'notes' => "Contact the coordinator.\nAvailable on weekdays.",
+        ]);
+
+        foreach (['donors.index', 'donations.index'] as $route) {
+            $xpath = $this->page($route);
+            $dialog = '//dialog[@id="view-donor-modal-'.$donor->id.'"]';
+            $this->assertSame(1, $xpath->query($dialog)->length);
+            $this->assertSame($donor->full_name, $xpath->evaluate('string('.$dialog.'//h2)'));
+
+            foreach ([
+                'Contact Person' => $donor->contact_person,
+                'Contact Number' => $donor->contact_number,
+                'Email' => $donor->email,
+                'Preferred Contact' => 'Email',
+                'TIN' => $donor->tin,
+                'Street / Purok / House No.' => $donor->address,
+                'Barangay' => $donor->barangay,
+                'City / Municipality' => $donor->city_municipality,
+                'Province' => $donor->province,
+                'Region' => $donor->region,
+            ] as $label => $value) {
+                $this->assertSame($value, $xpath->evaluate('string('.$dialog.'//dt[normalize-space()="'.$label.'"]/following-sibling::dd[1])'), $route.': '.$label);
+            }
+
+            $this->assertSame($donor->notes, $xpath->evaluate('string('.$dialog.'//section[@aria-labelledby="view-donor-modal-'.$donor->id.'-notes"]/p)'));
+        }
+    }
+
     private function page(string $route): \DOMXPath
     {
         $response = $this->actingAs($this->admin())->get(route($route))->assertOk();
