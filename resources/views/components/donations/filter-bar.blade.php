@@ -21,7 +21,7 @@
 
         <div>
             <label for="type" class="mb-1.5 block text-xs font-medium text-slate-600">Type</label>
-            <select id="type" name="type" class="block h-10 w-full rounded-lg border border-slate-300 px-3 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500" data-donation-live-filter>
+            <select id="type" name="type" class="block h-10 w-full min-w-0 rounded-lg border border-slate-300 bg-white py-2 pl-3 pr-10 text-sm leading-5 text-slate-700 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500" data-donation-live-filter>
                 <option value="">All types</option>
                 @foreach (config('donations.types') as $value => $label)
                     <option value="{{ $value }}" @selected(($filters['type'] ?? '') === $value)>{{ $label }}</option>
@@ -31,7 +31,7 @@
 
         <div>
             <label for="status" class="mb-1.5 block text-xs font-medium text-slate-600">Status</label>
-            <select id="status" name="status" class="block h-10 w-full rounded-lg border border-slate-300 px-3 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500" data-donation-live-filter>
+            <select id="status" name="status" class="block h-10 w-full min-w-0 rounded-lg border border-slate-300 bg-white py-2 pl-3 pr-10 text-sm leading-5 text-slate-700 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500" data-donation-live-filter>
                 <option value="">All statuses</option>
                 @foreach (config('donations.statuses') as $value => $status)
                     <option value="{{ $value }}" @selected(($filters['status'] ?? '') === $value)>{{ $status['label'] }}</option>

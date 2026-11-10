@@ -10,8 +10,18 @@
         </header>
         <div class="flex shrink-0 flex-col gap-3 border-b border-slate-200 bg-slate-50/80 px-4 py-3 sm:px-6 lg:flex-row lg:items-center">
             <label class="relative min-w-0 flex-1"><span class="sr-only">Search donors</span><x-icon name="search" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><input type="search" data-donor-directory-search placeholder="Search name, phone, email, or location" class="h-10 w-full rounded-lg border-slate-300 bg-white py-2 pl-9 pr-3 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500"></label>
-            <select data-donor-directory-type class="h-10 rounded-lg border-slate-300 bg-white text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500"><option value="">All types</option>@foreach (config('donors.types') as $value => $label)<option value="{{ $value }}">{{ $label }}</option>@endforeach</select>
-            <select data-donor-directory-status class="h-10 rounded-lg border-slate-300 bg-white text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500"><option value="">All statuses</option>@foreach (config('donors.statuses') as $value => $label)<option value="{{ $value }}">{{ $label }}</option>@endforeach</select>
+            <select data-donor-directory-type aria-label="Filter donors by type" class="block h-10 w-full min-w-0 rounded-lg border border-slate-300 bg-white py-2 pl-3 pr-10 text-sm leading-5 text-slate-700 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 lg:w-40 lg:shrink-0">
+                <option value="">All types</option>
+                @foreach (config('donors.types') as $value => $label)
+                    <option value="{{ $value }}">{{ $label }}</option>
+                @endforeach
+            </select>
+            <select data-donor-directory-status aria-label="Filter donors by status" class="block h-10 w-full min-w-0 rounded-lg border border-slate-300 bg-white py-2 pl-3 pr-10 text-sm leading-5 text-slate-700 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 lg:w-40 lg:shrink-0">
+                <option value="">All statuses</option>
+                @foreach (config('donors.statuses') as $value => $label)
+                    <option value="{{ $value }}">{{ $label }}</option>
+                @endforeach
+            </select>
             @can('create', \App\Models\Donor::class)<button type="button" class="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-lg bg-blue-700 px-4 text-sm font-semibold text-white shadow-sm hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500" data-dialog-open="directory-add-donor-modal"><x-icon name="plus" class="h-4 w-4" /> Add Donor</button>@endcan
             <p class="shrink-0 text-xs text-slate-500" data-donor-directory-count aria-live="polite"></p>
         </div>
