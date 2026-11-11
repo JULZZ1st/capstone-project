@@ -32,13 +32,6 @@
                     <p class="truncate text-xs text-slate-500">{{ $user?->email }}</p>
                     <p class="mt-1.5 inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700">{{ $roleName }}</p>
                 </div>
-                <form method="POST" action="{{ route('logout') }}" class="pt-2">
-                    @csrf
-                    <button class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium text-red-700 hover:bg-red-50">
-                        <x-icon name="logout" class="h-4 w-4" />
-                        Logout
-                    </button>
-                </form>
             </div>
         </details>
     </div>

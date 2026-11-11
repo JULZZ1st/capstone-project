@@ -29,7 +29,7 @@
 
         <x-inventory.alert-panel :alerts="$alerts" />
 
-        <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div class="ui-card p-5">
             <div class="space-y-4">
                 <x-inventory.filter-tabs :filters="$filters" />
                 <div class="border-t border-slate-100 pt-4">

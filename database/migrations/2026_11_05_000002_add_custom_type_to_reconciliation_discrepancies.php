@@ -8,6 +8,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (! Schema::hasTable('reconciliation_discrepancies')) {
+            throw new RuntimeException('Cannot add custom discrepancy type: reconciliation_discrepancies table is missing.');
+        }
+
         if (! Schema::hasColumn('reconciliation_discrepancies', 'custom_type')) {
             Schema::table('reconciliation_discrepancies', function (Blueprint $table): void {
                 $table->string('custom_type', 120)->nullable()->after('type');
@@ -17,7 +21,8 @@ return new class extends Migration
 
     public function down(): void
     {
-        if (Schema::hasColumn('reconciliation_discrepancies', 'custom_type')) {
+        if (Schema::hasTable('reconciliation_discrepancies')
+            && Schema::hasColumn('reconciliation_discrepancies', 'custom_type')) {
             Schema::table('reconciliation_discrepancies', function (Blueprint $table): void {
                 $table->dropColumn('custom_type');
             });

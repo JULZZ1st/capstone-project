@@ -1,6 +1,6 @@
 @props(['message', 'description' => null, 'icon' => 'inbox', 'action' => null, 'actionLabel' => null])
 
-<div {{ $attributes->merge(['class' => 'flex flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 bg-white/70 px-4 py-8 text-center']) }}>
+<div {{ $attributes->merge(['class' => 'ui-empty-state flex flex-col items-center justify-center text-center']) }}>
     <span class="flex h-12 w-12 items-center justify-center rounded-full bg-blue-50 text-blue-600 ring-1 ring-blue-100">
         <x-icon :name="$icon" class="h-5 w-5" />
     </span>

@@ -9,6 +9,6 @@
     ][$type] ?? 'border-blue-200 bg-blue-50 text-blue-800';
 @endphp
 
-<div {{ $attributes->merge(['class' => 'rounded-md border px-4 py-3 text-sm '.$classes]) }}>
+<div {{ $attributes->merge(['class' => 'rounded-xl border px-4 py-3 text-sm shadow-sm '.$classes]) }}>
     {{ $slot }}
 </div>

@@ -71,7 +71,7 @@
                                     <span class="ml-1 inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-800 ring-1 ring-inset ring-red-200">Voided</span>
                                 @endif
                             </td>
-                            <td class="p-2">PHP {{ number_format((float) $donation->amount, 2) }}</td>
+                            <td class="p-2"><x-format.currency :value="$donation->amount" /></td>
                             <td class="p-2">{{ $donation->notes ?: 'Not provided' }}</td>
                             <td class="p-2">{{ optional($donation->received_at)->toFormattedDateString() ?: 'Not provided' }}</td>
                         </tr>

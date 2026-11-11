@@ -2,7 +2,6 @@
 
 @php
     $notProvided = 'Not provided';
-    $money = fn ($amount) => 'PHP '.number_format((float) ($amount ?? 0), 2);
 @endphp
 
 <article class="flex h-full flex-col rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
@@ -34,11 +33,11 @@
     <div class="mt-5 grid gap-3 sm:grid-cols-3">
         <div class="rounded-md bg-slate-50 p-3">
             <p class="text-xs text-slate-500">Cash</p>
-            <p class="mt-1 text-sm font-semibold text-slate-950">{{ $money($donor->total_cash_donations) }}</p>
+                <p class="mt-1 text-sm font-semibold text-slate-950"><x-format.currency :value="$donor->total_cash_donations" /></p>
         </div>
         <div class="rounded-md bg-slate-50 p-3">
             <p class="text-xs text-slate-500">In-Kind</p>
-            <p class="mt-1 text-sm font-semibold text-slate-950">{{ $money($donor->total_in_kind_donations) }}</p>
+            <p class="mt-1 text-sm font-semibold text-slate-950"><x-format.currency :value="$donor->total_in_kind_donations" /></p>
         </div>
         <div class="rounded-md bg-slate-50 p-3">
             <p class="text-xs text-slate-500">Donations</p>

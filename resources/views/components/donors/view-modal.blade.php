@@ -92,7 +92,7 @@
                                 <tr>
                                     <td class="whitespace-nowrap px-4 py-3 text-slate-600">{{ $contribution->received_at?->format('M d, Y') ?? 'Not provided' }}</td>
                                     <td class="px-4 py-3 text-slate-700">{{ config("donations.types.{$contribution->type}") ?? ucfirst($contribution->type) }}</td>
-                                    <td class="whitespace-nowrap px-4 py-3 text-slate-700">{{ $contribution->amount ? 'PHP '.number_format((float) $contribution->amount, 2) : 'Not provided' }}</td>
+                                    <td class="whitespace-nowrap px-4 py-3 text-slate-700"><x-format.currency :value="$contribution->amount" empty="Not provided" /></td>
                                     <td class="whitespace-nowrap px-4 py-3">
                                         @if ($contribution->voided_at)
                                             <span class="rounded-full bg-red-100 px-2.5 py-1 text-xs font-semibold text-red-800">Voided</span>

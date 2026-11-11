@@ -58,7 +58,7 @@
                 @if ($contribution->isCash())
                     <div class="mt-6 rounded-md bg-slate-50 p-4">
                         <p class="text-sm font-semibold text-slate-600">Amount</p>
-                        <p class="mt-1 text-2xl font-bold text-slate-950">PHP {{ number_format((float) $contribution->amount, 2) }}</p>
+                        <p class="mt-1 text-2xl font-bold text-slate-950"><x-format.currency :value="$contribution->amount" /></p>
                         <p class="mt-1 text-sm text-slate-500">{{ $contribution->paymentMethodLabel() }}</p>
                         @if ($contribution->payment_method === 'check')
                             <p class="mt-2 text-sm text-slate-600">Check {{ $contribution->check_number ?? '—' }} · {{ $contribution->bank_name ?? 'Bank not provided' }}</p>
@@ -114,7 +114,7 @@
                                         </td>
                                         <td class="px-4 py-3">{{ $item->quantity }} {{ config("donations.units.{$item->unit}") }}</td>
                                         <td class="px-4 py-3">{{ config("donations.item_conditions.{$item->condition}") }}</td>
-                                        <td class="px-4 py-3 text-right">{{ $item->estimated_value ? 'PHP '.number_format((float) $item->estimated_value, 2) : 'Not provided' }}</td>
+                                        <td class="px-4 py-3 text-right"><x-format.currency :value="$item->estimated_value" empty="Not provided" /></td>
                                     </tr>
                                 @endforeach
                             </tbody>

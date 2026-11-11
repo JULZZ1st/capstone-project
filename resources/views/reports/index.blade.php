@@ -29,7 +29,7 @@
         </nav>
 
         @if ($tab === 'audit')
-            <form method="GET" action="{{ route('reports.index') }}" class="flex flex-wrap items-end gap-3 rounded-lg border border-slate-200 bg-white p-4">
+            <form method="GET" action="{{ route('reports.index') }}" class="ui-filter-bar sticky top-16 z-10">
                 <input type="hidden" name="tab" value="audit">
                 <div>
                     <label for="audit-from" class="block text-xs font-semibold uppercase text-slate-500">From</label>
@@ -42,7 +42,7 @@
                 <x-button class="w-auto">Apply filters</x-button>
             </form>
         @elseif (in_array($tab, ['financial', 'inventory'], true))
-            <form method="GET" action="{{ route('reports.index') }}" class="flex flex-wrap items-end gap-3 rounded-lg border border-slate-200 bg-white p-4">
+            <form method="GET" action="{{ route('reports.index') }}" class="ui-filter-bar sticky top-16 z-10">
                 <input type="hidden" name="tab" value="{{ $tab }}">
                 <div>
                     <label for="report-month" class="block text-xs font-semibold uppercase text-slate-500">Month</label>
@@ -180,7 +180,7 @@
         @elseif ($tab === 'reconciliation')
             <section class="space-y-4 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
                 @if ($reconciliationPeriods->isNotEmpty())
-                    <form method="GET" action="{{ route('reports.index') }}" class="flex flex-wrap items-end gap-3">
+                    <form method="GET" action="{{ route('reports.index') }}" class="sticky top-16 z-10 flex flex-wrap items-end gap-3 rounded-lg bg-white py-1">
                         <input type="hidden" name="tab" value="reconciliation">
                         <div>
                             <label for="reconciliation-period" class="block text-xs font-semibold uppercase text-slate-500">Period</label>

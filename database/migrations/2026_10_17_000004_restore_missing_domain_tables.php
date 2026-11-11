@@ -9,17 +9,23 @@ return new class extends Migration
 {
     public function up(): void
     {
+        $allowLegacyImports = (bool) config('migration_compatibility.allow_legacy_domain_imports', false);
+
         if (! Schema::hasTable('donors')) {
             $this->createDonorsTable();
         }
         $this->createDonorIndexes();
-        $this->importLegacyDonors();
+        if ($allowLegacyImports) {
+            $this->importLegacyDonors();
+        }
 
         if (! Schema::hasTable('inventory_items')) {
             $this->createInventoryItemsTable();
         }
         $this->createInventoryItemIndexes();
-        $this->importLegacyInventoryItems();
+        if ($allowLegacyImports) {
+            $this->importLegacyInventoryItems();
+        }
     }
 
     public function down(): void

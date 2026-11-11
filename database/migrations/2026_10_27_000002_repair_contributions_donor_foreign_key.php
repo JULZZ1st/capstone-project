@@ -13,18 +13,29 @@ return new class extends Migration
             return;
         }
 
-        if (! Schema::hasTable('contributions') || ! Schema::hasTable('donors')) {
+        if (! Schema::hasTable('contributions')
+            || ! Schema::hasTable('donors')
+            || ! Schema::hasColumn('contributions', 'donor_id')) {
             return;
         }
 
-        $constraint = DB::table('information_schema.KEY_COLUMN_USAGE')
+        $constraints = DB::table('information_schema.KEY_COLUMN_USAGE')
             ->where('CONSTRAINT_SCHEMA', DB::getDatabaseName())
             ->where('TABLE_NAME', 'contributions')
             ->where('COLUMN_NAME', 'donor_id')
             ->whereNotNull('REFERENCED_TABLE_NAME')
-            ->first(['CONSTRAINT_NAME', 'REFERENCED_TABLE_NAME']);
+            ->get(['CONSTRAINT_NAME', 'REFERENCED_TABLE_NAME']);
 
-        if ($constraint && $constraint->REFERENCED_TABLE_NAME !== 'donors') {
+        if ($constraints->contains(fn ($constraint): bool => $constraint->REFERENCED_TABLE_NAME === 'donors')) {
+            return;
+        }
+
+        if ($constraints->count() > 1) {
+            throw new \RuntimeException('Ambiguous contributions donor foreign-key state; refusing to alter constraints.');
+        }
+
+        $constraint = $constraints->first();
+        if ($constraint !== null) {
             $name = (string) $constraint->CONSTRAINT_NAME;
 
             if (! preg_match('/^[A-Za-z0-9_]+$/', $name)) {

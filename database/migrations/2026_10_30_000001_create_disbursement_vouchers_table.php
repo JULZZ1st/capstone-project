@@ -8,6 +8,16 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::hasTable('disbursement_vouchers')) {
+            return;
+        }
+
+        foreach (['workspaces', 'cash_disbursements', 'users'] as $requiredTable) {
+            if (! Schema::hasTable($requiredTable)) {
+                throw new RuntimeException("Cannot create disbursement_vouchers: missing {$requiredTable} table.");
+            }
+        }
+
         Schema::create('disbursement_vouchers', function (Blueprint $table): void {
             $table->id();
             $table->foreignId('workspace_id')->constrained()->cascadeOnDelete();
@@ -31,6 +41,8 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists('disbursement_vouchers');
+        if (Schema::hasTable('disbursement_vouchers')) {
+            Schema::drop('disbursement_vouchers');
+        }
     }
 };

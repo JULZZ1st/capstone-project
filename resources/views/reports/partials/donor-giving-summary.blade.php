@@ -1,7 +1,7 @@
 @props(['donorSummary', 'year', 'month', 'search', 'sort'])
 
 <div class="space-y-4">
-    <form method="GET" action="{{ route('reports.index') }}" class="flex flex-wrap items-end gap-3 rounded-lg border border-slate-200 bg-white p-4">
+    <form method="GET" action="{{ route('reports.index') }}" class="ui-filter-bar sticky top-16 z-10">
         <input type="hidden" name="tab" value="philanthropy-roster">
 
         <div>

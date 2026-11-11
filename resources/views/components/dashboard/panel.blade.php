@@ -11,7 +11,7 @@
     };
 @endphp
 
-<section {{ $attributes->merge(['class' => 'rounded-2xl border border-slate-200 bg-white p-5 shadow-sm']) }}>
+<section {{ $attributes->merge(['class' => 'ui-card p-5']) }}>
     <div class="mb-4 flex items-start gap-3">
         @if ($icon)
             <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg {{ $badgeClasses }}">

@@ -1,6 +1,6 @@
 @props(['filters'])
 
-<form method="GET" action="{{ route('donations.index') }}" class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm" data-donation-filter-form>
+<form method="GET" action="{{ route('donations.index') }}" class="ui-card p-4" data-donation-filter-form>
     <div class="grid min-w-0 items-end gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(14rem,1fr)_11rem_11rem_auto]">
         <div class="min-w-0">
             <label for="search" class="mb-1.5 block text-xs font-medium text-slate-600">Search donations</label>

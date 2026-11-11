@@ -8,6 +8,16 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::hasTable('contribution_evidence')) {
+            return;
+        }
+
+        foreach (['workspaces', 'contributions', 'users'] as $requiredTable) {
+            if (! Schema::hasTable($requiredTable)) {
+                throw new RuntimeException("Cannot create contribution_evidence: missing {$requiredTable} table.");
+            }
+        }
+
         Schema::create('contribution_evidence', function (Blueprint $table): void {
             $table->id();
             $table->foreignId('workspace_id')->constrained()->cascadeOnDelete();
@@ -26,6 +36,8 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists('contribution_evidence');
+        if (Schema::hasTable('contribution_evidence')) {
+            Schema::drop('contribution_evidence');
+        }
     }
 };

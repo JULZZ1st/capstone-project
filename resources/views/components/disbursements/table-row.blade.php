@@ -23,7 +23,7 @@
             <span class="data-table__secondary max-w-64 !text-red-700">Cancellation Reason: {{ $disbursement->void_reason }}</span>
         @endif
     </td>
-    <td class="data-table__number font-semibold text-slate-950">PHP {{ number_format((float) $disbursement->amount, 2) }}</td>
+    <td class="data-table__number font-semibold text-slate-950"><x-format.currency :value="$disbursement->amount" /></td>
     <td>
         <span class="inline-flex max-w-40 rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-semibold leading-5 text-slate-700">{{ $statusLabel }}</span>
         <span class="sr-only">{{ $disbursement->status }}</span>

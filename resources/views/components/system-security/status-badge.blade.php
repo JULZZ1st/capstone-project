@@ -10,6 +10,6 @@
     ][$tone] ?? 'bg-slate-100 text-slate-700 ring-slate-200';
 @endphp
 
-<span {{ $attributes->merge(['class' => "inline-flex items-center rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ring-1 {$classes}"]) }}>
+<span {{ $attributes->merge(['class' => "ui-status-badge {$classes}"]) }}>
     {{ $label }}
 </span>

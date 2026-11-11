@@ -18,7 +18,7 @@
         <span class="data-table__secondary">{{ $contribution->donor->contact_number }}</span>
     </td>
     <td class="data-table__number">
-        <span class="font-semibold text-slate-950">{{ $value !== null ? 'PHP '.number_format((float) $value, 2) : 'Not provided' }}</span>
+        <span class="font-semibold text-slate-950"><x-format.currency :value="$value" empty="Not provided" /></span>
         <span class="data-table__secondary">{{ $contribution->isCash() ? $contribution->paymentMethodLabel() : $contribution->items_count.' '.\Illuminate\Support\Str::plural('item', $contribution->items_count) }}</span>
     </td>
     <td><x-donations.status-badge :status="$contribution->status" /></td>
