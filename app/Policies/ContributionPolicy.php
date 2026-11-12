@@ -44,7 +44,8 @@ class ContributionPolicy
             && ! $contribution->isVoided()
             && $contribution->status === 'pending'
             && $this->sameWorkspace($user, $contribution)
-            && $user->hasRole(['admin', 'staff']);
+            && $user->hasRole(['admin', 'staff'])
+            && (int) $contribution->created_by !== (int) $user->id;
     }
 
     public function uploadDeed(User $user, Contribution $contribution): bool

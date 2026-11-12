@@ -26,8 +26,8 @@ class November2026BankReconciliationDemoSeeder extends Seeder
         $targetEmail = trim((string) env('BANK_RECONCILIATION_DEMO_USER_EMAIL', 'staff@barangay.test'));
         $staff = User::query()->where('email', $targetEmail)->firstOrFail();
 
-        if (! $staff->hasRole(['staff', 'secretary', 'treasurer']) || $staff->status !== 'active') {
-            throw new RuntimeException('The demo target must be an active Staff, Secretary, or Treasurer account.');
+        if (! $staff->hasRole('staff') || $staff->status !== 'active') {
+            throw new RuntimeException('The demo target must be an active Staff account.');
         }
 
         $workspace = $this->resolveWorkspace($staff);

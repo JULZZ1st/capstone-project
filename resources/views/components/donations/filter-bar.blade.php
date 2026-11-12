@@ -1,7 +1,7 @@
-@props(['filters'])
+@props(['filters', 'types' => config('donations.types'), 'donors' => collect(), 'categories' => config('donations.item_main_categories')])
 
 <form method="GET" action="{{ route('donations.index') }}" class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm" data-donation-filter-form>
-    <div class="grid min-w-0 items-end gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(14rem,1fr)_11rem_11rem_auto]">
+    <div class="grid min-w-0 items-end gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <div class="min-w-0">
             <label for="search" class="mb-1.5 block text-xs font-medium text-slate-600">Search donations</label>
             <div class="relative">
@@ -23,7 +23,7 @@
             <label for="type" class="mb-1.5 block text-xs font-medium text-slate-600">Type</label>
             <select id="type" name="type" class="block h-10 w-full rounded-lg border border-slate-300 px-3 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500" data-donation-live-filter>
                 <option value="">All types</option>
-                @foreach (config('donations.types') as $value => $label)
+                @foreach ($types as $value => $label)
                     <option value="{{ $value }}" @selected(($filters['type'] ?? '') === $value)>{{ $label }}</option>
                 @endforeach
             </select>
@@ -34,9 +34,55 @@
             <select id="status" name="status" class="block h-10 w-full rounded-lg border border-slate-300 px-3 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500" data-donation-live-filter>
                 <option value="">All statuses</option>
                 @foreach (config('donations.statuses') as $value => $status)
+                    @continue($value === 'received')
                     <option value="{{ $value }}" @selected(($filters['status'] ?? '') === $value)>{{ $status['label'] }}</option>
                 @endforeach
             </select>
+        </div>
+
+        <div>
+            <label for="donor_id" class="mb-1.5 block text-xs font-medium text-slate-600">Donor</label>
+            <select id="donor_id" name="donor_id" class="block h-10 w-full rounded-lg border border-slate-300 px-3 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                <option value="">All donors</option>
+                @foreach ($donors as $donor)
+                    <option value="{{ $donor->id }}" @selected((string) ($filters['donor_id'] ?? '') === (string) $donor->id)>{{ $donor->full_name }}</option>
+                @endforeach
+            </select>
+        </div>
+
+        <div>
+            <label for="category" class="mb-1.5 block text-xs font-medium text-slate-600">Item category</label>
+            <select id="category" name="category" class="block h-10 w-full rounded-lg border border-slate-300 px-3 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                <option value="">All item categories</option>
+                @foreach ($categories as $value => $label)
+                    <option value="{{ $value }}" @selected(($filters['category'] ?? '') === $value)>{{ $label }}</option>
+                @endforeach
+            </select>
+        </div>
+
+        <div>
+            <label for="item" class="mb-1.5 block text-xs font-medium text-slate-600">Item name</label>
+            <input id="item" name="item" type="search" value="{{ $filters['item'] ?? '' }}" placeholder="e.g. Rice" class="block h-10 w-full rounded-lg border border-slate-300 px-3 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500">
+        </div>
+
+        <div>
+            <label for="date_from" class="mb-1.5 block text-xs font-medium text-slate-600">Received from</label>
+            <input id="date_from" name="date_from" type="date" value="{{ $filters['date_from'] ?? '' }}" class="block h-10 w-full rounded-lg border border-slate-300 px-3 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500">
+        </div>
+
+        <div>
+            <label for="date_to" class="mb-1.5 block text-xs font-medium text-slate-600">Received to</label>
+            <input id="date_to" name="date_to" type="date" value="{{ $filters['date_to'] ?? '' }}" class="block h-10 w-full rounded-lg border border-slate-300 px-3 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500">
+        </div>
+
+        <div>
+            <label for="amount_min" class="mb-1.5 block text-xs font-medium text-slate-600">Minimum cash amount</label>
+            <input id="amount_min" name="amount_min" type="number" min="0" step="0.01" value="{{ $filters['amount_min'] ?? '' }}" placeholder="PHP 0.00" class="block h-10 w-full rounded-lg border border-slate-300 px-3 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500">
+        </div>
+
+        <div>
+            <label for="amount_max" class="mb-1.5 block text-xs font-medium text-slate-600">Maximum cash amount</label>
+            <input id="amount_max" name="amount_max" type="number" min="0" step="0.01" value="{{ $filters['amount_max'] ?? '' }}" placeholder="PHP 0.00" class="block h-10 w-full rounded-lg border border-slate-300 px-3 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500">
         </div>
 
         <div class="flex items-center gap-2">
@@ -50,6 +96,6 @@
         </div>
     </div>
     <p class="mt-3 text-xs leading-5 text-slate-500">
-        Cash starts as Pending until an authorized reviewer verifies it. In-kind donations start as Received; records may later be marked Distributed or Cancelled.
+        Cash starts as Pending until an authorized reviewer verifies it. Saving an in-kind donation completes the receipt and posts its items to inventory automatically.
     </p>
 </form>

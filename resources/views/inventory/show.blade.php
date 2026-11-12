@@ -30,6 +30,7 @@
                             <th class="px-4 py-3 text-right">Quantity</th>
                             <th class="px-4 py-3 text-right">After</th>
                             <th class="px-4 py-3">Reason</th>
+                            <th class="px-4 py-3">Source</th>
                             <th class="px-4 py-3">Logged by</th>
                         </tr>
                     </thead>
@@ -42,11 +43,21 @@
                                 <td class="px-4 py-3 text-right">{{ number_format((float) $movement->quantity, 2) }}</td>
                                 <td class="px-4 py-3 text-right">{{ number_format((float) $movement->quantity_after, 2) }}</td>
                                 <td class="px-4 py-3">{{ config('inventory.adjustment_reasons.'.$movement->reason, $movement->reason) }}</td>
+                                <td class="px-4 py-3">
+                                    @if ($movement->contributionItem?->contribution)
+                                        <a href="{{ route('donations.show', $movement->contributionItem->contribution) }}" class="font-medium text-blue-700 hover:text-blue-800">
+                                            {{ $movement->contributionItem->contribution->receipt_number }}
+                                        </a>
+                                        <span class="block text-xs text-slate-500">{{ $movement->contributionItem->contribution->donor?->full_name }}</span>
+                                    @else
+                                        <span class="text-slate-400">Manual / imported</span>
+                                    @endif
+                                </td>
                                 <td class="px-4 py-3">{{ $movement->creator?->name ?? 'System' }}</td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7" class="px-4 py-8">
+                                <td colspan="8" class="px-4 py-8">
                                     <x-dashboard.empty-state message="No stock movements have been recorded for this item." />
                                 </td>
                             </tr>

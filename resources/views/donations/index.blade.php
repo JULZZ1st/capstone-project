@@ -38,7 +38,12 @@
                 @endcan
             </div>
 
-            <x-donations.filter-bar :filters="$filters" />
+            <x-donations.filter-bar
+                :filters="$filters"
+                :types="$availableDonationTypes"
+                :donors="$filterDonors"
+                :categories="$itemCategories"
+            />
         </div>
 
         @if ($contributions->count())
@@ -54,13 +59,13 @@
                 <div class="p-8">
                     <x-dashboard.empty-state
                         icon="cube"
-                        :message="request()->hasAny(['search', 'type', 'status'])
+                        :message="request()->hasAny(['search', 'type', 'status', 'date_from', 'date_to', 'donor_id', 'amount_min', 'amount_max', 'item', 'category'])
                             ? 'No contributions match the current filters.'
                             : 'No contributions have been logged yet.'"
                     />
                     <p class="mt-1 text-center text-sm text-slate-400">
 
-                        @if (request()->hasAny(['search', 'type', 'status']))
+                        @if (request()->hasAny(['search', 'type', 'status', 'date_from', 'date_to', 'donor_id', 'amount_min', 'amount_max', 'item', 'category']))
 
                             Try adjusting your search or filters.
 

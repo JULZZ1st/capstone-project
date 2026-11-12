@@ -64,4 +64,5 @@ class ReportIndexRequest extends FormRequest
     }
 
     public function periodId(): ?int { return $this->validated('period_id') ? (int) $this->validated('period_id') : null; }
+
 }

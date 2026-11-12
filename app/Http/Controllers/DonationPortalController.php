@@ -17,6 +17,7 @@ use App\Models\InventorySubcategory;
 use App\Models\SecurityActivityEvent;
 use App\Services\Contributions\LogContribution;
 use App\Services\Contributions\UploadContributionDeed;
+use App\Services\Inventory\PostContributionToInventory;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -79,6 +80,11 @@ class DonationPortalController extends Controller
             ->search($filters['search'] ?? null)
             ->type($filters['type'] ?? null)
             ->status($filters['status'] ?? null)
+            ->receivedBetween($filters['date_from'] ?? null, $filters['date_to'] ?? null)
+            ->donorId(isset($filters['donor_id']) ? (int) $filters['donor_id'] : null)
+            ->amountBetween($filters['amount_min'] ?? null, $filters['amount_max'] ?? null)
+            ->itemName($filters['item'] ?? null)
+            ->itemCategory($filters['category'] ?? null)
             ->latest('received_at')
             ->latest()
             ->paginate(config('donations.pagination.per_page'))
@@ -88,10 +94,15 @@ class DonationPortalController extends Controller
         return view('donations.index', [
             'contributions' => $contributions,
             'filters' => $filters,
+            'availableDonationTypes' => config('donations.types'),
             'donors' => Donor::query()
                 ->active()
                 ->orderBy('full_name')
                 ->get(['id', 'full_name', 'contact_number']),
+            'filterDonors' => Donor::query()
+                ->orderBy('full_name')
+                ->get(['id', 'full_name']),
+            'itemCategories' => config('donations.item_main_categories'),
             'donorDirectory' => Donor::query()
                 ->orderBy('full_name')
                 ->get([
@@ -155,6 +166,7 @@ class DonationPortalController extends Controller
             'verifier.role',
             'certificateIssuer.role',
             'items',
+            'items.inventoryItem',
             'evidence',
         ]);
 
@@ -207,9 +219,9 @@ class DonationPortalController extends Controller
         ]);
     }
 
-    public function update(UpdateContributionRequest $request, Contribution $contribution): RedirectResponse
+    public function update(UpdateContributionRequest $request, Contribution $contribution, PostContributionToInventory $inventoryPoster): RedirectResponse
     {
-        DB::transaction(function () use ($request, $contribution): void {
+        DB::transaction(function () use ($request, $contribution, $inventoryPoster): void {
             $contribution = Contribution::query()->lockForUpdate()->findOrFail($contribution->id);
             Gate::authorize('update', $contribution);
             $data = $request->validated();
@@ -222,6 +234,12 @@ class DonationPortalController extends Controller
             }
 
             $contribution->update($data);
+
+            // New in-kind records are posted by LogContribution. Keep direct
+            // legacy/API transitions safe and idempotent for older records.
+            if ($contribution->isInKind() && $contribution->status === 'received') {
+                $inventoryPoster->handle($contribution, $request->user());
+            }
 
             if ($contribution->isCash() && $request->user()->hasRole('admin') && $previousStatus !== $contribution->status) {
                 $this->audit($request->user(), 'cash_donation_admin_decision', $contribution, "{$request->user()->name} changed cash donation {$contribution->receipt_number} from {$previousStatus} to {$contribution->status}.");

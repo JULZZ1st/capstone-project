@@ -134,6 +134,41 @@ class Contribution extends Model
         return $status ? $query->where('status', $status) : $query;
     }
 
+    public function scopeReceivedBetween($query, ?string $from, ?string $to)
+    {
+        return $query
+            ->when($from, fn ($builder) => $builder->whereDate('received_at', '>=', $from))
+            ->when($to, fn ($builder) => $builder->whereDate('received_at', '<=', $to));
+    }
+
+    public function scopeDonorId($query, ?int $donorId)
+    {
+        return $donorId ? $query->where('donor_id', $donorId) : $query;
+    }
+
+    public function scopeAmountBetween($query, mixed $minimum, mixed $maximum)
+    {
+        return $query
+            ->when($minimum !== null && $minimum !== '', fn ($builder) => $builder->where('amount', '>=', $minimum))
+            ->when($maximum !== null && $maximum !== '', fn ($builder) => $builder->where('amount', '<=', $maximum));
+    }
+
+    public function scopeItemName($query, ?string $item)
+    {
+        $item = trim((string) $item);
+
+        return $item === ''
+            ? $query
+            : $query->whereHas('items', fn ($builder) => $builder->where('name', 'like', "%{$item}%"));
+    }
+
+    public function scopeItemCategory($query, ?string $category)
+    {
+        return $category
+            ? $query->whereHas('items', fn ($builder) => $builder->where('category', $category))
+            : $query;
+    }
+
     public function scopeSearch($query, ?string $term)
     {
         $term = trim((string) $term);
@@ -166,6 +201,11 @@ class Contribution extends Model
     public function isCash(): bool
     {
         return $this->type === 'cash';
+    }
+
+    public function isInKind(): bool
+    {
+        return $this->type === 'in_kind';
     }
 
     public function paymentMethodLabel(): ?string

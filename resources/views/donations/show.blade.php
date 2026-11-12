@@ -222,13 +222,20 @@
                         @csrf
                         @method('PATCH')
                         <div>
-                            <x-form.label for="status">Status</x-form.label>
-                            <select id="status" name="status" class="mt-1 block w-full rounded-md border-slate-300 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                                @foreach (config('donations.statuses') as $value => $status)
-                                    @continue($value === 'verified' && $contribution->status !== 'verified')
-                                    <option value="{{ $value }}" @selected(old('status', $contribution->status) === $value)>{{ $status['label'] }}</option>
-                                @endforeach
-                            </select>
+                            @if ($contribution->status === 'received')
+                                <input type="hidden" name="status" value="received">
+                                <x-form.label for="status">Receipt status</x-form.label>
+                                <p class="mt-1 text-sm text-slate-600">Received and posted to inventory automatically when this contribution was saved.</p>
+                            @else
+                                <x-form.label for="status">Status</x-form.label>
+                                <select id="status" name="status" class="mt-1 block w-full rounded-md border-slate-300 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                    @foreach (config('donations.statuses') as $value => $status)
+                                        @continue($value === 'received')
+                                        @continue($value === 'verified' && $contribution->status !== 'verified')
+                                        <option value="{{ $value }}" @selected(old('status', $contribution->status) === $value)>{{ $status['label'] }}</option>
+                                    @endforeach
+                                </select>
+                            @endif
                             <x-form.error name="status" />
                         </div>
                         <div>

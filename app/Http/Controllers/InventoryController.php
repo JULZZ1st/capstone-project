@@ -102,7 +102,11 @@ class InventoryController extends Controller
             'updater:id,first_name,last_name,name',
             'subcategory:id,key,label',
             'stockMovements' => fn ($query) => $query
-                ->with('creator:id,first_name,last_name,name')
+                ->with([
+                    'creator:id,first_name,last_name,name',
+                    'contributionItem.contribution:id,receipt_number,donor_id',
+                    'contributionItem.contribution.donor:id,full_name',
+                ])
                 ->latest()
                 ->limit(25),
         ]);

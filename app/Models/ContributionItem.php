@@ -14,6 +14,7 @@ class ContributionItem extends Model
     protected $fillable = [
         'workspace_id',
         'contribution_id',
+        'inventory_item_id',
         'name',
         'category',
         'category_description',
@@ -41,5 +42,10 @@ class ContributionItem extends Model
     public function contribution(): BelongsTo
     {
         return $this->belongsTo(Contribution::class);
+    }
+
+    public function inventoryItem(): BelongsTo
+    {
+        return $this->belongsTo(InventoryItem::class);
     }
 }

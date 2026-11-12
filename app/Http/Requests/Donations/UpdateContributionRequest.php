@@ -18,8 +18,11 @@ class UpdateContributionRequest extends FormRequest
 
         // Staff may correct their own editable records, but verification and
         // rejection are independent review decisions reserved for Admins.
-        return $user->hasRole('admin')
-            || ! in_array($this->input('status'), ['verified', 'rejected'], true);
+        if ($user->hasRole('admin') && in_array($this->input('status'), ['verified', 'rejected'], true)) {
+            return (int) $contribution->created_by !== (int) $user->id;
+        }
+
+        return ! in_array($this->input('status'), ['verified', 'rejected'], true);
     }
 
     public function rules(): array

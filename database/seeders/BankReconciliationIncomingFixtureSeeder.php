@@ -23,8 +23,8 @@ class BankReconciliationIncomingFixtureSeeder extends Seeder
         }
 
         $staff = User::query()->where('email', $targetEmail)->firstOrFail();
-        if (! $staff->hasRole(['staff', 'secretary', 'treasurer']) || $staff->status !== 'active') {
-            throw new RuntimeException('The target account must be an active Staff, Secretary, or Treasurer account.');
+        if (! $staff->hasRole('staff') || $staff->status !== 'active') {
+            throw new RuntimeException('The target account must be an active Staff account.');
         }
 
         $workspace = $this->resolveWorkspace($staff);

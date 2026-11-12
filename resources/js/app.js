@@ -1767,9 +1767,14 @@ const refreshContributionDonorOptions = (donor) => {
             select.add(new Option(donor.label, donor.id));
         }
 
+        select.disabled = false;
         select.value = String(donor.id);
         select.dispatchEvent(new Event('change', { bubbles: true }));
         refreshCustomSelect(select);
+    });
+
+    document.querySelectorAll('[data-contribution-submit]').forEach((submit) => {
+        submit.disabled = false;
     });
 };
 
