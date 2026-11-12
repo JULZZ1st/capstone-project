@@ -12,13 +12,13 @@
                 type="search"
                 value="{{ $search }}"
                 placeholder="Name, email, or phone"
-                class="mt-1 block rounded-md border-slate-300 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                class="report-filter-input mt-1 block focus:border-blue-500 focus:ring-blue-500"
             >
         </div>
 
         <div>
             <label for="donor-summary-month" class="block text-xs font-semibold uppercase text-slate-500">Month</label>
-            <select id="donor-summary-month" name="month" class="mt-1 rounded-md border-slate-300 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500">
+            <select id="donor-summary-month" name="month" class="report-filter-select mt-1 focus:border-blue-500 focus:ring-blue-500">
                 @foreach (range(1, 12) as $monthOption)
                     <option value="{{ $monthOption }}" @selected($month === $monthOption)>{{ date('F', mktime(0, 0, 0, $monthOption, 1)) }}</option>
                 @endforeach
@@ -27,7 +27,7 @@
 
         <div>
             <label for="donor-summary-year" class="block text-xs font-semibold uppercase text-slate-500">Year</label>
-            <select id="donor-summary-year" name="year" class="mt-1 rounded-md border-slate-300 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500">
+            <select id="donor-summary-year" name="year" class="report-filter-select mt-1 focus:border-blue-500 focus:ring-blue-500">
                 @foreach (range(now()->year - 3, now()->year) as $yearOption)
                     <option value="{{ $yearOption }}" @selected($year === $yearOption)>{{ $yearOption }}</option>
                 @endforeach
@@ -36,7 +36,7 @@
 
         <div>
             <label for="donor-summary-sort" class="block text-xs font-semibold uppercase text-slate-500">Sort by</label>
-            <select id="donor-summary-sort" name="sort" class="mt-1 rounded-md border-slate-300 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500">
+            <select id="donor-summary-sort" name="sort" class="report-filter-select mt-1 focus:border-blue-500 focus:ring-blue-500">
                 <option value="highest" @selected(! $sort || $sort === 'highest')>Highest Giving</option>
                 <option value="lowest" @selected($sort === 'lowest')>Lowest Giving</option>
                 <option value="most_contributions" @selected($sort === 'most_contributions')>Most Contributions</option>

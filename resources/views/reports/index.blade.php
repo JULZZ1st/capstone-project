@@ -46,7 +46,7 @@
                 <input type="hidden" name="tab" value="{{ $tab }}">
                 <div>
                     <label for="report-month" class="block text-xs font-semibold uppercase text-slate-500">Month</label>
-                    <select id="report-month" name="month" class="mt-1 rounded-md border-slate-300 text-sm shadow-sm">
+                    <select id="report-month" name="month" class="report-filter-select mt-1">
                         @foreach (range(1, 12) as $monthOption)
                             <option value="{{ $monthOption }}" @selected($month === $monthOption)>{{ date('F', mktime(0, 0, 0, $monthOption, 1)) }}</option>
                         @endforeach
@@ -54,7 +54,7 @@
                 </div>
                 <div>
                     <label for="report-year" class="block text-xs font-semibold uppercase text-slate-500">Year</label>
-                    <select id="report-year" name="year" class="mt-1 rounded-md border-slate-300 text-sm shadow-sm">
+                    <select id="report-year" name="year" class="report-filter-select mt-1">
                         @foreach (range(now()->year - 3, now()->year) as $yearOption)
                             <option value="{{ $yearOption }}" @selected($year === $yearOption)>{{ $yearOption }}</option>
                         @endforeach
@@ -184,7 +184,7 @@
                         <input type="hidden" name="tab" value="reconciliation">
                         <div>
                             <label for="reconciliation-period" class="block text-xs font-semibold uppercase text-slate-500">Period</label>
-                            <select id="reconciliation-period" name="period_id" class="mt-1 rounded-md border-slate-300 text-sm">
+                            <select id="reconciliation-period" name="period_id" class="report-filter-select mt-1">
                                 @foreach ($reconciliationPeriods as $periodOption)
                                     <option value="{{ $periodOption->id }}" @selected((int) request('period_id', $reconciliationPeriods->first()->id) === $periodOption->id)>
                                         {{ $periodOption->period_start?->format('Y-m-d') }} – {{ $periodOption->period_end?->format('Y-m-d') }} ({{ str_replace('_', ' ', $periodOption->status) }})

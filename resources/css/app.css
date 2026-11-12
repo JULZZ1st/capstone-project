@@ -73,6 +73,24 @@
 	.ui-button--secondary { @apply border border-slate-300 bg-white text-slate-700 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700; }
 	.ui-button--danger { @apply bg-rose-700 text-white hover:bg-rose-800; }
 	.ui-control { @apply rounded-lg border-slate-300 bg-white px-3 py-2 text-sm shadow-sm; }
+	.report-filter-select {
+		@apply min-h-10 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm;
+		min-width: 8rem;
+	}
+	.report-filter-select option {
+		padding: 0.5rem 0.75rem;
+		line-height: 1.5;
+	}
+	.report-filter-select option:checked {
+		background-color: #dbeafe;
+		color: #1d4ed8;
+	}
+	.report-filter-select option:hover {
+		background-color: #f8fafc;
+	}
+	.report-filter-input {
+		@apply min-h-10 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm;
+	}
 	.ui-status-badge { @apply inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset; }
 	.ui-modal { @apply rounded-2xl border border-slate-200 bg-white shadow-xl; }
 	.ui-empty-state { @apply rounded-xl border border-dashed border-slate-300 bg-white px-4 py-8; }
