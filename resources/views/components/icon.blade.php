@@ -207,6 +207,10 @@
             <path d="m9 6 6 6-6 6" />
             @break
 
+        @case('chevron-left')
+            <path d="m15 6-6 6 6 6" />
+            @break
+
         @case('dots-vertical')
             <circle cx="12" cy="5" r="1" fill="currentColor" stroke="none" />
             <circle cx="12" cy="12" r="1" fill="currentColor" stroke="none" />
