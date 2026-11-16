@@ -49,11 +49,6 @@ class DonorController extends Controller
             ->type($type)
             ->withDonationMetrics()
             ->withCount('contributions')
-            ->with(['contributions' => fn ($query) => $query
-                ->select(['id', 'donor_id', 'type', 'status', 'amount', 'received_at', 'voided_at'])
-                ->latest('received_at')
-                ->latest()
-                ->limit(20)])
             ->latest()
             ->paginate(config('donors.pagination.per_page'))
             ->withQueryString();
@@ -77,6 +72,8 @@ class DonorController extends Controller
 
     public function store(StoreDonorRequest $request)
     {
+        $fromDirectory = $request->input('_modal') === 'directory-add-donor-modal';
+        $returnRoute = $fromDirectory ? 'donations.index' : 'donors.index';
         $data = $request->donorData();
         $data['status'] = config('donors.defaults.status');
 
@@ -88,7 +85,7 @@ class DonorController extends Controller
             }
 
             return redirect()
-                ->route('donors.index')
+                ->route($returnRoute)
                 ->withInput($request->except('_confirm_duplicate'))
                 ->with('warning', 'A donor with matching name and contact details may already exist. Review the information, then save again only if this should be a separate donor profile.')
                 ->with('duplicate_donor_detected', true);
@@ -106,7 +103,8 @@ class DonorController extends Controller
         }
 
         return redirect()
-            ->route('donors.index')
+            ->route($returnRoute)
+            ->with('donor_directory_open', $fromDirectory)
             ->with('success', 'Donor profile created successfully.');
     }
 
@@ -114,17 +112,9 @@ class DonorController extends Controller
     {
         Gate::authorize('view', $donor);
 
-        $donor->loadCount([
-            'contributions',
-            'contributions as donations_count' => fn ($query) => $query->whereNull('voided_at'),
-        ]);
+        $donor->loadCount('contributions');
 
-        $donations = $donor->contributions()
-            ->latest('received_at')
-            ->latest()
-            ->paginate(config('donors.pagination.history_per_page'));
-
-        return view('donors.show', compact('donor', 'donations'));
+        return view('donors.show', compact('donor'));
     }
 
     public function update(UpdateDonorRequest $request, Donor $donor)

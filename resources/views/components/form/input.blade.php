@@ -10,7 +10,9 @@
         type="{{ $type }}"
         value="{{ $type === 'password' ? '' : ($useOld ? old($name, $value) : $value) }}"
         {{ $attributes->merge(['class' => 'ui-control mt-1 block w-full']) }}
-        @error($name) aria-invalid="true" aria-describedby="{{ $name }}-error" @enderror
+        @if($useOld && $errors->has($name)) aria-invalid="true" aria-describedby="{{ $inputId }}-error" @endif
     >
-    <x-form.error :name="$name" />
+    @if($useOld)
+        <x-form.error :name="$name" :id="$inputId.'-error'" />
+    @endif
 </div>

@@ -5,6 +5,17 @@
 
 @section('content')
     <div class="space-y-6">
+        @if ($errors->any() || $errors->deedUpload->any())
+            <div class="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800" role="alert" tabindex="-1" data-validation-summary>
+                <p class="font-semibold">The donation could not be updated. Please review these requirements:</p>
+                <ul class="mt-2 list-disc space-y-1 pl-5">
+                    @foreach (array_unique(array_merge($errors->all(), $errors->deedUpload->all())) as $message)
+                        <li>{{ $message }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
                 <a href="{{ route('donations.index') }}" class="text-sm font-semibold text-blue-700 hover:text-blue-800">Back to donations</a>
@@ -58,7 +69,7 @@
                 @if ($contribution->isCash())
                     <div class="mt-6 rounded-md bg-slate-50 p-4">
                         <p class="text-sm font-semibold text-slate-600">Amount</p>
-                        <p class="mt-1 text-2xl font-bold text-slate-950"><x-format.currency :value="$contribution->amount" /></p>
+                        <p class="mt-1 text-2xl font-bold text-slate-950">PHP {{ number_format((float) $contribution->amount, 2) }}</p>
                         <p class="mt-1 text-sm text-slate-500">{{ $contribution->paymentMethodLabel() }}</p>
                         @if ($contribution->payment_method === 'check')
                             <p class="mt-2 text-sm text-slate-600">Check {{ $contribution->check_number ?? '—' }} · {{ $contribution->bank_name ?? 'Bank not provided' }}</p>
@@ -114,7 +125,7 @@
                                         </td>
                                         <td class="px-4 py-3">{{ $item->quantity }} {{ config("donations.units.{$item->unit}") }}</td>
                                         <td class="px-4 py-3">{{ config("donations.item_conditions.{$item->condition}") }}</td>
-                                        <td class="px-4 py-3 text-right"><x-format.currency :value="$item->estimated_value" empty="Not provided" /></td>
+                                        <td class="px-4 py-3 text-right">{{ $item->estimated_value ? 'PHP '.number_format((float) $item->estimated_value, 2) : 'Not provided' }}</td>
                                     </tr>
                                 @endforeach
                             </tbody>
@@ -151,11 +162,7 @@
             <aside class="rounded-lg border border-slate-200 bg-white p-5">
                 <h2 class="text-base font-semibold text-slate-950">Update Record</h2>
                 @can('verify', $contribution)
-                    <form method="POST" action="{{ route('donations.verify', $contribution) }}" class="mt-4">
-                        @csrf
-                        @method('PATCH')
-                        <x-button>Verify Donation</x-button>
-                    </form>
+                    <x-donations.verification-form :contribution="$contribution" class="mt-4" />
                 @endcan
 
                 @can('requestDocuments', $contribution)
@@ -221,28 +228,7 @@
                     <form method="POST" action="{{ route('donations.update', $contribution) }}" class="mt-4 space-y-4">
                         @csrf
                         @method('PATCH')
-                        <div>
-                            @if ($contribution->status === 'received')
-                                <input type="hidden" name="status" value="received">
-                                <x-form.label for="status">Receipt status</x-form.label>
-                                <p class="mt-1 text-sm text-slate-600">Received and posted to inventory automatically when this contribution was saved.</p>
-                            @else
-                                <x-form.label for="status">Status</x-form.label>
-                                <select id="status" name="status" class="mt-1 block w-full rounded-md border-slate-300 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                                    @foreach (config('donations.statuses') as $value => $status)
-                                        @continue($value === 'received')
-                                        @continue($value === 'verified' && $contribution->status !== 'verified')
-                                        <option value="{{ $value }}" @selected(old('status', $contribution->status) === $value)>{{ $status['label'] }}</option>
-                                    @endforeach
-                                </select>
-                            @endif
-                            <x-form.error name="status" />
-                        </div>
-                        <div>
-                            <x-form.label for="notes">Notes</x-form.label>
-                            <textarea id="notes" name="notes" rows="4" class="mt-1 block w-full rounded-md border-slate-300 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500">{{ old('notes', $contribution->notes) }}</textarea>
-                            <x-form.error name="notes" />
-                        </div>
+                        <x-donations.update-fields :contribution="$contribution" />
                         <x-button>Save Update</x-button>
                     </form>
                 @else

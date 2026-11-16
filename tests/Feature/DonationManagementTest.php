@@ -285,7 +285,7 @@ class DonationManagementTest extends TestCase
         ]);
     }
 
-    public function test_donor_history_shows_only_selected_donor_donations(): void
+    public function test_donor_profile_hides_contribution_history_and_preserves_donations(): void
     {
         $donor = Donor::query()->create([
             'donor_type' => 'individual',
@@ -330,8 +330,11 @@ class DonationManagementTest extends TestCase
         $response = $this->actingAs(User::factory()->create())->get(route('donors.show', $donor));
 
         $response->assertOk();
-        $response->assertSee('Medical support');
+        $response->assertSee('Donor Profile');
+        $response->assertDontSee('Donation History');
+        $response->assertDontSee('Medical support');
         $response->assertDontSee('Other donor support');
+        $this->assertDatabaseCount('contributions', 2);
     }
 
     public function test_staff_can_view_and_modify_donors(): void

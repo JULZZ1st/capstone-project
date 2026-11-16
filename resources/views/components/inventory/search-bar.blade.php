@@ -20,8 +20,8 @@
     </div>
 
     <div class="md:w-48">
-        <x-form.label for="status">Item Status</x-form.label>
-        <select id="status" name="status" class="ui-control mt-1.5 block w-full py-2.5">
+        <x-form.label for="inventory-filter-status">Item Status</x-form.label>
+        <select id="inventory-filter-status" name="status" class="ui-control mt-1.5 block w-full py-2.5">
             <option value="">All statuses</option>
             @foreach (config('inventory.item_statuses') as $key => $status)
                 <option value="{{ $key }}" @selected(($filters['status'] ?? null) === $key)>{{ $status['label'] }}</option>

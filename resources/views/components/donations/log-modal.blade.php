@@ -1,12 +1,13 @@
 @props(['donors'])
 
 @php($selectedType = old('donation_type', 'cash'))
+@php($restoreDonation = $errors->any() && (old('_modal') === 'log-contribution' || old('donation_type') !== null))
 
 <dialog
     id="log-contribution-dialog"
     class="m-auto w-[min(860px,calc(100vw-1.5rem))] max-w-full overflow-hidden rounded-2xl p-0 shadow-2xl backdrop:bg-slate-950/50"
     aria-labelledby="log-contribution-title"
-    @if($errors->any()) open @endif
+    @if($restoreDonation) open @endif
 >
     <form
         method="POST"
@@ -16,6 +17,7 @@
         data-contribution-form
     >
         @csrf
+        <input type="hidden" name="_modal" value="log-contribution">
 
         <div class="flex shrink-0 items-center justify-between border-b border-slate-200 bg-white px-5 py-3.5 sm:px-6">
             <h2 id="log-contribution-title" class="text-base font-semibold text-slate-950">Add Donation</h2>

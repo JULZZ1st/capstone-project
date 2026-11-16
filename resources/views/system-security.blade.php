@@ -26,47 +26,11 @@
                         <x-system-security.status-badge :label="number_format($personnel->where('status', config('auth_defaults.user_status'))->count()).' Active Accounts'" tone="emerald" />
 
                         @can('updateSecuritySettings', \App\Models\SecurityActivityEvent::class)
-                        <details id="create-staff-account-details" class="relative ml-2 inline-block" @if (old('_modal') === 'create') open @endif>
+                        <details id="create-staff-account-details" class="relative ml-2 min-w-0 w-full sm:w-80" @if (old('_modal') === 'create') open @endif>
                             <summary class="rounded-md bg-slate-100 px-2 py-1 text-xs font-semibold">Create Staff Account</summary>
-                            <form method="POST" action="{{ route('system-security.users.store') }}" class="mt-2 w-80 rounded border border-slate-100 bg-white p-3 shadow-lg">
+                            <form method="POST" action="{{ route('system-security.users.store') }}" class="mt-2 w-full rounded border border-slate-100 bg-white p-3 shadow-lg">
                                 @csrf
-                                <input type="hidden" name="_modal" value="create">
-                                <div class="space-y-2">
-                                    <div>
-                                        <label class="block text-[11px] text-slate-500">First name</label>
-                                        <input name="first_name" value="{{ old('first_name') }}" required class="mt-1 w-full rounded border px-2 py-1 text-sm" />
-                                        <x-form.error name="first_name" />
-                                    </div>
-                                    <div>
-                                        <label class="block text-[11px] text-slate-500">Last name</label>
-                                        <input name="last_name" value="{{ old('last_name') }}" required class="mt-1 w-full rounded border px-2 py-1 text-sm" />
-                                        <x-form.error name="last_name" />
-                                    </div>
-                                    <div>
-                                        <label class="block text-[11px] text-slate-500">Email</label>
-                                        <input name="email" type="email" value="{{ old('email') }}" required class="mt-1 w-full rounded border px-2 py-1 text-sm" />
-                                        <x-form.error name="email" />
-                                    </div>
-                                    <div>
-                                        <label class="block text-[11px] text-slate-500">Role</label>
-                                        <select name="role" required class="mt-1 w-full rounded border px-2 py-1 text-sm">
-                                            <option value="staff"@if(old('role') === 'staff') selected @endif>Staff</option>
-                                        </select>
-                                        <x-form.error name="role" />
-                                    </div>
-                                    <div>
-                                        <label class="block text-[11px] text-slate-500">Initial password</label>
-                                        <input name="password" type="password" required class="mt-1 w-full rounded border px-2 py-1 text-sm" />
-                                        <x-form.error name="password" />
-                                    </div>
-                                    <div>
-                                        <label class="block text-[11px] text-slate-500">Confirm password</label>
-                                        <input name="password_confirmation" type="password" required class="mt-1 w-full rounded border px-2 py-1 text-sm" />
-                                    </div>
-                                    <div class="mt-2 flex justify-end">
-                                        <button class="rounded bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white">Create</button>
-                                    </div>
-                                </div>
+                                <x-system-security.staff-account-fields />
                             </form>
                         </details>
                         @endcan
