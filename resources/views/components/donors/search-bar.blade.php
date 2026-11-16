@@ -11,14 +11,14 @@
             placeholder="Search donors..."
             autocomplete="off"
             data-donor-live-search
-            class="block h-10 w-full rounded-md border-slate-300 bg-white py-2 pl-9 pr-3 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500"
+            class="ui-control block h-10 w-full py-2 pl-9 pr-3"
         >
     </div>
 
     <select
         id="type"
         name="type"
-        class="h-10 rounded-md border-slate-300 bg-white px-3 pr-10 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:w-40"
+        class="ui-control h-10 pr-10 sm:w-40"
         data-donor-live-filter
     >
         <option value="">All types</option>

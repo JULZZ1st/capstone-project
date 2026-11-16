@@ -5,6 +5,30 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', config('dashboard.barangay_name'))</title>
+    <script>
+        // Apply the persisted preference before the sidebar can paint in its default state.
+        document.documentElement.classList.add('sidebar-preload');
+        try {
+            if (['1', 'true'].includes(localStorage.getItem('sidebarCollapsed'))) {
+                document.documentElement.dataset.sidebarPreference = 'collapsed';
+            }
+        } catch (error) {}
+    </script>
+    <style>
+        html.sidebar-preload #app-sidebar,
+        html.sidebar-preload #app-sidebar * { transition: none !important; animation: none !important; }
+        @media (min-width: 1024px) {
+            html.sidebar-preload[data-sidebar-preference='collapsed'] #app-sidebar { width: 5.25rem; flex-basis: 5.25rem; }
+            html.sidebar-preload[data-sidebar-preference='collapsed'] #app-sidebar #sidebar-logo { justify-content: center; }
+            html.sidebar-preload[data-sidebar-preference='collapsed'] #app-sidebar .sidebar-label,
+            html.sidebar-preload[data-sidebar-preference='collapsed'] #app-sidebar .sidebar-logo-text { opacity: 0; max-width: 0; }
+            html.sidebar-preload[data-sidebar-preference='collapsed'] #app-sidebar .nav-item,
+            html.sidebar-preload[data-sidebar-preference='collapsed'] #app-sidebar .border-t button { justify-content: center; gap: 0; }
+            html.sidebar-preload[data-sidebar-preference='collapsed'] #app-sidebar #sidebar-toggle { opacity: 0; pointer-events: none; }
+            html.sidebar-preload[data-sidebar-preference='collapsed'] #app-sidebar .sidebar-expanded-icon { display: none; }
+            html.sidebar-preload[data-sidebar-preference='collapsed'] #app-sidebar .sidebar-collapsed-icon { display: block; }
+        }
+    </style>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="overflow-x-hidden bg-slate-50 text-slate-900 antialiased">

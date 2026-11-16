@@ -89,7 +89,7 @@
                 </div>
                 <div>
                     <dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">Amount</dt>
-                    <dd class="mt-1 text-sm font-medium text-slate-950">PHP {{ number_format((float) $disbursement->amount, 2) }}</dd>
+                    <dd class="mt-1 text-sm font-medium text-slate-950"><x-format.currency :value="$disbursement->amount" /></dd>
                 </div>
                 <div>
                     <dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">Payee Address</dt>
@@ -131,7 +131,7 @@
                 @if ($disbursement->payment)
                     <dl class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4" data-testid="payment-details">
                         <div><dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">Payment Date</dt><dd class="mt-1 text-sm font-medium text-slate-950">{{ $disbursement->payment->payment_date->format('M d, Y') }}</dd></div>
-                        <div><dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">Amount Released</dt><dd class="mt-1 text-sm font-medium text-slate-950">PHP {{ number_format((float) $disbursement->payment->amount, 2) }}</dd></div>
+                        <div><dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">Amount Released</dt><dd class="mt-1 text-sm font-medium text-slate-950"><x-format.currency :value="$disbursement->payment->amount" /></dd></div>
                         <div><dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">Method</dt><dd class="mt-1 text-sm font-medium text-slate-950">{{ match($disbursement->payment->payment_method) { 'bank_transfer' => 'Bank Transfer', 'check' => 'Check', default => 'Cash' } }}</dd></div>
                         <div><dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">Reference</dt><dd class="mt-1 text-sm font-medium text-slate-950">{{ $disbursement->payment->reference_number ?: 'Not provided' }}</dd></div>
                     </dl>
@@ -140,7 +140,7 @@
                     <div class="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
                         <div class="flex flex-col gap-1 sm:flex-row sm:justify-between">
                             <p class="text-sm font-semibold text-slate-900">Remaining balance</p>
-                            <p class="text-sm font-semibold text-slate-900">PHP {{ number_format($disbursement->remainingBalance(), 2) }} of PHP {{ number_format((float) $disbursement->amount, 2) }}</p>
+                            <p class="text-sm font-semibold text-slate-900"><x-format.currency :value="$disbursement->remainingBalance()" /> of <x-format.currency :value="$disbursement->amount" /></p>
                         </div>
                         @can('recordPayment', $disbursement)
                             <form method="POST" action="{{ route('disbursements.payment.store', $disbursement) }}" class="mt-4 space-y-4" data-testid="record-payment-form">

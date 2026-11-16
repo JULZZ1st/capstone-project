@@ -6,7 +6,6 @@
 @section('content')
     @php
         $summary = $dashboard['summary'];
-        $money = fn ($amount) => 'PHP '.number_format((float) $amount, 2);
         $greetingUser = auth()->user();
         $greetingName = $greetingUser?->first_name ?: $greetingUser?->name ?: 'there';
     @endphp
@@ -25,7 +24,7 @@
         </div>
 
         <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Dashboard summary">
-            <x-dashboard.summary-card label="Total Cash Ledger" :value="$money($summary['total_cash_ledger'])" description="Verified and approved cash entries." icon="wallet" tone="positive" />
+            <x-dashboard.summary-card label="Total Cash Ledger" :value="'₱'.number_format((float) $summary['total_cash_ledger'], 2)" description="Verified and approved cash entries." icon="wallet" tone="positive" />
             <x-dashboard.summary-card label="Pending Cash Verification" :value="number_format($summary['pending_cash_verification'])" description="Cash entries awaiting audit." icon="clock" tone="warning" />
             <x-dashboard.summary-card label="In-Kind Batches" :value="number_format($summary['in_kind_batches'])" description="Inventory records currently tracked." icon="cube" tone="info" />
             <x-dashboard.summary-card label="Registered Donors" :value="number_format($summary['registered_donors'])" description="Donor profiles available." icon="users" tone="purple" />
@@ -47,7 +46,7 @@
                                             <span class="block truncate text-xs text-slate-600">{{ config("donations.types.{$donation->type}") }} · {{ optional($donation->received_at ?? $donation->created_at)->format('M d, Y') }}</span>
                                         </span>
                                         @if ($donation->type === 'cash')
-                                            <span class="shrink-0 text-xs font-semibold text-slate-950">{{ $money($donation->amount) }}</span>
+                                            <span class="shrink-0 text-xs font-semibold text-slate-950"><x-format.currency :value="$donation->amount" /></span>
                                         @else
                                             <span class="shrink-0 text-xs font-semibold text-slate-950">{{ number_format($donation->items_count) }} item(s)</span>
                                         @endif
@@ -73,7 +72,7 @@
                                             <span class="block truncate text-sm font-medium text-slate-950" title="{{ $request->purpose }}">{{ $request->purpose }}</span>
                                             <span class="block truncate text-xs text-slate-600">{{ $request->requester->name }} · {{ ucfirst($request->status) }}</span>
                                         </span>
-                                        <span class="shrink-0 text-xs font-semibold text-slate-950">{{ $money($request->amount) }}</span>
+                                        <span class="shrink-0 text-xs font-semibold text-slate-950"><x-format.currency :value="$request->amount" /></span>
                                     </a>
                                 </li>
                             @endforeach

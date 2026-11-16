@@ -14,14 +14,14 @@
                 name="search"
                 value="{{ $filters['search'] ?? '' }}"
                 placeholder="Search by item name, category, batch, location, or notes"
-                class="block w-full rounded-lg border-slate-300 py-2.5 pl-9 pr-3 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                class="ui-control block w-full py-2.5 pl-9 pr-3"
             >
         </div>
     </div>
 
     <div class="md:w-48">
         <x-form.label for="status">Item Status</x-form.label>
-        <select id="status" name="status" class="mt-1.5 block w-full rounded-lg border-slate-300 py-2.5 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500">
+        <select id="status" name="status" class="ui-control mt-1.5 block w-full py-2.5">
             <option value="">All statuses</option>
             @foreach (config('inventory.item_statuses') as $key => $status)
                 <option value="{{ $key }}" @selected(($filters['status'] ?? null) === $key)>{{ $status['label'] }}</option>

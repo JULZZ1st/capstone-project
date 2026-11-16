@@ -84,3 +84,5 @@ Homestead.yaml
 /.agents/
 /.playwright-cli/
 /.playwright-mcp/
+# Playwright CLI output (may contain credentials)
+.playwright-cli/

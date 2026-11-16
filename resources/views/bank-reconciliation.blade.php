@@ -73,7 +73,7 @@
 </template>
 @endif
 <div class="flex min-h-0 flex-col gap-4">
-    <div class="flex flex-wrap justify-end gap-2">
+    <div class="flex flex-wrap justify-start gap-2">
         @can('import', \App\Models\BankLedgerEntry::class)<button type="button" data-dialog-open="bank-import-modal" class="rounded-lg bg-blue-700 px-4 py-2.5 text-sm font-semibold text-white">Upload Bank Statement</button>@endcan
         @if($reconciliationPeriods->contains(fn ($period) => $period->status === 'draft'))
         <label class="flex items-center gap-2 text-sm font-semibold text-slate-700"><span class="sr-only">Working period</span><select data-period-selector aria-label="Working reconciliation period" class="rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm">@forelse($reconciliationPeriods as $periodOption)<option value="{{ $periodOption->id }}" @selected($activePeriod?->id === $periodOption->id)>{{ $periodOption->period_start?->format('M Y') }} · {{ ucfirst(str_replace('_', ' ', $periodOption->status)) }}</option>@empty<option value="" selected disabled>No reconciliation periods available</option>@endforelse</select></label>

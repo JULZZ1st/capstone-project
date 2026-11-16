@@ -1856,7 +1856,8 @@ document.querySelectorAll('[data-table]').forEach((table) => {
 // Mobile navigation stays compact; desktop keeps its independent collapse preference.
 const sidebar = document.getElementById('app-sidebar');
 const sidebarToggle = document.getElementById('sidebar-toggle');
-if (sidebar && sidebarToggle) {
+if (sidebar && sidebarToggle && !sidebar.dataset.sidebarControllerInitialized) {
+    sidebar.dataset.sidebarControllerInitialized = 'true';
     const desktop = window.matchMedia('(min-width: 1024px)');
     const storageKey = 'sidebarCollapsed';
     let collapsed = false;
@@ -1865,15 +1866,16 @@ if (sidebar && sidebarToggle) {
     const applySidebar = () => {
         sidebar.classList.toggle('collapsed', desktop.matches && collapsed);
         sidebar.classList.toggle('mobile-open', !desktop.matches && mobileOpen);
-        document.documentElement.classList.toggle('sidebar-collapsed', desktop.matches && collapsed);
         const expanded = desktop.matches ? !collapsed : mobileOpen;
         sidebarToggle.setAttribute('aria-expanded', String(expanded));
         sidebarToggle.setAttribute('aria-label', desktop.matches ? (collapsed ? 'Expand sidebar' : 'Collapse sidebar') : (expanded ? 'Close navigation' : 'Open navigation'));
         sidebarToggle.setAttribute('title', desktop.matches ? (collapsed ? 'Expand sidebar' : 'Collapse sidebar') : (expanded ? 'Close navigation' : 'Open navigation'));
-        sidebarToggle.querySelector('.sidebar-expanded-icon')?.classList.toggle('hidden', desktop.matches && collapsed);
-        sidebarToggle.querySelector('.sidebar-collapsed-icon')?.classList.toggle('hidden', !(desktop.matches && collapsed));
+        sidebarToggle.querySelector('.sidebar-expanded-icon')?.classList.toggle('hidden', !expanded);
+        sidebarToggle.querySelector('.sidebar-collapsed-icon')?.classList.toggle('hidden', expanded);
     };
-    sidebarToggle.addEventListener('click', () => {
+    sidebarToggle.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
         if (desktop.matches) {
             collapsed = !collapsed;
             try { localStorage.setItem(storageKey, collapsed ? '1' : '0'); } catch {}
@@ -1883,6 +1885,12 @@ if (sidebar && sidebarToggle) {
         applySidebar();
     });
     desktop.addEventListener('change', () => { mobileOpen = false; applySidebar(); });
+    document.addEventListener('click', (event) => {
+        if (!desktop.matches && mobileOpen && !sidebar.contains(event.target)) {
+            mobileOpen = false;
+            applySidebar();
+        }
+    });
     document.addEventListener('keydown', (event) => {
         if (event.key === 'Escape' && !desktop.matches && mobileOpen) {
             mobileOpen = false;
@@ -1891,4 +1899,6 @@ if (sidebar && sidebarToggle) {
         }
     });
     applySidebar();
+    // State is now hydrated; allow the existing toggle transitions for explicit user actions.
+    document.documentElement.classList.remove('sidebar-preload');
 }
