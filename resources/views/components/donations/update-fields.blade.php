@@ -6,6 +6,7 @@
     <x-form.label :for="$prefix.'status'">Status</x-form.label>
     <select id="{{ $prefix }}status" name="status" class="mt-1 block w-full rounded-lg border-slate-300 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500" required>
         @foreach ($contribution->editableStatuses() as $status)
+            @continue($status === 'received' && $contribution->status !== 'received')
             @continue($status === 'rejected' && ! auth()->user()->hasRole('admin'))
             <option value="{{ $status }}" @selected(($restoreInput ? old('status', $contribution->status) : $contribution->status) === $status)>{{ config("donations.statuses.{$status}.label") }}</option>
         @endforeach

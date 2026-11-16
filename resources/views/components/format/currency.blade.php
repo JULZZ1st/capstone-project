@@ -1,3 +1,3 @@
-@props(['value', 'decimals' => 2, 'empty' => '—'])
+@props(['value', 'decimals' => 2, 'empty' => '—', 'prefix' => '₱'])
 
-{{ $value === null || $value === '' ? $empty : '₱'.number_format((float) $value, $decimals) }}
+{{ $value === null || $value === '' ? $empty : $prefix.number_format((float) $value, $decimals) }}
