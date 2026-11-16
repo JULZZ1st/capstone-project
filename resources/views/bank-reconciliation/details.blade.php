@@ -1,7 +1,7 @@
 @extends('layouts.app')
 @section('title', 'Bank Reconciliation | '.config('dashboard.barangay_name'))
-@section('page-title', 'Bank Reconciliation Workspace')
-@section('page-subtitle', 'Review, match, and lock bank activity for the active workspace.')
+@section('page-title', 'Reconciliation Details')
+@section('page-subtitle', 'Review, match, and complete the selected bank reconciliation period.')
 @section('content')
 @php
     $bankTransactions = collect()->concat($ledgerEntries)->concat($withdrawals)->concat($history)->concat($withdrawalHistory)->unique('id')->sortByDesc('transaction_date')->values();
@@ -52,6 +52,7 @@
     $boardWithdrawalRows = $boardDisbursements->map(fn ($request) => ['id' => $request->id, 'date' => $request->approved_at?->toDateString() ?? $request->requested_date?->toDateString(), 'label' => $request->recipient ?? 'Approved fund request', 'detail' => $request->purpose, 'reference' => $request->supporting_reference, 'amount' => (float) $request->amount, 'status' => $request->withdrawalMatch ? 'matched' : 'approved', 'discrepancy' => $systemDiscrepancyFor('cash_disbursement', (int) $request->id)])->values();
     $confirmedPeriodRows = $confirmedPeriods->map(fn ($period) => ['bank_account' => $period->bank_account ?: config('bank_reconciliation.bank_accounts.0'), 'period_end' => $period->period_end?->toDateString(), 'ending_balance' => (float) $period->bank_ending_balance])->values();
     $periodRows = $reconciliationPeriods->map(fn ($period) => ['bank_account' => $period->bank_account ?: config('bank_reconciliation.bank_accounts.0'), 'period_end' => $period->period_end?->toDateString(), 'status' => $period->status])->values();
+    $initialDetailsTab = $discrepancyValidationFailed ? 'discrepancies' : request()->get('section', request()->get('tab', 'transactions'));
 @endphp
 @if($activePeriod)
 <template id="bank-period-workflow-template">
@@ -72,18 +73,36 @@
     </section>
 </template>
 @endif
-<div class="flex min-h-0 flex-col gap-4">
-    <div class="flex flex-wrap justify-start gap-2">
-        @can('import', \App\Models\BankLedgerEntry::class)<button type="button" data-dialog-open="bank-import-modal" class="rounded-lg bg-blue-700 px-4 py-2.5 text-sm font-semibold text-white">Upload Bank Statement</button>@endcan
-        @if($reconciliationPeriods->contains(fn ($period) => $period->status === 'draft'))
-        <label class="flex items-center gap-2 text-sm font-semibold text-slate-700"><span class="sr-only">Working period</span><select data-period-selector aria-label="Working reconciliation period" class="rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm">@forelse($reconciliationPeriods as $periodOption)<option value="{{ $periodOption->id }}" @selected($activePeriod?->id === $periodOption->id)>{{ $periodOption->period_start?->format('M Y') }} · {{ ucfirst(str_replace('_', ' ', $periodOption->status)) }}</option>@empty<option value="" selected disabled>No reconciliation periods available</option>@endforelse</select></label>
-        @endif
-        @can('prepare', \App\Models\BankReconciliation::class)<button type="button" data-dialog-open="new-bank-period-modal" class="rounded-lg border border-blue-200 bg-blue-50 px-4 py-2.5 text-sm font-semibold text-blue-700">New Reconciliation Period</button>@endcan
-        @can('viewAny', \App\Models\BankLedgerEntry::class)<button type="button" data-dialog-open="bank-period-modal" class="rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700">Manage Reconciliation Period</button>@endcan
-        @if($latestReconciliationPeriod && ! $latestReconciliationPeriod->isApproved())<button type="button" data-dialog-open="bank-discrepancy-modal" class="rounded-lg border border-blue-200 bg-blue-50 px-4 py-2.5 text-sm font-semibold text-blue-700">Discrepancy Reports</button>@endif
-        @if($activePeriod)<a href="{{ route('reports.reconciliation.pdf', ['period_id' => $activePeriod->id]) }}" class="rounded-lg border border-blue-200 bg-blue-50 px-4 py-2.5 text-sm font-semibold text-blue-700">Generate Bank Reconciliation Statement</a>@endif
-        <button type="button" data-dialog-open="bank-history-modal" class="rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700">View History</button>
+<div class="flex h-[calc(100dvh-12rem)] min-h-[30rem] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm" data-reconciliation-details>
+    <header class="shrink-0 px-4 pb-4 pt-4 sm:px-6 sm:pt-5">
+        <a href="{{ route('bank-reconciliation.index') }}" class="inline-flex items-center gap-1 text-xs font-medium text-slate-500 transition hover:text-blue-700"><x-icon name="chevron-left" class="h-3.5 w-3.5" /> Back to Reconciliation Periods</a>
+        <div class="mt-4 flex items-start justify-between gap-4">
+            <div class="min-w-0">
+                <h2 class="text-xl font-bold tracking-tight text-slate-950">{{ $activePeriod?->period_start?->format('F Y') ?? 'Reconciliation workspace' }}</h2>
+                <p class="mt-1 truncate text-sm text-slate-500">{{ $activePeriod?->bank_account ?: 'No bank account selected' }}</p>
+            </div>
+            @if($activePeriod)
+                @php
+                    $detailStatusLabel = $activePeriod->isApproved() ? 'Approved & Locked' : ($activePeriod->isReadyForReview() ? 'Pending Review' : 'Draft');
+                    $detailStatusClass = $activePeriod->isApproved() ? 'bg-emerald-50 text-emerald-700 ring-emerald-200' : ($activePeriod->isReadyForReview() ? 'bg-amber-50 text-amber-700 ring-amber-200' : 'bg-slate-100 text-slate-700 ring-slate-200');
+                @endphp
+                <span class="inline-flex shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset {{ $detailStatusClass }}">{{ $detailStatusLabel }}</span>
+            @endif
+        </div>
+    </header>
+
+    <div class="flex shrink-0 flex-col gap-3 border-t border-slate-200 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+        <nav class="flex min-w-0 gap-1 overflow-x-auto" role="tablist" aria-label="Reconciliation details">
+            <button type="button" role="tab" aria-selected="true" aria-controls="reconciliation-transactions-panel" data-details-tab="transactions" class="details-tab whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold">Transactions</button>
+            <button type="button" role="tab" aria-selected="false" aria-controls="reconciliation-discrepancies-panel" data-details-tab="discrepancies" class="details-tab whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold">Discrepancies</button>
+            <button type="button" role="tab" aria-selected="false" aria-controls="reconciliation-statement-panel" data-details-tab="statement" class="details-tab whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold">Statement</button>
+            <button type="button" role="tab" aria-selected="false" aria-controls="reconciliation-history-panel" data-details-tab="history" class="details-tab whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold">History</button>
+        </nav>
+        @can('import', \App\Models\BankLedgerEntry::class)
+            <button type="button" data-transaction-action data-dialog-open="bank-import-modal" class="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-full bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800"><x-icon name="upload" class="h-4 w-4" /> Upload Statement</button>
+        @endcan
     </div>
+
     <div class="hidden" aria-hidden="true">
         <button type="button" data-bank-filter-card="deposit" aria-pressed="false" class="bank-summary-card group rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-left transition hover:border-emerald-400 hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"><span class="flex items-center justify-between"><span class="text-xs font-semibold uppercase tracking-wide text-emerald-700">Incoming · Credit</span><span class="text-xs font-semibold text-emerald-700 opacity-0 transition group-hover:opacity-100" data-card-hint>Filter</span></span><span class="mt-1 block text-2xl font-bold text-emerald-950">&#8369;{{ number_format($bankTransactions->where('transaction_type', 'deposit')->sum('amount'), 2) }}</span></button>
         <button type="button" data-bank-filter-card="withdrawal" aria-pressed="false" class="bank-summary-card group rounded-xl border border-rose-200 bg-rose-50 p-4 text-left transition hover:border-rose-400 hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-rose-500"><span class="flex items-center justify-between"><span class="text-xs font-semibold uppercase tracking-wide text-rose-700">Outgoing · Debit</span><span class="text-xs font-semibold text-rose-700 opacity-0 transition group-hover:opacity-100" data-card-hint>Filter</span></span><span class="mt-1 block text-2xl font-bold text-rose-950">&#8369;{{ number_format($bankTransactions->where('transaction_type', 'withdrawal')->sum('amount'), 2) }}</span></button>
@@ -92,7 +111,9 @@
         <article class="rounded-xl border border-emerald-200 bg-emerald-50 p-4"><p class="text-xs font-semibold uppercase tracking-wide text-emerald-700">Incoming · Credit</p><p class="mt-1 text-2xl font-bold text-emerald-950">&#8369;{{ number_format($bankTransactions->where('transaction_type', 'deposit')->sum('amount'), 2) }}</p></article>
         <article class="rounded-xl border border-rose-200 bg-rose-50 p-4"><p class="text-xs font-semibold uppercase tracking-wide text-rose-700">Outgoing · Debit</p><p class="mt-1 text-2xl font-bold text-rose-950">&#8369;{{ number_format($bankTransactions->where('transaction_type', 'withdrawal')->sum('amount'), 2) }}</p></article>
     </div>
-    <section class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm" data-reconciliation-board>
+    <div class="min-h-0 flex-1 overflow-hidden">
+    <section id="reconciliation-transactions-panel" role="tabpanel" data-details-panel="transactions" class="h-full space-y-4 overflow-y-auto p-4 sm:p-6">
+    <section class="rounded-xl border border-slate-200 bg-white p-4" data-reconciliation-board>
         <div class="flex flex-wrap items-start justify-between gap-3">
             <div><p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Confirm activity</p><h2 class="mt-1 text-lg font-bold text-slate-900">Match system records to LANDBANK</h2><p class="mt-1 text-sm text-slate-600">Select one LANDBANK transaction and its valid system record(s). Confirm Match stays disabled until the records and amounts match.</p></div>
             <div class="flex flex-wrap items-center gap-2"><div class="flex rounded-lg border border-slate-200 bg-slate-50 p-1" role="tablist" aria-label="Transaction direction"><button type="button" data-board-tab="deposit" aria-selected="true" class="rounded-md px-3 py-2 text-sm font-semibold transition hover:bg-blue-50 hover:text-blue-700">Incoming</button><button type="button" data-board-tab="withdrawal" aria-selected="false" class="rounded-md px-3 py-2 text-sm font-semibold transition hover:bg-blue-50 hover:text-blue-700">Outgoing</button></div><div class="flex rounded-lg border border-slate-200 bg-white p-1" role="group" aria-label="Matching status"><button type="button" data-board-filter="needs" class="rounded-md bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700">Needs Matching</button><button type="button" data-board-filter="all" class="rounded-md px-3 py-2 text-xs font-semibold text-slate-600 transition hover:bg-blue-50 hover:text-blue-700">All</button><button type="button" data-board-filter="matched" class="rounded-md px-3 py-2 text-xs font-semibold text-slate-600 transition hover:bg-blue-50 hover:text-blue-700">Matched</button></div></div>
@@ -123,6 +144,68 @@
 </x-data-table></div>
         <div class="bank-table-footer flex shrink-0 items-center justify-between gap-3 border-t border-slate-200 bg-white py-3 text-xs text-slate-500"><span data-bank-summary></span><span class="flex items-center gap-1"><button type="button" data-bank-prev class="rounded border px-3 py-1.5 disabled:cursor-not-allowed disabled:opacity-40">Previous</button><span data-bank-pages class="flex gap-1"></span><button type="button" data-bank-next class="rounded border px-3 py-1.5 disabled:cursor-not-allowed disabled:opacity-40">Next</button></span></div>
     </section>
+    </section>
+
+    <section id="reconciliation-discrepancies-panel" role="tabpanel" data-details-panel="discrepancies" class="hidden h-full overflow-y-auto p-4 sm:p-6">
+        <div class="mx-auto max-w-5xl space-y-4">
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div><h2 class="text-lg font-bold text-slate-950">Discrepancy Reports</h2><p class="mt-1 text-sm text-slate-500">Review unmatched records, investigation notes, evidence, and resolution status for this period.</p></div>
+                @if($activePeriod && ! $activePeriod->isApproved())
+                    <button type="button" data-dialog-open="bank-discrepancy-modal" class="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-4 text-sm font-semibold text-blue-700 hover:bg-blue-100"><x-icon name="alert-circle" class="h-4 w-4" /> Manage Discrepancies</button>
+                @endif
+            </div>
+            <div class="overflow-hidden rounded-xl border border-slate-200">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full text-left text-sm">
+                        <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500"><tr><th class="px-4 py-3">Type</th><th class="px-4 py-3">Explanation</th><th class="px-4 py-3 text-right">Amount</th><th class="px-4 py-3">Status</th></tr></thead>
+                        <tbody class="divide-y divide-slate-100">
+                            @forelse($activePeriod?->discrepancies ?? collect() as $report)
+                                <tr><td class="px-4 py-3 font-semibold text-slate-900">{{ $report->typeLabel() }}</td><td class="max-w-md px-4 py-3 text-slate-600">{{ $report->explanation }}</td><td class="px-4 py-3 text-right font-medium">PHP {{ number_format((float) $report->amount, 2) }}</td><td class="px-4 py-3"><span class="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold capitalize text-slate-700">{{ str_replace('_', ' ', $report->resolution_status) }}</span></td></tr>
+                            @empty
+                                <tr><td colspan="4" class="px-4 py-12 text-center"><p class="font-semibold text-slate-900">No discrepancy reports</p><p class="mt-1 text-sm text-slate-500">Unmatched records reported during reconciliation will appear here.</p></td></tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="reconciliation-statement-panel" role="tabpanel" data-details-panel="statement" class="hidden h-full overflow-y-auto p-4 sm:p-6">
+        <div class="mx-auto max-w-4xl space-y-5">
+            <div><h2 class="text-lg font-bold text-slate-950">Bank Reconciliation Statement</h2><p class="mt-1 text-sm text-slate-500">Review the period totals and generate the official statement for reporting.</p></div>
+            @if($activePeriod)
+                <dl class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    <div class="rounded-xl border border-slate-200 bg-slate-50 p-4"><dt class="text-xs font-medium text-slate-500">Opening balance</dt><dd class="mt-1 text-lg font-bold text-slate-950">PHP {{ number_format((float) $activePeriod->opening_balance, 2) }}</dd></div>
+                    <div class="rounded-xl border border-slate-200 bg-slate-50 p-4"><dt class="text-xs font-medium text-slate-500">Ending balance</dt><dd class="mt-1 text-lg font-bold text-slate-950">{{ $activePeriod->bank_ending_balance === null ? 'Not entered' : 'PHP '.number_format((float) $activePeriod->bank_ending_balance, 2) }}</dd></div>
+                    <div class="rounded-xl border border-slate-200 bg-slate-50 p-4"><dt class="text-xs font-medium text-slate-500">Difference</dt><dd class="mt-1 text-lg font-bold {{ $periodBalancesReady ? 'text-emerald-700' : 'text-amber-700' }}">{{ $periodDifference === null ? 'Not calculated' : 'PHP '.number_format((float) $periodDifference, 2) }}</dd></div>
+                </dl>
+                <a href="{{ route('reports.reconciliation.pdf', ['period_id' => $activePeriod->id]) }}" class="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-blue-700 px-4 text-sm font-semibold text-white hover:bg-blue-800"><x-icon name="document" class="h-4 w-4" /> Generate Bank Reconciliation Statement</a>
+            @else
+                <p class="rounded-xl border border-dashed border-slate-300 p-10 text-center text-sm text-slate-500">Select a reconciliation period before generating a statement.</p>
+            @endif
+        </div>
+    </section>
+
+    <section id="reconciliation-history-panel" role="tabpanel" data-details-panel="history" class="hidden h-full overflow-y-auto p-4 sm:p-6">
+        <div class="mx-auto max-w-5xl space-y-4">
+            <div><h2 class="text-lg font-bold text-slate-950">Reconciliation History</h2><p class="mt-1 text-sm text-slate-500">Completed incoming and outgoing matches recorded for the workspace.</p></div>
+            <input data-history-search aria-label="Search history" placeholder="Search reference or description" class="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm sm:max-w-sm">
+            <div class="overflow-hidden rounded-xl border border-slate-200"><div class="overflow-x-auto"><table class="min-w-full text-left text-sm"><thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500"><tr><th class="px-4 py-3">Date</th><th class="px-4 py-3">Description</th><th class="px-4 py-3">Reference</th><th class="px-4 py-3 text-right">Amount</th></tr></thead><tbody class="divide-y divide-slate-100">@forelse($history->concat($withdrawalHistory)->unique('id') as $entry)<tr data-history-row data-history-search="{{ strtolower($entry->description.' '.$entry->reference_number) }}"><td class="whitespace-nowrap px-4 py-3">{{ $entry->transaction_date?->format('M d, Y') }}</td><td class="px-4 py-3 font-medium text-slate-900">{{ $entry->description }}</td><td class="px-4 py-3 text-slate-600">{{ $entry->reference_number ?: '-' }}</td><td class="whitespace-nowrap px-4 py-3 text-right font-medium">PHP {{ number_format((float) $entry->amount, 2) }}</td></tr>@empty<tr><td colspan="4" class="px-4 py-12 text-center text-sm text-slate-500">No reconciled transactions yet.</td></tr>@endforelse</tbody></table></div></div>
+        </div>
+    </section>
+    </div>
+
+    <footer class="flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-slate-200 bg-white px-4 py-3 sm:px-6">
+        @can('viewAny', \App\Models\BankLedgerEntry::class)
+            <button type="button" data-dialog-open="bank-period-modal" class="inline-flex h-10 items-center justify-center gap-2 rounded-full border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50"><x-icon name="filter" class="h-4 w-4" /> Manage Period</button>
+        @endcan
+        @if($activePeriod)
+            @can('submit', $activePeriod)
+                <form method="POST" action="{{ route('bank-reconciliation.periods.submit', $activePeriod) }}">@csrf<button type="submit" class="inline-flex h-10 items-center justify-center rounded-full bg-slate-950 px-5 text-sm font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40" @disabled(!$periodSubmitReady)>Submit for Review</button></form>
+            @endcan
+        @endif
+    </footer>
 
     <template id="bank-reconciliation-workflows">
         <h2>Bank Transactions to Review</h2>
@@ -391,13 +474,33 @@
     </template>
     @endforeach
 </div>
-<style>.bank-modal{width:min(100% - 1.5rem,48rem);max-width:none;padding:0;border:0;background:transparent}.bank-modal::backdrop{background:rgb(15 23 42/.6)}.bank-modal-shell{display:flex;max-height:90vh;flex-direction:column;overflow:hidden;border-radius:1rem;background:#fff}.bank-modal-header{display:flex;flex-shrink:0;justify-content:space-between;border-bottom:1px solid #e2e8f0;padding:1.25rem}.bank-modal-body{min-height:0;flex:1;overflow-y:auto;padding:1.25rem}.bank-modal-footer{display:flex;flex-shrink:0;justify-content:flex-end;gap:.5rem;border-top:1px solid #e2e8f0;padding:1rem 1.25rem}.primary-button,.secondary-button{border-radius:.5rem;padding:.625rem 1rem;font-size:.875rem;font-weight:600}.primary-button{background:#1d4ed8;color:#fff}.secondary-button{border:1px solid #cbd5e1}.bank-modal h2{font-size:1.125rem;font-weight:700}.bank-modal-body > p.mt-5{display:none}.bank-modal [data-open-period-after-close]{display:inline-flex;align-items:center;border-radius:.5rem;background:#fff7ed;padding:.625rem .875rem;font-size:.875rem;font-weight:600;color:#b45309;box-shadow:inset 0 0 0 1px #fed7aa}.bank-modal [data-open-period-after-close]:hover{background:#ffedd5}.bank-table-scroll{height:min(58vh,36rem);min-height:18rem;flex:none;overflow-y:auto;overflow-x:auto}.bank-table-scroll thead th{position:sticky;top:0;z-index:10;background:#f8fafc;box-shadow:inset 0 -1px 0 #cbd5e1}.bank-table-footer{position:sticky;bottom:0}.bank-summary-card[aria-pressed="true"]{box-shadow:0 0 0 2px currentColor,0 6px 16px rgb(15 23 42/.1)}.bank-board-scroll{max-height:25rem;min-height:12rem;overflow:auto}.bank-board-scroll tbody tr{cursor:pointer;transition:background-color 120ms ease}.bank-board-scroll tbody tr:hover{background:#eff6ff}[data-board-tab][aria-selected="true"]{background:#2563eb;color:#fff;box-shadow:0 1px 2px rgb(15 23 42/.12)}[data-board-tab][aria-selected="false"]{background:#fff;color:#475569}[data-period-selector],[data-bank-type],[data-bank-status]{padding-right:2.5rem}@media (max-width:640px){.bank-table-scroll{height:min(58vh,30rem);min-height:14rem}.bank-board-scroll{max-height:20rem}.bank-table-footer{align-items:flex-start;flex-direction:column}.bank-table-footer>span:last-child{width:100%;justify-content:space-between}.bank-summary-card{padding:.875rem}.bank-modal-header,.bank-modal-body,.bank-modal-footer{padding:1rem}}</style>
+<style>.bank-modal{width:min(100% - 1.5rem,48rem);max-width:none;padding:0;border:0;background:transparent}.bank-modal::backdrop{background:rgb(15 23 42/.6)}.bank-modal-shell{display:flex;max-height:90vh;flex-direction:column;overflow:hidden;border-radius:1rem;background:#fff}.bank-modal-header{display:flex;flex-shrink:0;justify-content:space-between;border-bottom:1px solid #e2e8f0;padding:1.25rem}.bank-modal-body{min-height:0;flex:1;overflow-y:auto;padding:1.25rem}.bank-modal-footer{display:flex;flex-shrink:0;justify-content:flex-end;gap:.5rem;border-top:1px solid #e2e8f0;padding:1rem 1.25rem}.primary-button,.secondary-button{border-radius:.5rem;padding:.625rem 1rem;font-size:.875rem;font-weight:600}.primary-button{background:#1d4ed8;color:#fff}.secondary-button{border:1px solid #cbd5e1}.bank-modal h2{font-size:1.125rem;font-weight:700}.bank-modal-body > p.mt-5{display:none}.bank-modal [data-open-period-after-close]{display:inline-flex;align-items:center;border-radius:.5rem;background:#fff7ed;padding:.625rem .875rem;font-size:.875rem;font-weight:600;color:#b45309;box-shadow:inset 0 0 0 1px #fed7aa}.bank-modal [data-open-period-after-close]:hover{background:#ffedd5}.bank-table-scroll{height:min(58vh,36rem);min-height:18rem;flex:none;overflow-y:auto;overflow-x:auto}.bank-table-scroll thead th{position:sticky;top:0;z-index:10;background:#f8fafc;box-shadow:inset 0 -1px 0 #cbd5e1}.bank-table-footer{position:sticky;bottom:0}.bank-summary-card[aria-pressed="true"]{box-shadow:0 0 0 2px currentColor,0 6px 16px rgb(15 23 42/.1)}.bank-board-scroll{max-height:25rem;min-height:12rem;overflow:auto}.bank-board-scroll tbody tr{cursor:pointer;transition:background-color 120ms ease}.bank-board-scroll tbody tr:hover{background:#eff6ff}[data-board-tab][aria-selected="true"]{background:#2563eb;color:#fff;box-shadow:0 1px 2px rgb(15 23 42/.12)}[data-board-tab][aria-selected="false"]{background:#fff;color:#475569}[data-bank-type],[data-bank-status]{padding-right:2.5rem}@media (max-width:640px){.bank-table-scroll{height:min(58vh,30rem);min-height:14rem}.bank-board-scroll{max-height:20rem}.bank-table-footer{align-items:flex-start;flex-direction:column}.bank-table-footer>span:last-child{width:100%;justify-content:space-between}.bank-summary-card{padding:.875rem}.bank-modal-header,.bank-modal-body,.bank-modal-footer{padding:1rem}}</style>
 <style>
 .discrepancy-modal-header{align-items:flex-start;background:#fff;padding:1.15rem 1.25rem}.discrepancy-modal-kicker{display:inline-flex;border-radius:.35rem;background:#dbeafe;padding:.18rem .5rem;color:#075985;font-size:.68rem;font-weight:800;letter-spacing:.01em}.discrepancy-modal-close{color:#475569;font-size:1.5rem;line-height:1}.discrepancy-modal-close:hover{color:#0f172a}.discrepancy-modal-body{display:flex;flex-direction:column;gap:.65rem;background:#fff;padding:1rem 1.25rem 1.2rem}.discrepancy-modal-icon{display:inline-flex;flex:none;align-items:center;justify-content:center;border-radius:.65rem;background:#dbeafe;color:#2563eb}.discrepancy-modal-icon--header{height:2.75rem;width:2.75rem;border-radius:.75rem}.discrepancy-modal-summary{display:flex;align-items:flex-start;gap:.75rem;border:1px solid #93c5fd;border-radius:.65rem;background:#eff6ff;padding:.75rem .85rem;color:#1e3a8a}.discrepancy-modal-summary>div{display:flex;min-width:0;flex-direction:column;gap:.15rem}.discrepancy-modal-summary strong{overflow:hidden;color:#172554;font-size:.78rem;line-height:1.35;text-overflow:ellipsis;white-space:nowrap}.discrepancy-modal-summary [data-unmatched-record-amount]{font-size:.76rem;font-weight:600}.discrepancy-modal-note{display:flex;align-items:center;gap:.3rem;width:max-content;max-width:100%;border:1px solid #bfdbfe;border-radius:.35rem;background:#fff;padding:.25rem .45rem;color:#1e40af;font-size:.64rem}.discrepancy-modal-section{border:1px solid #dbe4f0;border-radius:.65rem;background:#f8fafc;padding:.7rem .8rem}.discrepancy-modal-section-title{display:flex;align-items:center;gap:.55rem;margin-bottom:.55rem}.discrepancy-modal-section-title h3{color:#172033;font-size:.82rem;font-weight:800}.discrepancy-modal-section-title h3 span{color:#64748b;font-weight:500}.discrepancy-modal-field{display:block;color:#172033;font-size:.68rem;font-weight:800}.discrepancy-modal-field select,.discrepancy-modal-field textarea,.discrepancy-modal-field input{display:block;width:100%;margin-top:.35rem;border:1px solid #b9c5d5;border-radius:.45rem;background:#fff;padding:.55rem .65rem;color:#172033;font-size:.75rem;box-shadow:0 1px 2px rgb(15 23 42/.03)}.discrepancy-modal-field select{padding-right:2rem}.discrepancy-modal-field textarea{min-height:4.2rem;resize:vertical}.discrepancy-modal-field select:focus,.discrepancy-modal-field textarea:focus,.discrepancy-modal-field input:focus{border-color:#60a5fa;outline:2px solid #bfdbfe;outline-offset:0}.discrepancy-modal-help{display:block;margin-top:.25rem;color:#64748b;font-size:.62rem;font-weight:500;line-height:1.4}.discrepancy-upload-zone{display:flex;min-height:4.4rem;width:100%;flex-direction:column;align-items:center;justify-content:center;gap:.1rem;border:1.5px dashed #60a5fa;border-radius:.55rem;background:#eff6ff;padding:.55rem;text-align:center;color:#172033;transition:background .15s,border-color .15s}.discrepancy-upload-zone:hover,.discrepancy-upload-zone.border-blue-600{border-color:#2563eb;background:#dbeafe}.discrepancy-upload-zone svg{color:#2563eb}.discrepancy-upload-zone strong{font-size:.72rem}.discrepancy-upload-zone span{color:#64748b;font-size:.62rem}.discrepancy-upload-error{margin-top:.4rem;border-radius:.4rem;background:#fff1f2;padding:.4rem .55rem;color:#be123c;font-size:.65rem;font-weight:600}.discrepancy-upload-list{margin-top:.45rem}.discrepancy-evidence-reference{margin-top:.6rem;color:#64748b;font-size:.65rem}.discrepancy-evidence-reference input{font-weight:500}.discrepancy-next-step{display:flex;align-items:flex-start;gap:.6rem;border:1px solid #bfdbfe;border-radius:.65rem;background:#eff6ff;padding:.7rem .8rem;color:#1e3a8a}.discrepancy-next-step h3{font-size:.75rem;font-weight:800}.discrepancy-next-step ul{margin-top:.25rem;padding-left:1rem;font-size:.65rem;line-height:1.45;list-style:disc}.discrepancy-modal-footer{background:#fff;padding:.8rem 1.25rem}.discrepancy-cancel{background:#fff;color:#334155}.discrepancy-submit{background:#1d4ed8;color:#fff;box-shadow:0 3px 8px rgb(29 78 216/.2)}.discrepancy-submit:hover{background:#1e40af}.discrepancy-modal-footer .secondary-button,.discrepancy-modal-footer .primary-button{min-width:7.5rem}@media (max-width:640px){.discrepancy-modal-header,.discrepancy-modal-body,.discrepancy-modal-footer{padding-left:.9rem;padding-right:.9rem}.discrepancy-modal-note{width:auto}.discrepancy-modal-summary strong{white-space:normal}.discrepancy-modal-footer{justify-content:stretch}.discrepancy-modal-footer button{flex:1}}
 </style>
 <style>.discrepancy-custom-type-wrap{display:block;margin-top:.6rem}.discrepancy-custom-type-wrap.hidden{display:none}.discrepancy-custom-type-label{display:block;color:#172033;font-size:.68rem;font-weight:800}.discrepancy-custom-type-label::after{content:' *';color:#dc2626}.discrepancy-custom-type-wrap input{display:block;width:100%;margin-top:.35rem;border:1px solid #b9c5d5;border-radius:.45rem;background:#fff;padding:.55rem .65rem;color:#172033;font-size:.75rem}.discrepancy-custom-type-wrap input:focus{border-color:#60a5fa;outline:2px solid #bfdbfe;outline-offset:0}</style>
 <style>.period-step{background:#fff;color:#475569}.period-step[aria-selected="true"]{border-color:#2563eb;background:#eff6ff;color:#1d4ed8;box-shadow:0 0 0 1px #2563eb}.period-step-status{font-size:.68rem;color:#64748b}.period-step[aria-selected="true"] .period-step-status{color:#1d4ed8}.bank-modal-footer{flex-wrap:wrap}.bank-modal-footer form{display:flex;align-items:center;gap:.5rem}.bank-modal-footer form:first-child{margin-right:auto}</style>
+<style>.details-tab{color:#64748b;transition:background-color .15s,color .15s}.details-tab:hover{background:#f8fafc;color:#0f172a}.details-tab[aria-selected="true"]{background:#f1f5f9;color:#0f172a}.details-tab:focus-visible{outline:2px solid #3b82f6;outline-offset:2px}@media(max-width:640px){[data-reconciliation-details]>footer{position:sticky;bottom:0;z-index:10}[data-reconciliation-details]>footer>*{flex:1}[data-reconciliation-details]>footer form button{width:100%}}</style>
 <script>
+const detailsTabs = [...document.querySelectorAll('[data-details-tab]')];
+const detailsPanels = [...document.querySelectorAll('[data-details-panel]')];
+const transactionAction = document.querySelector('[data-transaction-action]');
+const activateDetailsTab = (name, updateHash = true) => {
+    const validName = detailsPanels.some((panel) => panel.dataset.detailsPanel === name) ? name : 'transactions';
+    detailsTabs.forEach((tab) => tab.setAttribute('aria-selected', tab.dataset.detailsTab === validName ? 'true' : 'false'));
+    detailsPanels.forEach((panel) => panel.classList.toggle('hidden', panel.dataset.detailsPanel !== validName));
+    if (transactionAction) transactionAction.classList.toggle('hidden', validName !== 'transactions');
+    if (updateHash) history.replaceState(null, '', validName === 'transactions' ? location.pathname + location.search : '#'+validName);
+};
+detailsTabs.forEach((tab) => tab.addEventListener('click', () => activateDetailsTab(tab.dataset.detailsTab)));
+detailsTabs.forEach((tab, index) => tab.addEventListener('keydown', (event) => {
+    if (!['ArrowLeft', 'ArrowRight'].includes(event.key)) return;
+    event.preventDefault();
+    const next = (index + (event.key === 'ArrowRight' ? 1 : -1) + detailsTabs.length) % detailsTabs.length;
+    detailsTabs[next].focus();
+    activateDetailsTab(detailsTabs[next].dataset.detailsTab);
+}));
+activateDetailsTab(location.hash.slice(1) || @json($initialDetailsTab), false);
 const bankRows=[...document.querySelectorAll('[data-bank-row]')],bankSize=10;let bankPage=1;const bankRefresh=()=>{const q=document.querySelector('[data-bank-search]')?.value.toLowerCase()||'',t=document.querySelector('[data-bank-type]')?.value||'all',s=document.querySelector('[data-bank-status]')?.value||'all',filtered=bankRows.filter(r=>(!q||r.dataset.search.includes(q))&&(t==='all'||r.dataset.type===t)&&(s==='needs_action'?['unmatched','unreconciled'].includes(r.dataset.status):(s==='all'||r.dataset.status===s))),pages=Math.max(1,Math.ceil(filtered.length/bankSize));bankPage=Math.min(bankPage,pages);bankRows.forEach(r=>r.hidden=true);filtered.slice((bankPage-1)*bankSize,bankPage*bankSize).forEach(r=>r.hidden=false);document.querySelector('[data-bank-summary]').textContent=filtered.length?'Showing '+((bankPage-1)*bankSize+1)+'–'+Math.min(bankPage*bankSize,filtered.length)+' of '+filtered.length:'No transactions found';document.querySelector('[data-bank-prev]').disabled=bankPage===1;document.querySelector('[data-bank-next]').disabled=bankPage===pages;const pagesEl=document.querySelector('[data-bank-pages]');pagesEl.replaceChildren(...Array.from({length:pages},(_,i)=>{const b=document.createElement('button');b.type='button';b.textContent=i+1;b.className='rounded border px-2.5 py-1.5';b.addEventListener('click',()=>{bankPage=i+1;bankRefresh()});return b}))};document.querySelectorAll('[data-bank-search],[data-bank-type],[data-bank-status]').forEach(e=>e.addEventListener('input',()=>{bankPage=1;bankRefresh()}));document.querySelector('[data-bank-prev]')?.addEventListener('click',()=>{bankPage--;bankRefresh()});document.querySelector('[data-bank-next]')?.addEventListener('click',()=>{bankPage++;bankRefresh()});bankRows.forEach(r=>r.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();document.getElementById(r.dataset.dialogOpen)?.showModal()}}));bankRefresh();document.querySelector('[data-history-search]')?.addEventListener('input',e=>{const q=e.target.value.toLowerCase();document.querySelectorAll('[data-history-row]').forEach(r=>r.hidden=!r.dataset.historySearch.includes(q))});const file=document.querySelector('[data-bank-file]'),drop=document.querySelector('[data-bank-dropzone]'),preview=document.querySelector('[data-bank-preview]'),submit=document.querySelector('[data-bank-submit]'),error=document.querySelector('[data-bank-error]');drop?.addEventListener('click',()=>file.click());file?.addEventListener('change',()=>{if(!file.files[0])return;document.querySelector('[data-bank-file-name]').textContent=file.files[0].name;document.querySelector('[data-bank-file-info]').hidden=false;document.querySelector('[data-bank-preview-summary]').textContent='File selected and ready for server validation.';preview.hidden=false;submit.disabled=false});document.querySelector('[data-bank-remove]')?.addEventListener('click',()=>{file.value='';document.querySelector('[data-bank-file-info]').hidden=true;preview.hidden=true;submit.disabled=true});
 bankRows.forEach((row) => { if (row.dataset.status === 'unreconciled') row.dataset.status = 'unmatched'; });
 const bankDiscrepancyData = @json($bankDiscrepancyData);
@@ -418,7 +521,6 @@ document.querySelector('[data-bank-status]')?.dispatchEvent(new Event('input', {
 document.querySelectorAll('[data-bank-filter-card]').forEach((card) => card.addEventListener('click', () => { const type = card.dataset.bankFilterCard; const select = document.querySelector('[data-bank-type]'); if (select) { select.value = select.value === type ? 'all' : type; select.dispatchEvent(new Event('input', { bubbles: true })); } document.querySelectorAll('[data-bank-filter-card]').forEach((item) => item.setAttribute('aria-pressed', item === card && select?.value === type ? 'true' : 'false')); document.querySelector('[data-bank-all-filter]').classList.toggle('hidden', select?.value === 'all'); }));
 document.querySelector('[data-bank-all-filter]')?.addEventListener('click', () => { const select = document.querySelector('[data-bank-type]'); if (select) { select.value = 'all'; select.dispatchEvent(new Event('input', { bubbles: true })); } document.querySelectorAll('[data-bank-filter-card]').forEach((item) => item.setAttribute('aria-pressed', 'false')); document.querySelector('[data-bank-all-filter]').classList.add('hidden'); });
 document.querySelector('[data-bank-type]')?.addEventListener('input', (event) => { document.querySelectorAll('[data-bank-filter-card]').forEach((item) => item.setAttribute('aria-pressed', item.dataset.bankFilterCard === event.target.value ? 'true' : 'false')); document.querySelector('[data-bank-all-filter]').classList.toggle('hidden', event.target.value === 'all'); });
-document.querySelector('[data-period-selector]')?.addEventListener('change', (event) => { const url = new URL(window.location.href); if (event.target.value) url.searchParams.set('period_id', event.target.value); else url.searchParams.delete('period_id'); window.location.assign(url.toString()); });
 const confirmedPeriodRows = @json($confirmedPeriodRows);
 const reconciliationPeriodRows = @json($periodRows);
 const newPeriodForm = document.querySelector('[data-new-period-form]');

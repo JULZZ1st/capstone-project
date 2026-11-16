@@ -27,15 +27,33 @@ class BankReconciliationTest extends TestCase
     {
         $entry = $this->ledgerEntry(['description' => 'BDO OVER THE COUNTER ICTSI FND']);
         $contribution = $this->electronicContribution(['reference_number' => $entry->reference_number]);
+        $period = $this->reconciliationPeriod();
 
         $response = $this->actingAs(User::factory()->create())->get(route('bank-reconciliation.index'));
 
         $response->assertOk();
-        $response->assertSee('Bank Reconciliation Workspace');
-        $response->assertSee($entry->description);
-        $response->assertSee($contribution->donor->full_name);
-        $response->assertSee('Discrepancy Status');
-        $response->assertSee('No Report');
+        $response->assertSee('Bank Reconciliation');
+        $response->assertSee('Draft Periods');
+        $response->assertSee('Pending Review');
+        $response->assertSee('Approved &amp; Locked', false);
+        $response->assertSee($period->period_start->format('M Y'));
+        $response->assertSee(route('bank-reconciliation.periods.show', $period), false);
+        $response->assertDontSee($entry->description);
+
+        $details = $this->actingAs(User::factory()->create())->get(route('bank-reconciliation.periods.show', $period));
+        $details->assertOk();
+        $details->assertSee('Reconciliation Details');
+        $details->assertSee($entry->description);
+        $details->assertSee($contribution->donor->full_name);
+        $details->assertSee('Discrepancy Status');
+        $details->assertSee('No Report');
+        $details->assertSee('data-details-tab="transactions"', false);
+        $details->assertSee('data-details-tab="discrepancies"', false);
+        $details->assertSee('data-details-tab="statement"', false);
+        $details->assertSee('data-details-tab="history"', false);
+        $details->assertSee('data-transaction-action', false);
+        $details->assertSee('data-dialog-open="bank-period-modal"', false);
+        $details->assertDontSee('data-period-selector', false);
     }
 
     public function test_staff_can_create_a_month_based_period_and_is_redirected_to_it(): void
@@ -684,8 +702,9 @@ XML);
         $entry = $this->ledgerEntry(['reference_number' => 'BDO-TRF-55419', 'amount' => 100000]);
         $contribution = $this->electronicContribution(['reference_number' => 'BDO-TRF-55419', 'amount' => 100000]);
         $this->electronicContribution(['reference_number' => 'UNRELATED-REF', 'amount' => 5000]);
+        $period = $this->reconciliationPeriod();
 
-        $response = $this->actingAs(User::factory()->create())->get(route('bank-reconciliation.index'));
+        $response = $this->actingAs(User::factory()->create())->get(route('bank-reconciliation.periods.show', $period));
 
         $response->assertOk();
         $response->assertSee('1 suggestion found');
@@ -700,8 +719,9 @@ XML);
             'reference_number' => 'UNVERIFIED-REF',
             'status' => 'pending',
         ]);
+        $period = $this->reconciliationPeriod();
 
-        $response = $this->actingAs(User::factory()->create())->get(route('bank-reconciliation.index'));
+        $response = $this->actingAs(User::factory()->create())->get(route('bank-reconciliation.periods.show', $period));
 
         $response->assertOk();
         $response->assertDontSee($contribution->donor->full_name);
@@ -771,9 +791,10 @@ XML);
             'bank_ledger_entry_id' => $entry->id,
             'contribution_id' => $contribution->id,
         ]);
+        $period = $this->reconciliationPeriod($treasurer);
 
         $this->actingAs($treasurer)
-            ->get(route('bank-reconciliation.index'))
+            ->get(route('bank-reconciliation.periods.show', $period))
             ->assertOk()
             ->assertSee('Reconciliation History')
             ->assertSee($contribution->receipt_number);
@@ -788,8 +809,9 @@ XML);
             'bank_ledger_entry_id' => $entry->id,
             'contribution_id' => $contribution->id,
         ]);
+        $period = $this->reconciliationPeriod();
 
-        $response = $this->actingAs(User::factory()->create())->get(route('bank-reconciliation.index'));
+        $response = $this->actingAs(User::factory()->create())->get(route('bank-reconciliation.periods.show', $period));
 
         $response->assertOk();
         $response->assertSee('Reconciliation History');
@@ -922,6 +944,17 @@ XML);
             'payment_method' => 'bank_transfer',
             'status' => 'unmatched',
         ], $overrides));
+    }
+
+    private function reconciliationPeriod(?User $preparer = null): \App\Models\BankReconciliation
+    {
+        return app(\App\Services\BankReconciliation\ReconciliationPeriodService::class)->create([
+            'period_start' => now()->startOfMonth()->toDateString(),
+            'period_end' => now()->endOfMonth()->toDateString(),
+            'opening_balance' => 0,
+            'bank_account' => config('bank_reconciliation.bank_accounts.0'),
+            'prepared_by' => $preparer?->id,
+        ]);
     }
 
     private function withdrawalEntry(array $overrides = []): BankLedgerEntry

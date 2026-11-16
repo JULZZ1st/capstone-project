@@ -38,6 +38,20 @@ class BankReconciliationController extends Controller
     {
         Gate::authorize('viewAny', BankLedgerEntry::class);
 
+        if (! request()->hasAny(['period_id', 'tab'])) {
+            $reconciliationPeriods = BankReconciliation::query()
+                ->orderByDesc('period_end')
+                ->get();
+
+            return view('bank-reconciliation.index', [
+                'bankAccounts' => config('bank_reconciliation.bank_accounts', []),
+                'reconciliationPeriods' => $reconciliationPeriods,
+                'draftPeriodCount' => $reconciliationPeriods->where('status', 'draft')->count(),
+                'pendingReviewCount' => $reconciliationPeriods->where('status', 'ready_for_review')->count(),
+                'approvedPeriodCount' => $reconciliationPeriods->filter->isApproved()->count(),
+            ]);
+        }
+
         $selectedPeriod = request()->integer('period_id')
             ? BankReconciliation::query()->with(['discrepancies.reporter', 'discrepancies.adminReviewer', 'discrepancies.resolver'])->findOrFail(request()->integer('period_id'))
             : null;
@@ -119,7 +133,7 @@ class BankReconciliationController extends Controller
             ->orderBy('approved_at')
             ->get();
 
-        return view('bank-reconciliation', [
+        return view('bank-reconciliation.details', [
             'bankAccounts' => config('bank_reconciliation.bank_accounts', []),
             'latestReconciliationPeriod' => $activePeriod,
             'reconciliationPeriods' => $reconciliationPeriods,
@@ -138,6 +152,13 @@ class BankReconciliationController extends Controller
             'boardContributions' => $boardContributions,
             'boardDisbursements' => $boardDisbursements,
         ]);
+    }
+
+    public function details(BankReconciliation $period, LedgerMatchFinder $matchFinder): View
+    {
+        request()->merge(['period_id' => $period->getKey()]);
+
+        return $this->index($matchFinder);
     }
 
     public function createPeriod(CreateReconciliationPeriodRequest $request, ReconciliationPeriodService $periods): RedirectResponse

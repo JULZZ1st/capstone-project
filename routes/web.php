@@ -83,6 +83,7 @@ Route::middleware([
         ->name('inventory.adjustments.store');
 
     Route::get('/bank-reconciliation', [BankReconciliationController::class, 'index'])->name('bank-reconciliation.index');
+    Route::get('/bank-reconciliation/periods/{period}', [BankReconciliationController::class, 'details'])->name('bank-reconciliation.periods.show');
     Route::post('/bank-reconciliation/periods', [BankReconciliationController::class, 'createPeriod'])->name('bank-reconciliation.periods.store');
     Route::patch('/bank-reconciliation/periods/{period}', [BankReconciliationController::class, 'updatePeriod'])->name('bank-reconciliation.periods.update');
     Route::post('/bank-reconciliation/periods/{period}/discrepancies', [BankReconciliationController::class, 'createDiscrepancy'])->name('bank-reconciliation.discrepancies.store');
