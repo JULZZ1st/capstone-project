@@ -52,8 +52,13 @@ class BankReconciliationTest extends TestCase
         $details->assertSee('data-details-tab="statement"', false);
         $details->assertSee('data-details-tab="history"', false);
         $details->assertSee('data-transaction-action', false);
+        $details->assertSee('data-transaction-view="needs"', false);
+        $details->assertSee('data-transaction-view="all"', false);
+        $details->assertSee('data-transaction-view-panel="needs"', false);
+        $details->assertSee('class="hidden" data-transaction-view-panel="all" data-bank-transaction-table', false);
         $details->assertSee('data-dialog-open="bank-period-modal"', false);
         $details->assertDontSee('data-period-selector', false);
+        $details->assertDontSee('h-[calc(100dvh-12rem)]', false);
     }
 
     public function test_staff_can_create_a_month_based_period_and_is_redirected_to_it(): void

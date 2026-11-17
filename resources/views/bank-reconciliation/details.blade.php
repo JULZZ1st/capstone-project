@@ -73,8 +73,8 @@
     </section>
 </template>
 @endif
-<div class="flex h-[calc(100dvh-12rem)] min-h-[30rem] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm" data-reconciliation-details>
-    <header class="shrink-0 px-4 pb-4 pt-4 sm:px-6 sm:pt-5">
+<div data-reconciliation-details>
+    <header class="pb-4">
         <a href="{{ route('bank-reconciliation.index') }}" class="inline-flex items-center gap-1 text-xs font-medium text-slate-500 transition hover:text-blue-700"><x-icon name="chevron-left" class="h-3.5 w-3.5" /> Back to Reconciliation Periods</a>
         <div class="mt-4 flex items-start justify-between gap-4">
             <div class="min-w-0">
@@ -91,7 +91,7 @@
         </div>
     </header>
 
-    <div class="flex shrink-0 flex-col gap-3 border-t border-slate-200 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+    <div class="flex flex-col gap-3 border-y border-slate-200 py-3 sm:flex-row sm:items-center sm:justify-between">
         <nav class="flex min-w-0 gap-1 overflow-x-auto" role="tablist" aria-label="Reconciliation details">
             <button type="button" role="tab" aria-selected="true" aria-controls="reconciliation-transactions-panel" data-details-tab="transactions" class="details-tab whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold">Transactions</button>
             <button type="button" role="tab" aria-selected="false" aria-controls="reconciliation-discrepancies-panel" data-details-tab="discrepancies" class="details-tab whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold">Discrepancies</button>
@@ -111,22 +111,29 @@
         <article class="rounded-xl border border-emerald-200 bg-emerald-50 p-4"><p class="text-xs font-semibold uppercase tracking-wide text-emerald-700">Incoming · Credit</p><p class="mt-1 text-2xl font-bold text-emerald-950">&#8369;{{ number_format($bankTransactions->where('transaction_type', 'deposit')->sum('amount'), 2) }}</p></article>
         <article class="rounded-xl border border-rose-200 bg-rose-50 p-4"><p class="text-xs font-semibold uppercase tracking-wide text-rose-700">Outgoing · Debit</p><p class="mt-1 text-2xl font-bold text-rose-950">&#8369;{{ number_format($bankTransactions->where('transaction_type', 'withdrawal')->sum('amount'), 2) }}</p></article>
     </div>
-    <div class="min-h-0 flex-1 overflow-hidden">
-    <section id="reconciliation-transactions-panel" role="tabpanel" data-details-panel="transactions" class="h-full space-y-4 overflow-y-auto p-4 sm:p-6">
-    <section class="rounded-xl border border-slate-200 bg-white p-4" data-reconciliation-board>
-        <div class="flex flex-wrap items-start justify-between gap-3">
-            <div><p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Confirm activity</p><h2 class="mt-1 text-lg font-bold text-slate-900">Match system records to LANDBANK</h2><p class="mt-1 text-sm text-slate-600">Select one LANDBANK transaction and its valid system record(s). Confirm Match stays disabled until the records and amounts match.</p></div>
-            <div class="flex flex-wrap items-center gap-2"><div class="flex rounded-lg border border-slate-200 bg-slate-50 p-1" role="tablist" aria-label="Transaction direction"><button type="button" data-board-tab="deposit" aria-selected="true" class="rounded-md px-3 py-2 text-sm font-semibold transition hover:bg-blue-50 hover:text-blue-700">Incoming</button><button type="button" data-board-tab="withdrawal" aria-selected="false" class="rounded-md px-3 py-2 text-sm font-semibold transition hover:bg-blue-50 hover:text-blue-700">Outgoing</button></div><div class="flex rounded-lg border border-slate-200 bg-white p-1" role="group" aria-label="Matching status"><button type="button" data-board-filter="needs" class="rounded-md bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700">Needs Matching</button><button type="button" data-board-filter="all" class="rounded-md px-3 py-2 text-xs font-semibold text-slate-600 transition hover:bg-blue-50 hover:text-blue-700">All</button><button type="button" data-board-filter="matched" class="rounded-md px-3 py-2 text-xs font-semibold text-slate-600 transition hover:bg-blue-50 hover:text-blue-700">Matched</button></div></div>
+    <div>
+    <section id="reconciliation-transactions-panel" role="tabpanel" data-details-panel="transactions" class="space-y-4 py-5">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <h2 class="text-lg font-bold text-slate-950">Bank Transactions</h2>
+            <div class="flex items-center gap-1" role="tablist" aria-label="Transaction view">
+                <button type="button" role="tab" aria-selected="true" aria-controls="transaction-needs-panel" data-transaction-view="needs" class="transaction-view rounded-full px-4 py-2 text-sm font-semibold">Needs Matching</button>
+                <button type="button" role="tab" aria-selected="false" aria-controls="transaction-all-panel" data-transaction-view="all" class="transaction-view rounded-full px-4 py-2 text-sm font-semibold">All Transactions</button>
+            </div>
         </div>
-        <div class="mt-4 grid gap-4 xl:grid-cols-2">
+    <section id="transaction-needs-panel" role="tabpanel" data-transaction-view-panel="needs" data-reconciliation-board>
+        <div class="flex flex-wrap items-start justify-between gap-3">
+            <div class="flex items-center gap-1" role="tablist" aria-label="Transaction direction"><button type="button" data-board-tab="deposit" aria-selected="true" class="rounded-full px-3 py-2 text-sm font-semibold transition hover:bg-slate-100">Incoming</button><button type="button" data-board-tab="withdrawal" aria-selected="false" class="rounded-full px-3 py-2 text-sm font-semibold transition hover:bg-slate-100">Outgoing</button></div>
+            <p class="pt-2 text-xs text-slate-500">Select a bank entry and its matching system record</p>
+        </div>
+        <div class="mt-3 grid gap-3 lg:grid-cols-2">
             <section class="min-w-0 rounded-lg border border-slate-200" aria-labelledby="system-records-heading"><div class="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-4 py-3"><div><h3 id="system-records-heading" class="font-semibold text-slate-900">System Records</h3><p class="text-xs text-slate-500">Verified incoming donations or approved fund payments</p></div><span data-board-system-count class="rounded-full bg-white px-2 py-1 text-xs font-semibold text-slate-600"></span></div><div class="bank-board-scroll"><table class="min-w-full text-left text-sm"><thead class="sticky top-0 z-10 bg-white text-xs uppercase tracking-wide text-slate-500"><tr><th class="w-10 px-4 py-3">&nbsp;</th><th class="px-4 py-3">Record</th><th class="px-4 py-3 text-right">Amount</th><th class="px-4 py-3">Status</th><th class="px-4 py-3 text-right">&nbsp;</th></tr></thead><tbody data-board-system-body></tbody></table><p data-board-system-empty class="hidden p-6 text-center text-sm text-slate-500">No eligible system records are available for this direction.</p></div></section>
             <section class="min-w-0 rounded-lg border border-slate-200" aria-labelledby="landbank-transactions-heading"><div class="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-4 py-3"><div><h3 id="landbank-transactions-heading" class="font-semibold text-slate-900">LANDBANK Transactions</h3><p class="text-xs text-slate-500">Imported statement rows for the selected period</p></div><span data-board-bank-count class="rounded-full bg-white px-2 py-1 text-xs font-semibold text-slate-600"></span></div><div class="bank-board-scroll"><table class="min-w-full text-left text-sm"><thead class="sticky top-0 z-10 bg-white text-xs uppercase tracking-wide text-slate-500"><tr><th class="w-10 px-4 py-3">&nbsp;</th><th class="px-4 py-3">Transaction</th><th class="px-4 py-3 text-right">Amount</th><th class="px-4 py-3">Status</th></tr></thead><tbody data-board-bank-body></tbody></table><p data-board-bank-empty class="hidden p-6 text-center text-sm text-slate-500">No imported LANDBANK transactions are available for this direction.</p></div></section>
         </div>
 <div class="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-blue-100 bg-blue-50/60 p-3"><div class="min-w-0 space-y-1"><p data-board-selection class="text-sm font-semibold text-blue-900">Select one LANDBANK transaction and its matching system record(s).</p><p data-board-amount-summary class="text-xs text-blue-800">Bank amount: PHP 0.00 · System amount: PHP 0.00 · Difference: PHP 0.00</p><p data-board-selection-help class="text-xs text-slate-600">Confirm Match is disabled until one valid bank transaction and matching system record(s) are selected.</p></div><button type="button" data-board-clear class="primary-button reconciliation-confirm-match" disabled>Confirm Match</button></div>
     </section>
-    <section class="flex min-h-0 flex-1 flex-col" data-bank-transaction-table>
+    <section id="transaction-all-panel" role="tabpanel" class="hidden" data-transaction-view-panel="all" data-bank-transaction-table>
         <div class="flex flex-wrap items-center justify-between gap-2 pb-3"><button type="button" data-bank-all-filter class="hidden rounded-full border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-100">Show all transactions</button><div class="ml-auto flex w-full flex-wrap gap-2 sm:w-auto sm:justify-end"><input data-bank-search aria-label="Search transactions" placeholder="Search description or reference" class="min-h-10 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm sm:w-64"><select data-bank-type aria-label="Filter transaction type" class="min-h-10 max-w-full rounded-lg border border-slate-300 bg-white px-3 py-2 pr-10 text-sm"><option value="all">All types</option><option value="deposit">Incoming</option><option value="withdrawal">Outgoing</option></select><select data-bank-status aria-label="Filter transaction status" class="min-h-10 max-w-full rounded-lg border border-slate-300 bg-white px-3 py-2 pr-10 text-sm"><option value="all">All statuses</option><option value="unmatched">Unmatched</option><option value="reconciled">Reconciled</option></select></div></div>
-        <div class="min-w-0"><x-data-table caption="Bank transactions" min-width="49rem" title="Bank transactions">
+        <div class="min-w-0"><x-data-table caption="Bank transactions" min-width="49rem" max-height="none" title="Bank transactions">
 <x-slot:head><x-data-table.heading>Date</x-data-table.heading>
 <x-data-table.heading>Transaction</x-data-table.heading>
 <x-data-table.heading>Reference</x-data-table.heading>
@@ -146,7 +153,7 @@
     </section>
     </section>
 
-    <section id="reconciliation-discrepancies-panel" role="tabpanel" data-details-panel="discrepancies" class="hidden h-full overflow-y-auto p-4 sm:p-6">
+    <section id="reconciliation-discrepancies-panel" role="tabpanel" data-details-panel="discrepancies" class="hidden py-5">
         <div class="mx-auto max-w-5xl space-y-4">
             <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div><h2 class="text-lg font-bold text-slate-950">Discrepancy Reports</h2><p class="mt-1 text-sm text-slate-500">Review unmatched records, investigation notes, evidence, and resolution status for this period.</p></div>
@@ -171,7 +178,7 @@
         </div>
     </section>
 
-    <section id="reconciliation-statement-panel" role="tabpanel" data-details-panel="statement" class="hidden h-full overflow-y-auto p-4 sm:p-6">
+    <section id="reconciliation-statement-panel" role="tabpanel" data-details-panel="statement" class="hidden py-5">
         <div class="mx-auto max-w-4xl space-y-5">
             <div><h2 class="text-lg font-bold text-slate-950">Bank Reconciliation Statement</h2><p class="mt-1 text-sm text-slate-500">Review the period totals and generate the official statement for reporting.</p></div>
             @if($activePeriod)
@@ -187,7 +194,7 @@
         </div>
     </section>
 
-    <section id="reconciliation-history-panel" role="tabpanel" data-details-panel="history" class="hidden h-full overflow-y-auto p-4 sm:p-6">
+    <section id="reconciliation-history-panel" role="tabpanel" data-details-panel="history" class="hidden py-5">
         <div class="mx-auto max-w-5xl space-y-4">
             <div><h2 class="text-lg font-bold text-slate-950">Reconciliation History</h2><p class="mt-1 text-sm text-slate-500">Completed incoming and outgoing matches recorded for the workspace.</p></div>
             <input data-history-search aria-label="Search history" placeholder="Search reference or description" class="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm sm:max-w-sm">
@@ -196,7 +203,7 @@
     </section>
     </div>
 
-    <footer class="flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-slate-200 bg-white px-4 py-3 sm:px-6">
+    <footer class="mt-1 flex flex-wrap items-center justify-end gap-2 border-t border-slate-200 py-4">
         @can('viewAny', \App\Models\BankLedgerEntry::class)
             <button type="button" data-dialog-open="bank-period-modal" class="inline-flex h-10 items-center justify-center gap-2 rounded-full border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50"><x-icon name="filter" class="h-4 w-4" /> Manage Period</button>
         @endcan
@@ -480,7 +487,7 @@
 </style>
 <style>.discrepancy-custom-type-wrap{display:block;margin-top:.6rem}.discrepancy-custom-type-wrap.hidden{display:none}.discrepancy-custom-type-label{display:block;color:#172033;font-size:.68rem;font-weight:800}.discrepancy-custom-type-label::after{content:' *';color:#dc2626}.discrepancy-custom-type-wrap input{display:block;width:100%;margin-top:.35rem;border:1px solid #b9c5d5;border-radius:.45rem;background:#fff;padding:.55rem .65rem;color:#172033;font-size:.75rem}.discrepancy-custom-type-wrap input:focus{border-color:#60a5fa;outline:2px solid #bfdbfe;outline-offset:0}</style>
 <style>.period-step{background:#fff;color:#475569}.period-step[aria-selected="true"]{border-color:#2563eb;background:#eff6ff;color:#1d4ed8;box-shadow:0 0 0 1px #2563eb}.period-step-status{font-size:.68rem;color:#64748b}.period-step[aria-selected="true"] .period-step-status{color:#1d4ed8}.bank-modal-footer{flex-wrap:wrap}.bank-modal-footer form{display:flex;align-items:center;gap:.5rem}.bank-modal-footer form:first-child{margin-right:auto}</style>
-<style>.details-tab{color:#64748b;transition:background-color .15s,color .15s}.details-tab:hover{background:#f8fafc;color:#0f172a}.details-tab[aria-selected="true"]{background:#f1f5f9;color:#0f172a}.details-tab:focus-visible{outline:2px solid #3b82f6;outline-offset:2px}@media(max-width:640px){[data-reconciliation-details]>footer{position:sticky;bottom:0;z-index:10}[data-reconciliation-details]>footer>*{flex:1}[data-reconciliation-details]>footer form button{width:100%}}</style>
+<style>.details-tab,.transaction-view{color:#64748b;transition:background-color .15s,color .15s}.details-tab:hover,.transaction-view:hover{background:#f8fafc;color:#0f172a}.details-tab[aria-selected="true"],.transaction-view[aria-selected="true"]{background:#f1f5f9;color:#0f172a}.details-tab:focus-visible,.transaction-view:focus-visible{outline:2px solid #3b82f6;outline-offset:2px}.bank-table-footer{position:static}.bank-board-scroll{max-height:20rem;min-height:9rem}@media(max-width:640px){[data-reconciliation-details]>footer>*{flex:1}[data-reconciliation-details]>footer form button{width:100%}.bank-board-scroll{max-height:18rem;min-height:8rem}}</style>
 <script>
 const detailsTabs = [...document.querySelectorAll('[data-details-tab]')];
 const detailsPanels = [...document.querySelectorAll('[data-details-panel]')];
@@ -501,6 +508,22 @@ detailsTabs.forEach((tab, index) => tab.addEventListener('keydown', (event) => {
     activateDetailsTab(detailsTabs[next].dataset.detailsTab);
 }));
 activateDetailsTab(location.hash.slice(1) || @json($initialDetailsTab), false);
+const transactionViews = [...document.querySelectorAll('[data-transaction-view]')];
+const transactionViewPanels = [...document.querySelectorAll('[data-transaction-view-panel]')];
+const activateTransactionView = (name) => {
+    const validName = transactionViewPanels.some((panel) => panel.dataset.transactionViewPanel === name) ? name : 'needs';
+    transactionViews.forEach((view) => view.setAttribute('aria-selected', view.dataset.transactionView === validName ? 'true' : 'false'));
+    transactionViewPanels.forEach((panel) => panel.classList.toggle('hidden', panel.dataset.transactionViewPanel !== validName));
+};
+transactionViews.forEach((view) => view.addEventListener('click', () => activateTransactionView(view.dataset.transactionView)));
+transactionViews.forEach((view, index) => view.addEventListener('keydown', (event) => {
+    if (!['ArrowLeft', 'ArrowRight'].includes(event.key)) return;
+    event.preventDefault();
+    const next = (index + (event.key === 'ArrowRight' ? 1 : -1) + transactionViews.length) % transactionViews.length;
+    transactionViews[next].focus();
+    activateTransactionView(transactionViews[next].dataset.transactionView);
+}));
+activateTransactionView('needs');
 const bankRows=[...document.querySelectorAll('[data-bank-row]')],bankSize=10;let bankPage=1;const bankRefresh=()=>{const q=document.querySelector('[data-bank-search]')?.value.toLowerCase()||'',t=document.querySelector('[data-bank-type]')?.value||'all',s=document.querySelector('[data-bank-status]')?.value||'all',filtered=bankRows.filter(r=>(!q||r.dataset.search.includes(q))&&(t==='all'||r.dataset.type===t)&&(s==='needs_action'?['unmatched','unreconciled'].includes(r.dataset.status):(s==='all'||r.dataset.status===s))),pages=Math.max(1,Math.ceil(filtered.length/bankSize));bankPage=Math.min(bankPage,pages);bankRows.forEach(r=>r.hidden=true);filtered.slice((bankPage-1)*bankSize,bankPage*bankSize).forEach(r=>r.hidden=false);document.querySelector('[data-bank-summary]').textContent=filtered.length?'Showing '+((bankPage-1)*bankSize+1)+'–'+Math.min(bankPage*bankSize,filtered.length)+' of '+filtered.length:'No transactions found';document.querySelector('[data-bank-prev]').disabled=bankPage===1;document.querySelector('[data-bank-next]').disabled=bankPage===pages;const pagesEl=document.querySelector('[data-bank-pages]');pagesEl.replaceChildren(...Array.from({length:pages},(_,i)=>{const b=document.createElement('button');b.type='button';b.textContent=i+1;b.className='rounded border px-2.5 py-1.5';b.addEventListener('click',()=>{bankPage=i+1;bankRefresh()});return b}))};document.querySelectorAll('[data-bank-search],[data-bank-type],[data-bank-status]').forEach(e=>e.addEventListener('input',()=>{bankPage=1;bankRefresh()}));document.querySelector('[data-bank-prev]')?.addEventListener('click',()=>{bankPage--;bankRefresh()});document.querySelector('[data-bank-next]')?.addEventListener('click',()=>{bankPage++;bankRefresh()});bankRows.forEach(r=>r.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();document.getElementById(r.dataset.dialogOpen)?.showModal()}}));bankRefresh();document.querySelector('[data-history-search]')?.addEventListener('input',e=>{const q=e.target.value.toLowerCase();document.querySelectorAll('[data-history-row]').forEach(r=>r.hidden=!r.dataset.historySearch.includes(q))});const file=document.querySelector('[data-bank-file]'),drop=document.querySelector('[data-bank-dropzone]'),preview=document.querySelector('[data-bank-preview]'),submit=document.querySelector('[data-bank-submit]'),error=document.querySelector('[data-bank-error]');drop?.addEventListener('click',()=>file.click());file?.addEventListener('change',()=>{if(!file.files[0])return;document.querySelector('[data-bank-file-name]').textContent=file.files[0].name;document.querySelector('[data-bank-file-info]').hidden=false;document.querySelector('[data-bank-preview-summary]').textContent='File selected and ready for server validation.';preview.hidden=false;submit.disabled=false});document.querySelector('[data-bank-remove]')?.addEventListener('click',()=>{file.value='';document.querySelector('[data-bank-file-info]').hidden=true;preview.hidden=true;submit.disabled=true});
 bankRows.forEach((row) => { if (row.dataset.status === 'unreconciled') row.dataset.status = 'unmatched'; });
 const bankDiscrepancyData = @json($bankDiscrepancyData);
@@ -653,9 +676,9 @@ if (periodWorkflowTemplate && periodBody) {
     workflow?.querySelectorAll('[data-period-jump]').forEach((button) => button.addEventListener('click', () => activatePeriodStep(button.dataset.periodJump)));
     workflow?.querySelector('[data-guided-action="match"]')?.addEventListener('click', () => {
         document.getElementById('bank-period-modal')?.close();
-        document.querySelector('[data-bank-status]').value = 'needs_action';
-        document.querySelector('[data-bank-status]').dispatchEvent(new Event('input', { bubbles: true }));
-        document.querySelector('[data-bank-transaction-table]')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        activateDetailsTab('transactions');
+        activateTransactionView('needs');
+        document.querySelector('[data-reconciliation-board]')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
     workflow?.querySelector('[data-period-discrepancies]')?.addEventListener('click', () => {
         document.getElementById('bank-period-modal')?.close();
@@ -1005,6 +1028,8 @@ document.addEventListener('click', (event) => {
     const go = event.target.closest?.('[data-go-to-matching]');
     if (go) {
         document.getElementById('bank-entry-' + go.dataset.bankId)?.close();
+        activateDetailsTab('transactions');
+        activateTransactionView('needs');
         const tab = document.querySelector(`[data-board-tab="${go.dataset.bankType === 'withdrawal' ? 'withdrawal' : 'deposit'}"]`);
         tab?.click();
         document.querySelector('[data-reconciliation-board]')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
