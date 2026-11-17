@@ -25,6 +25,7 @@ use Illuminate\Database\QueryException;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use Throwable;
 
 class DonationPortalController extends Controller
 {
@@ -288,32 +289,47 @@ class DonationPortalController extends Controller
 
     public function issueCertificate(IssueCertificateRequest $request, Contribution $contribution): RedirectResponse
     {
-        $file = $request->file('certificate_of_donation');
-        $path = Storage::disk('local')->putFile("contributions/{$contribution->id}/documents", $file);
+        $storedPath = null;
 
-        if (! is_string($path) || $path === '') {
-            throw ValidationException::withMessages([
-                'certificate_of_donation' => 'The certificate could not be stored. Please try uploading it again.',
-            ]);
+        try {
+            DB::transaction(function () use ($request, $contribution, &$storedPath): void {
+                $contribution = Contribution::query()->lockForUpdate()->findOrFail($contribution->id);
+                Gate::authorize('issueCertificate', $contribution);
+                $file = $request->file('certificate_of_donation');
+                $path = Storage::disk('local')->putFile("contributions/{$contribution->id}/documents", $file);
+
+                if (! is_string($path) || $path === '') {
+                    throw ValidationException::withMessages([
+                        'certificate_of_donation' => 'The certificate could not be stored. Please try uploading it again.',
+                    ]);
+                }
+
+                $storedPath = $path;
+                $contribution->evidence()->create([
+                    'document_type' => 'certificate_of_donation',
+                    'disk' => 'local',
+                    'path' => $path,
+                    'original_name' => $file->getClientOriginalName(),
+                    'mime_type' => $file->getMimeType() ?: 'application/octet-stream',
+                    'size' => $file->getSize(),
+                    'uploaded_by' => $request->user()->id,
+                ]);
+
+                $contribution->update([
+                    'certificate_status' => 'issued',
+                    'certificate_issued_by' => $request->user()->id,
+                    'certificate_issued_at' => now(),
+                ]);
+
+                $this->audit($request->user(), 'cash_donation_certificate_issued', $contribution, "{$request->user()->name} marked Certificate of Donation for {$contribution->receipt_number} as issued.");
+            });
+        } catch (Throwable $exception) {
+            if ($storedPath !== null) {
+                Storage::disk('local')->delete($storedPath);
+            }
+
+            throw $exception;
         }
-
-        $contribution->evidence()->create([
-            'document_type' => 'certificate_of_donation',
-            'disk' => 'local',
-            'path' => $path,
-            'original_name' => $file->getClientOriginalName(),
-            'mime_type' => $file->getMimeType() ?: 'application/octet-stream',
-            'size' => $file->getSize(),
-            'uploaded_by' => $request->user()->id,
-        ]);
-
-        $contribution->update([
-            'certificate_status' => 'issued',
-            'certificate_issued_by' => $request->user()->id,
-            'certificate_issued_at' => now(),
-        ]);
-
-        $this->audit($request->user(), 'cash_donation_certificate_issued', $contribution, "{$request->user()->name} marked Certificate of Donation for {$contribution->receipt_number} as issued.");
 
         return back()->with('success', 'Certificate of Donation marked as issued.');
     }

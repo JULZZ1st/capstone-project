@@ -33,6 +33,7 @@ class CashDisbursementPolicy
     public function uploadSignedVoucher(User $user, CashDisbursement $disbursement): bool
     {
         return $this->sameWorkspace($user, $disbursement)
+            && ! $disbursement->isVoided()
             && $user->hasRole('staff')
             && (int) $disbursement->requested_by === (int) $user->id
             && in_array($disbursement->status, ['pending', 'approved'], true);
