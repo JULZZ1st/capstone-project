@@ -60,41 +60,12 @@
     @can('updateSecuritySettings', \App\Models\SecurityActivityEvent::class)
     <div class="mt-3 flex items-center justify-end gap-2">
         {{-- Edit button opens a small details-based panel --}}
-        <details class="relative">
+        <details class="relative min-w-0 flex-1" @if(old('_modal') === 'edit-'.$user->id && $errors->any()) open @endif>
             <summary class="rounded bg-slate-100 px-2 py-1 text-xs font-semibold">Edit</summary>
-            <form method="POST" action="{{ route('system-security.users.update', $user) }}" class="mt-2 w-80 rounded border border-slate-100 bg-white p-3 shadow-lg">
+            <form method="POST" action="{{ route('system-security.users.update', $user) }}" class="mt-2 w-full rounded border border-slate-100 bg-white p-3 shadow-lg">
                 @csrf
                 @method('PATCH')
-                <div class="space-y-2">
-                    <div>
-                        <label class="block text-[11px] text-slate-500">First name</label>
-                        <input name="first_name" required value="{{ old('first_name', $user->first_name) }}" class="mt-1 w-full rounded border px-2 py-1 text-sm" />
-                    </div>
-                    <div>
-                        <label class="block text-[11px] text-slate-500">Last name</label>
-                        <input name="last_name" required value="{{ old('last_name', $user->last_name) }}" class="mt-1 w-full rounded border px-2 py-1 text-sm" />
-                    </div>
-                    <div>
-                        <label class="block text-[11px] text-slate-500">Email</label>
-                        <input name="email" type="email" required value="{{ old('email', $user->email) }}" class="mt-1 w-full rounded border px-2 py-1 text-sm" />
-                    </div>
-                    <div>
-                        <label class="block text-[11px] text-slate-500">Role</label>
-                        <select name="role" required class="mt-1 w-full rounded border px-2 py-1 text-sm">
-                            <option value="staff" {{ $user->roleName() === 'staff' ? 'selected' : '' }}>Staff</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-[11px] text-slate-500">Status</label>
-                        <select name="status" class="mt-1 w-full rounded border px-2 py-1 text-sm">
-                            <option value="{{ config('auth_defaults.user_status') }}" {{ ! $isDeactivated ? 'selected' : '' }}>Active</option>
-                            <option value="deactivated" {{ $isDeactivated ? 'selected' : '' }}>Deactivated</option>
-                        </select>
-                    </div>
-                    <div class="mt-2 flex justify-end">
-                        <button class="rounded bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white">Save</button>
-                    </div>
-                </div>
+                <x-system-security.staff-account-fields :user="$user" :form-key="'edit-'.$user->id" />
             </form>
         </details>
 

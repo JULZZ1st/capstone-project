@@ -4,6 +4,7 @@ namespace App\Http\Requests\Donations;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use App\Support\Workspaces\WorkspaceValidationRules;
 
 class DonationPortalIndexRequest extends FormRequest
 {
@@ -19,6 +20,13 @@ class DonationPortalIndexRequest extends FormRequest
             'type' => ['nullable', Rule::in(array_keys(config('donations.types')))],
             'status' => ['nullable', Rule::in(array_keys(config('donations.statuses')))],
             'campaign_id' => ['nullable', WorkspaceValidationRules::exists('campaigns')],
+            'date_from' => ['nullable', 'date_format:Y-m-d'],
+            'date_to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:date_from'],
+            'donor_id' => ['nullable', 'integer', WorkspaceValidationRules::exists('donors')],
+            'amount_min' => ['nullable', 'numeric', 'min:0'],
+            'amount_max' => ['nullable', 'numeric', 'min:0', 'gte:amount_min'],
+            'item' => ['nullable', 'string', 'max:255'],
+            'category' => ['nullable', Rule::in(array_keys(config('donations.item_main_categories')))],
         ];
     }
 
@@ -29,6 +37,13 @@ class DonationPortalIndexRequest extends FormRequest
             'type' => $this->nullableTrim('type'),
             'status' => $this->nullableTrim('status'),
             'campaign_id' => $this->nullableTrim('campaign_id'),
+            'date_from' => $this->nullableTrim('date_from'),
+            'date_to' => $this->nullableTrim('date_to'),
+            'donor_id' => $this->nullableTrim('donor_id'),
+            'amount_min' => $this->nullableTrim('amount_min'),
+            'amount_max' => $this->nullableTrim('amount_max'),
+            'item' => $this->nullableTrim('item'),
+            'category' => $this->nullableTrim('category'),
         ]);
     }
 

@@ -14,6 +14,7 @@ class InventoryStockMovement extends Model
     protected $fillable = [
         'workspace_id',
         'inventory_item_id',
+        'contribution_item_id',
         'created_by',
         'movement_type',
         'quantity',
@@ -41,5 +42,10 @@ class InventoryStockMovement extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function contributionItem(): BelongsTo
+    {
+        return $this->belongsTo(ContributionItem::class);
     }
 }

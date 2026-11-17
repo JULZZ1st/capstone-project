@@ -5,6 +5,17 @@
 
 @section('content')
     <div class="space-y-6">
+        @if ($errors->any() || $errors->deedUpload->any())
+            <div class="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800" role="alert" tabindex="-1" data-validation-summary>
+                <p class="font-semibold">The donation could not be updated. Please review these requirements:</p>
+                <ul class="mt-2 list-disc space-y-1 pl-5">
+                    @foreach (array_unique(array_merge($errors->all(), $errors->deedUpload->all())) as $message)
+                        <li>{{ $message }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
                 <a href="{{ route('donations.index') }}" class="text-sm font-semibold text-blue-700 hover:text-blue-800">Back to donations</a>
@@ -151,11 +162,7 @@
             <aside class="rounded-lg border border-slate-200 bg-white p-5">
                 <h2 class="text-base font-semibold text-slate-950">Update Record</h2>
                 @can('verify', $contribution)
-                    <form method="POST" action="{{ route('donations.verify', $contribution) }}" class="mt-4">
-                        @csrf
-                        @method('PATCH')
-                        <x-button>Verify Donation</x-button>
-                    </form>
+                    <x-donations.verification-form :contribution="$contribution" class="mt-4" />
                 @endcan
 
                 @can('requestDocuments', $contribution)
@@ -221,21 +228,7 @@
                     <form method="POST" action="{{ route('donations.update', $contribution) }}" class="mt-4 space-y-4">
                         @csrf
                         @method('PATCH')
-                        <div>
-                            <x-form.label for="status">Status</x-form.label>
-                            <select id="status" name="status" class="mt-1 block w-full rounded-md border-slate-300 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                                @foreach (config('donations.statuses') as $value => $status)
-                                    @continue($value === 'verified' && $contribution->status !== 'verified')
-                                    <option value="{{ $value }}" @selected(old('status', $contribution->status) === $value)>{{ $status['label'] }}</option>
-                                @endforeach
-                            </select>
-                            <x-form.error name="status" />
-                        </div>
-                        <div>
-                            <x-form.label for="notes">Notes</x-form.label>
-                            <textarea id="notes" name="notes" rows="4" class="mt-1 block w-full rounded-md border-slate-300 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500">{{ old('notes', $contribution->notes) }}</textarea>
-                            <x-form.error name="notes" />
-                        </div>
+                        <x-donations.update-fields :contribution="$contribution" />
                         <x-button>Save Update</x-button>
                     </form>
                 @else

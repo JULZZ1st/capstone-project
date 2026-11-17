@@ -16,14 +16,14 @@
         <div class="space-y-3">
             <div class="flex flex-col gap-2 sm:flex-row sm:justify-end">
                 @can('viewAny', \App\Models\Donor::class)
-                    <x-button
+                    <button
                         type="button"
-                        class="h-10 w-full gap-2 border border-blue-200 bg-white px-4 !text-blue-700 hover:border-blue-300 hover:bg-blue-50 hover:!text-blue-800 sm:w-auto"
+                        class="inline-flex h-10 w-full items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 sm:w-auto"
                         data-dialog-open="donor-directory-modal"
                     >
                         <x-icon name="users" class="h-4 w-4" />
                         View All Donors
-                    </x-button>
+                    </button>
                 @endcan
 
                 @can('create', \App\Models\Contribution::class)
@@ -38,7 +38,12 @@
                 @endcan
             </div>
 
-            <x-donations.filter-bar :filters="$filters" />
+            <x-donations.filter-bar
+                :filters="$filters"
+                :types="$availableDonationTypes"
+                :donors="$filterDonors"
+                :categories="$itemCategories"
+            />
         </div>
 
         @if ($contributions->count())
@@ -54,13 +59,13 @@
                 <div class="p-8">
                     <x-dashboard.empty-state
                         icon="cube"
-                        :message="request()->hasAny(['search', 'type', 'status'])
+                        :message="request()->hasAny(['search', 'type', 'status', 'date_from', 'date_to', 'donor_id', 'amount_min', 'amount_max', 'item', 'category'])
                             ? 'No contributions match the current filters.'
                             : 'No contributions have been logged yet.'"
                     />
                     <p class="mt-1 text-center text-sm text-slate-400">
 
-                        @if (request()->hasAny(['search', 'type', 'status']))
+                        @if (request()->hasAny(['search', 'type', 'status', 'date_from', 'date_to', 'donor_id', 'amount_min', 'amount_max', 'item', 'category']))
 
                             Try adjusting your search or filters.
 

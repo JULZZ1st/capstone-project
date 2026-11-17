@@ -104,9 +104,10 @@ class DonationsPortalTest extends TestCase
             ['display_name' => 'Admin', 'description' => 'Administers barangay operations.'],
         );
         $admin = User::factory()->create(['role_id' => $adminRole->id]);
+        $creator = User::factory()->create();
         $contribution = Contribution::query()->create([
             'donor_id' => $this->donor()->id,
-            'created_by' => $admin->id,
+            'created_by' => $creator->id,
             'type' => 'cash',
             'status' => 'pending',
             'amount' => 10000,
@@ -811,9 +812,10 @@ class DonationsPortalTest extends TestCase
     public function test_staff_can_verify_a_pending_donation_but_cannot_reject_it(): void
     {
         $staff = User::factory()->create();
+        $creator = User::factory()->create();
         $donation = Contribution::query()->create([
             'donor_id' => $this->donor()->id,
-            'created_by' => $staff->id,
+            'created_by' => $creator->id,
             'type' => 'cash',
             'status' => 'pending',
             'amount' => 1250,

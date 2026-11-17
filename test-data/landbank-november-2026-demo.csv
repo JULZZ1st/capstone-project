@@ -1,0 +1,9 @@
+statement_id,description,reference_number,amount,transaction_date,payment_method,transaction_type
+DEMO-TEST-NOV26-DEP-001,DEMO/TEST DATA - Barangay donation drive deposit,DEMO-NOV26-DEP-001,90000.00,2026-11-03,bank_transfer,deposit
+DEMO-TEST-NOV26-DEP-002,DEMO/TEST DATA - Municipal support transfer,DEMO-NOV26-DEP-002,125000.00,2026-11-06,bank_transfer,deposit
+DEMO-TEST-NOV26-DEP-003,DEMO/TEST DATA - Community fundraiser deposit,DEMO-NOV26-DEP-003,18500.00,2026-11-10,bank_transfer,deposit
+DEMO-TEST-NOV26-DEP-004,DEMO/TEST DATA - Unidentified deposit for discrepancy review,DEMO-NOV26-DEP-004,7777.77,2026-11-14,bank_transfer,deposit
+DEMO-TEST-NOV26-WDL-001,DEMO/TEST DATA - Emergency food packs payment,DEMO-FUND-REQUEST-001,18500.00,2026-11-18,check,withdrawal
+DEMO-TEST-NOV26-WDL-002,DEMO/TEST DATA - Community garden supplies payment,DEMO-FUND-REQUEST-004,12000.00,2026-11-20,check,withdrawal
+DEMO-TEST-NOV26-WDL-003,DEMO/TEST DATA - LANDBANK service charge discrepancy,DEMO-NOV26-CHG-001,125.00,2026-11-24,bank_charge,withdrawal
+DEMO-TEST-NOV26-WDL-004,DEMO/TEST DATA - Outstanding check discrepancy for review,DEMO-NOV26-OUTSTANDING-001,4321.00,2026-11-27,check,withdrawal

@@ -69,6 +69,11 @@ class Contribution extends Model
         return $this->belongsTo(Donor::class);
     }
 
+    public function campaign(): BelongsTo
+    {
+        return $this->belongsTo(Campaign::class);
+    }
+
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
@@ -129,6 +134,41 @@ class Contribution extends Model
         return $status ? $query->where('status', $status) : $query;
     }
 
+    public function scopeReceivedBetween($query, ?string $from, ?string $to)
+    {
+        return $query
+            ->when($from, fn ($builder) => $builder->whereDate('received_at', '>=', $from))
+            ->when($to, fn ($builder) => $builder->whereDate('received_at', '<=', $to));
+    }
+
+    public function scopeDonorId($query, ?int $donorId)
+    {
+        return $donorId ? $query->where('donor_id', $donorId) : $query;
+    }
+
+    public function scopeAmountBetween($query, mixed $minimum, mixed $maximum)
+    {
+        return $query
+            ->when($minimum !== null && $minimum !== '', fn ($builder) => $builder->where('amount', '>=', $minimum))
+            ->when($maximum !== null && $maximum !== '', fn ($builder) => $builder->where('amount', '<=', $maximum));
+    }
+
+    public function scopeItemName($query, ?string $item)
+    {
+        $item = trim((string) $item);
+
+        return $item === ''
+            ? $query
+            : $query->whereHas('items', fn ($builder) => $builder->where('name', 'like', "%{$item}%"));
+    }
+
+    public function scopeItemCategory($query, ?string $category)
+    {
+        return $category
+            ? $query->whereHas('items', fn ($builder) => $builder->where('category', $category))
+            : $query;
+    }
+
     public function scopeSearch($query, ?string $term)
     {
         $term = trim((string) $term);
@@ -161,6 +201,52 @@ class Contribution extends Model
     public function isCash(): bool
     {
         return $this->type === 'cash';
+    }
+
+    public function isInKind(): bool
+    {
+        return $this->type === 'in_kind';
+    }
+
+    public function verificationErrors(): array
+    {
+        $this->loadMissing('evidence');
+        $documents = $this->evidence->pluck('document_type');
+        $errors = [];
+
+        if ($this->payment_method === 'bank_transfer'
+            && ! $documents->intersect(['bank_transfer_proof', 'supporting_evidence'])->count()) {
+            $errors['bank_transfer_proof'] = 'Bank Deposit/Transfer Proof must be uploaded before this donation can be verified.';
+        }
+
+        if (! $this->isCash()) {
+            return $errors;
+        }
+
+        if (blank($this->official_receipt_number)) {
+            $errors['official_receipt_number'] = 'Official Receipt Number is required before verification.';
+        }
+        if (! $documents->contains('official_receipt')) {
+            $errors['official_receipt_document'] = 'Official Receipt upload is required before verification.';
+        }
+        if (! $documents->contains('certificate_of_acceptance')) {
+            $errors['certificate_of_acceptance'] = 'Certificate of Acceptance is required before verification.';
+        }
+        if ((float) $this->amount >= 5000 && ! $documents->contains('deed_of_donation')) {
+            $errors['deed_of_donation'] = 'This cash donation cannot be verified while the required Deed of Donation is missing. Review the donor exception and obtain the written document before verification.';
+        }
+
+        return $errors;
+    }
+
+    public function editableStatuses(): array
+    {
+        if ($this->ledger_entry_exists ?? $this->ledgerEntry()->exists()) {
+            return [$this->status];
+        }
+
+        return array_values(array_filter(array_keys(config('donations.statuses')),
+            fn (string $status) => $status !== 'verified' || $this->status === 'verified'));
     }
 
     public function paymentMethodLabel(): ?string

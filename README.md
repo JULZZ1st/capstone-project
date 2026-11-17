@@ -50,24 +50,19 @@ A web-based donation management system for barangay operations. It helps manage 
    ~~~
    For a new development database, php artisan db:seed also creates the default
    admin/staff accounts and loads these address options.
-6. Start the development servers
+6. Start the local server
    ```bash
-   php artisan serve
-   npm run dev
+   composer dev
    ```
 
-For local testing or demonstrations with built assets and PHP OPcache, stop the
-existing PHP server and run:
-
-~~~bash
-composer dev:fast
-~~~
-
-Open http://127.0.0.1:8000. This command builds the frontend once and starts the
+Open http://127.0.0.1:8000. `composer dev` builds the frontend once and starts the
 local server with OPcache when the extension is installed. It does not require
 Vite to stay running. PHP edits are picked up within two seconds; rebuild with
-`npm run build` after changing JavaScript or CSS. Normal development with hot
-reload can continue using the two development servers above.
+`npm run build` after changing JavaScript or CSS. Stop an existing PHP server
+before starting this command. `composer dev:fast` runs the same local setup.
+
+For frontend development with Vite hot reload, use `composer dev:hot`. This also
+starts the queue listener and log viewer. Stop it before using `composer dev`.
 
 Use the printed `127.0.0.1` address to connect directly to this server. Keep using
 the same address after signing in so the browser retains the local session.

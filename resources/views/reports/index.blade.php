@@ -29,7 +29,7 @@
         </nav>
 
         @if ($tab === 'audit')
-            <form method="GET" action="{{ route('reports.index') }}" class="flex flex-wrap items-end gap-3 rounded-lg border border-slate-200 bg-white p-4">
+            <form method="GET" action="{{ route('reports.index') }}" class="ui-filter-bar sticky top-16 z-10">
                 <input type="hidden" name="tab" value="audit">
                 <div>
                     <label for="audit-from" class="block text-xs font-semibold uppercase text-slate-500">From</label>
@@ -42,11 +42,11 @@
                 <x-button class="h-10 rounded-md border border-emerald-700 bg-emerald-600 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2">Apply filters</x-button>
             </form>
         @elseif (in_array($tab, ['financial', 'inventory'], true))
-            <form method="GET" action="{{ route('reports.index') }}" class="flex flex-wrap items-end gap-3 rounded-lg border border-slate-200 bg-white p-4">
+            <form method="GET" action="{{ route('reports.index') }}" class="ui-filter-bar sticky top-16 z-10">
                 <input type="hidden" name="tab" value="{{ $tab }}">
                 <div>
                     <label for="report-month" class="block text-xs font-semibold uppercase text-slate-500">Month</label>
-                    <select id="report-month" name="month" class="mt-1 rounded-md border-slate-300 text-sm shadow-sm">
+                    <select id="report-month" name="month" class="report-filter-select mt-1">
                         @foreach (range(1, 12) as $monthOption)
                             <option value="{{ $monthOption }}" @selected($month === $monthOption)>{{ date('F', mktime(0, 0, 0, $monthOption, 1)) }}</option>
                         @endforeach
@@ -54,7 +54,7 @@
                 </div>
                 <div>
                     <label for="report-year" class="block text-xs font-semibold uppercase text-slate-500">Year</label>
-                    <select id="report-year" name="year" class="mt-1 rounded-md border-slate-300 text-sm shadow-sm">
+                    <select id="report-year" name="year" class="report-filter-select mt-1">
                         @foreach (range(now()->year - 3, now()->year) as $yearOption)
                             <option value="{{ $yearOption }}" @selected($year === $yearOption)>{{ $yearOption }}</option>
                         @endforeach
@@ -180,11 +180,11 @@
         @elseif ($tab === 'reconciliation')
             <section class="space-y-4 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
                 @if ($reconciliationPeriods->isNotEmpty())
-                    <form method="GET" action="{{ route('reports.index') }}" class="flex flex-wrap items-end gap-3">
+                    <form method="GET" action="{{ route('reports.index') }}" class="sticky top-16 z-10 flex flex-wrap items-end gap-3 rounded-lg bg-white py-1">
                         <input type="hidden" name="tab" value="reconciliation">
                         <div>
                             <label for="reconciliation-period" class="block text-xs font-semibold uppercase text-slate-500">Period</label>
-                            <select id="reconciliation-period" name="period_id" class="mt-1 rounded-md border-slate-300 text-sm">
+                            <select id="reconciliation-period" name="period_id" class="report-filter-select mt-1">
                                 @foreach ($reconciliationPeriods as $periodOption)
                                     <option value="{{ $periodOption->id }}" @selected((int) request('period_id', $reconciliationPeriods->first()->id) === $periodOption->id)>
                                         {{ $periodOption->period_start?->format('Y-m-d') }} – {{ $periodOption->period_end?->format('Y-m-d') }} ({{ str_replace('_', ' ', $periodOption->status) }})

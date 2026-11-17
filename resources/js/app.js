@@ -401,6 +401,9 @@ document.addEventListener('click', (event) => {
 });
 
 const loadDocumentPreview = async (dialog, trigger) => {
+    dialog.__previewController?.abort();
+    const controller = new AbortController();
+    dialog.__previewController = controller;
     const loading = dialog.querySelector('[data-preview-loading]');
     const pdf = dialog.querySelector('[data-preview-pdf]');
     const image = dialog.querySelector('[data-preview-image]');
@@ -422,9 +425,10 @@ const loadDocumentPreview = async (dialog, trigger) => {
             throw new Error('This document type is not supported for preview.');
         }
 
-        const response = await fetch(trigger.dataset.previewUrl, { headers: { Accept: mime } });
+        const response = await fetch(trigger.dataset.previewUrl, { headers: { Accept: mime }, signal: controller.signal });
         if (! response.ok) throw new Error('The document could not be opened. It may be missing or no longer available.');
         const blob = await response.blob();
+        if (controller.signal.aborted || ! dialog.open) return;
         if (! blob.type.startsWith('application/pdf') && ! blob.type.startsWith('image/')) {
             throw new Error('The uploaded file is not a supported PDF or image.');
         }
@@ -442,6 +446,7 @@ const loadDocumentPreview = async (dialog, trigger) => {
             image.classList.remove('hidden');
         }
     } catch (previewError) {
+        if (controller.signal.aborted) return;
         loading.classList.add('hidden');
         error.textContent = previewError.message || 'Unable to preview this document.';
         error.classList.remove('hidden');
@@ -451,6 +456,8 @@ const loadDocumentPreview = async (dialog, trigger) => {
 
 document.querySelectorAll('[data-document-preview-dialog]').forEach((dialog) => {
     dialog.addEventListener('close', () => {
+        dialog.__previewController?.abort();
+        dialog.__previewController = null;
         const returnScrollPositions = dialog.__returnScrollPositions;
         const returnFocus = dialog.__returnFocus;
         dialog.__returnFocus = null;
@@ -479,11 +486,24 @@ document.addEventListener('close', (event) => {
     if (returnFocus instanceof HTMLElement && document.contains(returnFocus)) {
         window.setTimeout(() => returnFocus.focus(), 0);
     }
+}, true);
+
+// Server validation may mark a dialog open. Restore it to the modal top layer.
+document.querySelectorAll('dialog[open], dialog[data-reopen="true"]').forEach((dialog) => {
+    if (dialog.open) dialog.close();
+    dialog.showModal();
 });
+
+document.querySelector('[data-validation-summary]')?.focus();
 
 document.addEventListener('cancel', (event) => {
     if (event.target instanceof HTMLDialogElement) {
-        event.target.close();
+        if (event.target.dataset.dialogReturnUrl) {
+            event.preventDefault();
+            window.location.assign(event.target.dataset.dialogReturnUrl);
+        } else {
+            event.target.close();
+        }
     }
 }, true);
 
@@ -954,6 +974,7 @@ const initializeEvidenceUploader = (uploader) => {
 };
 
 const updateReferenceRequirement = (form) => {
+    const isCash = form.querySelector('[data-contribution-type]')?.value === 'cash';
     const method = form.querySelector('[data-payment-method]')?.value;
     const reference = form.querySelector('[data-reference-number]');
     const referenceField = form.querySelector('[data-reference-field]');
@@ -963,7 +984,7 @@ const updateReferenceRequirement = (form) => {
 
     form.querySelectorAll('[data-payment-method-field]').forEach((field) => {
         const methods = (field.dataset.paymentMethodField || '').split(',').map((value) => value.trim());
-        const active = methods.includes(method);
+        const active = isCash && methods.includes(method);
         const input = field.querySelector('input, select, textarea');
 
         field.hidden = ! active;
@@ -971,18 +992,18 @@ const updateReferenceRequirement = (form) => {
             input.disabled = ! active;
             input.required = active && ['check_number', 'bank_name', 'registered_bank_account'].includes(input.name);
 
-            if (! active) input.value = '';
+            if (! active && isCash) input.value = '';
         }
     });
 
     if (methodName && methodNameField) {
-        const isOther = method === 'other';
+        const isOther = isCash && method === 'other';
 
         methodNameField.hidden = ! isOther;
         methodName.disabled = ! isOther;
         methodName.required = isOther;
 
-        if (! isOther) {
+        if (! isOther && isCash) {
             methodName.value = '';
         }
     }
@@ -991,19 +1012,19 @@ const updateReferenceRequirement = (form) => {
         const bankProofSection = form.querySelector('[data-bank-proof-section]');
         const bankProofInput = bankProofSection?.querySelector('[name="bank_transfer_proof[]"]');
 
-        if (bankProofSection) bankProofSection.hidden = method !== 'bank_transfer';
-        if (bankProofInput) bankProofInput.disabled = method !== 'bank_transfer';
+        if (bankProofSection) bankProofSection.hidden = ! isCash || method !== 'bank_transfer';
+        if (bankProofInput) bankProofInput.disabled = ! isCash || method !== 'bank_transfer';
         return;
     }
 
-    const isBankTransfer = method === 'bank_transfer';
+    const isBankTransfer = isCash && method === 'bank_transfer';
     referenceField.hidden = ! isBankTransfer;
     reference.disabled = ! isBankTransfer;
     reference.required = isBankTransfer;
     referenceLabel.textContent = 'Bank Reference Number';
     reference.placeholder = 'Enter bank reference number';
 
-    if (! isBankTransfer) reference.value = '';
+    if (! isBankTransfer && isCash) reference.value = '';
 
     const bankProofSection = form.querySelector('[data-bank-proof-section]');
     const bankProofInput = bankProofSection?.querySelector('[name="bank_transfer_proof[]"]');
@@ -1012,17 +1033,18 @@ const updateReferenceRequirement = (form) => {
 };
 
 const updateCashPurposeFields = (form) => {
+    const isCash = form.querySelector('[data-contribution-type]')?.value === 'cash';
     const purpose = form.querySelector('[data-donation-purpose]')?.value;
     const purposeField = form.querySelector('[data-purpose-name-field]');
     const purposeName = purposeField?.querySelector('[name="purpose_name"]');
-    const requested = form.querySelector('[name="certificate_requested"]:checked')?.value === '1';
+    const requested = isCash && form.querySelector('[name="certificate_requested"]:checked')?.value === '1';
     const tinField = form.querySelector('[data-certificate-tin-field]');
     const tin = tinField?.querySelector('[name="donor_tin"]');
 
     if (purposeField && purposeName) {
-        purposeField.hidden = purpose !== 'specific';
-        purposeName.disabled = purpose !== 'specific';
-        purposeName.required = purpose === 'specific';
+        purposeField.hidden = ! isCash || purpose !== 'specific';
+        purposeName.disabled = ! isCash || purpose !== 'specific';
+        purposeName.required = isCash && purpose === 'specific';
         if (purpose !== 'specific') purposeName.value = '';
     }
 
@@ -1036,19 +1058,20 @@ const updateCashPurposeFields = (form) => {
 const updateCashDocumentRequirements = (form) => {
     const cashSection = form?.querySelector('[data-cash-fields]');
     if (! cashSection) return;
+    const isCash = form.querySelector('[data-contribution-type]')?.value === 'cash';
 
     const amount = Number.parseFloat(cashSection.querySelector('[name="amount"]')?.value || '0');
     const deedExceptionSection = cashSection.querySelector('[data-deed-exception-section]');
     const deedDeclined = cashSection.querySelector('[name="deed_declined"]')?.checked === true;
     const deedExceptionReasonField = cashSection.querySelector('[data-deed-exception-reason]');
     const deedExceptionReason = cashSection.querySelector('[name="deed_decline_reason"]');
-    const deedRequired = amount >= 5000 && ! deedDeclined;
+    const deedRequired = isCash && amount >= 5000 && ! deedDeclined;
 
     if (deedExceptionSection) deedExceptionSection.hidden = amount < 5000;
     if (deedExceptionReasonField) deedExceptionReasonField.hidden = ! deedDeclined || amount < 5000;
     if (deedExceptionReason) {
-        deedExceptionReason.disabled = amount < 5000 || ! deedDeclined;
-        deedExceptionReason.required = amount >= 5000 && deedDeclined;
+        deedExceptionReason.disabled = ! isCash || amount < 5000 || ! deedDeclined;
+        deedExceptionReason.required = isCash && amount >= 5000 && deedDeclined;
         if (amount < 5000 || ! deedDeclined) deedExceptionReason.value = '';
     }
 
@@ -1568,6 +1591,8 @@ document.addEventListener('click', (event) => {
     updateContributionTabs(form);
     updateContributionSections(form);
     updateReferenceRequirement(form);
+    updateCashPurposeFields(form);
+    updateCashDocumentRequirements(form);
 });
 
 document.addEventListener('click', (event) => {
@@ -1767,9 +1792,14 @@ const refreshContributionDonorOptions = (donor) => {
             select.add(new Option(donor.label, donor.id));
         }
 
+        select.disabled = false;
         select.value = String(donor.id);
         select.dispatchEvent(new Event('change', { bubbles: true }));
         refreshCustomSelect(select);
+    });
+
+    document.querySelectorAll('[data-contribution-submit]').forEach((submit) => {
+        submit.disabled = false;
     });
 };
 
@@ -1851,7 +1881,8 @@ document.querySelectorAll('[data-table]').forEach((table) => {
 // Mobile navigation stays compact; desktop keeps its independent collapse preference.
 const sidebar = document.getElementById('app-sidebar');
 const sidebarToggle = document.getElementById('sidebar-toggle');
-if (sidebar && sidebarToggle) {
+if (sidebar && sidebarToggle && !sidebar.dataset.sidebarControllerInitialized) {
+    sidebar.dataset.sidebarControllerInitialized = 'true';
     const desktop = window.matchMedia('(min-width: 1024px)');
     const storageKey = 'sidebarCollapsed';
     let collapsed = false;
@@ -1860,15 +1891,16 @@ if (sidebar && sidebarToggle) {
     const applySidebar = () => {
         sidebar.classList.toggle('collapsed', desktop.matches && collapsed);
         sidebar.classList.toggle('mobile-open', !desktop.matches && mobileOpen);
-        document.documentElement.classList.toggle('sidebar-collapsed', desktop.matches && collapsed);
         const expanded = desktop.matches ? !collapsed : mobileOpen;
         sidebarToggle.setAttribute('aria-expanded', String(expanded));
         sidebarToggle.setAttribute('aria-label', desktop.matches ? (collapsed ? 'Expand sidebar' : 'Collapse sidebar') : (expanded ? 'Close navigation' : 'Open navigation'));
         sidebarToggle.setAttribute('title', desktop.matches ? (collapsed ? 'Expand sidebar' : 'Collapse sidebar') : (expanded ? 'Close navigation' : 'Open navigation'));
-        sidebarToggle.querySelector('.sidebar-expanded-icon')?.classList.toggle('hidden', desktop.matches && collapsed);
-        sidebarToggle.querySelector('.sidebar-collapsed-icon')?.classList.toggle('hidden', !(desktop.matches && collapsed));
+        sidebarToggle.querySelector('.sidebar-expanded-icon')?.classList.toggle('hidden', !expanded);
+        sidebarToggle.querySelector('.sidebar-collapsed-icon')?.classList.toggle('hidden', expanded);
     };
-    sidebarToggle.addEventListener('click', () => {
+    sidebarToggle.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
         if (desktop.matches) {
             collapsed = !collapsed;
             try { localStorage.setItem(storageKey, collapsed ? '1' : '0'); } catch {}
@@ -1878,6 +1910,12 @@ if (sidebar && sidebarToggle) {
         applySidebar();
     });
     desktop.addEventListener('change', () => { mobileOpen = false; applySidebar(); });
+    document.addEventListener('click', (event) => {
+        if (!desktop.matches && mobileOpen && !sidebar.contains(event.target)) {
+            mobileOpen = false;
+            applySidebar();
+        }
+    });
     document.addEventListener('keydown', (event) => {
         if (event.key === 'Escape' && !desktop.matches && mobileOpen) {
             mobileOpen = false;
@@ -1886,4 +1924,6 @@ if (sidebar && sidebarToggle) {
         }
     });
     applySidebar();
+    // State is now hydrated; allow the existing toggle transitions for explicit user actions.
+    document.documentElement.classList.remove('sidebar-preload');
 }

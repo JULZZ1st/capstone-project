@@ -52,6 +52,13 @@ class StoreDonorRequest extends FormRequest
         return $this->boolean('_confirm_duplicate');
     }
 
+    protected function getRedirectUrl(): string
+    {
+        return $this->input('_modal') === 'directory-add-donor-modal'
+            ? route('donations.index')
+            : parent::getRedirectUrl();
+    }
+
     protected function prepareForValidation(): void
     {
         $donorType = Str::lower(trim((string) $this->input('donor_type')));

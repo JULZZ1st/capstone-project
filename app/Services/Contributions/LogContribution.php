@@ -5,6 +5,7 @@ namespace App\Services\Contributions;
 use App\Models\Contribution;
 use App\Models\SecurityActivityEvent;
 use App\Models\User;
+use App\Services\Inventory\PostContributionToInventory;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -13,6 +14,10 @@ use Throwable;
 
 class LogContribution
 {
+    public function __construct(private readonly PostContributionToInventory $inventoryPoster)
+    {
+    }
+
     public function handle(array $data, User $user): Contribution
     {
         $storedPaths = [];
@@ -97,6 +102,8 @@ class LogContribution
                             'notes' => Arr::get($item, 'notes'),
                         ])->all()
                     );
+
+                    $this->inventoryPoster->handle($contribution, $user);
                 }
 
                 foreach ($data['evidence'] ?? [] as $file) {
