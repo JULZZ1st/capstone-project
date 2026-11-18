@@ -4,12 +4,12 @@
     $fieldValue = static function (string $key, mixed $fallback = '') use ($values, $useOld): mixed {
         return $useOld ? old($key, $fallback) : ($values[$key] ?? $fallback);
     };
-    $provinceValue = $fieldValue('province', $locationDefaults['province'] ?? '');
-    $cityValue = $fieldValue('city_municipality', $locationDefaults['city_municipality'] ?? '');
-    $barangayValue = $fieldValue('barangay', $locationDefaults['barangay'] ?? '');
+    $provinceValue = config('disbursements.barangay.province');
+    $cityValue = config('disbursements.barangay.city_municipality');
+    $barangayValue = config('disbursements.barangay.location_barangay');
 @endphp
 
-<div class="min-h-0 flex-1 space-y-6 overflow-y-auto px-4 py-5 sm:px-6">
+<div class="min-h-0 flex-1 space-y-6 overflow-y-auto px-4 py-5 sm:px-6" data-fund-request-form-scroll>
     <section aria-labelledby="{{ $formId }}-payment-heading" class="space-y-4">
         <div>
             <h3 id="{{ $formId }}-payment-heading" class="text-sm font-semibold text-slate-950">Payment Details</h3>
@@ -38,7 +38,16 @@
                 <x-form.error name="payee_address" />
             </div>
             <div class="sm:col-span-2">
-                <label for="{{ $formId }}-purpose" class="block text-sm font-medium text-slate-700">Purpose of Payment <span class="text-red-600">*</span></label>
+                <label for="{{ $formId }}-emergency-category" class="block text-sm font-medium text-slate-700">Emergency Category <span class="text-red-600">*</span></label>
+                <x-form.custom-select id="{{ $formId }}-emergency-category" name="emergency_category" placeholder="" required data-emergency-category-select>
+                    @foreach (\App\Http\Requests\Disbursements\StoreDisbursementRequest::EMERGENCY_CATEGORIES as $category)
+                        <option value="{{ $category }}" @selected($fieldValue('emergency_category', str_starts_with($formId, 'edit-') ? 'Other Emergency' : '') === $category)>{{ $category }}</option>
+                    @endforeach
+                </x-form.custom-select>
+                <x-form.error name="emergency_category" />
+            </div>
+            <div class="sm:col-span-2">
+                <label for="{{ $formId }}-purpose" class="block text-sm font-medium text-slate-700">Purpose / Description of Emergency <span class="text-red-600">*</span></label>
                 <textarea id="{{ $formId }}-purpose" name="purpose" rows="3" required placeholder="e.g. Purchase of relief goods for affected families" class="mt-1.5 block w-full resize-y rounded-lg border-slate-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500">{{ $fieldValue('purpose') }}</textarea>
                 <x-form.error name="purpose" />
             </div>
@@ -68,33 +77,12 @@
     <section aria-labelledby="{{ $formId }}-location-heading" class="space-y-4 border-t border-slate-200 pt-5" data-fund-request-location-form data-location-form-id="{{ $formId }}">
         <div>
             <h3 id="{{ $formId }}-location-heading" class="text-sm font-semibold text-slate-950">Barangay Information</h3>
-            <p class="mt-1 text-xs text-slate-500">Select the location used on the Disbursement Voucher. City and barangay options follow the selected province.</p>
+            <p class="mt-1 text-xs text-slate-500">The registered barangay location is automatically applied to this request.</p>
         </div>
-        <div class="grid gap-4 sm:grid-cols-2">
-            <div>
-                <label for="{{ $formId }}-province" class="block text-sm font-medium text-slate-700">Province <span class="text-red-600">*</span></label>
-                <x-form.custom-select id="{{ $formId }}-province" name="province" placeholder="Select province" searchable required data-location-province data-selected-value="{{ $provinceValue }}">
-                    <option value="">Select province</option>
-                    @foreach ($fundRequestProvinces ?? [] as $province)
-                        <option value="{{ $province->name }}" data-code="{{ $province->code }}" @selected(strcasecmp((string) $provinceValue, $province->name) === 0)>{{ $province->name }}</option>
-                    @endforeach
-                </x-form.custom-select>
-                <x-form.error name="province" />
-            </div>
-            <div>
-                <label for="{{ $formId }}-city" class="block text-sm font-medium text-slate-700">City / Municipality <span class="text-red-600">*</span></label>
-                <x-form.custom-select id="{{ $formId }}-city" name="city_municipality" placeholder="Select city / municipality" searchable required data-location-city data-selected-value="{{ $cityValue }}" disabled>
-                    <option value="">Select city / municipality</option>
-                </x-form.custom-select>
-                <x-form.error name="city_municipality" />
-            </div>
-            <div class="sm:col-span-2">
-                <label for="{{ $formId }}-barangay" class="block text-sm font-medium text-slate-700">Barangay <span class="text-red-600">*</span></label>
-                <x-form.custom-select id="{{ $formId }}-barangay" name="barangay" placeholder="Select barangay" searchable required data-location-barangay data-selected-value="{{ $barangayValue }}" disabled>
-                    <option value="">Select barangay</option>
-                </x-form.custom-select>
-                <x-form.error name="barangay" />
-            </div>
+        <div class="grid gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 sm:grid-cols-3">
+            <div><p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Barangay</p><p class="mt-1 font-semibold text-slate-900">{{ $barangayValue ?: 'Not configured' }}</p></div>
+            <div><p class="text-xs font-semibold uppercase tracking-wide text-slate-500">City / Municipality</p><p class="mt-1 font-semibold text-slate-900">{{ $cityValue ?: 'Not configured' }}</p></div>
+            <div><p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Province</p><p class="mt-1 font-semibold text-slate-900">{{ $provinceValue ?: 'Not configured' }}</p></div>
         </div>
     </section>
 

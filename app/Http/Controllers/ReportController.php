@@ -20,6 +20,7 @@ use App\Services\Reports\ReportCsvExporter;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Response;
 use Illuminate\View\View;
+use App\Support\Authorization\ReportAccess;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ReportController extends Controller
@@ -30,9 +31,11 @@ class ReportController extends Controller
         InventoryReportBuilder $inventoryBuilder,
         DonorGivingSummaryReportBuilder $donorSummaryBuilder,
         AuditTrailReportBuilder $auditBuilder,
-        InKindAuditReportBuilder $inKindAuditBuilder
+        InKindAuditReportBuilder $inKindAuditBuilder,
+        ReportAccess $access
     ): View {
         $tab = $request->tab();
+        $access->authorize($request->user(), $tab);
 
         return view('reports.index', [
             'tab' => $tab,
@@ -57,7 +60,13 @@ class ReportController extends Controller
                 ? $inKindAuditBuilder->build($request->year(), $request->month())
                 : null,
             'reconciliationPeriods' => BankReconciliation::query()->orderByDesc('period_end')->get(),
+            'allowedTabs' => $access->allowedTabs($request->user()),
         ]);
+    }
+
+    private function authorizeReport(ReportIndexRequest $request, string $tab): void
+    {
+        app(ReportAccess::class)->authorize($request->user(), $tab);
     }
 
     public function financialLedgersCsv(
@@ -65,6 +74,7 @@ class ReportController extends Controller
         FinancialLedgerReportBuilder $builder,
         FinancialLedgerCsvExporter $exporter
     ): StreamedResponse {
+        $this->authorizeReport($request, 'financial-ledgers');
         $report = $builder->build($request->year(), $request->month());
         $filename = sprintf('financial-ledger-report-%04d-%02d.csv', $request->year(), $request->month());
 
@@ -76,6 +86,7 @@ class ReportController extends Controller
         FinancialLedgerReportBuilder $builder,
         FinancialLedgerPdfExporter $exporter
     ): Response {
+        $this->authorizeReport($request, 'financial-ledgers');
         $report = $builder->build($request->year(), $request->month());
         $filename = sprintf('financial-ledger-report-%04d-%02d.pdf', $request->year(), $request->month());
 
@@ -87,6 +98,7 @@ class ReportController extends Controller
         DonorGivingSummaryReportBuilder $builder,
         DonorGivingSummaryPdfExporter $exporter
     ): Response {
+        $this->authorizeReport($request, 'philanthropy-roster');
         $donorSummary = $builder->build([
             'year' => $request->year(),
             'month' => $request->month(),
@@ -103,6 +115,7 @@ class ReportController extends Controller
         FinancialLedgerReportBuilder $builder,
         ReportCsvExporter $exporter
     ): StreamedResponse {
+        $this->authorizeReport($request, 'financial');
         $report = $builder->build($request->year(), $request->month());
 
         $rows = collect($report['ledger'])->map(fn (array $row) => [
@@ -119,6 +132,7 @@ class ReportController extends Controller
         FinancialLedgerReportBuilder $builder,
         FinancialLedgerPdfExporter $exporter
     ): Response {
+        $this->authorizeReport($request, 'financial');
         $report = $builder->build($request->year(), $request->month());
 
         $filename = sprintf('financial-report-%04d-%02d.pdf', $request->year(), $request->month());
@@ -131,6 +145,7 @@ class ReportController extends Controller
         InventoryReportBuilder $builder,
         ReportCsvExporter $exporter
     ): StreamedResponse {
+        $this->authorizeReport($request, 'inventory');
         $report = $builder->build(['year' => $request->year(), 'month' => $request->month()]);
         $rows = $report['items']->map(fn ($item) => [
             $item->name, $item->category, $item->unit, $item->current_quantity,
@@ -145,6 +160,7 @@ class ReportController extends Controller
         InventoryReportBuilder $builder,
         InventoryReportPdfExporter $exporter
     ): Response {
+        $this->authorizeReport($request, 'inventory');
         $report = $builder->build(['year' => $request->year(), 'month' => $request->month()]);
 
         return $exporter->handle($report, sprintf('inventory-report-%04d-%02d.pdf', $request->year(), $request->month()));
@@ -155,6 +171,7 @@ class ReportController extends Controller
         AuditTrailReportBuilder $builder,
         ReportCsvExporter $exporter
     ): StreamedResponse {
+        $this->authorizeReport($request, 'audit');
         $report = $builder->build($request->from(), $request->to());
         $rows = collect($report['events'])->map(fn (array $event) => [
             $event['user'], $event['action'], $event['module'], $event['occurred_at']?->format('Y-m-d H:i:s'), $event['summary'],
@@ -167,6 +184,7 @@ class ReportController extends Controller
         ReportIndexRequest $request,
         AuditTrailReportBuilder $builder
     ): Response {
+        $this->authorizeReport($request, 'audit');
         $report = $builder->build($request->from(), $request->to());
 
         $filename = 'audit-trail-report.pdf';
@@ -179,6 +197,7 @@ class ReportController extends Controller
         InKindAuditReportBuilder $builder,
         InKindAuditCsvExporter $exporter
     ): StreamedResponse {
+        $this->authorizeReport($request, 'in-kind-audits');
         $report = $builder->build($request->year(), $request->month());
         return $exporter->handle($report['movements'], sprintf('in-kind-inventory-audit-%04d-%02d.csv', $request->year(), $request->month()));
     }
@@ -188,12 +207,14 @@ class ReportController extends Controller
         InKindAuditReportBuilder $builder,
         InKindAuditPdfExporter $exporter
     ): Response {
+        $this->authorizeReport($request, 'in-kind-audits');
         $report = $builder->build($request->year(), $request->month());
         return $exporter->handle($report, sprintf('in-kind-inventory-audit-%04d-%02d.pdf', $request->year(), $request->month()));
     }
 
     public function reconciliationCsv(ReportIndexRequest $request, ReconciliationReportBuilder $builder, ReportCsvExporter $exporter): StreamedResponse
     {
+        $this->authorizeReport($request, 'reconciliation');
         $periodId = $request->periodId();
         abort_unless($periodId, 422, 'A reconciliation period is required.');
         $report = $builder->build($periodId);
@@ -203,6 +224,7 @@ class ReportController extends Controller
 
     public function reconciliationPdf(ReportIndexRequest $request, ReconciliationReportBuilder $builder): Response
     {
+        $this->authorizeReport($request, 'reconciliation');
         $periodId = $request->periodId();
         abort_unless($periodId, 422, 'A reconciliation period is required.');
         $report = $builder->build($periodId);

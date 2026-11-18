@@ -6,7 +6,7 @@
         ['label' => 'Fund Requests', 'icon' => 'banknotes', 'route' => 'disbursements.index', 'active' => 'disbursements.*', 'visible' => $user?->can('viewAny', \App\Models\CashDisbursement::class)],
         ['label' => 'In-Kind Inventory', 'icon' => 'archive', 'route' => 'inventory.index', 'active' => 'inventory.*', 'visible' => $user?->can('viewAny', \App\Models\InventoryItem::class)],
         ['label' => 'Bank Reconciliation', 'icon' => 'scale', 'route' => 'bank-reconciliation.index', 'active' => 'bank-reconciliation.*', 'visible' => $user?->can('viewAny', \App\Models\BankLedgerEntry::class)],
-        ['label' => 'Report Generator', 'icon' => 'document', 'route' => 'reports.index', 'active' => 'reports.*', 'visible' => $user?->can('viewAny', \App\Models\Donor::class)],
+        ['label' => 'Report Generator', 'icon' => 'document', 'route' => 'reports.index', 'active' => 'reports.*', 'visible' => $user && app(\App\Support\Authorization\ReportAccess::class)->allowedTabs($user)->isNotEmpty()],
         ['label' => 'System Administration', 'icon' => 'shield-check', 'route' => 'system-security.index', 'active' => 'system-security.*', 'visible' => $user?->can('updateSecuritySettings', \App\Models\SecurityActivityEvent::class)],
     ];
     $items = array_values(array_filter($items, fn (array $item): bool => (bool) ($item['visible'] ?? true)));

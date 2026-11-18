@@ -99,6 +99,16 @@ class User extends Authenticatable
         return $this->hasMany(SecurityActivityEvent::class);
     }
 
+    public function hasSecurityPermission(string $key): bool
+    {
+        return $this->securityPermissions()->where('key', $key)->exists();
+    }
+
+    public function hasAnySecurityPermission(array $keys): bool
+    {
+        return $this->securityPermissions()->whereIn('key', $keys)->exists();
+    }
+
     public function actedSecurityActivityEvents(): HasMany
     {
         return $this->hasMany(SecurityActivityEvent::class, 'actor_id');

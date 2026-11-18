@@ -15,6 +15,7 @@
             'in-kind-audits' => 'In-Kind Audits',
             'philanthropy-roster' => 'Philanthropy Roster',
         ];
+        $tabs = array_intersect_key($tabs, array_flip(($allowedTabs ?? collect())->all()));
     @endphp
     <div class="space-y-5">
         <nav class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3" aria-label="Report types">

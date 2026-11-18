@@ -8,6 +8,7 @@ use Illuminate\Validation\Rule;
 
 class StoreDisbursementRequest extends FormRequest
 {
+    public const EMERGENCY_CATEGORIES = ['Fire', 'Typhoon', 'Flood', 'Earthquake', 'Landslide', 'Volcanic Activity', 'Drought', 'Health Outbreak', 'Other Emergency'];
     public function authorize(): bool
     {
         return $this->user()?->can('create', CashDisbursement::class) ?? false;
@@ -18,11 +19,9 @@ class StoreDisbursementRequest extends FormRequest
         return [
             'amount' => ['required', 'numeric', 'gt:0', 'max:9999999999.99'],
             'purpose' => ['required', 'string', 'max:2000'],
+            'emergency_category' => ['required', Rule::in(self::EMERGENCY_CATEGORIES)],
             'recipient' => ['required', 'string', 'max:255'],
             'payee_address' => ['required', 'string', 'max:255'],
-            'province' => ['nullable', 'string', 'max:255'],
-            'city_municipality' => ['nullable', 'string', 'max:255'],
-            'barangay' => ['nullable', 'string', 'max:255'],
             'payee_tin' => ['nullable', 'string', 'max:30'],
             'fund_source' => ['required', 'string', Rule::in(config('disbursements.fund_sources', []))],
             'obr_number' => ['nullable', 'string', 'max:255'],

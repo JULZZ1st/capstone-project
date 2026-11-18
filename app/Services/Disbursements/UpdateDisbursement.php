@@ -22,7 +22,7 @@ class UpdateDisbursement
             $disbursement->forceFill(collect($data)->except('dv_number')->all());
 
             if ($disbursement->hasTreasurerCertification() && $disbursement->isDirty([
-                'amount', 'purpose', 'recipient', 'payee_address', 'payee_tin',
+                'amount', 'purpose', 'emergency_category', 'recipient', 'payee_address', 'payee_tin',
                 'fund_source', 'obr_number', 'requested_date', 'province',
                 'city_municipality', 'barangay',
             ])) {

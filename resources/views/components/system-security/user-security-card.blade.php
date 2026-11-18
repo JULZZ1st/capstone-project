@@ -91,6 +91,17 @@
                             <option value="deactivated" {{ $isDeactivated ? 'selected' : '' }}>Deactivated</option>
                         </select>
                     </div>
+                    <div>
+                        <p class="block text-[11px] text-slate-500">Task permissions</p>
+                        <div class="mt-1 max-h-36 space-y-1 overflow-y-auto rounded border p-2">
+                            @foreach ($permissions as $permission)
+                                <label class="flex items-center gap-2 text-[11px] text-slate-700">
+                                    <input type="checkbox" name="permissions[]" value="{{ $permission->key }}" @checked($user->securityPermissions->contains('key', $permission->key))>
+                                    {{ $permission->name }}
+                                </label>
+                            @endforeach
+                        </div>
+                    </div>
                     <div class="mt-2 flex justify-end">
                         <button class="rounded bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white">Save</button>
                     </div>
