@@ -30,7 +30,7 @@ class UpdateStaffAccountRequest extends FormRequest
             'last_name' => ['required', 'string', 'max:100'],
             'email' => ['required', 'string', $emailRule, 'max:255', Rule::unique('users', 'email')->ignore($userId)],
             'role' => ['required', 'string', 'in:staff'],
-            'status' => ['nullable', 'string'],
+            'status' => ['nullable', 'string', Rule::in([config('auth_defaults.user_status'), 'deactivated'])],
         ];
     }
 }

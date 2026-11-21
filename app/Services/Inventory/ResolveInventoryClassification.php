@@ -97,7 +97,7 @@ class ResolveInventoryClassification
         $key = $base;
         $suffix = 2;
 
-        while ($query->where('key', $key)->exists()) {
+        while ((clone $query)->where('key', $key)->exists()) {
             $key = "{$base}_{$suffix}";
             $suffix++;
         }

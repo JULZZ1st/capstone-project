@@ -6,8 +6,7 @@
     <x-auth-card>
         <div class="mb-6">
             <p class="text-sm font-semibold uppercase tracking-wide text-green-700">Barangay Donation Platform</p>
-            <h1 class="mt-2 text-2xl font-bold text-slate-950">Sign in to your account</h1>
-            <p class="mt-2 text-sm text-slate-600">Access donation records, inventory workflows, cash transactions, and reconciliation tools.</p>
+            <h1 class="mt-2 text-2xl font-bold text-slate-950">Sign In</h1>
         </div>
 
         @if (session('status'))
@@ -23,7 +22,7 @@
 
             <x-form.input
                 name="email"
-                label="Email Address"
+                label="Email"
                 type="email"
                 required
                 autofocus
@@ -38,7 +37,7 @@
                 autocomplete="current-password"
             />
 
-            <x-form.checkbox name="remember" label="Remember me on this device" />
+            <x-form.checkbox name="remember" label="Remember me" />
 
             <x-button>Sign In</x-button>
         </form>

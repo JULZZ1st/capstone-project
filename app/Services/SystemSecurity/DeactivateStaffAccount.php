@@ -30,6 +30,7 @@ class DeactivateStaffAccount
                 }
             }
 
+            $previousStatus = $user->status;
             $user->forceFill(['status' => 'deactivated'])->save();
 
             SecurityActivityEvent::query()->create([
@@ -37,7 +38,7 @@ class DeactivateStaffAccount
                 'actor_id' => $actor->id,
                 'action' => 'staff_account_deactivated',
                 'summary' => sprintf('%s deactivated staff account %s', $actor->name, $user->email),
-                'metadata' => ['previous_status' => $user->getOriginal('status')],
+                'metadata' => ['previous_status' => $previousStatus],
                 'ip_address' => request()->ip(),
                 'occurred_at' => now(),
             ]);
