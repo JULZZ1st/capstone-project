@@ -79,6 +79,10 @@ const refreshCustomSelect = (select) => {
         } else {
             button.classList.add('text-slate-700');
         }
+        if (select.hasAttribute('data-emergency-category-select') && option.value === '') {
+            button.classList.remove('bg-blue-50', 'font-semibold', 'text-blue-700', 'text-slate-700');
+            button.classList.add('font-normal', 'text-slate-400');
+        }
         optionsContainer.append(button);
     });
 
@@ -232,6 +236,19 @@ document.addEventListener('keydown', (event) => {
 
 document.addEventListener('scroll', () => {
     document.querySelectorAll('[data-custom-select][data-custom-select-open]').forEach(positionCustomSelectMenu);
+}, true);
+
+document.addEventListener('scroll', (event) => {
+    const scrollSurface = event.target.closest?.('[data-fund-request-form-scroll]');
+    if (scrollSurface) {
+        const select = scrollSurface.querySelector('[data-emergency-category-select]');
+        const wrapper = select?.closest('[data-custom-select]');
+        if (wrapper?.hasAttribute('data-custom-select-open')) {
+            closeCustomSelect(wrapper);
+        } else {
+            select?.blur();
+        }
+    }
 }, true);
 
 window.addEventListener('resize', () => {

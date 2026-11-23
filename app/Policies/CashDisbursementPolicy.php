@@ -14,7 +14,7 @@ class CashDisbursementPolicy
 
     public function create(User $user): bool
     {
-        return $this->viewAny($user);
+        return $this->viewAny($user) && ($user->hasRole('admin') || $user->hasSecurityPermission('submit_fund_requests'));
     }
 
     public function update(User $user, CashDisbursement $disbursement): bool

@@ -65,7 +65,7 @@
             <form method="POST" action="{{ route('system-security.users.update', $user) }}" class="mt-2 w-full rounded border border-slate-100 bg-white p-3 shadow-lg">
                 @csrf
                 @method('PATCH')
-                <x-system-security.staff-account-fields :user="$user" :form-key="'edit-'.$user->id" />
+                <x-system-security.staff-account-fields :user="$user" :permissions="$permissions" :form-key="'edit-'.$user->id" />
             </form>
         </details>
 

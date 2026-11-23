@@ -51,7 +51,8 @@
                             <div class="flex items-center gap-2"><span class="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600"><x-icon name="document" class="h-4 w-4" /></span><h3 class="text-base font-bold text-slate-900">Request Information</h3></div>
                         </div>
                         <dl class="mt-4 grid gap-4 md:grid-cols-3">
-                            <div class="md:col-span-3"><dt class="text-xs font-semibold text-slate-500">Purpose / Particulars</dt><dd class="mt-1 whitespace-pre-line text-sm text-slate-800">{{ $disbursement->purpose ?: 'Not provided' }}</dd></div>
+                            <div><dt class="text-xs font-semibold text-slate-500">Emergency Category</dt><dd class="mt-1 text-sm text-slate-800">{{ $disbursement->emergency_category ?: 'Not recorded' }}</dd></div>
+                            <div class="md:col-span-2"><dt class="text-xs font-semibold text-slate-500">Purpose / Description of Emergency</dt><dd class="mt-1 whitespace-pre-line text-sm text-slate-800">{{ $disbursement->purpose ?: 'Not provided' }}</dd></div>
                             <div class="md:col-span-3"><dt class="text-xs font-semibold text-slate-500">Notes / Remarks</dt><dd class="mt-1 whitespace-pre-line text-sm text-slate-800">{{ $disbursement->notes ?: 'Not provided' }}</dd></div>
                         </dl>
                         @can('void', $disbursement)<button type="button" data-open-cancel-review="{{ $modalId }}" class="mt-4 text-xs font-semibold text-red-700 hover:text-red-900">Cancel Request</button>@endcan

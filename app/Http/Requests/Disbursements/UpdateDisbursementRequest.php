@@ -18,6 +18,7 @@ class UpdateDisbursementRequest extends FormRequest
         return [
             'amount' => ['required', 'numeric', 'gt:0', 'max:9999999999.99'],
             'purpose' => ['required', 'string', 'max:2000'],
+            'emergency_category' => ['required', Rule::in(StoreDisbursementRequest::EMERGENCY_CATEGORIES)],
             'recipient' => ['required', 'string', 'max:255'],
             'payee_address' => ['required', 'string', 'max:255'],
             'province' => ['nullable', 'string', 'max:255'],

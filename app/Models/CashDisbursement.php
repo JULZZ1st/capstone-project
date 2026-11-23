@@ -17,6 +17,7 @@ class CashDisbursement extends Model
         'workspace_id',
         'amount',
         'purpose',
+        'emergency_category',
         'recipient',
         'payee_address',
         'province',
