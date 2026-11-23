@@ -77,7 +77,6 @@ Frontend assets and Blade views.
   - `bank-reconciliation.blade.php`
   - `dashboard.blade.php`
   - `role-workflows.blade.php`
-  - `welcome.blade.php`
   - `auth/` directory for authentication views.
 
 ### `routes/`

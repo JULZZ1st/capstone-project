@@ -27,6 +27,7 @@ class InventoryController extends Controller
         $items = InventoryItem::query()
             ->select([
                 'id',
+                'workspace_id',
                 'name',
                 'category',
                 'inventory_subcategory_id',

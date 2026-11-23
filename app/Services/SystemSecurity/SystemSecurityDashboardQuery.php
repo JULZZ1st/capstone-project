@@ -34,7 +34,7 @@ class SystemSecurityDashboardQuery
             ->whereHas('role', fn ($query) => $query->where('name', 'staff'))
             ->whereHas('workspaceMemberships', function ($query): void {
                 $query->where('workspace_id', app(WorkspaceContext::class)->requireId())
-                    ->where('status', 'active');
+                    ->whereIn('status', ['active', 'deactivated']);
             })
             ->orderByRaw("case when status = ? then 0 else 1 end", [config('auth_defaults.user_status')])
             ->orderBy('role_id')

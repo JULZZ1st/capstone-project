@@ -22,6 +22,7 @@ use App\Services\Disbursements\RecordDisbursementPayment;
 use App\Services\Disbursements\VoidContribution;
 use App\Services\Disbursements\VoidDisbursement;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -30,6 +31,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Schoolees\Psgc\Models\Province;
+use Throwable;
 
 class DisbursementController extends Controller
 {
@@ -115,40 +117,55 @@ class DisbursementController extends Controller
 
     public function uploadSignedVoucher(UploadSignedVoucherRequest $request, CashDisbursement $disbursement): RedirectResponse
     {
-        $file = $request->file('signed_voucher');
-        $path = Storage::disk('local')->putFile("disbursements/{$disbursement->id}/signed-vouchers", $file);
+        $storedPath = null;
 
-        if (! is_string($path) || $path === '') {
-            throw ValidationException::withMessages([
-                'signed_voucher' => 'The signed voucher could not be stored. Please try uploading it again.',
-            ]);
+        try {
+            DB::transaction(function () use ($request, $disbursement, &$storedPath): void {
+                $disbursement = CashDisbursement::query()->lockForUpdate()->findOrFail($disbursement->id);
+                Gate::authorize('uploadSignedVoucher', $disbursement);
+                $file = $request->file('signed_voucher');
+                $path = Storage::disk('local')->putFile("disbursements/{$disbursement->id}/signed-vouchers", $file);
+
+                if (! is_string($path) || $path === '') {
+                    throw ValidationException::withMessages([
+                        'signed_voucher' => 'The signed voucher could not be stored. Please try uploading it again.',
+                    ]);
+                }
+
+                $storedPath = $path;
+                $document = $disbursement->vouchers()->create([
+                    'document_type' => 'signed_voucher',
+                    'review_status' => 'pending_review',
+                    'disk' => 'local',
+                    'path' => $path,
+                    'original_name' => $file->getClientOriginalName(),
+                    'mime_type' => $file->getMimeType() ?: 'application/octet-stream',
+                    'size' => $file->getSize(),
+                    'uploaded_by' => $request->user()->id,
+                ]);
+
+                $disbursement->forceFill([
+                    'signed_voucher_status' => 'pending_review',
+                    'signed_voucher_request_reason' => null,
+                    'signed_voucher_requested_by' => null,
+                    'signed_voucher_requested_at' => null,
+                ])->save();
+
+                $this->audit(
+                    $request->user(),
+                    'disbursement_signed_voucher_uploaded',
+                    $disbursement,
+                    "{$request->user()->name} uploaded signed voucher for fund request #{$disbursement->id}.",
+                    ['voucher_id' => $document->id, 'original_name' => $document->original_name, 'mime_type' => $document->mime_type]
+                );
+            });
+        } catch (Throwable $exception) {
+            if ($storedPath !== null) {
+                Storage::disk('local')->delete($storedPath);
+            }
+
+            throw $exception;
         }
-
-        $document = $disbursement->vouchers()->create([
-            'document_type' => 'signed_voucher',
-            'review_status' => 'pending_review',
-            'disk' => 'local',
-            'path' => $path,
-            'original_name' => $file->getClientOriginalName(),
-            'mime_type' => $file->getMimeType() ?: 'application/octet-stream',
-            'size' => $file->getSize(),
-            'uploaded_by' => $request->user()->id,
-        ]);
-
-        $disbursement->forceFill([
-            'signed_voucher_status' => 'pending_review',
-            'signed_voucher_request_reason' => null,
-            'signed_voucher_requested_by' => null,
-            'signed_voucher_requested_at' => null,
-        ])->save();
-
-        $this->audit(
-            $request->user(),
-            'disbursement_signed_voucher_uploaded',
-            $disbursement,
-            "{$request->user()->name} uploaded signed voucher for fund request #{$disbursement->id}.",
-            ['voucher_id' => $document->id, 'original_name' => $document->original_name, 'mime_type' => $document->mime_type]
-        );
 
         return back()->with('success', 'Signed voucher uploaded and submitted for Admin review.');
     }
