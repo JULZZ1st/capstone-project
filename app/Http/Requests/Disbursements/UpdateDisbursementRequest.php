@@ -36,6 +36,10 @@ class UpdateDisbursementRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
+        $this->merge([
+            'emergency_category' => $this->input('emergency_category') ?: 'Other Emergency',
+        ]);
+
         foreach (['purpose', 'recipient', 'payee_address', 'fund_source'] as $key) {
             $this->merge([$key => trim((string) $this->input($key))]);
         }

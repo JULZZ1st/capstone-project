@@ -54,6 +54,7 @@ return [
             'adjust_stock_levels',
             'access_audit_logs',
             'record_cash_credits',
+            'submit_fund_requests',
         ],
     ],
 ];

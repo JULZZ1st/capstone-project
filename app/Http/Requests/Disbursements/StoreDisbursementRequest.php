@@ -33,6 +33,7 @@ class StoreDisbursementRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         $this->merge([
+            'emergency_category' => $this->input('emergency_category') ?: 'Other Emergency',
             'purpose' => trim((string) $this->input('purpose')),
             'recipient' => trim((string) $this->input('recipient')),
             'payee_address' => trim((string) $this->input('payee_address')),
