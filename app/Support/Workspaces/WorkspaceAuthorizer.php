@@ -39,7 +39,7 @@ class WorkspaceAuthorizer
 
         return $member->workspaceMemberships()
             ->where('workspace_id', $workspaceId)
-            ->where('status', 'active')
+            ->whereIn('status', ['active', 'deactivated'])
             ->exists();
     }
 

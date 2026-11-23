@@ -1,11 +1,5 @@
 import './bootstrap';
 
-if (document.querySelector('[data-chart]')) {
-    import('./charts').then(({ initCharts }) => initCharts()).catch((error) => {
-        console.error('Unable to load charts.', error);
-    });
-}
-
 const donorSearchTimers = new WeakMap();
 const donorSearchRequests = new WeakMap();
 const donationFilterTimers = new WeakMap();

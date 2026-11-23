@@ -19,7 +19,7 @@ class RegistrationTest extends TestCase
     {
         $this->get('/login')
             ->assertOk()
-            ->assertSeeText('Sign in to your account')
+            ->assertSeeText('Sign In')
             ->assertDontSee('Sign up');
     }
 }
