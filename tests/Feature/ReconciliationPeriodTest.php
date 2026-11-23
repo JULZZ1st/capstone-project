@@ -38,13 +38,17 @@ class ReconciliationPeriodTest extends TestCase
         }
 
         Contribution::query()->create([
-            'donor_id' => $donor->id, 'created_by' => $user->id, 'type' => 'cash', 'status' => 'received',
-            'amount' => 1200, 'payment_method' => 'cash', 'received_at' => '2026-10-02 10:00:00',
+            'donor_id' => $donor->id, 'created_by' => $user->id, 'type' => 'cash', 'status' => 'verified',
+            'amount' => 1200, 'payment_method' => 'bank_transfer', 'received_at' => '2026-10-02 10:00:00',
         ]);
-        CashDisbursement::query()->create([
+        $disbursement = CashDisbursement::query()->create([
             'amount' => 250, 'purpose' => 'Period expense', 'requested_by' => $user->id,
             'approved_by' => $user->id, 'approved_at' => '2026-10-04 10:00:00', 'status' => 'approved',
             'created_at' => '2026-10-04 09:00:00', 'updated_at' => '2026-10-04 09:00:00',
+        ]);
+        $disbursement->payment()->create([
+            'payment_date' => '2026-10-04', 'amount' => 250, 'payment_method' => 'bank_transfer',
+            'released_by' => $user->id, 'released_at' => '2026-10-04 10:00:00',
         ]);
 
         $period = app(ReconciliationPeriodService::class)->create([
@@ -94,7 +98,7 @@ class ReconciliationPeriodTest extends TestCase
         app(ReconciliationPeriodService::class)->recalculate($period);
     }
 
-    public function test_accounting_adjustments_change_only_the_adjusted_bank_balance(): void
+    public function test_accounting_adjustments_change_the_book_side_not_the_bank_side(): void
     {
         $period = app(ReconciliationPeriodService::class)->create([
             'period_start' => '2026-10-01', 'period_end' => '2026-10-31',
@@ -110,7 +114,8 @@ class ReconciliationPeriodTest extends TestCase
         $period = $period->fresh();
         $this->assertSame(1000.0, (float) $period->bank_ending_balance);
         $this->assertSame(-25.0, (float) $period->accounting_adjustment);
-        $this->assertSame(975.0, (float) $period->adjusted_bank_balance);
+        $this->assertSame(1000.0, (float) $period->adjusted_bank_balance);
+        $this->assertSame(975.0, (float) $period->adjusted_book_balance);
         $this->assertSame(0.0, (float) $period->unresolved_discrepancy_amount);
     }
 
@@ -144,7 +149,7 @@ class ReconciliationPeriodTest extends TestCase
         $admin = $this->userWithRole('admin');
         $period = app(ReconciliationPeriodService::class)->create([
             'period_start' => '2026-12-01', 'period_end' => '2026-12-31',
-            'opening_balance' => 1000, 'bank_ending_balance' => 900,
+            'opening_balance' => 1000, 'bank_ending_balance' => 1100,
             'prepared_by' => $treasurer->id,
         ]);
         app(ReconciliationDiscrepancyService::class)->create($period, [
@@ -187,8 +192,95 @@ class ReconciliationPeriodTest extends TestCase
         $item->refresh();
         $this->assertSame('resolved', $item->resolution_status);
         $this->assertNotNull($item->cleared_bank_ledger_entry_id);
+        $this->assertSame('reconciled', BankLedgerEntry::query()->findOrFail($item->cleared_bank_ledger_entry_id)->status);
         app(ReconciliationPeriodService::class)->recalculate($next);
         $this->assertDatabaseCount('reconciliation_discrepancies', 2);
+    }
+
+    public function test_timing_items_adjust_the_bank_side_with_standard_accounting_signs(): void
+    {
+        $period = app(ReconciliationPeriodService::class)->create([
+            'period_start' => '2027-03-01', 'period_end' => '2027-03-31',
+            'opening_balance' => 1100, 'bank_ending_balance' => 1000,
+        ]);
+        $user = User::factory()->create();
+
+        foreach ([
+            ['type' => 'deposit_in_transit', 'amount' => 200, 'reference' => 'DIT-MAR'],
+            ['type' => 'outstanding_check', 'amount' => 100, 'reference' => 'OC-MAR'],
+        ] as $item) {
+            app(ReconciliationDiscrepancyService::class)->create($period, [
+                'type' => $item['type'], 'classification' => 'timing_difference',
+                'amount' => $item['amount'], 'explanation' => 'Documented timing item',
+                'evidence_reference' => $item['reference'], 'resolution_status' => 'unresolved',
+                'adjustment_amount' => 0, 'carry_forward' => true,
+            ], $user);
+        }
+
+        $period->refresh();
+        $this->assertSame(1100.0, (float) $period->adjusted_bank_balance);
+        $this->assertSame(1100.0, (float) $period->adjusted_book_balance);
+        $this->assertSame(0.0, (float) $period->reconciliation_difference);
+    }
+
+    public function test_book_expenses_use_payment_date_and_bank_account(): void
+    {
+        $user = User::factory()->create();
+        $admin = User::factory()->create();
+        $makePayment = function (string $date, float $amount, string $account) use ($user, $admin): void {
+            $request = CashDisbursement::query()->create([
+                'amount' => $amount, 'purpose' => 'Payment date regression',
+                'requested_by' => $user->id, 'approved_by' => $admin->id,
+                'status' => 'approved', 'approved_at' => '2026-09-15',
+                'created_at' => '2026-09-01', 'updated_at' => '2026-09-01',
+            ]);
+            $request->payment()->create([
+                'bank_account' => $account, 'payment_date' => $date, 'amount' => $amount,
+                'payment_method' => 'bank_transfer', 'released_by' => $user->id, 'released_at' => $date,
+            ]);
+        };
+
+        $makePayment('2026-10-05', 250, 'LANDBANK Barangay Operating Account');
+        $makePayment('2026-10-06', 400, 'LANDBANK Special Account');
+        $makePayment('2026-11-01', 800, 'LANDBANK Barangay Operating Account');
+        BankLedgerEntry::query()->create([
+            'bank_account' => 'LANDBANK Barangay Operating Account', 'statement_id' => 'PRIMARY-OCT',
+            'description' => 'Primary account deposit', 'amount' => 500, 'transaction_date' => '2026-10-10',
+            'transaction_type' => 'deposit', 'status' => 'reconciled',
+        ]);
+        BankLedgerEntry::query()->create([
+            'bank_account' => 'LANDBANK Special Account', 'statement_id' => 'SPECIAL-OCT',
+            'description' => 'Special account deposit', 'amount' => 900, 'transaction_date' => '2026-10-10',
+            'transaction_type' => 'deposit', 'status' => 'reconciled',
+        ]);
+
+        $period = app(ReconciliationPeriodService::class)->create([
+            'period_start' => '2026-10-01', 'period_end' => '2026-10-31',
+            'opening_balance' => 1000, 'bank_ending_balance' => 750,
+            'bank_account' => 'LANDBANK Barangay Operating Account',
+        ]);
+
+        $this->assertSame(250.0, (float) $period->financial_ledger_cash_out);
+        $this->assertSame(500.0, (float) $period->calculated_bank_cash_in);
+        $this->assertSame(750.0, (float) $period->adjusted_book_balance);
+    }
+
+    public function test_next_period_has_separate_bank_and_book_opening_balances(): void
+    {
+        BankReconciliation::query()->create([
+            'date' => '2027-03-31', 'period_start' => '2027-03-01', 'period_end' => '2027-03-31',
+            'opening_balance' => 900, 'book_opening_balance' => 900,
+            'bank_ending_balance' => 1000, 'adjusted_book_balance' => 1100,
+            'financial_ledger_ending_balance' => 1100, 'status' => 'approved_locked',
+        ]);
+
+        $next = app(ReconciliationPeriodService::class)->create([
+            'period_start' => '2027-04-01', 'period_end' => '2027-04-30',
+            'opening_balance' => 1000, 'bank_ending_balance' => 1000,
+        ]);
+
+        $this->assertSame(1000.0, (float) $next->opening_balance);
+        $this->assertSame(1100.0, (float) $next->book_opening_balance);
     }
 
     public function test_import_rejects_duplicate_rows_without_reference_numbers(): void

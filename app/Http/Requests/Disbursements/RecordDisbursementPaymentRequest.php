@@ -19,6 +19,7 @@ class RecordDisbursementPaymentRequest extends FormRequest
             'payment_date' => ['required', 'date'],
             'amount' => ['required', 'numeric', 'gt:0', 'max:9999999999.99'],
             'payment_method' => ['required', Rule::in(['cash', 'check', 'bank_transfer'])],
+            'bank_account' => ['nullable', 'string', Rule::in(config('bank_reconciliation.bank_accounts', []))],
             'reference_number' => [
                 Rule::requiredIf(fn (): bool => in_array($this->input('payment_method'), ['check', 'bank_transfer'], true)),
                 'nullable',

@@ -16,6 +16,7 @@ class BankLedgerEntry extends Model
 
     protected $fillable = [
         'workspace_id',
+        'bank_account',
         'statement_id',
         'duplicate_fingerprint',
         'description',
@@ -105,6 +106,18 @@ class BankLedgerEntry extends Model
         return $query
             ->where('transaction_type', 'withdrawal')
             ->where('status', 'unreconciled');
+    }
+
+    public function scopeForBankAccount($query, ?string $bankAccount)
+    {
+        $primary = config('bank_reconciliation.bank_accounts.0');
+
+        return $query->where(function ($query) use ($bankAccount, $primary) {
+            $query->where('bank_account', $bankAccount);
+            if ($bankAccount === $primary) {
+                $query->orWhereNull('bank_account');
+            }
+        });
     }
 
     public function isReconciled(): bool

@@ -18,20 +18,14 @@
         @endcan
     </section>
 
-    <section class="grid gap-3 sm:grid-cols-3" aria-label="Reconciliation period summary">
-        <article class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-            <div class="flex items-start justify-between gap-3"><span class="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-slate-600"><x-icon name="edit" class="h-4 w-4" /></span><span class="text-2xl font-bold text-slate-950">{{ number_format($draftPeriodCount) }}</span></div>
-            <p class="mt-4 text-sm font-medium text-slate-600">Draft Periods</p>
-        </article>
-        <article class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-            <div class="flex items-start justify-between gap-3"><span class="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-50 text-amber-700"><x-icon name="clock" class="h-4 w-4" /></span><span class="text-2xl font-bold text-slate-950">{{ number_format($pendingReviewCount) }}</span></div>
-            <p class="mt-4 text-sm font-medium text-slate-600">Pending Review</p>
-        </article>
-        <article class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-            <div class="flex items-start justify-between gap-3"><span class="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700"><x-icon name="check-circle" class="h-4 w-4" /></span><span class="text-2xl font-bold text-slate-950">{{ number_format($approvedPeriodCount) }}</span></div>
-            <p class="mt-4 text-sm font-medium text-slate-600">Approved &amp; Locked</p>
-        </article>
-    </section>
+    @if(auth()->user()->hasRole('admin'))
+        <div class="flex justify-end">
+            <a href="{{ route('bank-reconciliation.discrepancies.pending') }}" class="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-5 py-2 text-sm font-semibold text-amber-900 shadow-sm transition hover:border-amber-300 hover:bg-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 sm:w-auto" data-view-pending-discrepancies>
+                <x-icon name="alert-circle" class="h-4 w-4" />
+                View Pending Discrepancies ({{ number_format($pendingDiscrepancyReviewCount) }})
+            </a>
+        </div>
+    @endif
 
     <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm" aria-labelledby="reconciliation-periods-heading">
         <div class="flex items-center justify-between border-b border-slate-200 px-4 py-4 sm:px-5">

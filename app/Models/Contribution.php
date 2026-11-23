@@ -29,6 +29,7 @@ class Contribution extends Model
         'check_number',
         'bank_name',
         'registered_bank_account',
+        'reconciliation_bank_account',
         'official_receipt_number',
         'certificate_requested',
         'certificate_status',
@@ -122,6 +123,18 @@ class Contribution extends Model
             ->where('status', 'verified')
             ->whereNull('voided_at')
             ->whereDoesntHave('ledgerEntry');
+    }
+
+    public function scopeForReconciliationBankAccount($query, ?string $bankAccount)
+    {
+        $primary = config('bank_reconciliation.bank_accounts.0');
+
+        return $query->where(function ($query) use ($bankAccount, $primary) {
+            $query->where('reconciliation_bank_account', $bankAccount);
+            if ($bankAccount === $primary) {
+                $query->orWhereNull('reconciliation_bank_account');
+            }
+        });
     }
 
     public function scopeType($query, ?string $type)

@@ -42,6 +42,17 @@ class BankReconciliationController extends Controller
             $reconciliationPeriods = BankReconciliation::query()
                 ->orderByDesc('period_end')
                 ->get();
+            $pendingDiscrepancyReviewCount = 0;
+
+            if (request()->user()->hasRole('admin')) {
+                $pendingDiscrepancyQuery = ReconciliationDiscrepancy::query()
+                    ->where(function ($query) {
+                        $query->whereNull('admin_review_status')
+                            ->orWhere('admin_review_status', 'pending');
+                    });
+
+                $pendingDiscrepancyReviewCount = (clone $pendingDiscrepancyQuery)->count();
+            }
 
             return view('bank-reconciliation.index', [
                 'bankAccounts' => config('bank_reconciliation.bank_accounts', []),
@@ -49,6 +60,7 @@ class BankReconciliationController extends Controller
                 'draftPeriodCount' => $reconciliationPeriods->where('status', 'draft')->count(),
                 'pendingReviewCount' => $reconciliationPeriods->where('status', 'ready_for_review')->count(),
                 'approvedPeriodCount' => $reconciliationPeriods->filter->isApproved()->count(),
+                'pendingDiscrepancyReviewCount' => $pendingDiscrepancyReviewCount,
             ]);
         }
 
@@ -67,6 +79,9 @@ class BankReconciliationController extends Controller
         $ledgerEntries = BankLedgerEntry::query()
             ->incoming()
             ->needsReview()
+            ->when($activePeriod, fn ($query, $period) => $query
+                ->forBankAccount($period->bank_account)
+                ->whereDate('transaction_date', '<=', $period->period_end))
             ->with(['discrepancies.reporter', 'discrepancies.adminReviewer', 'discrepancies.resolver'])
             ->latest('transaction_date')
             ->limit(config('bank_reconciliation.limits.feed'))
@@ -74,19 +89,28 @@ class BankReconciliationController extends Controller
 
         $withdrawals = BankLedgerEntry::query()
             ->withdrawalsToReview()
+            ->when($activePeriod, fn ($query, $period) => $query
+                ->forBankAccount($period->bank_account)
+                ->whereDate('transaction_date', '<=', $period->period_end))
             ->with(['matchedDisbursements.requester:id,name,first_name,last_name', 'discrepancies.reporter', 'discrepancies.adminReviewer', 'discrepancies.resolver'])
             ->latest('transaction_date')
             ->limit(config('bank_reconciliation.limits.feed'))
             ->get();
 
         $eligibleDisbursements = CashDisbursement::query()
-            ->eligibleForWithdrawalMatching()
+            ->eligibleForWithdrawalMatching(
+                throughDate: $activePeriod?->period_end?->toDateString(),
+                bankAccount: $activePeriod?->bank_account,
+            )
             ->with('requester:id,name,first_name,last_name')
             ->latest('approved_at')
             ->get();
 
         $pendingReceipts = Contribution::query()
             ->eligibleForReconciliation()
+            ->when($activePeriod, fn ($query, $period) => $query
+                ->forReconciliationBankAccount($period->bank_account)
+                ->whereDate('received_at', '<=', $period->period_end))
             ->with('donor:id,full_name')
             ->latest('received_at')
             ->limit(config('bank_reconciliation.limits.pending_receipts'))
@@ -119,17 +143,36 @@ class BankReconciliationController extends Controller
             fn (BankLedgerEntry $entry) => [$entry->id => $matchFinder->suggest($entry, $pendingReceipts)]
         );
         $boardBankTransactions = $activePeriod
-            ? BankLedgerEntry::query()->whereDate('transaction_date', '>=', $activePeriod->period_start)->whereDate('transaction_date', '<=', $activePeriod->period_end)->with(['matchedContribution', 'matchedDisbursements'])->orderBy('transaction_date')->get()
+            ? BankLedgerEntry::query()
+                ->forBankAccount($activePeriod->bank_account)
+                ->whereDate('transaction_date', '<=', $activePeriod->period_end)
+                ->where(function ($query) use ($activePeriod) {
+                    $query->whereDate('transaction_date', '>=', $activePeriod->period_start)
+                        ->orWhere('status', '!=', 'reconciled');
+                })
+                ->with(['matchedContribution', 'matchedDisbursements'])
+                ->orderBy('transaction_date')
+                ->get()
             : collect();
-        $boardContributions = Contribution::query()->where('type', 'cash')->whereIn('payment_method', config('donations.electronic_payment_methods'))->where('status', 'verified')->whereNull('voided_at')->with(['donor:id,full_name', 'ledgerEntry'])->when($activePeriod, fn ($query) => $query->whereDate('received_at', '>=', $activePeriod->period_start)->whereDate('received_at', '<=', $activePeriod->period_end))->orderBy('received_at')->get();
+        $boardContributions = Contribution::query()->where('type', 'cash')->whereIn('payment_method', config('donations.electronic_payment_methods'))->where('status', 'verified')->whereNull('voided_at')->with(['donor:id,full_name', 'ledgerEntry'])->when($activePeriod, fn ($query, $period) => $query
+            ->forReconciliationBankAccount($period->bank_account)
+            ->whereDate('received_at', '<=', $period->period_end)
+            ->where(function ($query) use ($period) {
+                $query->whereDate('received_at', '>=', $period->period_start)
+                    ->orWhereDoesntHave('ledgerEntry');
+            }))->orderBy('received_at')->get();
         $boardDisbursements = CashDisbursement::query()
             ->approvedActive()
-            ->where(function ($query) {
-                $query->whereDoesntHave('payment')
-                    ->orWhereHas('payment', fn ($payment) => $payment->where('payment_method', 'bank_transfer'));
-            })
-            ->with(['requester:id,first_name,last_name,name', 'withdrawalMatch'])
-            ->when($activePeriod, fn ($query) => $query->whereDate('approved_at', '>=', $activePeriod->period_start)->whereDate('approved_at', '<=', $activePeriod->period_end))
+            ->whereHas('payment', fn ($payment) => $payment->where('payment_method', 'bank_transfer'))
+            ->with(['requester:id,first_name,last_name,name', 'withdrawalMatch', 'payment'])
+            ->when($activePeriod, fn ($query, $period) => $query
+                ->whereHas('payment', fn ($payment) => $payment
+                    ->forBankAccount($period->bank_account)
+                    ->whereDate('payment_date', '<=', $period->period_end))
+                ->where(function ($query) use ($period) {
+                    $query->whereHas('payment', fn ($payment) => $payment->whereDate('payment_date', '>=', $period->period_start))
+                        ->orWhereDoesntHave('withdrawalMatch');
+                }))
             ->orderBy('approved_at')
             ->get();
 
@@ -151,6 +194,42 @@ class BankReconciliationController extends Controller
             'boardBankTransactions' => $boardBankTransactions,
             'boardContributions' => $boardContributions,
             'boardDisbursements' => $boardDisbursements,
+        ]);
+    }
+
+    public function pendingDiscrepancies(): View
+    {
+        Gate::authorize('viewAny', BankLedgerEntry::class);
+        abort_unless(request()->user()->hasRole('admin'), 403);
+
+        $pendingDiscrepancyReviews = ReconciliationDiscrepancy::query()
+            ->where(function ($query) {
+                $query->whereNull('admin_review_status')
+                    ->orWhere('admin_review_status', 'pending');
+            })
+            ->with(['period', 'bankLedgerEntry', 'systemRecord'])
+            ->latest('id')
+            ->paginate(15);
+
+        return view('bank-reconciliation.pending-discrepancies', [
+            'pendingDiscrepancyReviews' => $pendingDiscrepancyReviews,
+            'pendingDiscrepancyReviewCount' => $pendingDiscrepancyReviews->total(),
+        ]);
+    }
+
+    public function reviewPendingDiscrepancy(ReconciliationDiscrepancy $discrepancy): View
+    {
+        Gate::authorize('viewAny', BankLedgerEntry::class);
+        abort_unless(request()->user()->hasRole('admin'), 403);
+
+        $discrepancy->load(['period', 'reporter', 'bankLedgerEntry', 'systemRecord']);
+        $period = $discrepancy->period;
+        abort_unless($period && request()->user()->can('reviewDiscrepancy', $period), 403);
+        abort_unless(! in_array($discrepancy->admin_review_status, ['accepted', 'correction_requested'], true), 404);
+
+        return view('bank-reconciliation.review-pending-discrepancy', [
+            'discrepancy' => $discrepancy,
+            'period' => $period,
         ]);
     }
 
@@ -262,6 +341,11 @@ class BankReconciliationController extends Controller
 
         $discrepancies->review($period, $discrepancy, $decision, $request->validated('note'), $request->user());
 
+        if ($request->validated('return_to') === 'pending_discrepancies') {
+            return redirect()->route('bank-reconciliation.discrepancies.pending')
+                ->with('success', $decision === 'accepted' ? 'Discrepancy explanation accepted.' : 'Correction requested from Staff.');
+        }
+
         return redirect()->route('bank-reconciliation.index', ['period_id' => $period->id])
             ->with('success', $decision === 'accepted' ? 'Discrepancy explanation accepted for Admin review.' : 'Correction requested from Staff for this discrepancy.');
     }
@@ -285,6 +369,16 @@ class BankReconciliationController extends Controller
         $storage = Storage::disk('local');
         abort_unless($storage->exists($discrepancy->resolution_evidence_path), 404);
         return $storage->response($discrepancy->resolution_evidence_path);
+    }
+
+    public function discrepancyEvidence(BankReconciliation $period, ReconciliationDiscrepancy $discrepancy)
+    {
+        Gate::authorize('viewAny', BankLedgerEntry::class);
+        abort_unless((int) $discrepancy->bank_reconciliation_id === (int) $period->id && filled($discrepancy->evidence_path), 404);
+        $storage = Storage::disk(config('filesystems.default'));
+        abort_unless($storage->exists($discrepancy->evidence_path), 404);
+
+        return $storage->response($discrepancy->evidence_path);
     }
 
     public function withdrawalDetails(BankLedgerEntry $withdrawal): View
@@ -331,6 +425,7 @@ class BankReconciliationController extends Controller
         $periodGuard->assertMutableDate($data['transaction_date']);
 
         BankLedgerEntry::query()->create([
+            'bank_account' => $data['bank_account'] ?? config('bank_reconciliation.bank_accounts.0'),
             'statement_id' => $this->withdrawalStatementId($data),
             'description' => $data['description'],
             'reference_number' => $data['reference_number'],

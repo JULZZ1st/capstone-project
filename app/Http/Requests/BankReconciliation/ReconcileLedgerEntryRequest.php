@@ -42,6 +42,9 @@ class ReconcileLedgerEntryRequest extends FormRequest
             if ($entry && $contribution && bccomp((string) $entry->amount, (string) $contribution->amount, 2) !== 0) {
                 $validator->errors()->add('contribution_id', 'The bank deposit amount must exactly match the contribution amount.');
             }
+            if ($entry && $contribution && $contribution->received_at?->gt($entry->transaction_date->endOfDay())) {
+                $validator->errors()->add('contribution_id', 'A bank deposit cannot be matched to a future-dated contribution.');
+            }
         }];
     }
 }

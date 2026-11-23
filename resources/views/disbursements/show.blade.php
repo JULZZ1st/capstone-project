@@ -135,6 +135,7 @@
                         <div><dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">Method</dt><dd class="mt-1 text-sm font-medium text-slate-950">{{ match($disbursement->payment->payment_method) { 'bank_transfer' => 'Bank Transfer', 'check' => 'Check', default => 'Cash' } }}</dd></div>
                         <div><dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">Reference</dt><dd class="mt-1 text-sm font-medium text-slate-950">{{ $disbursement->payment->reference_number ?: 'Not provided' }}</dd></div>
                     </dl>
+                    @if($disbursement->payment->payment_method === 'bank_transfer')<p class="mt-2 text-xs text-slate-500">Reconciliation account: {{ $disbursement->payment->bank_account ?? config('bank_reconciliation.bank_accounts.0') }}</p>@endif
                     <p class="mt-3 text-xs text-slate-500">Released by {{ $disbursement->payment->releaser?->name ?? 'Unknown user' }} on {{ $disbursement->payment->released_at->format('M d, Y h:i A') }}.</p>
                 @else
                     <div class="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
@@ -172,6 +173,15 @@
                                     <input id="payment_reference" name="reference_number" type="text" value="{{ old('reference_number') }}" class="mt-1 block h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200">
                                     <x-form.error name="reference_number" />
                                 </div>
+                                @if(count(config('bank_reconciliation.bank_accounts', [])) > 1)
+                                    <div>
+                                        <label for="payment_bank_account" class="block text-sm font-medium text-slate-700">Reconciliation Bank Account <span class="font-normal text-slate-500">(Bank Transfer)</span></label>
+                                        <select id="payment_bank_account" name="bank_account" class="mt-1 block h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200">
+                                            @foreach(config('bank_reconciliation.bank_accounts', []) as $account)<option value="{{ $account }}" @selected(old('bank_account', config('bank_reconciliation.bank_accounts.0')) === $account)>{{ $account }}</option>@endforeach
+                                        </select>
+                                        <x-form.error name="bank_account" />
+                                    </div>
+                                @endif
                                 <button type="submit" class="inline-flex items-center justify-center rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800">Record Actual Payment</button>
                             </form>
                         @elseif ($disbursement->status !== 'approved')

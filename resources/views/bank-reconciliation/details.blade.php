@@ -22,9 +22,20 @@
     $periodTransactionEntries = $activePeriod
         ? $bankTransactions->filter(fn ($entry) => $entry->transaction_date && $entry->transaction_date->betweenIncluded($activePeriod->period_start, $activePeriod->period_end))
         : collect();
-    $unmatchedPeriodTransactionCount = $periodTransactionEntries->whereIn('status', ['unmatched', 'unreconciled'])->count();
+    $needsMatching = function ($entry): bool {
+        if (! in_array($entry->status, ['unmatched', 'unreconciled'], true)) return false;
+        $report = ($entry->discrepancies ?? collect())->sortByDesc('id')->first();
+        return ! $report
+            || $report->resolution_status !== 'unresolved'
+            || $report->admin_review_status === 'correction_requested';
+    };
+    $unmatchedPeriodTransactionCount = $periodTransactionEntries->filter($needsMatching)->count();
     $periodTransactionCount = $periodTransactionEntries->count();
     $unresolvedDiscrepancyCount = $activePeriod?->discrepancies->where('resolution_status', 'unresolved')->count() ?? 0;
+    $unresolvedDiscrepancies = $activePeriod?->discrepancies->where('resolution_status', 'unresolved') ?? collect();
+    $pendingAdminReviewCount = $unresolvedDiscrepancies->filter(fn ($report) => ! in_array($report->admin_review_status, ['accepted', 'correction_requested'], true))->count();
+    $correctionRequiredCount = $unresolvedDiscrepancies->where('admin_review_status', 'correction_requested')->count();
+    $acceptedAwaitingResolutionCount = $unresolvedDiscrepancies->where('admin_review_status', 'accepted')->count();
     $periodDifference = $activePeriod?->reconciliation_difference;
     $periodBalancesReady = $activePeriod !== null && $activePeriod->bank_ending_balance !== null && $periodDifference !== null && abs((float) $periodDifference) < 0.005;
     $periodSubmitReady = $periodBalancesReady && $unmatchedPeriodTransactionCount === 0 && $unresolvedDiscrepancyCount === 0;
@@ -42,17 +53,27 @@
             $bankDiscrepancyPayloadIndex++;
         }
     }
-    $boardBankRows = $boardBankTransactions->map(fn ($entry) => ['id' => $entry->id, 'type' => $entry->transaction_type === 'withdrawal' ? 'withdrawal' : 'deposit', 'date' => $entry->transaction_date?->toDateString(), 'description' => $entry->description, 'reference' => $entry->reference_number, 'amount' => (float) $entry->amount, 'status' => $entry->status === 'reconciled' ? 'matched' : $entry->status, 'matchUrl' => route('bank-reconciliation.reconcile'), 'outgoingFinalizeUrl' => route('bank-reconciliation.withdrawals.reconcile', $entry)])->values();
+    $boardBankRows = $boardBankTransactions->map(function ($entry) use ($needsMatching) {
+        $report = ($entry->discrepancies ?? collect())->sortByDesc('id')->first();
+        $discrepancyStatus = ! $report ? null
+            : ($report->resolution_status === 'resolved' ? 'Resolved'
+                : ($report->admin_review_status === 'accepted' ? 'Accepted'
+                    : ($report->admin_review_status === 'correction_requested' ? 'Correction Required' : 'Pending Review')));
+        return ['id' => $entry->id, 'type' => $entry->transaction_type === 'withdrawal' ? 'withdrawal' : 'deposit', 'date' => $entry->transaction_date?->toDateString(), 'description' => $entry->description, 'reference' => $entry->reference_number, 'amount' => (float) $entry->amount, 'status' => $entry->status === 'reconciled' ? 'matched' : $entry->status, 'discrepancyStatus' => $discrepancyStatus, 'needsMatching' => $needsMatching($entry), 'matchUrl' => route('bank-reconciliation.reconcile'), 'outgoingFinalizeUrl' => route('bank-reconciliation.withdrawals.reconcile', $entry)];
+    })->values();
     $systemDiscrepancyFor = function (string $type, int $id) use ($activePeriod) {
         $reports = $activePeriod?->discrepancies?->filter(fn ($report) => $report->system_record_type === $type && (int) $report->system_record_id === $id) ?? collect();
-        $report = $reports->first(fn ($item) => $item->resolution_status === 'resolved') ?: $reports->first(fn ($item) => $item->admin_review_status === 'correction_requested') ?: $reports->first(fn ($item) => $item->admin_review_status === 'accepted') ?: $reports->first();
-        return $report ? ['id' => $report->id, 'status' => $report->resolution_status === 'resolved' ? 'Resolved' : ($report->admin_review_status === 'accepted' ? 'Accepted' : ($report->admin_review_status === 'correction_requested' ? 'Correction Required' : 'Pending Review')), 'data' => ['type' => $report->typeLabel(), 'explanation' => $report->explanation, 'amount' => 'PHP '.number_format((float) $report->amount, 2), 'evidence' => $report->evidence_reference ?: ($report->evidence_path ? 'Attached file' : 'Not provided'), 'reporter' => $report->reporter?->name ?: 'Not recorded', 'reviewer' => $report->adminReviewer?->name ?: 'Not reviewed', 'reviewed_at' => $report->admin_reviewed_at?->format('M d, Y h:i A') ?: 'Not reviewed', 'decision' => $report->admin_review_status === 'accepted' ? 'Accepted' : ($report->admin_review_status === 'correction_requested' ? 'Correction Required' : 'Pending Review'), 'remarks' => $report->admin_review_note ?: 'No Admin remarks recorded.', 'resolution_status' => ucfirst((string) $report->resolution_status), 'resolution_explanation' => $report->resolution_explanation, 'resolution_evidence' => $report->resolution_evidence_path ? 'Attached resolution evidence' : null, 'resolution_evidence_url' => $report->resolution_evidence_path ? route('bank-reconciliation.discrepancies.resolution-evidence', [$report->bank_reconciliation_id, $report]) : null, 'resolved_by' => $report->resolver?->name ?: null, 'resolved_at' => $report->resolved_at?->format('M d, Y h:i A'), 'resolve_url' => route('bank-reconciliation.discrepancies.resolve', [$report->bank_reconciliation_id, $report])]] : null;
+        $report = $reports->sortByDesc('id')->first();
+        return $report ? ['id' => $report->id, 'status' => $report->resolution_status === 'resolved' ? 'Resolved' : ($report->admin_review_status === 'accepted' ? 'Accepted' : ($report->admin_review_status === 'correction_requested' ? 'Correction Required' : 'Pending Review')), 'needsMatching' => $report->resolution_status !== 'unresolved' || $report->admin_review_status === 'correction_requested', 'data' => ['type' => $report->typeLabel(), 'explanation' => $report->explanation, 'amount' => 'PHP '.number_format((float) $report->amount, 2), 'evidence' => $report->evidence_reference ?: ($report->evidence_path ? 'Attached file' : 'Not provided'), 'reporter' => $report->reporter?->name ?: 'Not recorded', 'reviewer' => $report->adminReviewer?->name ?: 'Not reviewed', 'reviewed_at' => $report->admin_reviewed_at?->format('M d, Y h:i A') ?: 'Not reviewed', 'decision' => $report->admin_review_status === 'accepted' ? 'Accepted' : ($report->admin_review_status === 'correction_requested' ? 'Correction Required' : 'Pending Review'), 'remarks' => $report->admin_review_note ?: 'No Admin remarks recorded.', 'resolution_status' => ucfirst((string) $report->resolution_status), 'resolution_explanation' => $report->resolution_explanation, 'resolution_evidence' => $report->resolution_evidence_path ? 'Attached resolution evidence' : null, 'resolution_evidence_url' => $report->resolution_evidence_path ? route('bank-reconciliation.discrepancies.resolution-evidence', [$report->bank_reconciliation_id, $report]) : null, 'resolved_by' => $report->resolver?->name ?: null, 'resolved_at' => $report->resolved_at?->format('M d, Y h:i A'), 'resolve_url' => route('bank-reconciliation.discrepancies.resolve', [$report->bank_reconciliation_id, $report])]] : null;
     };
-    $boardDepositRows = $boardContributions->map(fn ($receipt) => ['id' => $receipt->id, 'date' => $receipt->received_at?->toDateString(), 'label' => $receipt->donor?->full_name ?? 'Verified donation', 'detail' => $receipt->reference_number ?? 'Electronic cash donation', 'reference' => $receipt->reference_number, 'amount' => (float) $receipt->amount, 'status' => $receipt->ledgerEntry ? 'matched' : 'verified', 'discrepancy' => $systemDiscrepancyFor('contribution', (int) $receipt->id)])->values();
-    $boardWithdrawalRows = $boardDisbursements->map(fn ($request) => ['id' => $request->id, 'date' => $request->approved_at?->toDateString() ?? $request->requested_date?->toDateString(), 'label' => $request->recipient ?? 'Approved fund request', 'detail' => $request->purpose, 'reference' => $request->supporting_reference, 'amount' => (float) $request->amount, 'status' => $request->withdrawalMatch ? 'matched' : 'approved', 'discrepancy' => $systemDiscrepancyFor('cash_disbursement', (int) $request->id)])->values();
+    $boardDepositRows = $boardContributions->map(function ($receipt) use ($systemDiscrepancyFor) { $discrepancy = $systemDiscrepancyFor('contribution', (int) $receipt->id); $matched = (bool) $receipt->ledgerEntry; return ['id' => $receipt->id, 'date' => $receipt->received_at?->toDateString(), 'label' => $receipt->donor?->full_name ?? 'Verified donation', 'detail' => $receipt->reference_number ?? 'Electronic cash donation', 'reference' => $receipt->reference_number, 'amount' => (float) $receipt->amount, 'status' => $matched ? 'matched' : 'verified', 'needsMatching' => ! $matched && ($discrepancy['needsMatching'] ?? true), 'discrepancy' => $discrepancy]; })->values();
+    $boardWithdrawalRows = $boardDisbursements->map(function ($request) use ($systemDiscrepancyFor) { $discrepancy = $systemDiscrepancyFor('cash_disbursement', (int) $request->id); $matched = (bool) $request->withdrawalMatch; return ['id' => $request->id, 'date' => $request->payment?->payment_date?->toDateString(), 'label' => $request->recipient ?? 'Approved fund request', 'detail' => $request->purpose, 'reference' => $request->payment?->reference_number ?? $request->supporting_reference, 'amount' => (float) ($request->payment?->amount ?? $request->amount), 'status' => $matched ? 'matched' : 'approved', 'needsMatching' => ! $matched && ($discrepancy['needsMatching'] ?? true), 'discrepancy' => $discrepancy]; })->values();
     $confirmedPeriodRows = $confirmedPeriods->map(fn ($period) => ['bank_account' => $period->bank_account ?: config('bank_reconciliation.bank_accounts.0'), 'period_end' => $period->period_end?->toDateString(), 'ending_balance' => (float) $period->bank_ending_balance])->values();
     $periodRows = $reconciliationPeriods->map(fn ($period) => ['bank_account' => $period->bank_account ?: config('bank_reconciliation.bank_accounts.0'), 'period_end' => $period->period_end?->toDateString(), 'status' => $period->status])->values();
     $initialDetailsTab = $discrepancyValidationFailed ? 'discrepancies' : request()->get('section', request()->get('tab', 'transactions'));
+    $selectedDiscrepancyIndex = request()->integer('discrepancy_id') && $latestReconciliationPeriod
+        ? $latestReconciliationPeriod->discrepancies->search(fn ($report) => (int) $report->id === request()->integer('discrepancy_id'))
+        : false;
 @endphp
 @if($activePeriod)
 <template id="bank-period-workflow-template">
@@ -65,7 +86,7 @@
         <div data-period-panels>
             <section id="period-step-1" data-period-panel="1" class="period-step-panel space-y-3"><h4 class="text-base font-bold text-slate-900">Step 1: Confirm the period</h4><p class="text-sm text-slate-600">This is the active period you are preparing. No action is needed here.</p><div class="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800"><strong>Complete:</strong> The active period is selected.</div></section>
             <section id="period-step-2" data-period-panel="2" class="period-step-panel hidden space-y-3"><h4 class="text-base font-bold text-slate-900">Step 2: Match bank transactions</h4><div class="rounded-lg border {{ $unmatchedPeriodTransactionCount ? 'border-amber-200 bg-amber-50 text-amber-900' : 'border-emerald-200 bg-emerald-50 text-emerald-800' }} p-3 text-sm"><strong>{{ $unmatchedPeriodTransactionCount ? 'Needs action:' : 'Complete:' }}</strong> {{ $unmatchedPeriodTransactionCount ? $unmatchedPeriodTransactionCount.' bank transaction(s) still need matching.' : 'All '.$periodTransactionCount.' bank transaction(s) in this period are matched.' }}</div>@if($unmatchedPeriodTransactionCount)<button type="button" data-guided-action="match" class="primary-button">Match transactions</button>@else<p class="text-sm text-slate-600">If the table is empty, import the LANDBANK statement before continuing.</p>@endif</section>
-            <section id="period-step-3" data-period-panel="3" class="period-step-panel hidden space-y-3"><h4 class="text-base font-bold text-slate-900">Step 3: Review discrepancies</h4><div class="rounded-lg border {{ $unresolvedDiscrepancyCount ? 'border-amber-200 bg-amber-50 text-amber-900' : 'border-emerald-200 bg-emerald-50 text-emerald-800' }} p-3 text-sm"><strong>{{ $unresolvedDiscrepancyCount ? 'Needs action:' : 'Complete:' }}</strong> {{ $unresolvedDiscrepancyCount ? $unresolvedDiscrepancyCount.' unresolved discrepancy(ies) must be investigated.' : 'There are no unresolved discrepancies.' }}</div>@if($activePeriod->isDraft() || $activePeriod->isReadyForReview())<button type="button" data-period-discrepancies class="secondary-button">{{ $activePeriod->isReadyForReview() ? 'Review discrepancies' : ($unresolvedDiscrepancyCount ? 'Review discrepancies' : 'Open discrepancy manager') }}</button>@else<p class="text-sm text-slate-600">This period is locked; discrepancy changes require an authorized audited reopening.</p>@endif</section>
+            <section id="period-step-3" data-period-panel="3" class="period-step-panel hidden space-y-3"><h4 class="text-base font-bold text-slate-900">Step 3: Review discrepancies</h4><div class="rounded-lg border {{ $unresolvedDiscrepancyCount ? 'border-amber-200 bg-amber-50 text-amber-900' : 'border-emerald-200 bg-emerald-50 text-emerald-800' }} p-3 text-sm"><strong>{{ $unresolvedDiscrepancyCount ? 'Needs action:' : 'Complete:' }}</strong> {{ $unresolvedDiscrepancyCount ? $unresolvedDiscrepancyCount.' discrepancy(ies) are not yet resolved.' : 'There are no unresolved discrepancies.' }}</div>@if($unresolvedDiscrepancyCount)<ul class="space-y-1.5 rounded-lg border border-slate-200 bg-white p-3 text-sm text-slate-700">@if($pendingAdminReviewCount)<li><strong>{{ $pendingAdminReviewCount }}</strong> pending Admin review &mdash; no Staff action needed yet.</li>@endif @if($correctionRequiredCount)<li><strong>{{ $correctionRequiredCount }}</strong> returned for correction &mdash; update the report with the requested fix and it will go back to Admin for review.</li>@endif @if($acceptedAwaitingResolutionCount)<li><strong>{{ $acceptedAwaitingResolutionCount }}</strong> accepted by Admin, still awaiting resolution &mdash; match the underlying bank transaction, or open the report and use Resolve to document what was done.</li>@endif</ul>@endif @if($activePeriod->isDraft() || $activePeriod->isReadyForReview())<button type="button" data-period-discrepancies class="secondary-button">{{ $activePeriod->isReadyForReview() ? 'Review discrepancies' : ($unresolvedDiscrepancyCount ? 'Review discrepancies' : 'Open discrepancy manager') }}</button>@else<p class="text-sm text-slate-600">This period is locked; discrepancy changes require an authorized audited reopening.</p>@endif</section>
             <section id="period-step-4" data-period-panel="4" class="period-step-panel hidden space-y-3"><h4 class="text-base font-bold text-slate-900">Step 4: Review balances</h4><div class="grid gap-2 sm:grid-cols-2"><div class="rounded-lg border bg-slate-50 p-3"><p class="text-xs text-slate-500">Starting bank balance</p><p class="mt-1 font-bold">PHP {{ number_format((float) $activePeriod->opening_balance, 2) }}</p></div><div class="rounded-lg border bg-slate-50 p-3"><p class="text-xs text-slate-500">Remaining bank balance</p><p class="mt-1 font-bold">{{ $activePeriod->bank_ending_balance === null ? 'Not entered' : 'PHP '.number_format((float) $activePeriod->bank_ending_balance, 2) }}</p></div><div class="rounded-lg border bg-slate-50 p-3"><p class="text-xs text-slate-500">Bank movement</p><p class="mt-1 font-semibold">+ PHP {{ number_format((float) $activePeriod->calculated_bank_cash_in, 2) }} / − PHP {{ number_format((float) $activePeriod->calculated_bank_cash_out, 2) }}</p></div><div class="rounded-lg border bg-slate-50 p-3"><p class="text-xs text-slate-500">Ledger ending balance</p><p class="mt-1 font-bold">PHP {{ number_format((float) $activePeriod->financial_ledger_ending_balance, 2) }}</p></div></div><div class="rounded-xl border-2 {{ $periodBalancesReady ? 'border-emerald-300 bg-emerald-50' : 'border-amber-300 bg-amber-50' }} p-4"><p class="text-xs font-semibold uppercase tracking-wide">Difference</p><p class="mt-1 text-2xl font-bold">{{ $periodDifference === null ? 'Not calculated' : 'PHP '.number_format((float) $periodDifference, 2) }}</p><p class="mt-1 text-sm">{{ $periodDifference === null ? 'Enter the remaining bank balance and recalculate.' : ($periodBalancesReady ? 'The adjusted bank balance equals the ledger balance.' : 'The adjusted bank balance does not equal the ledger balance. Check the entered balance or record a supported discrepancy with evidence.') }}</p></div>@can('update', $activePeriod)<form method="POST" action="{{ route('bank-reconciliation.periods.update', $activePeriod) }}" class="grid gap-3 rounded-lg border bg-white p-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">@csrf @method('PATCH')<label class="text-sm font-semibold">Starting bank balance<input name="opening_balance" type="number" min="0" step="0.01" value="{{ $activePeriod->opening_balance }}" required class="mt-1 w-full rounded border-slate-300 text-sm"></label><label class="text-sm font-semibold">Remaining bank balance<input name="bank_ending_balance" type="number" min="0" step="0.01" value="{{ $activePeriod->bank_ending_balance }}" required class="mt-1 w-full rounded border-slate-300 text-sm"></label><button type="submit" class="secondary-button">Check balances</button></form>@endcan</section>
             <section id="period-step-5" data-period-panel="5" class="period-step-panel hidden space-y-3"><h4 class="text-base font-bold text-slate-900">Step 5: Submit for Admin review</h4><div class="rounded-lg border {{ $activePeriod->isReadyForReview() || $activePeriod->isApproved() ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-amber-200 bg-amber-50 text-amber-900' }} p-3 text-sm"><strong>{{ $activePeriod->isReadyForReview() || $activePeriod->isApproved() ? 'Complete:' : 'Blocked:' }}</strong> {{ $activePeriod->isApproved() ? 'This period is approved and locked.' : ($activePeriod->isReadyForReview() ? 'This period is waiting for independent Admin review.' : 'Resolve the blockers below before submitting.') }}</div>@if($activePeriod->isDraft())<ul class="space-y-2 text-sm">@if($unmatchedPeriodTransactionCount)<li class="flex items-center justify-between gap-3 rounded border border-amber-200 bg-amber-50 p-3"><span><strong>Matching:</strong> {{ $unmatchedPeriodTransactionCount }} bank transaction(s) are unmatched.</span><button type="button" data-period-jump="2" class="font-semibold text-blue-700">Match transactions</button></li>@endif @if($unresolvedDiscrepancyCount)<li class="flex items-center justify-between gap-3 rounded border border-amber-200 bg-amber-50 p-3"><span><strong>Discrepancies:</strong> {{ $unresolvedDiscrepancyCount }} item(s) are unresolved.</span><button type="button" data-period-jump="3" class="font-semibold text-blue-700">Review discrepancies</button></li>@endif @if(!$periodBalancesReady)<li class="flex items-center justify-between gap-3 rounded border border-amber-200 bg-amber-50 p-3"><span><strong>Balances:</strong> Difference must be PHP 0.00{{ $periodDifference !== null ? ' (currently PHP '.number_format((float) $periodDifference, 2).')' : '' }}.</span><button type="button" data-period-jump="4" class="font-semibold text-blue-700">Check balances</button></li>@endif @if($periodSubmitReady)<li class="rounded border border-emerald-200 bg-emerald-50 p-3 text-emerald-800">All submission requirements are complete. Submit using the footer button.</li>@endif</ul>@endif</section>
         </div>
@@ -111,7 +132,7 @@
         <article class="rounded-xl border border-emerald-200 bg-emerald-50 p-4"><p class="text-xs font-semibold uppercase tracking-wide text-emerald-700">Incoming · Credit</p><p class="mt-1 text-2xl font-bold text-emerald-950">&#8369;{{ number_format($bankTransactions->where('transaction_type', 'deposit')->sum('amount'), 2) }}</p></article>
         <article class="rounded-xl border border-rose-200 bg-rose-50 p-4"><p class="text-xs font-semibold uppercase tracking-wide text-rose-700">Outgoing · Debit</p><p class="mt-1 text-2xl font-bold text-rose-950">&#8369;{{ number_format($bankTransactions->where('transaction_type', 'withdrawal')->sum('amount'), 2) }}</p></article>
     </div>
-    <div>
+    <div class="pb-28 sm:pb-20" data-reconciliation-content>
     <section id="reconciliation-transactions-panel" role="tabpanel" data-details-panel="transactions" class="space-y-4 py-5">
         <div class="flex flex-wrap items-center justify-between gap-3">
             <h2 class="text-lg font-bold text-slate-950">Bank Transactions</h2>
@@ -155,21 +176,17 @@
 
     <section id="reconciliation-discrepancies-panel" role="tabpanel" data-details-panel="discrepancies" class="hidden py-5">
         <div class="mx-auto max-w-5xl space-y-4">
-            <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                <div><h2 class="text-lg font-bold text-slate-950">Discrepancy Reports</h2><p class="mt-1 text-sm text-slate-500">Review unmatched records, investigation notes, evidence, and resolution status for this period.</p></div>
-                @if($activePeriod && ! $activePeriod->isApproved())
-                    <button type="button" data-dialog-open="bank-discrepancy-modal" class="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-4 text-sm font-semibold text-blue-700 hover:bg-blue-100"><x-icon name="alert-circle" class="h-4 w-4" /> Manage Discrepancies</button>
-                @endif
-            </div>
+            <div><h2 class="text-lg font-bold text-slate-950">Discrepancy Reports</h2><p class="mt-1 text-sm text-slate-500">Review unmatched records, investigation notes, evidence, and resolution status for this period.</p></div>
             <div class="overflow-hidden rounded-xl border border-slate-200">
                 <div class="overflow-x-auto">
-                    <table class="min-w-full text-left text-sm">
-                        <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500"><tr><th class="px-4 py-3">Type</th><th class="px-4 py-3">Explanation</th><th class="px-4 py-3 text-right">Amount</th><th class="px-4 py-3">Status</th></tr></thead>
+                    <table class="w-full min-w-[48rem] text-left text-sm" data-discrepancy-reports-table>
+                        <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500"><tr><th class="px-4 py-3">Type</th><th class="px-4 py-3">Explanation</th><th class="px-4 py-3 text-right">Amount</th><th class="px-4 py-3">Status</th><th class="px-4 py-3 text-right">Actions</th></tr></thead>
                         <tbody class="divide-y divide-slate-100">
                             @forelse($activePeriod?->discrepancies ?? collect() as $report)
-                                <tr><td class="px-4 py-3 font-semibold text-slate-900">{{ $report->typeLabel() }}</td><td class="max-w-md px-4 py-3 text-slate-600">{{ $report->explanation }}</td><td class="px-4 py-3 text-right font-medium">PHP {{ number_format((float) $report->amount, 2) }}</td><td class="px-4 py-3"><span class="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold capitalize text-slate-700">{{ str_replace('_', ' ', $report->resolution_status) }}</span></td></tr>
+                                @php $reportDisplayStatus = $report->resolution_status === 'resolved' ? 'Resolved' : ($report->admin_review_status === 'accepted' ? 'Accepted' : ($report->admin_review_status === 'correction_requested' ? 'Correction Required' : 'Pending Review')); @endphp
+                                <tr><td class="px-4 py-3 font-semibold text-slate-900">{{ $report->typeLabel() }}</td><td class="max-w-md px-4 py-3 text-slate-600">{{ $report->explanation }}</td><td class="whitespace-nowrap px-4 py-3 text-right font-medium">PHP {{ number_format((float) $report->amount, 2) }}</td><td class="px-4 py-3"><span class="inline-flex whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold {{ $reportDisplayStatus === 'Pending Review' ? 'bg-amber-100 text-amber-800' : ($reportDisplayStatus === 'Correction Required' ? 'bg-rose-100 text-rose-800' : 'bg-emerald-100 text-emerald-800') }}">{{ $reportDisplayStatus }}</span></td><td class="px-4 py-3 text-right"><div class="flex justify-end gap-2"><button type="button" data-discrepancy-details data-discrepancy-report-index="{{ $loop->index }}" class="rounded-lg border border-blue-200 px-2.5 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-50">View</button>@if($report->resolution_status === 'unresolved' && auth()->user()->can('prepare', \App\Models\BankReconciliation::class))<button type="button" data-edit-discrepancy data-edit-action="{{ route('bank-reconciliation.discrepancies.update', [$activePeriod, $report]) }}" data-edit-type="{{ $report->type }}" data-edit-custom-type="{{ $report->custom_type }}" data-edit-classification="{{ $report->classification }}" data-edit-amount="{{ $report->amount }}" data-edit-explanation="{{ $report->explanation }}" data-edit-reference="{{ $report->evidence_reference }}" class="whitespace-nowrap rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">Update Report</button>@endif</div></td></tr>
                             @empty
-                                <tr><td colspan="4" class="px-4 py-12 text-center"><p class="font-semibold text-slate-900">No discrepancy reports</p><p class="mt-1 text-sm text-slate-500">Unmatched records reported during reconciliation will appear here.</p></td></tr>
+                                <tr><td colspan="5" class="px-4 py-12 text-center"><p class="font-semibold text-slate-900">No discrepancy reports</p><p class="mt-1 text-sm text-slate-500">Unmatched records reported during reconciliation will appear here.</p></td></tr>
                             @endforelse
                         </tbody>
                     </table>
@@ -203,7 +220,7 @@
     </section>
     </div>
 
-    <footer class="mt-1 flex flex-wrap items-center justify-end gap-2 border-t border-slate-200 py-4">
+    <footer data-reconciliation-actions class="sticky bottom-0 z-20 -mx-1 flex flex-wrap items-center justify-end gap-2 border-t border-slate-200 bg-white/95 px-1 py-4 shadow-[0_-8px_20px_-16px_rgba(15,23,42,0.45)] backdrop-blur supports-[backdrop-filter]:bg-white/90">
         @can('viewAny', \App\Models\BankLedgerEntry::class)
             <button type="button" data-dialog-open="bank-period-modal" class="inline-flex h-10 items-center justify-center gap-2 rounded-full border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50"><x-icon name="filter" class="h-4 w-4" /> Manage Period</button>
         @endcan
@@ -286,34 +303,37 @@
     </template>
     @endif
     @if($latestReconciliationPeriod && ! $latestReconciliationPeriod->isApproved())
-    <dialog id="bank-discrepancy-modal" class="bank-modal">
+    <div id="discrepancy-data-source" hidden>
         <div class="bank-modal-shell">
             <header class="bank-modal-header">
                 <div>
                     <p class="text-xs font-semibold uppercase tracking-wide text-blue-700">Reconciliation review</p>
-                    <h2>Discrepancy Reports</h2>
-                    <p class="mt-1 text-sm font-normal text-slate-500">Review report decisions separately from matching and final period approval.</p>
+                    <h2>Discrepancy data</h2>
+                    <p>Supporting data for discrepancy actions.</p>
                 </div>
-                <button type="button" data-dialog-close="bank-discrepancy-modal" aria-label="Close">&times;</button>
+                <span></span>
             </header>
             <div class="bank-modal-body space-y-4">
         @php
             $discrepancyReports = $latestReconciliationPeriod->discrepancies;
-            $pendingReviewCount = $discrepancyReports->filter(fn ($report) => ! in_array($report->admin_review_status, ['accepted', 'correction_requested'], true))->count();
-            $acceptedReviewCount = $discrepancyReports->where('admin_review_status', 'accepted')->count();
-            $correctionReviewCount = $discrepancyReports->where('admin_review_status', 'correction_requested')->count();
+            $unresolvedDiscrepancyReports = $discrepancyReports->whereNotIn('resolution_status', ['resolved', 'accounted']);
+            $resolvedReviewCount = $discrepancyReports->count() - $unresolvedDiscrepancyReports->count();
+            $pendingReviewCount = $unresolvedDiscrepancyReports->filter(fn ($report) => ! in_array($report->admin_review_status, ['accepted', 'correction_requested'], true))->count();
+            $acceptedReviewCount = $unresolvedDiscrepancyReports->where('admin_review_status', 'accepted')->count();
+            $correctionReviewCount = $unresolvedDiscrepancyReports->where('admin_review_status', 'correction_requested')->count();
             $discrepancyReportData = $discrepancyReports->map(fn ($report) => ['type' => $report->typeLabel(), 'explanation' => $report->explanation, 'amount' => 'PHP '.number_format((float) $report->amount, 2), 'evidence' => $report->evidence_reference ?: ($report->evidence_path ? 'Attached file' : 'Not provided'), 'reporter' => $report->reporter?->name ?: 'Not recorded', 'reviewer' => $report->adminReviewer?->name ?: 'Not reviewed', 'reviewed_at' => $report->admin_reviewed_at?->format('M d, Y h:i A') ?: 'Not reviewed', 'decision' => $report->admin_review_status === 'accepted' ? 'Accepted' : ($report->admin_review_status === 'correction_requested' ? 'Correction Required' : 'Pending Review'), 'remarks' => $report->admin_review_note ?: 'No Admin remarks recorded.', 'resolution_status' => ucfirst((string) $report->resolution_status), 'resolution_explanation' => $report->resolution_explanation, 'resolution_evidence' => $report->resolution_evidence_path ? 'Attached resolution evidence' : null, 'resolution_evidence_url' => $report->resolution_evidence_path ? route('bank-reconciliation.discrepancies.resolution-evidence', [$latestReconciliationPeriod, $report]) : null, 'resolved_by' => $report->resolver?->name ?: null, 'resolved_at' => $report->resolved_at?->format('M d, Y h:i A'), 'resolve_url' => route('bank-reconciliation.discrepancies.resolve', [$latestReconciliationPeriod, $report])]);
         @endphp
-        <div class="grid grid-cols-3 gap-2" aria-label="Discrepancy report summary">
+        <div class="grid grid-cols-2 gap-2" aria-label="Discrepancy report summary">
             <button type="button" data-discrepancy-filter="pending" class="discrepancy-filter-card rounded-lg border border-amber-200 bg-amber-50 p-2 text-left text-xs" aria-pressed="false"><span class="block font-semibold text-amber-800">Pending Review</span><span class="mt-1 block text-lg font-bold text-amber-950">{{ $pendingReviewCount }}</span></button>
-            <button type="button" data-discrepancy-filter="accepted" class="discrepancy-filter-card rounded-lg border border-emerald-200 bg-emerald-50 p-2 text-left text-xs" aria-pressed="false"><span class="block font-semibold text-emerald-800">Accepted</span><span class="mt-1 block text-lg font-bold text-emerald-950">{{ $acceptedReviewCount }}</span></button>
             <button type="button" data-discrepancy-filter="correction_requested" class="discrepancy-filter-card rounded-lg border border-rose-200 bg-rose-50 p-2 text-left text-xs" aria-pressed="false"><span class="block font-semibold text-rose-800">Correction Required</span><span class="mt-1 block text-lg font-bold text-rose-950">{{ $correctionReviewCount }}</span></button>
+            <button type="button" data-discrepancy-filter="accepted" class="discrepancy-filter-card rounded-lg border border-blue-200 bg-blue-50 p-2 text-left text-xs" aria-pressed="false"><span class="block font-semibold text-blue-800">Accepted</span><span class="mt-1 block text-lg font-bold text-blue-950">{{ $acceptedReviewCount }}</span></button>
+            <button type="button" data-discrepancy-filter="resolved" class="discrepancy-filter-card rounded-lg border border-emerald-200 bg-emerald-50 p-2 text-left text-xs" aria-pressed="false"><span class="block font-semibold text-emerald-800">Resolved</span><span class="mt-1 block text-lg font-bold text-emerald-950">{{ $resolvedReviewCount }}</span></button>
         </div>
         <label class="block text-sm font-semibold text-slate-800">Search reports<input type="search" data-discrepancy-search placeholder="Search type, explanation, reporter, or amount" class="mt-1 w-full rounded-lg border-slate-300 text-sm"></label>
         <script type="application/json" id="discrepancy-report-data">@json($discrepancyReportData)</script>
         <section data-discrepancy-panel class="space-y-4 rounded-xl border border-amber-200 bg-amber-50/60 p-4">
             <div class="flex items-start justify-between gap-3">
-                <div><h3 class="text-base font-semibold text-slate-900">{{ auth()->user()->can('reviewDiscrepancy', $latestReconciliationPeriod) ? 'Resolve Discrepancies' : 'Manage Discrepancies' }}</h3><p class="mt-1 text-xs leading-5 text-slate-600">{{ auth()->user()->can('reviewDiscrepancy', $latestReconciliationPeriod) ? 'Review Staff-submitted explanations and evidence separately from final period approval.' : 'View submitted reports and update an item when Admin requests correction.' }}</p></div>
+                <div><h3>Discrepancy records</h3></div>
                 <span class="rounded-full {{ auth()->user()->can('reviewDiscrepancy', $latestReconciliationPeriod) ? 'bg-blue-100 text-blue-800' : 'bg-amber-100 text-amber-800' }} px-2.5 py-1 text-xs font-semibold">{{ auth()->user()->can('reviewDiscrepancy', $latestReconciliationPeriod) ? 'Admin review' : 'Draft period' }}</span>
             </div>
             @if($errors->hasAny(['type', 'classification', 'amount', 'explanation', 'evidence_reference', 'resolution_status', 'adjustment_amount', 'carry_forward']))
@@ -344,11 +364,9 @@
             @endif
         </section>
             </div>
-            <footer class="bank-modal-footer">
-                <button type="button" data-dialog-close="bank-discrepancy-modal" class="secondary-button">Close</button>
-            </footer>
+            <footer></footer>
         </div>
-    </dialog>
+    </div>
     <dialog id="bank-discrepancy-details-modal" class="bank-modal">
         <div class="bank-modal-shell">
             <header class="bank-modal-header"><div><p class="text-xs font-semibold uppercase tracking-wide text-blue-700">Discrepancy report</p><h2 data-discrepancy-detail-title>Report details</h2></div><button type="button" data-dialog-close="bank-discrepancy-details-modal" aria-label="Close">&times;</button></header>
@@ -682,23 +700,26 @@ if (periodWorkflowTemplate && periodBody) {
     });
     workflow?.querySelector('[data-period-discrepancies]')?.addEventListener('click', () => {
         document.getElementById('bank-period-modal')?.close();
-        document.getElementById('bank-discrepancy-modal')?.showModal();
+        activateDetailsTab('discrepancies');
     });
 }
 const discrepancyTemplate = document.querySelector('#bank-discrepancy-template');
 const discrepancyValidationFailed = @json($discrepancyValidationFailed);
 if (discrepancyValidationFailed) {
-    document.getElementById('bank-discrepancy-modal')?.showModal();
+    document.getElementById('unmatched-system-record-modal')?.showModal();
 }
-const discrepancyModal = document.getElementById('bank-discrepancy-modal');
+const discrepancyModal = document.getElementById('discrepancy-data-source');
 const discrepancyReports = [...(discrepancyModal?.querySelectorAll('[data-discrepancy-list] article') || [])];
 let discrepancyStatusFilter = 'all';
 const normalizeReviewStatus = (value) => value.trim().toLowerCase().replace(/\s+/g, '_');
 discrepancyReports.forEach((report, index) => {
-    const statusBadge = report.querySelectorAll('.rounded-full')[1];
+    const badges = report.querySelectorAll('.rounded-full');
+    const resolutionBadge = badges[0];
+    const statusBadge = badges[1];
     const rawStatus = normalizeReviewStatus(statusBadge?.textContent || 'pending');
     const status = rawStatus === 'correction_required' ? 'correction_requested' : rawStatus === 'accepted' ? 'accepted' : 'pending';
-    report.dataset.discrepancyReviewStatus = status;
+    const isResolved = ['resolved', 'accounted'].includes(normalizeReviewStatus(resolutionBadge?.textContent || ''));
+    report.dataset.discrepancyReviewStatus = isResolved ? 'resolved' : status;
     if (statusBadge) statusBadge.textContent = status === 'accepted' ? 'Accepted' : status === 'correction_requested' ? 'Correction Required' : 'Pending Review';
     report.dataset.discrepancyReportIndex = String(index);
 });
@@ -731,7 +752,7 @@ if (discrepancyModal && discrepancyReports.length) {
         row.dataset.discrepancyReviewStatus = report.dataset.discrepancyReviewStatus;
         row.dataset.discrepancySearchText = (report.textContent || '').toLowerCase();
         row.className = 'cursor-pointer border-t border-slate-200 transition hover:bg-blue-50';
-        row.innerHTML = `<td class="px-3 py-3 font-semibold text-slate-900">${discrepancyDetailData[index]?.type || 'Discrepancy'}</td><td class="px-3 py-3 font-semibold text-slate-900">${discrepancyDetailData[index]?.amount || '—'}</td><td class="px-3 py-3 capitalize text-slate-700">${cells[0]?.textContent || 'Unresolved'}</td><td class="px-3 py-3 font-semibold ${row.dataset.discrepancyReviewStatus === 'accepted' ? 'text-emerald-700' : row.dataset.discrepancyReviewStatus === 'correction_requested' ? 'text-rose-700' : 'text-amber-700'}">${cells[1]?.textContent || 'Pending Review'}</td><td class="px-3 py-3 text-right"></td>`;
+        row.innerHTML = `<td class="px-3 py-3 font-semibold text-slate-900">${discrepancyDetailData[index]?.type || 'Discrepancy'}</td><td class="px-3 py-3 font-semibold text-slate-900">${discrepancyDetailData[index]?.amount || '—'}</td><td class="px-3 py-3 capitalize text-slate-700">${cells[0]?.textContent || 'Unresolved'}</td><td class="px-3 py-3 font-semibold ${['accepted', 'resolved'].includes(row.dataset.discrepancyReviewStatus) ? 'text-emerald-700' : row.dataset.discrepancyReviewStatus === 'correction_requested' ? 'text-rose-700' : 'text-amber-700'}">${cells[1]?.textContent || 'Pending Review'}</td><td class="px-3 py-3 text-right"></td>`;
         const actions = report.querySelector('.mt-2')?.cloneNode(true);
         const view = document.createElement('button');
         view.type = 'button'; view.textContent = 'View'; view.dataset.discrepancyDetails = 'true';
@@ -779,7 +800,7 @@ window.openDiscrepancyDetails = (data) => {
         });
         detailModal?.querySelector('.bank-modal-footer')?.prepend(resolveButton);
     }
-    discrepancyModal?.close();
+    discrepancyModal?.close?.();
     detailModal?.showModal();
 };
 discrepancyModal?.addEventListener('click', (event) => {
@@ -787,6 +808,19 @@ discrepancyModal?.addEventListener('click', (event) => {
     if (!report || (event.target.closest('form, input, select, textarea, a') && !event.target.closest('button[data-discrepancy-details]'))) return;
     window.openDiscrepancyDetails(discrepancyDetailData[Number(report.dataset.discrepancyReportIndex)] || {});
 });
+document.querySelector('[data-discrepancy-reports-table]')?.addEventListener('click', (event) => {
+    const button = event.target.closest?.('[data-discrepancy-details]');
+    if (!button) return;
+    window.openDiscrepancyDetails(discrepancyDetailData[Number(button.dataset.discrepancyReportIndex)] || {});
+});
+const selectedDiscrepancyIndex = @json($selectedDiscrepancyIndex === false ? null : $selectedDiscrepancyIndex);
+if (selectedDiscrepancyIndex !== null && discrepancyDetailData[selectedDiscrepancyIndex]) {
+    activateDetailsTab('discrepancies', false);
+    const selectedRow = discrepancyTableRows[selectedDiscrepancyIndex];
+    selectedRow?.classList.add('bg-blue-50', 'ring-1', 'ring-inset', 'ring-blue-200');
+    selectedRow?.scrollIntoView({ block: 'center' });
+    window.openDiscrepancyDetails(discrepancyDetailData[selectedDiscrepancyIndex]);
+}
 const resolutionFile = document.querySelector('[data-resolution-file]');
 const resolutionDropzone = document.querySelector('[data-resolution-dropzone]');
 const resolutionPreview = document.querySelector('[data-resolution-file-preview]');
@@ -1046,7 +1080,8 @@ if (board) {
     const boardEnd = @json($activePeriod?->period_end?->toDateString());
     let boardType = 'deposit';
     const selected = {system: new Set(), bank: new Set()};
-    const inPeriod = (date) => !boardStart || !date || (date >= boardStart && date <= boardEnd);
+    // Earlier uncleared items remain eligible; future-dated records never do.
+    const inPeriod = (date) => !boardEnd || !date || date <= boardEnd;
     const money = (amount) => 'PHP ' + Number(amount || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
     const systemBody = board.querySelector('[data-board-system-body]');
     const bankBody = board.querySelector('[data-board-bank-body]');
@@ -1059,7 +1094,7 @@ if (board) {
         if (bankId) document.getElementById('bank-entry-' + bankId)?.showModal();
     });
     const updateBoardState = () => {
-        const matchesFilter = (item) => boardFilter === 'all' || (boardFilter === 'matched' ? item.status === 'matched' : item.status !== 'matched');
+        const matchesFilter = (item) => boardFilter === 'all' || (boardFilter === 'matched' ? item.status === 'matched' : (item.needsMatching ?? item.status !== 'matched'));
         const systems = boardSystems[boardType].filter((item) => inPeriod(item.date) && matchesFilter(item));
         const banks = boardBanks.filter((item) => item.type === boardType && inPeriod(item.date) && matchesFilter(item));
         const systemTotal = [...selected.system].reduce((sum, id) => sum + Number(systems.find((item) => String(item.id) === String(id))?.amount || 0), 0);
@@ -1096,10 +1131,10 @@ if (board) {
     const checkbox = (kind, item) => { const input = document.createElement('input'); input.type = 'checkbox'; input.dataset.boardSelect = kind; input.value = item.id; input.checked = selected[kind].has(String(item.id)); input.addEventListener('change', () => { if (input.checked) { if (kind === 'bank') { selected.bank.clear(); bankBody.querySelectorAll('[data-board-select="bank"]').forEach((other) => { if (other !== input) other.checked = false; }); } selected[kind].add(String(item.id)); } else selected[kind].delete(String(item.id)); updateBoardState(); }); return input; };
     const renderBoard = () => {
         selected.system.clear(); selected.bank.clear(); systemBody.replaceChildren(); bankBody.replaceChildren();
-        const matchesFilter = (item) => boardFilter === 'all' || (boardFilter === 'matched' ? item.status === 'matched' : item.status !== 'matched');
+        const matchesFilter = (item) => boardFilter === 'all' || (boardFilter === 'matched' ? item.status === 'matched' : (item.needsMatching ?? item.status !== 'matched'));
         const systems = boardSystems[boardType].filter((item) => inPeriod(item.date) && matchesFilter(item));
         const banks = boardBanks.filter((item) => item.type === boardType && inPeriod(item.date) && matchesFilter(item));
-        systems.forEach((item) => { const row = document.createElement('tr'); row.className = 'border-t border-slate-100'; const select = document.createElement('td'); select.className = 'px-4 py-3'; const input = checkbox('system', item); input.disabled = item.status === 'matched'; select.append(input); const detail = document.createElement('td'); detail.className = 'px-4 py-3'; const label = document.createElement('strong'); label.textContent = item.label; const meta = document.createElement('span'); meta.className = 'block text-xs text-slate-500'; meta.textContent = `${item.detail || ''} · ${item.date || 'No date'}`; detail.append(label, meta); const amount = document.createElement('td'); amount.className = 'px-4 py-3 text-right font-semibold'; amount.textContent = money(item.amount); const status = document.createElement('td'); status.className = 'px-4 py-3 text-xs font-semibold capitalize ' + (item.status === 'matched' ? 'text-emerald-700' : 'text-slate-600'); status.textContent = item.status === 'matched' ? 'Matched' : item.status; row.append(select, detail, amount, status); if (canReportUnmatched && item.status !== 'matched') { const actionCell = document.createElement('td'); actionCell.className = 'px-4 py-3 text-right'; const action = document.createElement('button'); action.type = 'button'; action.className = 'text-xs font-semibold text-amber-700 hover:text-amber-900'; action.textContent = 'Report Unmatched Record'; action.addEventListener('click', (event) => { event.stopPropagation(); openUnmatchedRecordModal(item, boardType); }); actionCell.append(action); row.append(actionCell); } systemBody.append(row); });
+        systems.forEach((item) => { const row = document.createElement('tr'); row.className = 'border-t border-slate-100'; const select = document.createElement('td'); select.className = 'px-4 py-3'; const input = checkbox('system', item); input.disabled = item.status === 'matched'; select.append(input); const detail = document.createElement('td'); detail.className = 'px-4 py-3'; const label = document.createElement('strong'); label.textContent = item.label; const meta = document.createElement('span'); meta.className = 'block text-xs text-slate-500'; meta.textContent = `${item.detail || ''} · ${item.date || 'No date'}`; detail.append(label, meta); const amount = document.createElement('td'); amount.className = 'px-4 py-3 text-right font-semibold'; amount.textContent = money(item.amount); const status = document.createElement('td'); status.className = 'px-4 py-3 text-xs font-semibold capitalize ' + (item.status === 'matched' ? 'text-emerald-700' : 'text-slate-600'); status.textContent = item.status === 'matched' ? 'Matched' : item.status; row.append(select, detail, amount, status); if (canReportUnmatched && item.status !== 'matched' && !item.discrepancy) { const actionCell = document.createElement('td'); actionCell.className = 'px-4 py-3 text-right'; const action = document.createElement('button'); action.type = 'button'; action.className = 'text-xs font-semibold text-amber-700 hover:text-amber-900'; action.textContent = 'Report Unmatched Record'; action.addEventListener('click', (event) => { event.preventDefault(); event.stopPropagation(); openUnmatchedRecordModal(item, boardType); }); actionCell.append(action); row.append(actionCell); } systemBody.append(row); });
         banks.forEach((item) => { const row = document.createElement('tr'); row.className = 'border-t border-slate-100'; const select = document.createElement('td'); select.className = 'px-4 py-3'; const input = checkbox('bank', item); input.disabled = item.status === 'matched'; select.append(input); const detail = document.createElement('td'); detail.className = 'px-4 py-3'; const label = document.createElement('strong'); label.textContent = item.description; const meta = document.createElement('span'); meta.className = 'block text-xs text-slate-500'; meta.textContent = `${item.reference || 'No reference'} · ${item.date || 'No date'}`; detail.append(label, meta); const amount = document.createElement('td'); amount.className = 'px-4 py-3 text-right font-semibold'; amount.textContent = money(item.amount); const status = document.createElement('td'); status.className = 'px-4 py-3 text-xs font-semibold ' + (item.status === 'matched' ? 'text-emerald-700' : 'text-amber-700'); status.textContent = item.status === 'matched' ? 'Matched' : item.status; row.append(select, detail, amount, status); bankBody.append(row); });
         emptySystem.classList.toggle('hidden', systems.length > 0); emptyBank.classList.toggle('hidden', banks.length > 0); updateBoardState();
     };

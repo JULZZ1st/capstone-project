@@ -93,6 +93,7 @@ class VerifiedWorkflowBugsTest extends TestCase
     public function test_matching_service_rechecks_payment_and_existing_match_state(): void
     {
         [$staff, $fund] = $this->approvedFund();
+        $fund->payment()->create($this->paymentData('bank_transfer') + ['released_by' => $staff->id, 'released_at' => now()]);
         $first = $this->withdrawal();
         $second = $this->withdrawal();
         app(MatchWithdrawalDisbursements::class)->handle($first, [$fund->id], $staff);
@@ -107,8 +108,8 @@ class VerifiedWorkflowBugsTest extends TestCase
         $this->assertSame(0, $second->matchedDisbursements()->count());
         $this->assertSame([$fund->id], $first->matchedDisbursements()->pluck('cash_disbursements.id')->all());
 
-        // Model a payment completed after the original request was validated.
-        $fund->payment()->create($this->paymentData('cash') + ['released_by' => $staff->id, 'released_at' => now()]);
+        // Model incompatible payment data appearing after the original request was validated.
+        $fund->payment()->update(['payment_method' => 'cash', 'reference_number' => null]);
         try {
             app(MatchWithdrawalDisbursements::class)->handle($first, [$fund->id], $staff, null, true);
             $this->fail('A stale selection accepted a cash payment.');
@@ -122,6 +123,8 @@ class VerifiedWorkflowBugsTest extends TestCase
     {
         [$staff, $fund] = $this->approvedFund();
         [, $other] = $this->approvedFund();
+        $fund->payment()->create($this->paymentData('bank_transfer') + ['released_by' => $staff->id, 'released_at' => now()]);
+        $other->payment()->create($this->paymentData('bank_transfer') + ['released_by' => $staff->id, 'released_at' => now()]);
         $stale = $this->withdrawal();
         app(MatchWithdrawalDisbursements::class)->handle($stale, [$fund->id], $staff, null, true);
 

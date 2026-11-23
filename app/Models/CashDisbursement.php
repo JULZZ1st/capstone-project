@@ -135,13 +135,14 @@ class CashDisbursement extends Model
             ->whereNull('voided_at');
     }
 
-    public function scopeEligibleForWithdrawalMatching($query, ?int $withdrawalId = null)
+    public function scopeEligibleForWithdrawalMatching($query, ?int $withdrawalId = null, ?string $throughDate = null, ?string $bankAccount = null)
     {
         return $query->approvedActive()
             ->where(function ($query) {
-                $query->whereDoesntHave('payment')
-                    ->orWhereHas('payment', fn ($payment) => $payment->where('payment_method', 'bank_transfer'));
+                $query->whereHas('payment', fn ($payment) => $payment->where('payment_method', 'bank_transfer'));
             })
+            ->when($throughDate, fn ($query, $date) => $query->whereHas('payment', fn ($payment) => $payment->whereDate('payment_date', '<=', $date)))
+            ->when($bankAccount, fn ($query, $account) => $query->whereHas('payment', fn ($payment) => $payment->forBankAccount($account)))
             ->where(function ($query) use ($withdrawalId) {
                 $query->whereDoesntHave('withdrawalMatch');
                 if ($withdrawalId !== null) {

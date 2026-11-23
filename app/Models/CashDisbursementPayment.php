@@ -12,6 +12,7 @@ class CashDisbursementPayment extends Model
 
     protected $fillable = [
         'workspace_id',
+        'bank_account',
         'cash_disbursement_id',
         'payment_date',
         'amount',
@@ -38,5 +39,17 @@ class CashDisbursementPayment extends Model
     public function releaser(): BelongsTo
     {
         return $this->belongsTo(User::class, 'released_by');
+    }
+
+    public function scopeForBankAccount($query, ?string $bankAccount)
+    {
+        $primary = config('bank_reconciliation.bank_accounts.0');
+
+        return $query->where(function ($query) use ($bankAccount, $primary) {
+            $query->where('bank_account', $bankAccount);
+            if ($bankAccount === $primary) {
+                $query->orWhereNull('bank_account');
+            }
+        });
     }
 }

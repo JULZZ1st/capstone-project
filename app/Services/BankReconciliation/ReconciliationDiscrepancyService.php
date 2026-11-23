@@ -45,11 +45,19 @@ class ReconciliationDiscrepancyService
         $this->validateSourceRecord($period, $data);
 
         return DB::transaction(function () use ($period, $data, $user) {
-            $duplicate = $period->discrepancies()
-                ->where('resolution_status', 'unresolved')
-                ->when($data['bank_ledger_entry_id'] ?? null, fn ($query, $id) => $query->where('bank_ledger_entry_id', $id))
-                ->when(($data['system_record_type'] ?? null) && ($data['system_record_id'] ?? null), fn ($query) => $query->where('system_record_type', $data['system_record_type'])->where('system_record_id', $data['system_record_id']))
-                ->exists();
+            $duplicate = false;
+            if ($data['bank_ledger_entry_id'] ?? null) {
+                $duplicate = $period->discrepancies()
+                    ->where('resolution_status', 'unresolved')
+                    ->where('bank_ledger_entry_id', $data['bank_ledger_entry_id'])
+                    ->exists();
+            } elseif (($data['system_record_type'] ?? null) && ($data['system_record_id'] ?? null)) {
+                $duplicate = $period->discrepancies()
+                    ->where('resolution_status', 'unresolved')
+                    ->where('system_record_type', $data['system_record_type'])
+                    ->where('system_record_id', $data['system_record_id'])
+                    ->exists();
+            }
             if ($duplicate) {
                 throw ValidationException::withMessages(['source' => 'An unresolved discrepancy already exists for this record in the selected period. Update that report instead.']);
             }
@@ -109,6 +117,15 @@ class ReconciliationDiscrepancyService
                 'system_record_id' => 'The selected system record belongs to another workspace.',
             ]);
         }
+
+        $recordDate = $model instanceof Contribution
+            ? $model->received_at
+            : $model->payment?->payment_date;
+        if ($recordDate !== null && $recordDate->gt($period->period_end->endOfDay())) {
+            throw ValidationException::withMessages([
+                'system_record_id' => 'A future-dated system record cannot be assigned to this reconciliation period.',
+            ]);
+        }
     }
 
     public function update(BankReconciliation $period, ReconciliationDiscrepancy $discrepancy, array $data, User $user): ReconciliationDiscrepancy
@@ -159,7 +176,37 @@ class ReconciliationDiscrepancyService
                 'occurred_at' => now(),
             ]);
 
-            return $discrepancy->fresh(['reporter', 'adminReviewer']);
+            // Accounting-adjustment amounts are fixed when reported; Admin acceptance of the
+            // explanation is the only resolution requirement, so no further Staff action is needed.
+            // Timing differences are deliberately left unresolved: they only resolve once the bank
+            // transaction actually clears (or legitimately carries forward), which Admin acceptance
+            // alone does not establish.
+            if ($decision === 'accepted' && $discrepancy->classification === 'accounting_adjustment' && $discrepancy->resolution_status === 'unresolved') {
+                $resolvedAt = now();
+                $discrepancy->update([
+                    'resolution_status' => 'resolved',
+                    'resolved_by' => $user->id,
+                    'resolved_at' => $resolvedAt,
+                ]);
+
+                SecurityActivityEvent::query()->create([
+                    'actor_id' => $user->id,
+                    'action' => 'bank_reconciliation_discrepancy_resolved',
+                    'summary' => "{$user->name} resolved discrepancy #{$discrepancy->id} automatically upon Admin acceptance.",
+                    'metadata' => [
+                        'bank_reconciliation_id' => $period->id,
+                        'reconciliation_discrepancy_id' => $discrepancy->id,
+                        'resolved_by' => $user->id,
+                        'resolved_at' => $resolvedAt->toIso8601String(),
+                        'auto_resolved' => true,
+                    ],
+                    'occurred_at' => $resolvedAt,
+                ]);
+
+                app(ReconciliationPeriodService::class)->recalculate($period->fresh());
+            }
+
+            return $discrepancy->fresh(['reporter', 'adminReviewer', 'resolver']);
         });
     }
 

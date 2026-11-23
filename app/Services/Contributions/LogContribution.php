@@ -50,6 +50,12 @@ class LogContribution
                     'registered_bank_account' => $type === 'cash' && ($data['payment_method'] ?? null) === 'bank_transfer'
                         ? ($data['registered_bank_account'] ?? null)
                         : null,
+                    'reconciliation_bank_account' => $type === 'cash'
+                        && in_array($data['payment_method'] ?? null, config('donations.electronic_payment_methods'), true)
+                            ? (in_array($data['registered_bank_account'] ?? null, config('bank_reconciliation.bank_accounts', []), true)
+                                ? $data['registered_bank_account']
+                                : config('bank_reconciliation.bank_accounts.0'))
+                            : null,
                     'official_receipt_number' => $type === 'cash'
                         ? ($data['official_receipt_number'] ?? null)
                         : null,

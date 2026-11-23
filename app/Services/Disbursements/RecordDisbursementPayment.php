@@ -35,6 +35,9 @@ class RecordDisbursementPayment
             }
 
             $payment = $disbursement->payment()->create([
+                'bank_account' => $data['payment_method'] === 'bank_transfer'
+                    ? ($data['bank_account'] ?? config('bank_reconciliation.bank_accounts.0'))
+                    : null,
                 'payment_date' => $data['payment_date'],
                 'amount' => $data['amount'],
                 'payment_method' => $data['payment_method'],
