@@ -36,7 +36,7 @@
                     <p class="text-sm font-semibold text-blue-950">Ready for physical signatures</p>
                     <p class="mt-1 text-xs text-blue-800">Generate the Annex 12 voucher now. Record the Treasurer's physical certification before Admin review; signed upload and payment remain separate steps.</p>
                 </div>
-                <a href="{{ route('disbursements.voucher', $disbursement) }}" class="inline-flex w-fit shrink-0 items-center justify-center rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-200" data-testid="generate-disbursement-voucher">Generate Disbursement Voucher</a>
+                <a href="{{ route('disbursements.voucher', $disbursement) }}" onclick="return confirm('Do you want to download this voucher?');" class="inline-flex w-fit shrink-0 items-center justify-center rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-200" data-testid="generate-disbursement-voucher">Generate Disbursement Voucher</a>
             </div>
 
             @if ($disbursement->signed_voucher_status === 'missing' && $disbursement->signed_voucher_request_reason)
@@ -240,7 +240,7 @@
                 @endif
                 <div class="mt-4 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                     @if ($disbursement->hasTreasurerCertification())
-                        <form method="POST" action="{{ route('disbursements.approve', $disbursement) }}">
+                        <form method="POST" action="{{ route('disbursements.approve', $disbursement) }}" onsubmit="return confirm('Are you sure you want to approve this request?');">
                             @csrf @method('PATCH')
                             <x-button>Approve</x-button>
                         </form>

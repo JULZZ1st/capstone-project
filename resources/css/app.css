@@ -64,6 +64,24 @@
 }
 
 @layer components {
+	.inventory-create-modal input:not([type='hidden']):not([type='checkbox']):not([type='radio']):not([type='file']),
+	.inventory-create-modal select,
+	.inventory-create-modal textarea {
+		@apply rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm;
+	}
+
+	.inventory-create-modal input:not([type='hidden']):not([type='checkbox']):not([type='radio']):not([type='file']):hover,
+	.inventory-create-modal select:hover,
+	.inventory-create-modal textarea:hover {
+		@apply border-slate-400;
+	}
+
+	.inventory-create-modal input:not([type='hidden']):not([type='checkbox']):not([type='radio']):not([type='file']):focus,
+	.inventory-create-modal select:focus,
+	.inventory-create-modal textarea:focus {
+		@apply border-violet-500 outline-none ring-2 ring-violet-500/20;
+	}
+
 	.ui-card { @apply rounded-xl border border-slate-200 bg-white shadow-sm; }
 	.ui-card__header { @apply flex flex-wrap items-start justify-between gap-3 border-b border-slate-100 px-4 py-4 sm:px-5; }
 	.ui-page-section { @apply space-y-5; }

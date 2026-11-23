@@ -43,7 +43,7 @@
             >
                 Cancel
             </button>
-            <form method="POST" action="{{ route('donors.destroy', $donor) }}">
+            <form method="POST" action="{{ route('donors.destroy', $donor) }}" onsubmit="return confirm('Are you sure you want to continue? This action cannot be undone.');">
                 @csrf
                 @method('DELETE')
                 <button type="submit" class="h-9 rounded-lg bg-red-700 px-4 text-sm font-semibold text-white transition hover:bg-red-800 focus:outline-none focus:ring-2 focus:ring-red-600 focus:ring-offset-2">

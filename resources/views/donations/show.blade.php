@@ -134,7 +134,7 @@
                         <h3 class="text-sm font-semibold text-slate-900">Documents</h3>
                         <div class="mt-3 grid gap-2 sm:grid-cols-2">
                             @foreach ($contribution->evidence as $evidence)
-                                <a href="{{ route('donations.evidence', [$contribution, $evidence]) }}" target="_blank" rel="noopener" class="flex min-w-0 items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 transition hover:border-blue-300 hover:bg-blue-50">
+                                <a href="{{ route('donations.evidence', [$contribution, $evidence]) }}" onclick="return confirm('Do you want to open or download this document?');" target="_blank" rel="noopener" class="flex min-w-0 items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 transition hover:border-blue-300 hover:bg-blue-50">
                                     <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-white text-xs font-bold uppercase text-blue-700 ring-1 ring-slate-200">{{ pathinfo($evidence->original_name, PATHINFO_EXTENSION) }}</span>
                                     <span class="min-w-0 flex-1">
                                         <span class="block truncate text-sm font-medium text-slate-800">{{ str($evidence->document_type)->replace('_', ' ')->title() }} · {{ $evidence->original_name }}</span>

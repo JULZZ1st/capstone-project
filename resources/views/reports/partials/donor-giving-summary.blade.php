@@ -57,6 +57,7 @@
                 <p class="text-xs text-slate-400">{{ $donorSummary['total_donors'] }} donor(s) with recorded giving</p>
                 <a
                     href="{{ route('reports.philanthropy-roster.pdf', ['year' => $year, 'month' => $month, 'search' => $search, 'sort' => $sort]) }}"
+                    onclick="return confirm('Do you want to download this report?');"
                     class="inline-flex items-center justify-center gap-2 rounded-md bg-red-700 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-red-800"
                 >
                     Download PDF

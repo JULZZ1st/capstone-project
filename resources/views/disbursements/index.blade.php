@@ -232,7 +232,7 @@
                 @endif
             </div>
         </form>
-        <form id="approve-fund-request-form" method="POST" class="hidden">
+        <form id="approve-fund-request-form" method="POST" class="hidden" onsubmit="return confirm('Are you sure you want to approve this request?');">
             @csrf
             @method('PATCH')
         </form>

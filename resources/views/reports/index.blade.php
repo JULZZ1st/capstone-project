@@ -67,27 +67,27 @@
 
         <div class="flex flex-wrap justify-end gap-2">
             @if ($tab === 'financial')
-                <a href="{{ route('reports.financial.pdf', ['year' => $year, 'month' => $month]) }}" class="rounded-md bg-red-700 px-3 py-2 text-xs font-semibold text-white">Download PDF</a>
-                <a href="{{ route('reports.financial.csv', ['year' => $year, 'month' => $month]) }}" class="rounded-md bg-emerald-700 px-3 py-2 text-xs font-semibold text-white">Download CSV</a>
+                <a href="{{ route('reports.financial.pdf', ['year' => $year, 'month' => $month]) }}" onclick="return confirm('Do you want to download this report?');" class="rounded-md bg-red-700 px-3 py-2 text-xs font-semibold text-white">Download PDF</a>
+                <a href="{{ route('reports.financial.csv', ['year' => $year, 'month' => $month]) }}" onclick="return confirm('Do you want to download this report?');" class="rounded-md bg-emerald-700 px-3 py-2 text-xs font-semibold text-white">Download CSV</a>
             @elseif ($tab === 'inventory')
-                <a href="{{ route('reports.inventory.pdf', ['year' => $year, 'month' => $month]) }}" class="rounded-md bg-red-700 px-3 py-2 text-xs font-semibold text-white">Download PDF</a>
-                <a href="{{ route('reports.inventory.csv', ['year' => $year, 'month' => $month]) }}" class="rounded-md bg-emerald-700 px-3 py-2 text-xs font-semibold text-white">Download CSV</a>
+                <a href="{{ route('reports.inventory.pdf', ['year' => $year, 'month' => $month]) }}" onclick="return confirm('Do you want to download this report?');" class="rounded-md bg-red-700 px-3 py-2 text-xs font-semibold text-white">Download PDF</a>
+                <a href="{{ route('reports.inventory.csv', ['year' => $year, 'month' => $month]) }}" onclick="return confirm('Do you want to download this report?');" class="rounded-md bg-emerald-700 px-3 py-2 text-xs font-semibold text-white">Download CSV</a>
             @elseif ($tab === 'reconciliation')
                 @if ($reconciliationPeriods->isNotEmpty())
-                    <a href="{{ route('reports.reconciliation.pdf', ['period_id' => request('period_id', $reconciliationPeriods->first()->id)]) }}" class="rounded-md bg-red-700 px-3 py-2 text-xs font-semibold text-white">Download PDF</a>
-                    <a href="{{ route('reports.reconciliation.csv', ['period_id' => request('period_id', $reconciliationPeriods->first()->id)]) }}" class="rounded-md bg-emerald-700 px-3 py-2 text-xs font-semibold text-white">Download CSV</a>
+                    <a href="{{ route('reports.reconciliation.pdf', ['period_id' => request('period_id', $reconciliationPeriods->first()->id)]) }}" onclick="return confirm('Do you want to download this report?');" class="rounded-md bg-red-700 px-3 py-2 text-xs font-semibold text-white">Download PDF</a>
+                    <a href="{{ route('reports.reconciliation.csv', ['period_id' => request('period_id', $reconciliationPeriods->first()->id)]) }}" onclick="return confirm('Do you want to download this report?');" class="rounded-md bg-emerald-700 px-3 py-2 text-xs font-semibold text-white">Download CSV</a>
                 @endif
             @elseif ($tab === 'audit')
-                <a href="{{ route('reports.audit.pdf', ['from' => $from, 'to' => $to]) }}" class="rounded-md bg-red-700 px-3 py-2 text-xs font-semibold text-white">Download PDF</a>
-                <a href="{{ route('reports.audit.csv', ['from' => $from, 'to' => $to]) }}" class="rounded-md bg-emerald-700 px-3 py-2 text-xs font-semibold text-white">Download CSV</a>
+                <a href="{{ route('reports.audit.pdf', ['from' => $from, 'to' => $to]) }}" onclick="return confirm('Do you want to download this report?');" class="rounded-md bg-red-700 px-3 py-2 text-xs font-semibold text-white">Download PDF</a>
+                <a href="{{ route('reports.audit.csv', ['from' => $from, 'to' => $to]) }}" onclick="return confirm('Do you want to download this report?');" class="rounded-md bg-emerald-700 px-3 py-2 text-xs font-semibold text-white">Download CSV</a>
             @elseif ($tab === 'financial-ledgers')
-                <a href="{{ route('reports.financial-ledgers.pdf', ['year' => $year, 'month' => $month]) }}" class="rounded-md bg-red-700 px-3 py-2 text-xs font-semibold text-white">Download PDF Report</a>
-                <a href="{{ route('reports.financial-ledgers.csv', ['year' => $year, 'month' => $month]) }}" class="rounded-md bg-emerald-700 px-3 py-2 text-xs font-semibold text-white">Download Official CSV Report</a>
+                <a href="{{ route('reports.financial-ledgers.pdf', ['year' => $year, 'month' => $month]) }}" onclick="return confirm('Do you want to download this report?');" class="rounded-md bg-red-700 px-3 py-2 text-xs font-semibold text-white">Download PDF Report</a>
+                <a href="{{ route('reports.financial-ledgers.csv', ['year' => $year, 'month' => $month]) }}" onclick="return confirm('Do you want to download this report?');" class="rounded-md bg-emerald-700 px-3 py-2 text-xs font-semibold text-white">Download Official CSV Report</a>
             @elseif ($tab === 'in-kind-audits')
-                <a href="{{ route('reports.in-kind-audits.pdf', ['year' => $year, 'month' => $month]) }}" class="rounded-md bg-red-700 px-3 py-2 text-xs font-semibold text-white">Download PDF Report</a>
-                <a href="{{ route('reports.in-kind-audits.csv', ['year' => $year, 'month' => $month]) }}" class="rounded-md bg-emerald-700 px-3 py-2 text-xs font-semibold text-white">Download CSV Report</a>
+                <a href="{{ route('reports.in-kind-audits.pdf', ['year' => $year, 'month' => $month]) }}" onclick="return confirm('Do you want to download this report?');" class="rounded-md bg-red-700 px-3 py-2 text-xs font-semibold text-white">Download PDF Report</a>
+                <a href="{{ route('reports.in-kind-audits.csv', ['year' => $year, 'month' => $month]) }}" onclick="return confirm('Do you want to download this report?');" class="rounded-md bg-emerald-700 px-3 py-2 text-xs font-semibold text-white">Download CSV Report</a>
             @elseif ($tab === 'philanthropy-roster')
-                <a href="{{ route('reports.philanthropy-roster.pdf', ['year' => $year, 'month' => $month, 'search' => $search, 'sort' => $sort]) }}" class="rounded-md bg-red-700 px-3 py-2 text-xs font-semibold text-white">Download PDF</a>
+                <a href="{{ route('reports.philanthropy-roster.pdf', ['year' => $year, 'month' => $month, 'search' => $search, 'sort' => $sort]) }}" onclick="return confirm('Do you want to download this report?');" class="rounded-md bg-red-700 px-3 py-2 text-xs font-semibold text-white">Download PDF</a>
             @endif
         </div>
         @if ($tab === 'financial')

@@ -2,7 +2,7 @@
 
 @php($open = old('_modal') === 'create')
 
-<dialog id="create-inventory-item-dialog" class="m-auto w-[min(860px,calc(100vw-2rem))] overflow-hidden rounded-xl p-0 shadow-2xl backdrop:bg-slate-950/55" @if($open) open @endif>
+<dialog id="create-inventory-item-dialog" class="inventory-create-modal m-auto w-[min(860px,calc(100vw-2rem))] overflow-hidden rounded-xl p-0 shadow-2xl backdrop:bg-slate-950/55" @if($open) open @endif>
     <form method="POST" action="{{ route('inventory.store') }}" class="flex max-h-[90vh] flex-col bg-white">
         @csrf
         <input type="hidden" name="_modal" value="create">

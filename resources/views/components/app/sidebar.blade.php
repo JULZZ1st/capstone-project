@@ -96,15 +96,6 @@
             @endforeach
         </nav>
 
-        <div class="border-t border-white/10 p-3">
-            <form method="POST" action="{{ route('logout') }}">
-                @csrf
-                <button title="Logout" class="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-red-300/90 transition hover:bg-red-500/10 hover:text-red-200">
-                    <x-icon name="logout" class="h-5 w-5 shrink-0" />
-                    <span class="sidebar-label">Logout</span>
-                </button>
-            </form>
-        </div>
         </div>
     </div>
 
