@@ -53,7 +53,7 @@
 	select,
 	textarea {
 		border-color: #cbd5e1;
-		background-color: var(--ui-surface);
+		background-color: #f1f5f9;
 		color: var(--ui-ink);
 		transition: border-color 150ms ease, box-shadow 150ms ease;
 	}
@@ -80,7 +80,7 @@
 	.ui-button--primary { @apply bg-blue-700 text-white hover:bg-blue-800; }
 	.ui-button--secondary { @apply border border-slate-300 bg-white text-slate-700 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700; }
 	.ui-button--danger { @apply bg-rose-700 text-white hover:bg-rose-800; }
-	.ui-control { @apply rounded-lg border-slate-300 bg-white px-3 py-2 text-sm shadow-sm; }
+	.ui-control { @apply rounded-lg border-slate-300 bg-slate-100 px-3 py-2 text-sm shadow-sm; }
 	.report-filter-select {
 		@apply min-h-10 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm;
 		min-width: 8rem;

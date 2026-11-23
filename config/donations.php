@@ -79,17 +79,13 @@ return [
     // from the InventoryCategory taxonomy used by the standalone Inventory
     // module — these keys are never created/edited by users.
     'item_main_categories' => [
-        'food_relief' => 'Food / Relief Goods',
-        'medical_health' => 'Medical & Health Supplies',
-        'it_office_equipment' => 'IT & Office Equipment',
-        'disaster_safety' => 'Disaster Response & Safety Gear',
-        'construction_hardware' => 'Construction & Hardware Materials',
-        'furniture_fixtures' => 'Furniture & Fixtures',
-        'others' => 'Others',
+        'food' => 'Food',
+        'water' => 'Water',
+        'medicine' => 'Medicine',
     ],
 
     // Categories for which the Add Item modal shows an Expiration Date field.
-    'item_expiration_categories' => ['food_relief', 'medical_health'],
+    'item_expiration_categories' => ['food', 'water', 'medicine'],
 
     // Categories for which the Add Item modal shows Brand/Model/Serial Number fields.
     'item_equipment_categories' => ['it_office_equipment', 'furniture_fixtures'],
