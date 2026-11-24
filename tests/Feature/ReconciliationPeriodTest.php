@@ -179,9 +179,198 @@ class ReconciliationPeriodTest extends TestCase
         ], $treasurer);
         $this->actingAs($admin)->post(route('bank-reconciliation.discrepancies.review', [$period, $discrepancy, 'accepted']))->assertRedirect();
         $this->assertTrue($discrepancy->fresh()->needsFurtherAction());
+        $this->assertFalse($discrepancy->fresh()->blocksSubmission());
+
+        // Admin has already reviewed and accepted the only discrepancy, so Staff can submit
+        // even though it still reads "needs action" (it isn't carry-forward eligible yet).
+        $this->actingAs($treasurer)->post(route('bank-reconciliation.periods.submit', $period))->assertRedirect();
+        $this->assertDatabaseHas('bank_reconciliations', ['id' => $period->id, 'status' => 'ready_for_review']);
+
+        // Final approval still enforces the strict rule and remains blocked.
+        $this->actingAs($admin)->post(route('bank-reconciliation.periods.approve', $period))
+            ->assertSessionHasErrors('discrepancies');
+        $this->assertDatabaseHas('bank_reconciliations', ['id' => $period->id, 'status' => 'ready_for_review']);
+    }
+
+    public function test_submission_is_still_blocked_when_a_discrepancy_has_not_been_reviewed_by_admin(): void
+    {
+        $treasurer = $this->userWithRole('staff');
+        $period = app(ReconciliationPeriodService::class)->create([
+            'period_start' => '2026-12-01', 'period_end' => '2026-12-31',
+            'opening_balance' => 1000, 'bank_ending_balance' => 1100,
+            'prepared_by' => $treasurer->id,
+        ]);
+        $discrepancy = app(ReconciliationDiscrepancyService::class)->create($period, [
+            'type' => 'outstanding_check', 'classification' => 'timing_difference', 'amount' => 100,
+            'explanation' => 'Issued check not yet presented', 'resolution_status' => 'unresolved',
+            'adjustment_amount' => 0, 'carry_forward' => true,
+        ], $treasurer);
+        $this->assertTrue($discrepancy->fresh()->blocksSubmission());
 
         $this->actingAs($treasurer)->post(route('bank-reconciliation.periods.submit', $period))
             ->assertSessionHasErrors('discrepancies');
+        $this->assertDatabaseHas('bank_reconciliations', ['id' => $period->id, 'status' => 'draft']);
+    }
+
+    public function test_admin_accepted_unmatched_bank_row_does_not_block_submission_but_still_blocks_approval(): void
+    {
+        $treasurer = $this->userWithRole('staff');
+        $admin = $this->userWithRole('admin');
+        $period = app(ReconciliationPeriodService::class)->create([
+            'period_start' => '2026-12-01', 'period_end' => '2026-12-31',
+            'opening_balance' => 1000, 'bank_ending_balance' => 1000,
+            'prepared_by' => $treasurer->id,
+        ]);
+        $entry = BankLedgerEntry::query()->create([
+            'statement_id' => 'unmatched-row-accepted', 'description' => 'Unidentified deposit',
+            'amount' => 500, 'transaction_date' => '2026-12-10', 'transaction_type' => 'deposit', 'status' => 'unmatched',
+        ]);
+        $discrepancy = app(ReconciliationDiscrepancyService::class)->create($period, [
+            'type' => 'unidentified_transaction', 'classification' => 'timing_difference', 'amount' => 500,
+            'explanation' => 'Unidentified deposit needs investigation', 'resolution_status' => 'unresolved',
+            'adjustment_amount' => 0, 'carry_forward' => true, 'bank_ledger_entry_id' => $entry->id,
+        ], $treasurer);
+        $this->actingAs($admin)->post(route('bank-reconciliation.discrepancies.review', [$period, $discrepancy, 'accepted']))->assertRedirect();
+
+        // Admin has accepted the only explanation for the only unmatched bank row, so Staff
+        // can submit even though the row is still literally unmatched.
+        $this->actingAs($treasurer)->post(route('bank-reconciliation.periods.submit', $period))->assertRedirect();
+        $this->assertDatabaseHas('bank_reconciliations', ['id' => $period->id, 'status' => 'ready_for_review']);
+
+        // Final approval still requires every bank movement to be genuinely matched.
+        $this->actingAs($admin)->post(route('bank-reconciliation.periods.approve', $period))
+            ->assertSessionHasErrors('matching');
+        $this->assertDatabaseHas('bank_reconciliations', ['id' => $period->id, 'status' => 'ready_for_review']);
+
+        // The rejected action must actually surface feedback, not fail silently.
+        $this->actingAs($admin)->get(route('bank-reconciliation.periods.show', $period))
+            ->assertOk()
+            ->assertSee('This action could not be completed:')
+            ->assertSee('Bank movements must be matched, or have a fully resolved/documented discrepancy explanation, before this period can be approved.');
+    }
+
+    public function test_validly_documented_carry_forward_discrepancy_with_a_tied_bank_entry_does_not_block_approval(): void
+    {
+        $treasurer = $this->userWithRole('staff');
+        $admin = $this->userWithRole('admin');
+        $period = app(ReconciliationPeriodService::class)->create([
+            'period_start' => '2026-12-01', 'period_end' => '2026-12-31',
+            'opening_balance' => 1000, 'bank_ending_balance' => 1500,
+            'prepared_by' => $treasurer->id,
+        ]);
+        $entry = BankLedgerEntry::query()->create([
+            'statement_id' => 'outstanding-check-row', 'description' => 'Outstanding check',
+            'amount' => 500, 'transaction_date' => '2026-12-10', 'transaction_type' => 'withdrawal', 'status' => 'unreconciled',
+        ]);
+        app(ReconciliationDiscrepancyService::class)->create($period, [
+            'type' => 'outstanding_check', 'classification' => 'timing_difference', 'amount' => 500,
+            'explanation' => 'Issued check not yet presented', 'evidence_reference' => 'CHK-DEC-500',
+            'resolution_status' => 'unresolved', 'adjustment_amount' => 0, 'carry_forward' => true,
+            'bank_ledger_entry_id' => $entry->id,
+        ], $treasurer);
+
+        // Documented carry-forward item: needsFurtherAction() is already false, but the
+        // bank row itself is still genuinely 'unreconciled' -- resolving/documenting a
+        // discrepancy never flips its own tied row's status. Neither submit nor approve
+        // should be blocked by that row.
+        $this->assertFalse($entry->fresh()->blocksApproval());
+        $this->assertSame('unreconciled', $entry->fresh()->status);
+
+        $this->actingAs($treasurer)->post(route('bank-reconciliation.periods.submit', $period))->assertRedirect();
+        $this->actingAs($admin)->post(route('bank-reconciliation.periods.approve', $period))->assertRedirect();
+        $this->assertDatabaseHas('bank_reconciliations', ['id' => $period->id, 'status' => 'approved_locked']);
+    }
+
+    public function test_accounting_adjustment_resolved_discrepancy_with_a_tied_bank_entry_does_not_block_approval(): void
+    {
+        $treasurer = $this->userWithRole('staff');
+        $admin = $this->userWithRole('admin');
+        $period = app(ReconciliationPeriodService::class)->create([
+            'period_start' => '2026-12-01', 'period_end' => '2026-12-31',
+            'opening_balance' => 1000, 'bank_ending_balance' => 975,
+            'prepared_by' => $treasurer->id,
+        ]);
+        $entry = BankLedgerEntry::query()->create([
+            'statement_id' => 'bank-charge-row', 'description' => 'LANDBANK service charge',
+            'amount' => 25, 'transaction_date' => '2026-12-10', 'transaction_type' => 'withdrawal', 'status' => 'unreconciled',
+        ]);
+        $discrepancy = app(ReconciliationDiscrepancyService::class)->create($period, [
+            'type' => 'bank_charge', 'classification' => 'accounting_adjustment', 'amount' => 25,
+            'explanation' => 'Monthly bank charge', 'resolution_status' => 'unresolved',
+            'adjustment_amount' => -25, 'carry_forward' => false, 'bank_ledger_entry_id' => $entry->id,
+        ], $treasurer);
+        $this->actingAs($admin)->post(route('bank-reconciliation.discrepancies.review', [$period, $discrepancy, 'accepted']))->assertRedirect();
+
+        // accounting_adjustment auto-resolves on Admin acceptance, but the bank row itself
+        // stays 'unreconciled' (accounting_adjustment moves the BOOK side, never the bank
+        // side) -- it must not block approval regardless.
+        $this->assertSame('resolved', $discrepancy->fresh()->resolution_status);
+        $this->assertFalse($entry->fresh()->blocksApproval());
+        $this->assertSame('unreconciled', $entry->fresh()->status);
+
+        $this->actingAs($treasurer)->post(route('bank-reconciliation.periods.submit', $period))->assertRedirect();
+        $this->actingAs($admin)->post(route('bank-reconciliation.periods.approve', $period))->assertRedirect();
+        $this->assertDatabaseHas('bank_reconciliations', ['id' => $period->id, 'status' => 'approved_locked']);
+    }
+
+    public function test_bank_entry_with_no_discrepancy_report_still_blocks_approval(): void
+    {
+        $treasurer = $this->userWithRole('staff');
+        $admin = $this->userWithRole('admin');
+        $period = app(ReconciliationPeriodService::class)->create([
+            'period_start' => '2026-12-01', 'period_end' => '2026-12-31',
+            'opening_balance' => 1000, 'bank_ending_balance' => 1000,
+            'prepared_by' => $treasurer->id,
+        ]);
+        $entry = BankLedgerEntry::query()->create([
+            'statement_id' => 'truly-unexplained-row', 'description' => 'Unexplained deposit',
+            'amount' => 300, 'transaction_date' => '2026-12-10', 'transaction_type' => 'deposit', 'status' => 'unmatched',
+        ]);
+        $this->assertTrue($entry->blocksApproval());
+
+        $this->actingAs($treasurer)->post(route('bank-reconciliation.periods.submit', $period))
+            ->assertSessionHasErrors('matching');
+        $this->assertDatabaseHas('bank_reconciliations', ['id' => $period->id, 'status' => 'draft']);
+    }
+
+    public function test_unmatched_bank_row_without_a_discrepancy_report_still_blocks_submission(): void
+    {
+        $treasurer = $this->userWithRole('staff');
+        $period = app(ReconciliationPeriodService::class)->create([
+            'period_start' => '2026-12-01', 'period_end' => '2026-12-31',
+            'opening_balance' => 1000, 'bank_ending_balance' => 1000,
+            'prepared_by' => $treasurer->id,
+        ]);
+        BankLedgerEntry::query()->create([
+            'statement_id' => 'unmatched-row-unexplained', 'description' => 'Unexplained deposit',
+            'amount' => 300, 'transaction_date' => '2026-12-12', 'transaction_type' => 'deposit', 'status' => 'unmatched',
+        ]);
+
+        $this->actingAs($treasurer)->post(route('bank-reconciliation.periods.submit', $period))
+            ->assertSessionHasErrors('matching');
+        $this->assertDatabaseHas('bank_reconciliations', ['id' => $period->id, 'status' => 'draft']);
+    }
+
+    public function test_unmatched_bank_row_with_a_pending_unreviewed_discrepancy_still_blocks_submission(): void
+    {
+        $treasurer = $this->userWithRole('staff');
+        $period = app(ReconciliationPeriodService::class)->create([
+            'period_start' => '2026-12-01', 'period_end' => '2026-12-31',
+            'opening_balance' => 1000, 'bank_ending_balance' => 1000,
+            'prepared_by' => $treasurer->id,
+        ]);
+        $entry = BankLedgerEntry::query()->create([
+            'statement_id' => 'unmatched-row-pending', 'description' => 'Unidentified deposit awaiting review',
+            'amount' => 400, 'transaction_date' => '2026-12-15', 'transaction_type' => 'deposit', 'status' => 'unmatched',
+        ]);
+        app(ReconciliationDiscrepancyService::class)->create($period, [
+            'type' => 'unidentified_transaction', 'classification' => 'timing_difference', 'amount' => 400,
+            'explanation' => 'Unidentified deposit, investigating', 'resolution_status' => 'unresolved',
+            'adjustment_amount' => 0, 'carry_forward' => true, 'bank_ledger_entry_id' => $entry->id,
+        ], $treasurer);
+
+        $this->actingAs($treasurer)->post(route('bank-reconciliation.periods.submit', $period))
+            ->assertSessionHasErrors('matching');
         $this->assertDatabaseHas('bank_reconciliations', ['id' => $period->id, 'status' => 'draft']);
     }
 

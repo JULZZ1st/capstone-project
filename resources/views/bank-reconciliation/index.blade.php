@@ -51,6 +51,10 @@
                         @php
                             $statusLabel = $period->isApproved() ? 'Approved & Locked' : ($period->isReadyForReview() ? 'Pending Review' : 'Draft');
                             $statusClass = $period->isApproved() ? 'bg-emerald-50 text-emerald-700 ring-emerald-200' : ($period->isReadyForReview() ? 'bg-amber-50 text-amber-700 ring-amber-200' : 'bg-slate-100 text-slate-700 ring-slate-200');
+                            $isAdmin = auth()->user()->hasRole('admin');
+                            $actionLabel = $isAdmin
+                                ? ($period->isApproved() ? 'View' : ($period->isReadyForReview() ? 'Review' : 'Open'))
+                                : 'Open';
                         @endphp
                         <tr class="transition hover:bg-slate-50/80">
                             <td class="px-4 py-4 sm:px-5">
@@ -59,7 +63,7 @@
                             </td>
                             <td class="hidden px-4 py-4 text-slate-600 sm:table-cell">{{ $period->bank_account ?: config('bank_reconciliation.bank_accounts.0', 'Not set') }}</td>
                             <td class="px-4 py-4"><span class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset {{ $statusClass }}">{{ $statusLabel }}</span></td>
-                            <td class="px-4 py-4 text-right sm:px-5"><a href="{{ route('bank-reconciliation.periods.show', $period) }}" class="inline-flex items-center gap-1 rounded-lg px-2.5 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50">Open <x-icon name="chevron-right" class="h-3.5 w-3.5" /></a></td>
+                            <td class="px-4 py-4 text-right sm:px-5"><a href="{{ route('bank-reconciliation.periods.show', $period) }}" class="inline-flex items-center gap-1 rounded-lg px-2.5 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50">{{ $actionLabel }} <x-icon name="chevron-right" class="h-3.5 w-3.5" /></a></td>
                         </tr>
                     @empty
                         <tr><td colspan="4" class="px-5 py-12 text-center"><span class="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-500"><x-icon name="document" class="h-5 w-5" /></span><p class="mt-3 font-semibold text-slate-900">No reconciliation periods yet</p><p class="mt-1 text-sm text-slate-500">Create a reconciliation period to begin matching bank activity.</p></td></tr>

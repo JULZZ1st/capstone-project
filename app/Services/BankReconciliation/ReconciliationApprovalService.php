@@ -19,7 +19,7 @@ class ReconciliationApprovalService
             if (! $period->isDraft() || (int) $period->prepared_by !== (int) $actor->id) {
                 throw ValidationException::withMessages(['period' => 'Only the staff member who prepared this draft can submit it.']);
             }
-            $this->validateForApproval($period);
+            $this->validateForApproval($period, forSubmission: true);
             $period->forceFill(['status' => 'ready_for_review', 'submitted_at' => now()])->save();
             $this->audit($actor, 'bank_reconciliation_submitted', $period, "{$actor->name} submitted reconciliation period #{$period->id} for review.");
             return $period;
@@ -64,17 +64,22 @@ class ReconciliationApprovalService
         });
     }
 
-    private function validateForApproval(BankReconciliation $period): void
+    private function validateForApproval(BankReconciliation $period, bool $forSubmission = false): void
     {
         app(ReconciliationPeriodService::class)->recalculate($period->fresh());
         $period->refresh();
         $errors = [];
         if ($period->bank_ending_balance === null) $errors['bank_ending_balance'] = 'A raw bank ending balance is required.';
         if (abs((float) $period->reconciliation_difference) >= 0.005) $errors['reconciliation_difference'] = 'The adjusted bank balance must equal the financial ledger ending balance.';
-        $blockingDiscrepancy = $period->discrepancies()->get()->contains(fn (ReconciliationDiscrepancy $discrepancy) => $discrepancy->needsFurtherAction());
-        if ($blockingDiscrepancy) $errors['discrepancies'] = 'Unexplained differences must be resolved; timing items require valid evidence and review.';
-        $unmatched = BankLedgerEntry::query()->forBankAccount($period->bank_account)->whereDate('transaction_date', '>=', $period->period_start->toDateString())->whereDate('transaction_date', '<=', $period->period_end->toDateString())->whereIn('status', ['unmatched', 'unreconciled'])->exists();
-        if ($unmatched) $errors['matching'] = 'All bank movements in the period must be matched before approval.';
+        $blockingDiscrepancy = $period->discrepancies()->get()->contains(fn (ReconciliationDiscrepancy $discrepancy) => $forSubmission ? $discrepancy->blocksSubmission() : $discrepancy->needsFurtherAction());
+        if ($blockingDiscrepancy) $errors['discrepancies'] = $forSubmission
+            ? 'Unexplained differences must be resolved, or reviewed and accepted by Admin, before this period can be submitted.'
+            : 'Unexplained differences must be resolved; timing items require valid evidence and review.';
+        $unmatchedQuery = BankLedgerEntry::query()->forBankAccount($period->bank_account)->whereDate('transaction_date', '>=', $period->period_start->toDateString())->whereDate('transaction_date', '<=', $period->period_end->toDateString())->whereIn('status', ['unmatched', 'unreconciled'])->with('discrepancies');
+        $unmatched = (clone $unmatchedQuery)->get()->contains(fn (BankLedgerEntry $entry) => $forSubmission ? $entry->blocksSubmission() : $entry->blocksApproval());
+        if ($unmatched) $errors['matching'] = $forSubmission
+            ? 'Bank movements must be matched, or have a submission-ready discrepancy explanation, before this period can be submitted.'
+            : 'Bank movements must be matched, or have a fully resolved/documented discrepancy explanation, before this period can be approved.';
         if ($errors !== []) throw ValidationException::withMessages($errors);
     }
 

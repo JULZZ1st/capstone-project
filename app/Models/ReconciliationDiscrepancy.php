@@ -61,6 +61,25 @@ class ReconciliationDiscrepancy extends \Illuminate\Database\Eloquent\Model
     }
 
     /**
+     * A looser pre-submission gate used only by ReconciliationApprovalService::submit().
+     * Staff may submit a draft period for Admin review even while needsFurtherAction()
+     * is true, as long as Admin has already reviewed and accepted this discrepancy's
+     * explanation -- Admin is about to review the whole period anyway. This never
+     * changes what Step 3 displays (that still reads needsFurtherAction()/
+     * remainingActionReason() directly), and final approval
+     * (ReconciliationApprovalService::approve()) still enforces needsFurtherAction()
+     * in full, so nothing here bypasses the locking safeguard.
+     */
+    public function blocksSubmission(): bool
+    {
+        if (! $this->needsFurtherAction()) {
+            return false;
+        }
+
+        return $this->admin_review_status !== 'accepted';
+    }
+
+    /**
      * A short reason code for why this discrepancy still needs action, for display.
      * Returns null when no further action is required.
      */

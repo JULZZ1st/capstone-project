@@ -61,6 +61,82 @@ class BankReconciliationTest extends TestCase
         $details->assertDontSee('h-[calc(100dvh-12rem)]', false);
     }
 
+    public function test_admin_sees_review_label_for_a_pending_review_period_after_staff_submits(): void
+    {
+        $staff = $this->userWithRole('staff');
+        $admin = $this->userWithRole('admin');
+        $period = app(\App\Services\BankReconciliation\ReconciliationPeriodService::class)->create([
+            'period_start' => '2026-11-01', 'period_end' => '2026-11-30',
+            'opening_balance' => 1000, 'bank_ending_balance' => 1000,
+            'prepared_by' => $staff->id,
+        ]);
+
+        $this->actingAs($staff)->post(route('bank-reconciliation.periods.submit', $period))->assertRedirect();
+        $this->assertDatabaseHas('bank_reconciliations', ['id' => $period->id, 'status' => 'ready_for_review']);
+
+        $response = $this->actingAs($admin)->get(route('bank-reconciliation.index'));
+        $response->assertOk();
+        $response->assertSee('Pending Review');
+        $this->assertStringContainsString(
+            'href="'.route('bank-reconciliation.periods.show', $period).'" class="inline-flex items-center gap-1 rounded-lg px-2.5 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50">Review',
+            $response->getContent()
+        );
+    }
+
+    public function test_admin_sees_open_label_for_a_draft_period(): void
+    {
+        $admin = $this->userWithRole('admin');
+        $period = app(\App\Services\BankReconciliation\ReconciliationPeriodService::class)->create([
+            'period_start' => '2026-11-01', 'period_end' => '2026-11-30',
+            'opening_balance' => 1000,
+        ]);
+
+        $response = $this->actingAs($admin)->get(route('bank-reconciliation.index'));
+        $response->assertOk();
+        $response->assertSee('Draft');
+        $this->assertStringContainsString(
+            'href="'.route('bank-reconciliation.periods.show', $period).'" class="inline-flex items-center gap-1 rounded-lg px-2.5 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50">Open',
+            $response->getContent()
+        );
+    }
+
+    public function test_admin_sees_view_label_for_an_approved_period(): void
+    {
+        $admin = $this->userWithRole('admin');
+        $period = app(\App\Services\BankReconciliation\ReconciliationPeriodService::class)->create([
+            'period_start' => '2026-11-01', 'period_end' => '2026-11-30',
+            'opening_balance' => 1000,
+        ]);
+        $period->forceFill(['status' => 'approved_locked'])->save();
+
+        $response = $this->actingAs($admin)->get(route('bank-reconciliation.index'));
+        $response->assertOk();
+        $response->assertSee('Approved &amp; Locked', false);
+        $this->assertStringContainsString(
+            'href="'.route('bank-reconciliation.periods.show', $period).'" class="inline-flex items-center gap-1 rounded-lg px-2.5 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50">View',
+            $response->getContent()
+        );
+    }
+
+    public function test_staff_still_sees_open_label_regardless_of_period_status(): void
+    {
+        $staff = $this->userWithRole('staff');
+        $period = app(\App\Services\BankReconciliation\ReconciliationPeriodService::class)->create([
+            'period_start' => '2026-11-01', 'period_end' => '2026-11-30',
+            'opening_balance' => 1000, 'bank_ending_balance' => 1000,
+            'prepared_by' => $staff->id,
+        ]);
+        $this->actingAs($staff)->post(route('bank-reconciliation.periods.submit', $period))->assertRedirect();
+
+        $response = $this->actingAs($staff)->get(route('bank-reconciliation.index'));
+        $response->assertOk();
+        $response->assertSee('Pending Review');
+        $this->assertStringContainsString(
+            'href="'.route('bank-reconciliation.periods.show', $period).'" class="inline-flex items-center gap-1 rounded-lg px-2.5 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50">Open',
+            $response->getContent()
+        );
+    }
+
     public function test_admin_overview_separates_pending_discrepancy_reviews_from_period_approvals(): void
     {
         $admin = $this->userWithRole('admin');
