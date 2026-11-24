@@ -15,12 +15,17 @@ class ReconciliationPeriodService
 {
     public function updateBalances(BankReconciliation $period, array $data): BankReconciliation
     {
-        if ($period->isLocked()) {
-            throw ValidationException::withMessages(['period' => 'Locked reconciliation periods cannot be changed.']);
-        }
+        return DB::transaction(function () use ($period, $data) {
+            $period = BankReconciliation::query()->lockForUpdate()->findOrFail($period->id);
 
-        $period->forceFill($data)->save();
-        return $this->recalculate($period->fresh());
+            if (! $period->isDraft() || $period->isLocked()) {
+                throw ValidationException::withMessages(['period' => 'Only draft reconciliation periods can be changed.']);
+            }
+
+            $period->forceFill($data)->save();
+
+            return $this->recalculate($period);
+        });
     }
 
     public function create(array $data): BankReconciliation
@@ -122,6 +127,15 @@ class ReconciliationPeriodService
 
     public function recalculate(BankReconciliation $period): BankReconciliation
     {
+        return DB::transaction(function () use ($period) {
+            $period = BankReconciliation::query()->lockForUpdate()->findOrFail($period->id);
+
+            return $this->calculateBalances($period);
+        });
+    }
+
+    private function calculateBalances(BankReconciliation $period): BankReconciliation
+    {
         if ($period->isLocked()) {
             throw ValidationException::withMessages(['period' => 'Locked reconciliation periods cannot be recalculated.']);
         }
@@ -172,6 +186,8 @@ class ReconciliationPeriodService
             ->whereIn('type', ['outstanding_check', 'deposit_in_transit'])
             ->where('resolution_status', 'unresolved')
             ->whereNull('cleared_bank_ledger_entry_id')
+            ->whereNotNull('evidence_reference')
+            ->where('evidence_reference', '!=', '')
             ->get();
 
         foreach ($items as $item) {

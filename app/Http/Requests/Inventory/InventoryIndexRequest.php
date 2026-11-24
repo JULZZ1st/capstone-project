@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Inventory;
 
+use App\Http\Requests\Concerns\ReadsScalarInput;
 use App\Models\InventoryCategory;
 use App\Models\InventoryItem;
 use Illuminate\Foundation\Http\FormRequest;
@@ -9,6 +10,8 @@ use Illuminate\Validation\Rule;
 
 class InventoryIndexRequest extends FormRequest
 {
+    use ReadsScalarInput;
+
     public function authorize(): bool
     {
         return $this->user()?->can('viewAny', InventoryItem::class) ?? false;
@@ -34,7 +37,7 @@ class InventoryIndexRequest extends FormRequest
 
     private function nullableTrim(string $key): ?string
     {
-        $value = trim((string) $this->input($key));
+        $value = trim((string) $this->scalarInput($key));
 
         return $value === '' ? null : $value;
     }

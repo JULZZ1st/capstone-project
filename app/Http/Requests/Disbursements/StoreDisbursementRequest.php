@@ -2,12 +2,15 @@
 
 namespace App\Http\Requests\Disbursements;
 
+use App\Http\Requests\Concerns\ReadsScalarInput;
 use App\Models\CashDisbursement;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class StoreDisbursementRequest extends FormRequest
 {
+    use ReadsScalarInput;
+
     public function authorize(): bool
     {
         return $this->user()?->can('create', CashDisbursement::class) ?? false;
@@ -16,7 +19,7 @@ class StoreDisbursementRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'amount' => ['required', 'numeric', 'gt:0', 'max:9999999999.99'],
+            'amount' => ['required', 'numeric', 'decimal:0,2', 'gt:0', 'max:9999999999.99'],
             'purpose' => ['required', 'string', 'max:2000'],
             'recipient' => ['required', 'string', 'max:255'],
             'payee_address' => ['required', 'string', 'max:255'],
@@ -34,14 +37,14 @@ class StoreDisbursementRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         $this->merge([
-            'purpose' => trim((string) $this->input('purpose')),
-            'recipient' => trim((string) $this->input('recipient')),
-            'payee_address' => trim((string) $this->input('payee_address')),
+            'purpose' => trim((string) $this->scalarInput('purpose')),
+            'recipient' => trim((string) $this->scalarInput('recipient')),
+            'payee_address' => trim((string) $this->scalarInput('payee_address')),
             'province' => $this->nullableTrim('province'),
             'city_municipality' => $this->nullableTrim('city_municipality'),
             'barangay' => $this->nullableTrim('barangay'),
             'payee_tin' => $this->nullableTrim('payee_tin'),
-            'fund_source' => trim((string) $this->input('fund_source')),
+            'fund_source' => trim((string) $this->scalarInput('fund_source')),
             'obr_number' => $this->nullableTrim('obr_number'),
             'notes' => $this->nullableTrim('notes'),
         ]);
@@ -49,7 +52,7 @@ class StoreDisbursementRequest extends FormRequest
 
     private function nullableTrim(string $key): ?string
     {
-        $value = trim((string) $this->input($key));
+        $value = trim((string) $this->scalarInput($key));
 
         return $value === '' ? null : $value;
     }

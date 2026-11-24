@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Inventory;
 
+use App\Http\Requests\Concerns\ReadsScalarInput;
 use App\Models\InventoryCategory;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -9,6 +10,8 @@ use App\Support\Workspaces\WorkspaceValidationRules;
 
 class StoreInventorySubcategoryRequest extends FormRequest
 {
+    use ReadsScalarInput;
+
     public function authorize(): bool
     {
         return $this->user()?->can('create', InventoryCategory::class) ?? false;
@@ -41,14 +44,14 @@ class StoreInventorySubcategoryRequest extends FormRequest
 
     private function normalizedKey(string $key): ?string
     {
-        $value = trim((string) $this->input($key));
+        $value = trim((string) $this->scalarInput($key));
 
         return $value === '' ? null : str($value)->slug('_')->toString();
     }
 
     private function nullableTrim(string $key): ?string
     {
-        $value = trim((string) $this->input($key));
+        $value = trim((string) $this->scalarInput($key));
 
         return $value === '' ? null : $value;
     }

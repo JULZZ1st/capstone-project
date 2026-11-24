@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Inventory;
 
+use App\Http\Requests\Concerns\ReadsScalarInput;
 use App\Models\InventoryCategory;
 use App\Models\InventoryItem;
 use App\Models\InventorySubcategory;
@@ -11,6 +12,8 @@ use Illuminate\Validation\Rule;
 
 class StoreInventoryItemRequest extends FormRequest
 {
+    use ReadsScalarInput;
+
     public function authorize(): bool
     {
         return $this->user()?->can('create', InventoryItem::class) ?? false;
@@ -26,9 +29,9 @@ class StoreInventoryItemRequest extends FormRequest
             'custom_subcategory' => ['required_if:subcategory_selection,__other__', 'nullable', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:2000'],
             'unit' => ['required', Rule::in(array_keys(InventoryUnit::options()))],
-            'initial_quantity' => ['required', 'numeric', 'min:0', 'max:999999.99'],
-            'minimum_reserve_quantity' => ['required', 'numeric', 'min:0', 'max:999999.99'],
-            'estimated_unit_value' => ['nullable', 'numeric', 'min:0', 'max:99999999.99'],
+            'initial_quantity' => ['required', 'numeric', 'decimal:0,2', 'min:0', 'max:999999.99'],
+            'minimum_reserve_quantity' => ['required', 'numeric', 'decimal:0,2', 'min:0', 'max:999999.99'],
+            'estimated_unit_value' => ['nullable', 'numeric', 'decimal:0,2', 'min:0', 'max:99999999.99'],
             'expires_at' => ['nullable', 'date'],
             'batch_number' => ['nullable', 'string', 'max:100'],
             'storage_location' => ['required', 'string', 'max:255'],
@@ -80,7 +83,7 @@ class StoreInventoryItemRequest extends FormRequest
 
     private function nullableTrim(string $key): ?string
     {
-        $value = trim((string) $this->input($key));
+        $value = trim((string) $this->scalarInput($key));
 
         return $value === '' ? null : $value;
     }

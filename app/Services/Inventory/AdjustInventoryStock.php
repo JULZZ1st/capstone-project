@@ -25,15 +25,14 @@ class AdjustInventoryStock
                 ]);
             }
 
-            $quantity = (float) $data['quantity'];
-            $quantityBefore = (float) $item->current_quantity;
+            $quantity = (string) $data['quantity'];
+            $quantityBefore = $item->current_quantity;
             $quantityAfter = match ($data['movement_type']) {
-                'stock_in' => $quantityBefore + $quantity,
-                'stock_out' => $quantityBefore - $quantity,
-                'adjustment' => $quantityBefore + $quantity,
+                'stock_in', 'adjustment' => bcadd($quantityBefore, $quantity, 2),
+                'stock_out' => bcsub($quantityBefore, $quantity, 2),
             };
 
-            if ($quantityAfter < 0) {
+            if (bccomp($quantityAfter, '0', 2) < 0) {
                 throw ValidationException::withMessages([
                     'quantity' => 'Stock out cannot reduce current stock below zero.',
                 ]);

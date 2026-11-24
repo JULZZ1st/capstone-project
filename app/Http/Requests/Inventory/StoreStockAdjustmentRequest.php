@@ -2,11 +2,14 @@
 
 namespace App\Http\Requests\Inventory;
 
+use App\Http\Requests\Concerns\ReadsScalarInput;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class StoreStockAdjustmentRequest extends FormRequest
 {
+    use ReadsScalarInput;
+
     public function authorize(): bool
     {
         return $this->user()?->can('adjustStock', $this->route('inventoryItem')) ?? false;
@@ -16,7 +19,7 @@ class StoreStockAdjustmentRequest extends FormRequest
     {
         return [
             'movement_type' => ['required', Rule::in(array_keys(config('inventory.movement_types')))],
-            'quantity' => ['required', 'numeric', 'min:0.01', 'max:999999.99'],
+            'quantity' => ['required', 'numeric', 'decimal:0,2', 'min:0.01', 'max:999999.99'],
             'reason' => ['required', Rule::in(array_keys(config('inventory.adjustment_reasons')))],
             'reference_number' => ['nullable', 'string', 'max:100'],
             'remarks' => ['nullable', 'string', 'max:2000'],
@@ -35,7 +38,7 @@ class StoreStockAdjustmentRequest extends FormRequest
 
     private function nullableTrim(string $key): ?string
     {
-        $value = trim((string) $this->input($key));
+        $value = trim((string) $this->scalarInput($key));
 
         return $value === '' ? null : $value;
     }

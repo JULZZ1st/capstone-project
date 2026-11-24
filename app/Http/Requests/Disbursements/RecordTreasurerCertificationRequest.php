@@ -2,11 +2,14 @@
 
 namespace App\Http\Requests\Disbursements;
 
+use App\Http\Requests\Concerns\ReadsScalarInput;
 use App\Models\CashDisbursement;
 use Illuminate\Foundation\Http\FormRequest;
 
 class RecordTreasurerCertificationRequest extends FormRequest
 {
+    use ReadsScalarInput;
+
     public function authorize(): bool
     {
         return $this->user()?->can('recordTreasurerCertification', $this->route('disbursement')) ?? false;
@@ -22,6 +25,6 @@ class RecordTreasurerCertificationRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        $this->merge(['notes' => trim((string) $this->input('notes')) ?: null]);
+        $this->merge(['notes' => trim((string) $this->scalarInput('notes')) ?: null]);
     }
 }

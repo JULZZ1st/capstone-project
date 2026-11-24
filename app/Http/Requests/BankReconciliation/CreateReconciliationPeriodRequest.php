@@ -12,7 +12,8 @@ class CreateReconciliationPeriodRequest extends FormRequest
         $month = $this->input('period_month');
         $year = $this->input('period_year');
 
-        if ($month !== null && $year !== null && is_numeric($month) && is_numeric($year)) {
+        if (filter_var($month, FILTER_VALIDATE_INT) !== false && filter_var($year, FILTER_VALIDATE_INT) !== false
+            && $month >= 1 && $month <= 12 && $year >= 2000 && $year <= 2100) {
             $start = sprintf('%04d-%02d-01', (int) $year, (int) $month);
             $this->merge([
                 'period_start' => $start,
@@ -34,9 +35,9 @@ class CreateReconciliationPeriodRequest extends FormRequest
             'period_year' => ['nullable', 'integer', 'between:2000,2100'],
             'period_start' => ['required', 'date'],
             'period_end' => ['required', 'date', 'after_or_equal:period_start'],
-            'opening_balance' => ['required', 'numeric', 'min:0'],
+            'opening_balance' => ['required', 'numeric', 'decimal:0,2', 'min:0', 'max:99999999.99'],
             'opening_balance_explanation' => ['nullable', 'string', 'max:5000'],
-            'bank_ending_balance' => ['nullable', 'numeric', 'min:0'],
+            'bank_ending_balance' => ['nullable', 'numeric', 'decimal:0,2', 'min:0', 'max:9999999999.99'],
             'notes' => ['nullable', 'string', 'max:5000'],
         ];
     }

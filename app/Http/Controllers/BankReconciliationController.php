@@ -208,15 +208,12 @@ class BankReconciliationController extends Controller
                 : CashDisbursement::query()->findOrFail($data['system_record_id']);
             abort_unless($record->workspace_id === $period->workspace_id, 422);
         }
-        if ($request->hasFile('supporting_evidence')) {
-            $data['evidence_path'] = $request->file('supporting_evidence')->store('bank-reconciliation/discrepancies/'.$period->id);
-        }
         unset($data['supporting_evidence']);
         $data['adjustment_amount'] = $data['classification'] === 'accounting_adjustment'
             ? (float) ($data['adjustment_amount'] ?? 0)
             : 0;
         $data['carry_forward'] = $data['classification'] === 'timing_difference' && $request->boolean('carry_forward');
-        $discrepancies->create($period, $data, $request->user());
+        $discrepancies->create($period, $data, $request->user(), $request->file('supporting_evidence'));
 
         return redirect()->route('bank-reconciliation.index', ['period_id' => $period->id])->with('success', 'Unmatched record reported for investigation.');
     }
@@ -228,9 +225,8 @@ class BankReconciliationController extends Controller
         $data['custom_type'] = $data['type'] === 'other' ? trim((string) ($data['custom_type'] ?? '')) : null;
         $data['adjustment_amount'] = $data['classification'] === 'accounting_adjustment' ? (float) ($data['adjustment_amount'] ?? 0) : 0;
         $data['carry_forward'] = $data['classification'] === 'timing_difference' && $request->boolean('carry_forward');
-        if ($request->hasFile('supporting_evidence')) $data['evidence_path'] = $request->file('supporting_evidence')->store('bank-reconciliation/discrepancies/'.$period->id);
         unset($data['supporting_evidence'], $data['bank_ledger_entry_id'], $data['system_record_type'], $data['system_record_id']);
-        $discrepancies->update($period, $discrepancy, $data, $request->user());
+        $discrepancies->update($period, $discrepancy, $data, $request->user(), $request->file('supporting_evidence'));
         return redirect()->route('bank-reconciliation.index', ['period_id' => $period->id])->with('success', 'Discrepancy report updated.');
     }
 
@@ -249,10 +245,7 @@ class BankReconciliationController extends Controller
     {
         Gate::authorize('resolveDiscrepancy', $period);
         abort_unless((int) $period->workspace_id === (int) app(WorkspaceContext::class)->requireId(), 404);
-        $path = $request->hasFile('resolution_evidence')
-            ? $request->file('resolution_evidence')->store('bank-reconciliation/discrepancies/'.$period->id.'/resolutions')
-            : null;
-        $discrepancies->resolve($period, $discrepancy, $request->validated('resolution_explanation'), $path, $request->user());
+        $discrepancies->resolve($period, $discrepancy, $request->validated('resolution_explanation'), null, $request->user(), $request->file('resolution_evidence'));
         return redirect()->route('bank-reconciliation.index', ['period_id' => $period->id])->with('success', 'Discrepancy resolution saved.');
     }
 

@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\BankReconciliation;
 
+use App\Http\Requests\Concerns\ReadsScalarInput;
 use App\Models\BankLedgerEntry;
 use App\Services\BankReconciliation\ReconciliationDiscrepancyService;
 use Illuminate\Foundation\Http\FormRequest;
@@ -9,6 +10,8 @@ use Illuminate\Validation\Rule;
 
 class CreateReconciliationDiscrepancyRequest extends FormRequest
 {
+    use ReadsScalarInput;
+
     public function authorize(): bool
     {
         return $this->user()?->can('create', BankLedgerEntry::class) ?? false;
@@ -20,7 +23,7 @@ class CreateReconciliationDiscrepancyRequest extends FormRequest
             'type' => ['required', Rule::in(ReconciliationDiscrepancyService::TYPES)],
             'custom_type' => ['nullable', 'string', 'max:120', 'required_if:type,other'],
             'classification' => ['required', Rule::in(ReconciliationDiscrepancyService::CLASSIFICATIONS)],
-            'amount' => ['required', 'numeric', 'gt:0'],
+            'amount' => ['required', 'numeric', 'decimal:0,2', 'gt:0', 'max:9999999999.99'],
             'explanation' => ['required', 'string', 'max:5000'],
             'evidence_reference' => ['nullable', 'string', 'max:255'],
             'supporting_evidence' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:10240'],
@@ -28,7 +31,7 @@ class CreateReconciliationDiscrepancyRequest extends FormRequest
             'system_record_type' => ['nullable', Rule::in(['contribution', 'cash_disbursement'])],
             'system_record_id' => ['nullable', 'integer'],
             'resolution_status' => ['required', Rule::in(ReconciliationDiscrepancyService::STATUSES)],
-            'adjustment_amount' => ['nullable', 'numeric'],
+            'adjustment_amount' => ['nullable', 'numeric', 'decimal:0,2', 'between:-9999999999.99,9999999999.99'],
             'carry_forward' => ['nullable', 'boolean'],
         ];
     }
@@ -36,7 +39,7 @@ class CreateReconciliationDiscrepancyRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         if ($this->has('custom_type')) {
-            $this->merge(['custom_type' => trim((string) $this->input('custom_type'))]);
+            $this->merge(['custom_type' => trim((string) $this->scalarInput('custom_type'))]);
         }
     }
 

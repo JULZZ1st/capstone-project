@@ -2,11 +2,14 @@
 
 namespace App\Http\Requests\Donations;
 
+use App\Http\Requests\Concerns\ReadsScalarInput;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class DonationPortalIndexRequest extends FormRequest
 {
+    use ReadsScalarInput;
+
     public function authorize(): bool
     {
         return $this->user()?->can('viewAny', \App\Models\Contribution::class) ?? false;
@@ -32,7 +35,7 @@ class DonationPortalIndexRequest extends FormRequest
 
     private function nullableTrim(string $key): ?string
     {
-        $value = trim((string) $this->input($key));
+        $value = trim((string) $this->scalarInput($key));
 
         return $value === '' ? null : $value;
     }

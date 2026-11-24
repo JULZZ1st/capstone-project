@@ -2,12 +2,15 @@
 
 namespace App\Http\Requests\BankReconciliation;
 
+use App\Http\Requests\Concerns\ReadsScalarInput;
 use App\Models\BankLedgerEntry;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
 
 class StoreBankWithdrawalRequest extends FormRequest
 {
+    use ReadsScalarInput;
+
     public function authorize(): bool
     {
         return $this->user()?->can('create', BankLedgerEntry::class) ?? false;
@@ -23,7 +26,7 @@ class StoreBankWithdrawalRequest extends FormRequest
                 'max:100',
             ],
             'description' => ['required', 'string', 'max:255'],
-            'amount' => ['required', 'numeric', 'gt:0', 'max:9999999999.99'],
+            'amount' => ['required', 'numeric', 'decimal:0,2', 'gt:0', 'max:9999999999.99'],
         ];
     }
 
@@ -62,8 +65,8 @@ class StoreBankWithdrawalRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         $this->merge([
-            'reference_number' => trim((string) $this->input('reference_number')),
-            'description' => trim((string) $this->input('description')),
+            'reference_number' => trim((string) $this->scalarInput('reference_number')),
+            'description' => trim((string) $this->scalarInput('description')),
         ]);
     }
 }

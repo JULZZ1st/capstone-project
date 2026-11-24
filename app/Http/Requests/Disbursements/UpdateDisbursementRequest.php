@@ -2,12 +2,15 @@
 
 namespace App\Http\Requests\Disbursements;
 
+use App\Http\Requests\Concerns\ReadsScalarInput;
 use App\Models\CashDisbursement;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class UpdateDisbursementRequest extends FormRequest
 {
+    use ReadsScalarInput;
+
     public function authorize(): bool
     {
         return $this->user()?->can('update', $this->route('disbursement')) ?? false;
@@ -16,7 +19,7 @@ class UpdateDisbursementRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'amount' => ['required', 'numeric', 'gt:0', 'max:9999999999.99'],
+            'amount' => ['required', 'numeric', 'decimal:0,2', 'gt:0', 'max:9999999999.99'],
             'purpose' => ['required', 'string', 'max:2000'],
             'recipient' => ['required', 'string', 'max:255'],
             'payee_address' => ['required', 'string', 'max:255'],
@@ -36,11 +39,11 @@ class UpdateDisbursementRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         foreach (['purpose', 'recipient', 'payee_address', 'fund_source'] as $key) {
-            $this->merge([$key => trim((string) $this->input($key))]);
+            $this->merge([$key => trim((string) $this->scalarInput($key))]);
         }
 
         foreach (['province', 'city_municipality', 'barangay', 'payee_tin', 'obr_number', 'notes'] as $key) {
-            $value = trim((string) $this->input($key));
+            $value = trim((string) $this->scalarInput($key));
             $this->merge([$key => $value === '' ? null : $value]);
         }
     }

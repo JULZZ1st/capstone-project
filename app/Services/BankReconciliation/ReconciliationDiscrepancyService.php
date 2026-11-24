@@ -6,8 +6,12 @@ use App\Models\BankReconciliation;
 use App\Models\ReconciliationDiscrepancy;
 use App\Models\SecurityActivityEvent;
 use App\Models\User;
+use Closure;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
+use Throwable;
 
 class ReconciliationDiscrepancyService
 {
@@ -34,13 +38,16 @@ class ReconciliationDiscrepancyService
         return str_replace('_', ' ', (string) $type);
     }
 
-    public function create(BankReconciliation $period, array $data, User $user): ReconciliationDiscrepancy
+    public function create(BankReconciliation $period, array $data, User $user, ?UploadedFile $evidence = null): ReconciliationDiscrepancy
     {
-        if ($period->isLocked()) {
-            throw ValidationException::withMessages(['period' => 'Locked reconciliation periods cannot be changed.']);
-        }
-
-        return DB::transaction(function () use ($period, $data, $user) {
+        return $this->withEvidence($evidence, 'bank-reconciliation/discrepancies/'.$period->id, 'supporting_evidence', function ($path) use ($period, $data, $user) {
+            $period = BankReconciliation::query()->lockForUpdate()->findOrFail($period->id);
+            if ($period->isLocked()) {
+                throw ValidationException::withMessages(['period' => 'Locked reconciliation periods cannot be changed.']);
+            }
+            if ($path !== null) {
+                $data['evidence_path'] = $path;
+            }
             $duplicate = $period->discrepancies()
                 ->where('resolution_status', 'unresolved')
                 ->when($data['bank_ledger_entry_id'] ?? null, fn ($query, $id) => $query->where('bank_ledger_entry_id', $id))
@@ -73,17 +80,32 @@ class ReconciliationDiscrepancyService
         });
     }
 
-    public function update(BankReconciliation $period, ReconciliationDiscrepancy $discrepancy, array $data, User $user): ReconciliationDiscrepancy
+    public function update(BankReconciliation $period, ReconciliationDiscrepancy $discrepancy, array $data, User $user, ?UploadedFile $evidence = null): ReconciliationDiscrepancy
     {
-        if ($period->isLocked() || $discrepancy->bank_reconciliation_id !== $period->id || $discrepancy->resolution_status !== 'unresolved') {
-            throw ValidationException::withMessages(['discrepancy' => 'Only unresolved discrepancies in an editable period can be updated.']);
-        }
-        return DB::transaction(function () use ($period, $discrepancy, $data, $user) {
-            $discrepancy->update([
+        return $this->withEvidence($evidence, 'bank-reconciliation/discrepancies/'.$period->id, 'supporting_evidence', function ($path) use ($period, $discrepancy, $data, $user) {
+            $period = BankReconciliation::query()->lockForUpdate()->findOrFail($period->id);
+            $discrepancy = ReconciliationDiscrepancy::query()->lockForUpdate()->findOrFail($discrepancy->id);
+            if ($period->isLocked() || (int) $discrepancy->bank_reconciliation_id !== (int) $period->id || $discrepancy->resolution_status !== 'unresolved') {
+                throw ValidationException::withMessages(['discrepancy' => 'Only unresolved discrepancies in an editable period can be updated.']);
+            }
+            if ($path !== null) {
+                $data['evidence_path'] = $path;
+            }
+            $discrepancy->fill([
                 ...$data,
                 'resolved_by' => in_array($data['resolution_status'], ['resolved', 'accounted'], true) ? $user->id : null,
                 'resolved_at' => in_array($data['resolution_status'], ['resolved', 'accounted'], true) ? now() : null,
             ]);
+            if ($discrepancy->isDirty([
+                'type', 'custom_type', 'classification', 'amount', 'explanation',
+                'evidence_reference', 'evidence_path', 'adjustment_amount', 'carry_forward',
+            ])) {
+                $discrepancy->forceFill([
+                    'admin_review_status' => 'pending', 'admin_reviewed_by' => null,
+                    'admin_reviewed_at' => null, 'admin_review_note' => null,
+                ]);
+            }
+            $discrepancy->save();
             SecurityActivityEvent::query()->create(['actor_id' => $user->id, 'action' => 'bank_reconciliation_discrepancy_updated', 'summary' => "{$user->name} updated discrepancy #{$discrepancy->id}.", 'metadata' => ['bank_reconciliation_id' => $period->id, 'reconciliation_discrepancy_id' => $discrepancy->id, 'type' => $discrepancy->type, 'custom_type' => $discrepancy->custom_type], 'occurred_at' => now()]);
             app(ReconciliationPeriodService::class)->recalculate($period->fresh());
             return $discrepancy->fresh();
@@ -92,15 +114,16 @@ class ReconciliationDiscrepancyService
 
     public function review(BankReconciliation $period, ReconciliationDiscrepancy $discrepancy, string $decision, ?string $note, User $user): ReconciliationDiscrepancy
     {
-        if ($period->isLocked() || (int) $discrepancy->bank_reconciliation_id !== (int) $period->id) {
-            throw ValidationException::withMessages(['discrepancy' => 'Discrepancies in locked periods cannot be reviewed.']);
-        }
-
         if (! in_array($decision, ['accepted', 'correction_requested'], true)) {
             throw ValidationException::withMessages(['decision' => 'Choose a valid discrepancy review decision.']);
         }
 
         return DB::transaction(function () use ($period, $discrepancy, $decision, $note, $user) {
+            $period = BankReconciliation::query()->lockForUpdate()->findOrFail($period->id);
+            $discrepancy = ReconciliationDiscrepancy::query()->lockForUpdate()->findOrFail($discrepancy->id);
+            if ($period->isLocked() || (int) $discrepancy->bank_reconciliation_id !== (int) $period->id) {
+                throw ValidationException::withMessages(['discrepancy' => 'Discrepancies in locked periods cannot be reviewed.']);
+            }
             $discrepancy->update([
                 'admin_review_status' => $decision,
                 'admin_reviewed_by' => $user->id,
@@ -125,16 +148,18 @@ class ReconciliationDiscrepancyService
         });
     }
 
-    public function resolve(BankReconciliation $period, ReconciliationDiscrepancy $discrepancy, string $explanation, ?string $evidencePath, User $user): ReconciliationDiscrepancy
+    public function resolve(BankReconciliation $period, ReconciliationDiscrepancy $discrepancy, string $explanation, ?string $evidencePath, User $user, ?UploadedFile $evidence = null): ReconciliationDiscrepancy
     {
-        if ($period->isLocked() || (int) $discrepancy->bank_reconciliation_id !== (int) $period->id) {
-            throw ValidationException::withMessages(['discrepancy' => 'Discrepancies in locked periods cannot be resolved.']);
-        }
-        if ($discrepancy->admin_review_status !== 'accepted' || $discrepancy->resolution_status !== 'unresolved') {
-            throw ValidationException::withMessages(['discrepancy' => 'Only unresolved discrepancies accepted by Admin can be resolved.']);
-        }
-
-        return DB::transaction(function () use ($period, $discrepancy, $explanation, $evidencePath, $user) {
+        return $this->withEvidence($evidence, 'bank-reconciliation/discrepancies/'.$period->id.'/resolutions', 'resolution_evidence', function ($path) use ($period, $discrepancy, $explanation, $evidencePath, $user) {
+            $period = BankReconciliation::query()->lockForUpdate()->findOrFail($period->id);
+            $discrepancy = ReconciliationDiscrepancy::query()->lockForUpdate()->findOrFail($discrepancy->id);
+            if ($period->isLocked() || (int) $discrepancy->bank_reconciliation_id !== (int) $period->id) {
+                throw ValidationException::withMessages(['discrepancy' => 'Discrepancies in locked periods cannot be resolved.']);
+            }
+            if ($discrepancy->admin_review_status !== 'accepted' || $discrepancy->resolution_status !== 'unresolved') {
+                throw ValidationException::withMessages(['discrepancy' => 'Only unresolved discrepancies accepted by Admin can be resolved.']);
+            }
+            $evidencePath = $path ?? $evidencePath;
             $resolvedAt = now();
             $discrepancy->update([
                 'resolution_status' => 'resolved',
@@ -160,5 +185,30 @@ class ReconciliationDiscrepancyService
             app(ReconciliationPeriodService::class)->recalculate($period->fresh());
             return $discrepancy->fresh(['reporter', 'adminReviewer', 'resolver']);
         });
+    }
+
+    private function withEvidence(?UploadedFile $file, string $directory, string $field, Closure $action): ReconciliationDiscrepancy
+    {
+        $path = null;
+
+        try {
+            return DB::transaction(function () use ($file, $directory, $field, $action, &$path) {
+                if ($file !== null) {
+                    $storedPath = Storage::disk('local')->putFile($directory, $file);
+                    if (! is_string($storedPath) || $storedPath === '') {
+                        throw ValidationException::withMessages([$field => 'The evidence could not be stored. Please try uploading it again.']);
+                    }
+                    $path = $storedPath;
+                }
+
+                return $action($path);
+            });
+        } catch (Throwable $exception) {
+            if ($path !== null) {
+                Storage::disk('local')->delete($path);
+            }
+
+            throw $exception;
+        }
     }
 }

@@ -18,9 +18,10 @@ class ReconcileLedgerEntryRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'bank_ledger_entry_id' => ['required', WorkspaceValidationRules::exists('bank_ledger_entries')->where('status', 'unmatched')],
+            'bank_ledger_entry_id' => ['required', 'integer', WorkspaceValidationRules::exists('bank_ledger_entries')->where('status', 'unmatched')],
             'contribution_id' => [
                 'required',
+                'integer',
                 WorkspaceValidationRules::exists('contributions')
                     ->where('type', 'cash')
                     ->where('status', 'verified')

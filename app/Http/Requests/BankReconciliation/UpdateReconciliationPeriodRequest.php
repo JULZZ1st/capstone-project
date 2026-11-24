@@ -14,8 +14,8 @@ class UpdateReconciliationPeriodRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'opening_balance' => ['required', 'numeric', 'min:0'],
-            'bank_ending_balance' => ['required', 'numeric', 'min:0'],
+            'opening_balance' => ['required', 'numeric', 'decimal:0,2', 'min:0', 'max:99999999.99'],
+            'bank_ending_balance' => ['required', 'numeric', 'decimal:0,2', 'min:0', 'max:9999999999.99'],
         ];
     }
 }

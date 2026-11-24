@@ -66,15 +66,17 @@ class DisbursementController extends Controller
 
     public function update(UpdateDisbursementRequest $request, CashDisbursement $disbursement, UpdateDisbursement $updater): RedirectResponse
     {
-        $updater->handle($disbursement, $request->validated());
+        DB::transaction(function () use ($request, $disbursement, $updater): void {
+            $disbursement = $updater->handle($disbursement, $request->validated());
 
-        $this->audit(
-            $request->user(),
-            'disbursement_updated',
-            $disbursement,
-            "{$request->user()->name} updated fund request #{$disbursement->id}.",
-            ['dv_number' => $disbursement->dv_number]
-        );
+            $this->audit(
+                $request->user(),
+                'disbursement_updated',
+                $disbursement,
+                "{$request->user()->name} updated fund request #{$disbursement->id}.",
+                ['dv_number' => $disbursement->dv_number]
+            );
+        });
 
         return back()->with('success', 'Fund request updated.');
     }
@@ -196,30 +198,35 @@ class DisbursementController extends Controller
 
     public function requestMissingSignedVoucher(RequestMissingSignedVoucherRequest $request, CashDisbursement $disbursement): RedirectResponse
     {
-        $reason = $request->validated('reason');
-        $disbursement->forceFill([
-            'signed_voucher_status' => 'missing',
-            'signed_voucher_request_reason' => $reason,
-            'signed_voucher_requested_by' => $request->user()->id,
-            'signed_voucher_requested_at' => now(),
-        ])->save();
+        DB::transaction(function () use ($request, $disbursement): void {
+            $disbursement = CashDisbursement::query()->lockForUpdate()->findOrFail($disbursement->id);
+            Gate::authorize('requestMissingSignedVoucher', $disbursement);
 
-        if ($disbursement->latestVoucher) {
-            $disbursement->latestVoucher->forceFill([
-                'review_status' => 'missing',
-                'reviewed_by' => $request->user()->id,
-                'reviewed_at' => now(),
-                'review_reason' => $reason,
+            $reason = $request->validated('reason');
+            $disbursement->forceFill([
+                'signed_voucher_status' => 'missing',
+                'signed_voucher_request_reason' => $reason,
+                'signed_voucher_requested_by' => $request->user()->id,
+                'signed_voucher_requested_at' => now(),
             ])->save();
-        }
 
-        $this->audit(
-            $request->user(),
-            'disbursement_signed_voucher_documents_requested',
-            $disbursement,
-            "{$request->user()->name} requested a missing or corrected signed voucher for fund request #{$disbursement->id}: {$reason}",
-            ['reason' => $reason]
-        );
+            if ($disbursement->latestVoucher) {
+                $disbursement->latestVoucher->forceFill([
+                    'review_status' => 'missing',
+                    'reviewed_by' => $request->user()->id,
+                    'reviewed_at' => now(),
+                    'review_reason' => $reason,
+                ])->save();
+            }
+
+            $this->audit(
+                $request->user(),
+                'disbursement_signed_voucher_documents_requested',
+                $disbursement,
+                "{$request->user()->name} requested a missing or corrected signed voucher for fund request #{$disbursement->id}: {$reason}",
+                ['reason' => $reason]
+            );
+        });
 
         return back()->with('success', 'Missing signed voucher documents request recorded.');
     }
@@ -233,19 +240,24 @@ class DisbursementController extends Controller
 
     public function recordTreasurerCertification(RecordTreasurerCertificationRequest $request, CashDisbursement $disbursement): RedirectResponse
     {
-        $disbursement->forceFill([
-            'treasurer_certified_by' => $request->user()->id,
-            'treasurer_certified_at' => now(),
-            'treasurer_certification_notes' => $request->validated('notes'),
-        ])->save();
+        DB::transaction(function () use ($request, $disbursement): void {
+            $disbursement = CashDisbursement::query()->lockForUpdate()->findOrFail($disbursement->id);
+            Gate::authorize('recordTreasurerCertification', $disbursement);
 
-        $this->audit(
-            $request->user(),
-            'disbursement_treasurer_certified',
-            $disbursement,
-            "{$request->user()->name} recorded the Treasurer's physical certification for fund request #{$disbursement->id}.",
-            ['notes' => $disbursement->treasurer_certification_notes]
-        );
+            $disbursement->forceFill([
+                'treasurer_certified_by' => $request->user()->id,
+                'treasurer_certified_at' => now(),
+                'treasurer_certification_notes' => $request->validated('notes'),
+            ])->save();
+
+            $this->audit(
+                $request->user(),
+                'disbursement_treasurer_certified',
+                $disbursement,
+                "{$request->user()->name} recorded the Treasurer's physical certification for fund request #{$disbursement->id}.",
+                ['notes' => $disbursement->treasurer_certification_notes]
+            );
+        });
 
         return back()->with('success', "Treasurer's physical certification recorded.");
     }

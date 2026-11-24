@@ -42,6 +42,7 @@ class CashDisbursementPolicy
     public function requestMissingSignedVoucher(User $user, CashDisbursement $disbursement): bool
     {
         return $this->sameWorkspace($user, $disbursement)
+            && ! $disbursement->isVoided()
             && $user->hasRole('admin')
             && in_array($disbursement->status, ['pending', 'approved'], true)
             && (int) $disbursement->requested_by !== (int) $user->id;

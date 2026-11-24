@@ -226,6 +226,33 @@ class InventoryManagementTest extends TestCase
         ]);
     }
 
+    public function test_stock_movements_reject_precision_that_cannot_be_stored(): void
+    {
+        $item = $this->inventoryItem(['current_quantity' => '0.67']);
+
+        $this->actingAs(User::factory()->create())->postJson(route('inventory.adjustments.store', $item), [
+            'movement_type' => 'stock_out', 'quantity' => '0.335', 'reason' => 'distribution',
+        ])->assertUnprocessable()->assertJsonValidationErrors('quantity');
+
+        $this->assertSame('0.67', $item->fresh()->current_quantity);
+        $this->assertDatabaseCount('inventory_stock_movements', 0);
+    }
+
+    public function test_fractional_stock_movements_keep_the_balance_and_history_consistent(): void
+    {
+        $item = $this->inventoryItem(['current_quantity' => '0.10']);
+        $this->actingAs(User::factory()->create());
+
+        foreach ([['stock_in', '0.20'], ['stock_out', '0.30']] as [$type, $quantity]) {
+            $this->post(route('inventory.adjustments.store', $item), [
+                'movement_type' => $type, 'quantity' => $quantity, 'reason' => 'correction',
+            ])->assertSessionDoesntHaveErrors()->assertRedirect();
+        }
+
+        $this->assertSame('0.00', $item->fresh()->current_quantity);
+        $this->assertSame(['0.30', '0.00'], $item->stockMovements()->orderBy('id')->pluck('quantity_after')->all());
+    }
+
     private function inventoryItem(array $overrides = []): InventoryItem
     {
         return InventoryItem::query()->create(array_merge([

@@ -2,12 +2,15 @@
 
 namespace App\Http\Requests\Auth;
 
+use App\Http\Requests\Concerns\ReadsScalarInput;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
 
 class RegisterRequest extends FormRequest
 {
+    use ReadsScalarInput;
+
     public function authorize(): bool
     {
         return true;
@@ -37,9 +40,9 @@ class RegisterRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         $this->merge([
-            'first_name' => trim((string) $this->input('first_name')),
-            'last_name' => trim((string) $this->input('last_name')),
-            'email' => Str::lower((string) $this->input('email')),
+            'first_name' => trim((string) $this->scalarInput('first_name')),
+            'last_name' => trim((string) $this->scalarInput('last_name')),
+            'email' => Str::lower((string) $this->scalarInput('email')),
         ]);
     }
 }

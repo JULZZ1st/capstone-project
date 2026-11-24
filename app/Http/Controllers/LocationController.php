@@ -12,7 +12,8 @@ class LocationController extends Controller
 {
     public function provinces(Request $request): JsonResponse
     {
-        $regionCode = (string) $request->query('region_code', '');
+        $filters = $request->validate(['region_code' => ['nullable', 'string', 'max:20']]);
+        $regionCode = $filters['region_code'] ?? '';
 
         $provinces = $regionCode === ''
             ? collect()
@@ -23,8 +24,12 @@ class LocationController extends Controller
 
     public function cities(Request $request): JsonResponse
     {
-        $regionCode = (string) $request->query('region_code', '');
-        $provinceCode = (string) $request->query('province_code', '');
+        $filters = $request->validate([
+            'region_code' => ['nullable', 'string', 'max:20'],
+            'province_code' => ['nullable', 'string', 'max:20'],
+        ]);
+        $regionCode = $filters['region_code'] ?? '';
+        $provinceCode = $filters['province_code'] ?? '';
 
         $query = City::query()->orderBy('name');
 
@@ -41,7 +46,8 @@ class LocationController extends Controller
 
     public function barangays(Request $request): JsonResponse
     {
-        $cityCode = (string) $request->query('city_code', '');
+        $filters = $request->validate(['city_code' => ['nullable', 'string', 'max:20']]);
+        $cityCode = $filters['city_code'] ?? '';
 
         $barangays = $cityCode === ''
             ? collect()

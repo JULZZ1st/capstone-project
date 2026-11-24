@@ -11,14 +11,19 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class DonorController extends Controller
 {
     public function index(Request $request): View|JsonResponse
     {
-        $search = trim((string) $request->query('search'));
-        $type = $request->query('type');
+        $filters = $request->validate([
+            'search' => ['nullable', 'string', 'max:255'],
+            'type' => ['nullable', Rule::in(array_keys(config('donors.types')))],
+        ]);
+        $search = trim((string) ($filters['search'] ?? ''));
+        $type = $filters['type'] ?? null;
 
         $donors = Donor::query()
             ->select([

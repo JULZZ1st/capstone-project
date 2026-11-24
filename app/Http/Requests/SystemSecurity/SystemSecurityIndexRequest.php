@@ -2,12 +2,15 @@
 
 namespace App\Http\Requests\SystemSecurity;
 
+use App\Http\Requests\Concerns\ReadsScalarInput;
 use App\Models\SecurityActivityEvent;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class SystemSecurityIndexRequest extends FormRequest
 {
+    use ReadsScalarInput;
+
     public function authorize(): bool
     {
         return $this->user()?->can('viewAny', SecurityActivityEvent::class) ?? false;
@@ -31,7 +34,7 @@ class SystemSecurityIndexRequest extends FormRequest
 
     private function nullableTrim(string $key): ?string
     {
-        $value = trim((string) $this->input($key));
+        $value = trim((string) $this->scalarInput($key));
 
         return $value === '' ? null : $value;
     }

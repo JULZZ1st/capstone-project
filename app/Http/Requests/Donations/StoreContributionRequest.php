@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Donations;
 
+use App\Http\Requests\Concerns\ReadsScalarInput;
 use App\Models\Contribution;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Arr;
@@ -11,6 +12,8 @@ use App\Support\Workspaces\WorkspaceValidationRules;
 
 class StoreContributionRequest extends FormRequest
 {
+    use ReadsScalarInput;
+
     public function authorize(): bool
     {
         return $this->user()?->can('create', Contribution::class) ?? false;
@@ -24,11 +27,12 @@ class StoreContributionRequest extends FormRequest
             'donation_type' => ['required', Rule::in(array_keys(config('donations.types')))],
             'donor_id' => [
                 'required',
+                'integer',
                 WorkspaceValidationRules::exists('donors')
                     ->where('status', config('donors.defaults.status')),
             ],
             'received_at' => ['nullable', 'date_format:Y-m-d'],
-            'amount' => ['required_if:donation_type,cash', 'nullable', 'numeric', 'min:0.01', 'max:99999999.99'],
+            'amount' => ['required_if:donation_type,cash', 'nullable', 'numeric', 'decimal:0,2', 'min:0.01', 'max:99999999.99'],
             'purpose_type' => ['nullable', Rule::in(['general', 'specific'])],
             'purpose_name' => ['required_if:purpose_type,specific', 'nullable', 'string', 'max:255'],
             'payment_method' => ['required_if:donation_type,cash', 'nullable', Rule::in(array_merge(
@@ -67,14 +71,14 @@ class StoreContributionRequest extends FormRequest
             'items.*.name' => ['required_if:donation_type,in_kind', 'string', 'max:255'],
             'items.*.category' => ['required_if:donation_type,in_kind', Rule::in(array_keys(config('donations.item_main_categories')))],
             'items.*.category_description' => ['required_if:items.*.category,others', 'nullable', 'string', 'max:255'],
-            'items.*.quantity' => ['required_if:donation_type,in_kind', 'numeric', 'min:0.01', 'max:999999.99'],
+            'items.*.quantity' => ['required_if:donation_type,in_kind', 'numeric', 'decimal:0,2', 'min:0.01', 'max:999999.99'],
             'items.*.unit' => ['required_if:donation_type,in_kind', Rule::in(array_keys(config('donations.units')))],
             'items.*.condition' => ['required_if:donation_type,in_kind', Rule::in(array_keys(config('donations.item_conditions')))],
             'items.*.expiration_date' => ['nullable', 'date_format:Y-m-d'],
             'items.*.brand' => ['nullable', 'string', 'max:150'],
             'items.*.model' => ['nullable', 'string', 'max:150'],
             'items.*.serial_number' => ['nullable', 'string', 'max:150'],
-            'items.*.estimated_value' => ['nullable', 'numeric', 'min:0', 'max:99999999.99'],
+            'items.*.estimated_value' => ['nullable', 'numeric', 'decimal:0,2', 'min:0', 'max:99999999.99'],
             'items.*.notes' => ['nullable', 'string', 'max:1000'],
         ];
     }
@@ -92,12 +96,16 @@ class StoreContributionRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        $donationType = $this->nullableLower($this->input('donation_type'));
+        $donationType = $this->nullableLower($this->scalarInput('donation_type'));
 
         $items = $donationType === 'in_kind'
             ? collect($this->input('items', []))
-                ->map(function ($item) {
+                ->map(function ($item, $index) {
                     $item = is_array($item) ? $item : [];
+
+                    foreach (['name', 'category', 'category_description', 'quantity', 'unit', 'condition', 'expiration_date', 'brand', 'model', 'serial_number', 'estimated_value', 'notes'] as $key) {
+                        $item[$key] = $this->scalarValue(Arr::get($item, $key), "items.{$index}.{$key}");
+                    }
 
                     return [
                         'name' => $this->nullableValue(Arr::get($item, 'name')),
@@ -119,26 +127,29 @@ class StoreContributionRequest extends FormRequest
                 ->all()
             : [];
 
+        $this->scalarInput('certificate_requested');
+        $this->scalarInput('deed_declined');
+
         $this->merge([
             'donation_type' => $donationType,
-            'amount' => $this->nullableValue($this->input('amount')),
+            'amount' => $this->nullableValue($this->scalarInput('amount')),
             'purpose_type' => $this->input('donation_type') === 'cash'
-                ? ($this->nullableLower($this->input('purpose_type')) ?? 'general')
+                ? ($this->nullableLower($this->scalarInput('purpose_type')) ?? 'general')
                 : null,
-            'purpose_name' => $this->nullableValue($this->input('purpose_name')),
-            'payment_method' => $this->nullableLower($this->input('payment_method')),
-            'payment_method_name' => $this->nullableValue($this->input('payment_method_name')),
-            'official_receipt_number' => $this->nullableValue($this->input('official_receipt_number')),
-            'check_number' => $this->nullableValue($this->input('check_number')),
-            'bank_name' => $this->nullableValue($this->input('bank_name')),
-            'registered_bank_account' => $this->nullableValue($this->input('registered_bank_account')),
-            'reference_number' => $this->nullableValue($this->input('reference_number')),
-            'notes' => $this->nullableValue($this->input('notes')),
+            'purpose_name' => $this->nullableValue($this->scalarInput('purpose_name')),
+            'payment_method' => $this->nullableLower($this->scalarInput('payment_method')),
+            'payment_method_name' => $this->nullableValue($this->scalarInput('payment_method_name')),
+            'official_receipt_number' => $this->nullableValue($this->scalarInput('official_receipt_number')),
+            'check_number' => $this->nullableValue($this->scalarInput('check_number')),
+            'bank_name' => $this->nullableValue($this->scalarInput('bank_name')),
+            'registered_bank_account' => $this->nullableValue($this->scalarInput('registered_bank_account')),
+            'reference_number' => $this->nullableValue($this->scalarInput('reference_number')),
+            'notes' => $this->nullableValue($this->scalarInput('notes')),
             'items' => $items,
             'certificate_requested' => $this->boolean('certificate_requested'),
-            'donor_tin' => $this->nullableValue($this->input('donor_tin')),
+            'donor_tin' => $this->nullableValue($this->scalarInput('donor_tin')),
             'deed_declined' => $this->boolean('deed_declined'),
-            'deed_decline_reason' => $this->nullableValue($this->input('deed_decline_reason')),
+            'deed_decline_reason' => $this->nullableValue($this->scalarInput('deed_decline_reason')),
         ]);
     }
 

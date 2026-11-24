@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\BankReconciliation;
 
+use App\Http\Requests\Concerns\ReadsScalarInput;
 use App\Models\BankLedgerEntry;
 use App\Models\CashDisbursement;
 use Illuminate\Foundation\Http\FormRequest;
@@ -10,6 +11,8 @@ use App\Support\Workspaces\WorkspaceValidationRules;
 
 class StoreWithdrawalDisbursementMatchRequest extends FormRequest
 {
+    use ReadsScalarInput;
+
     public function authorize(): bool
     {
         return $this->user()?->can('create', BankLedgerEntry::class) ?? false;
@@ -84,7 +87,7 @@ class StoreWithdrawalDisbursementMatchRequest extends FormRequest
     {
         $difference = (float) $withdrawal->amount - $selectedTotal;
 
-        if (abs($difference) >= 0.005 && trim((string) $this->input('discrepancy_reason')) === '') {
+        if (abs($difference) >= 0.005 && trim((string) $this->scalarInput('discrepancy_reason')) === '') {
             $validator->errors()->add('discrepancy_reason', 'An explanation is required while the withdrawal difference remains unresolved.');
         }
     }

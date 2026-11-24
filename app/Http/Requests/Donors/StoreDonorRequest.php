@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Donors;
 
+use App\Http\Requests\Concerns\ReadsScalarInput;
 use App\Models\Donor;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Str;
@@ -9,6 +10,8 @@ use Illuminate\Validation\Rule;
 
 class StoreDonorRequest extends FormRequest
 {
+    use ReadsScalarInput;
+
     public function authorize(): bool
     {
         return $this->user()?->can('create', Donor::class) ?? false;
@@ -61,7 +64,7 @@ class StoreDonorRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        $donorType = Str::lower(trim((string) $this->input('donor_type')));
+        $donorType = Str::lower(trim((string) $this->scalarInput('donor_type')));
         $firstName = $this->nullableTrim('first_name');
         $lastName = $this->nullableTrim('last_name');
         $middleName = $this->nullableTrim('middle_name');
@@ -81,22 +84,22 @@ class StoreDonorRequest extends FormRequest
             'full_name' => $fullName,
             'email' => $this->nullableLower('email'),
             'tin' => $this->nullableTrim('tin'),
-            'contact_number' => trim((string) $this->input('contact_number')),
-            'address' => trim((string) $this->input('address')),
+            'contact_number' => trim((string) $this->scalarInput('contact_number')),
+            'address' => trim((string) $this->scalarInput('address')),
             'barangay' => $this->nullableTrim('barangay') ?? $this->nullableTrim('barangay_area'),
             'city_municipality' => $this->nullableTrim('city_municipality'),
             'province' => $this->nullableTrim('province'),
             'region' => $this->nullableTrim('region'),
             'contact_person' => $donorType === 'organization' ? $this->nullableTrim('contact_person') : null,
             'preferred_contact_method' => $this->nullableLower('preferred_contact_method'),
-            'status' => Str::lower(trim((string) $this->input('status', config('donors.defaults.status')))),
+            'status' => Str::lower(trim((string) $this->scalarInput('status', config('donors.defaults.status')))),
             'notes' => $this->nullableTrim('notes'),
         ]);
     }
 
     private function nullableTrim(string $key): ?string
     {
-        $value = trim((string) $this->input($key));
+        $value = trim((string) $this->scalarInput($key));
 
         return $value === '' ? null : $value;
     }

@@ -2,11 +2,14 @@
 
 namespace App\Http\Requests\Donations;
 
+use App\Http\Requests\Concerns\ReadsScalarInput;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class UpdateContributionRequest extends FormRequest
 {
+    use ReadsScalarInput;
+
     public function authorize(): bool
     {
         $user = $this->user();
@@ -49,7 +52,7 @@ class UpdateContributionRequest extends FormRequest
 
     private function blankToNull(string $key): ?string
     {
-        $value = trim((string) $this->input($key));
+        $value = trim((string) $this->scalarInput($key));
 
         return $value === '' ? null : $value;
     }

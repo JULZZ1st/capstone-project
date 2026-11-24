@@ -69,7 +69,7 @@ class BankReconciliation extends Model
 
     public function isLocked(): bool
     {
-        return $this->status === 'locked' || $this->locked_at !== null;
+        return in_array($this->status, ['locked', 'approved_locked'], true) || $this->locked_at !== null;
     }
 
     public function discrepancies()
