@@ -39,7 +39,8 @@
                         <ul class="divide-y divide-slate-100">
                             @foreach ($dashboard['recent_donations'] as $donation)
                                 <li>
-                                    <a href="{{ route('donations.show', $donation) }}" class="flex items-center gap-3 rounded-lg px-2 py-3 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 first:pt-0 last:pb-0">
+                                    @php($donationModalId = 'dashboard-donation-'.$donation->id)
+                                    <button type="button" data-dialog-open="{{ $donationModalId }}" class="flex w-full items-center gap-3 rounded-lg px-2 py-3 text-left transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 first:pt-0 last:pb-0">
                                         <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-semibold text-blue-700">{{ strtoupper(substr((string) ($donation->donor?->full_name ?? '?'), 0, 1)) }}</span>
                                         <span class="min-w-0 flex-1">
                                             <span class="block truncate text-sm font-medium text-slate-950">{{ $donation->donor?->full_name ?? 'Unknown donor' }}</span>
@@ -50,7 +51,8 @@
                                         @else
                                             <span class="shrink-0 text-xs font-semibold text-slate-950">{{ number_format($donation->items_count) }} item(s)</span>
                                         @endif
-                                    </a>
+                                    </button>
+                                    <x-dashboard.activity-detail-modal :id="$donationModalId" title="{{ $donation->donor?->full_name ?? 'Unknown donor' }}" subtitle="{{ config("donations.types.{$donation->type}") }} contribution" event="Recent donation" :details="['Donation ID' => '#'.str_pad((string) $donation->id, 5, '0', STR_PAD_LEFT), 'Status' => ucfirst($donation->status ?? 'Recorded'), 'Amount / Items' => $donation->type === 'cash' ? '₱'.number_format((float) $donation->amount, 2) : number_format($donation->items_count).' item(s)']" :date="$donation->received_at ?? $donation->created_at" />
                                 </li>
                             @endforeach
                         </ul>
@@ -66,14 +68,16 @@
                         <ul class="divide-y divide-slate-100">
                             @foreach ($dashboard['disbursements']['recent'] as $request)
                                 <li>
-                                    <a href="{{ route('disbursements.show', $request) }}" class="flex items-start gap-3 rounded-lg px-2 py-3 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 first:pt-0 last:pb-0">
+                                    @php($requestModalId = 'dashboard-request-'.$request->id)
+                                    <button type="button" data-dialog-open="{{ $requestModalId }}" class="flex w-full items-start gap-3 rounded-lg px-2 py-3 text-left transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 first:pt-0 last:pb-0">
                                         <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-semibold text-blue-700">₱</span>
                                         <span class="min-w-0 flex-1">
                                             <span class="block truncate text-sm font-medium text-slate-950" title="{{ $request->purpose }}">{{ $request->purpose }}</span>
                                             <span class="block truncate text-xs text-slate-600">{{ $request->requester->name }} · {{ ucfirst($request->status) }}</span>
                                         </span>
                                         <span class="shrink-0 text-xs font-semibold text-slate-950"><x-format.currency :value="$request->amount" /></span>
-                                    </a>
+                                    </button>
+                                    <x-dashboard.activity-detail-modal :id="$requestModalId" :title="$request->purpose" subtitle="Fund request" event="Recent request" :details="['Request ID' => '#'.$request->id, 'Requester' => $request->requester->name, 'Status' => ucfirst($request->status), 'Amount' => '₱'.number_format((float) $request->amount, 2)]" :date="$request->created_at" />
                                 </li>
                             @endforeach
                         </ul>

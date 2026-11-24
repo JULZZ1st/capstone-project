@@ -62,6 +62,21 @@
         </div>
     @endif
 
+    <dialog id="app-confirm-dialog" class="m-auto w-[min(460px,calc(100vw-2rem))] rounded-2xl p-0 shadow-2xl backdrop:bg-slate-950/55" aria-labelledby="app-confirm-title">
+        <div class="overflow-hidden bg-white">
+            <header class="border-b border-slate-200 px-5 py-4">
+                <h2 id="app-confirm-title" class="text-lg font-bold text-slate-950">Please confirm</h2>
+            </header>
+            <div class="px-5 py-5">
+                <p data-confirm-message class="text-sm leading-6 text-slate-600"></p>
+            </div>
+            <footer class="flex justify-end gap-2 border-t border-slate-200 bg-slate-50 px-5 py-3">
+                <button type="button" data-confirm-cancel class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">Cancel</button>
+                <button type="button" data-confirm-ok class="rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800">OK</button>
+            </footer>
+        </div>
+    </dialog>
+
     @stack('scripts')
 </body>
 </html>

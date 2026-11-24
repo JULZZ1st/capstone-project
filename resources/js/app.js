@@ -315,7 +315,7 @@ const refreshDonorResults = async (form, targetUrl) => {
         window.history.replaceState({}, '', targetUrl);
     } catch (error) {
         if (error.name !== 'AbortError') {
-            window.location.assign(targetUrl);
+            openAppConfirm('The search could not be completed right now. Please try again.', { type: 'message' }, 'Search unavailable');
         }
     } finally {
         if (donorSearchRequests.get(form) === controller) {
@@ -382,6 +382,67 @@ if (successToast) {
         window.setTimeout(() => successToast.remove(), 300);
     }, 4000);
 }
+
+// Replace browser confirm() popups from legacy action markup with the app modal.
+const appConfirmDialog = document.getElementById('app-confirm-dialog');
+let pendingConfirmAction = null;
+
+const openAppConfirm = (message, action, title = 'Please confirm') => {
+    if (!(appConfirmDialog instanceof HTMLDialogElement)) return;
+    pendingConfirmAction = action;
+    appConfirmDialog.querySelector('#app-confirm-title').textContent = title;
+    appConfirmDialog.querySelector('[data-confirm-message]').textContent = message || 'Are you sure you want to continue?';
+    appConfirmDialog.showModal();
+};
+
+document.addEventListener('click', (event) => {
+    const target = event.target.closest('[onclick*="confirm"]');
+    if (!target || !target.getAttribute('onclick')) return;
+
+    const match = target.getAttribute('onclick').match(/confirm\(['"]([^'"]+)['"]\)/);
+    if (!match) return;
+
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    openAppConfirm(match[1], { type: 'link', element: target });
+}, true);
+
+document.addEventListener('submit', (event) => {
+    const form = event.target;
+    if (!(form instanceof HTMLFormElement) || form.__confirmBypass || !form.getAttribute('onsubmit')) return;
+
+    const match = form.getAttribute('onsubmit').match(/confirm\(['"]([^'"]+)['"]\)/);
+    if (!match) return;
+
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    openAppConfirm(match[1], { type: 'form', element: form });
+}, true);
+
+appConfirmDialog?.addEventListener('click', (event) => {
+    if (event.target.closest('[data-confirm-cancel]')) {
+        appConfirmDialog.close();
+        pendingConfirmAction = null;
+    }
+
+    if (event.target.closest('[data-confirm-ok]') && pendingConfirmAction) {
+        const action = pendingConfirmAction;
+        pendingConfirmAction = null;
+        appConfirmDialog.close();
+
+        if (action.type === 'message') {
+            return;
+        }
+
+        if (action.type === 'link') {
+            action.element.removeAttribute('onclick');
+            action.element.click();
+        } else {
+            action.element.__confirmBypass = true;
+            action.element.requestSubmit();
+        }
+    }
+});
 
 document.addEventListener('click', (event) => {
     const previewButton = event.target.closest('[data-document-preview-open]');

@@ -122,6 +122,8 @@ class DashboardMetrics
             'label' => $record->label,
             'created_at' => $record->created_at,
             'url' => $routeName ? route($routeName, $record->id) : null,
+            'record_type' => class_basename($record),
+            'record_id' => $record->id,
         ]);
     }
 }
