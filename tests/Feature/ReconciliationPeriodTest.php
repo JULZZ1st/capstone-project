@@ -163,6 +163,28 @@ class ReconciliationPeriodTest extends TestCase
         $this->assertDatabaseHas('bank_reconciliations', ['id' => $period->id, 'status' => 'approved_locked']);
     }
 
+    public function test_undocumented_timing_item_still_blocks_approval(): void
+    {
+        $treasurer = $this->userWithRole('staff');
+        $admin = $this->userWithRole('admin');
+        $period = app(ReconciliationPeriodService::class)->create([
+            'period_start' => '2026-12-01', 'period_end' => '2026-12-31',
+            'opening_balance' => 1000, 'bank_ending_balance' => 1100,
+            'prepared_by' => $treasurer->id,
+        ]);
+        $discrepancy = app(ReconciliationDiscrepancyService::class)->create($period, [
+            'type' => 'outstanding_check', 'classification' => 'timing_difference', 'amount' => 100,
+            'explanation' => 'Issued check not yet presented', 'resolution_status' => 'unresolved',
+            'adjustment_amount' => 0, 'carry_forward' => true,
+        ], $treasurer);
+        $this->actingAs($admin)->post(route('bank-reconciliation.discrepancies.review', [$period, $discrepancy, 'accepted']))->assertRedirect();
+        $this->assertTrue($discrepancy->fresh()->needsFurtherAction());
+
+        $this->actingAs($treasurer)->post(route('bank-reconciliation.periods.submit', $period))
+            ->assertSessionHasErrors('discrepancies');
+        $this->assertDatabaseHas('bank_reconciliations', ['id' => $period->id, 'status' => 'draft']);
+    }
+
     public function test_carried_forward_timing_item_clears_once_when_matching_bank_row_appears(): void
     {
         $user = $this->userWithRole('staff');

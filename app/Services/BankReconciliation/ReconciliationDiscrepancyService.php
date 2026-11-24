@@ -134,12 +134,18 @@ class ReconciliationDiscrepancyService
             throw ValidationException::withMessages(['discrepancy' => 'Only unresolved discrepancies in an editable period can be updated.']);
         }
         return DB::transaction(function () use ($period, $discrepancy, $data, $user) {
+            $previousReviewStatus = $discrepancy->admin_review_status;
+            $previousReviewNote = $discrepancy->admin_review_note;
             $discrepancy->update([
                 ...$data,
+                'admin_review_status' => 'pending',
+                'admin_reviewed_by' => null,
+                'admin_reviewed_at' => null,
+                'admin_review_note' => null,
                 'resolved_by' => in_array($data['resolution_status'], ['resolved', 'accounted'], true) ? $user->id : null,
                 'resolved_at' => in_array($data['resolution_status'], ['resolved', 'accounted'], true) ? now() : null,
             ]);
-            SecurityActivityEvent::query()->create(['actor_id' => $user->id, 'action' => 'bank_reconciliation_discrepancy_updated', 'summary' => "{$user->name} updated discrepancy #{$discrepancy->id}.", 'metadata' => ['bank_reconciliation_id' => $period->id, 'reconciliation_discrepancy_id' => $discrepancy->id, 'type' => $discrepancy->type, 'custom_type' => $discrepancy->custom_type], 'occurred_at' => now()]);
+            SecurityActivityEvent::query()->create(['actor_id' => $user->id, 'action' => 'bank_reconciliation_discrepancy_updated', 'summary' => "{$user->name} updated and resubmitted discrepancy #{$discrepancy->id} for Admin review.", 'metadata' => ['bank_reconciliation_id' => $period->id, 'reconciliation_discrepancy_id' => $discrepancy->id, 'type' => $discrepancy->type, 'custom_type' => $discrepancy->custom_type, 'resubmitted_from' => $previousReviewStatus, 'previous_admin_review_note' => $previousReviewNote], 'occurred_at' => now()]);
             app(ReconciliationPeriodService::class)->recalculate($period->fresh());
             return $discrepancy->fresh();
         });

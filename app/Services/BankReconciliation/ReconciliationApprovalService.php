@@ -4,6 +4,7 @@ namespace App\Services\BankReconciliation;
 
 use App\Models\BankLedgerEntry;
 use App\Models\BankReconciliation;
+use App\Models\ReconciliationDiscrepancy;
 use App\Models\SecurityActivityEvent;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -70,22 +71,8 @@ class ReconciliationApprovalService
         $errors = [];
         if ($period->bank_ending_balance === null) $errors['bank_ending_balance'] = 'A raw bank ending balance is required.';
         if (abs((float) $period->reconciliation_difference) >= 0.005) $errors['reconciliation_difference'] = 'The adjusted bank balance must equal the financial ledger ending balance.';
-        $invalidTiming = $period->discrepancies()
-            ->where('classification', 'timing_difference')
-            ->where('resolution_status', 'unresolved')
-            ->where(function ($query) {
-                $query->whereNotIn('type', ['outstanding_check', 'deposit_in_transit', 'cash_not_deposited'])
-                    ->orWhere('amount', '<=', 0)
-                    ->orWhereNull('evidence_reference')
-                    ->orWhere('evidence_reference', '')
-                    ->orWhere('carry_forward', false);
-            })->exists();
-        $unexplained = $period->discrepancies()
-            ->where('resolution_status', 'unresolved')
-            ->where(function ($query) {
-                $query->where('classification', '!=', 'timing_difference')->orWhereNotIn('type', ['outstanding_check', 'deposit_in_transit', 'cash_not_deposited']);
-            })->exists();
-        if ($invalidTiming || $unexplained) $errors['discrepancies'] = 'Unexplained differences must be resolved; timing items require valid evidence and review.';
+        $blockingDiscrepancy = $period->discrepancies()->get()->contains(fn (ReconciliationDiscrepancy $discrepancy) => $discrepancy->needsFurtherAction());
+        if ($blockingDiscrepancy) $errors['discrepancies'] = 'Unexplained differences must be resolved; timing items require valid evidence and review.';
         $unmatched = BankLedgerEntry::query()->forBankAccount($period->bank_account)->whereDate('transaction_date', '>=', $period->period_start->toDateString())->whereDate('transaction_date', '<=', $period->period_end->toDateString())->whereIn('status', ['unmatched', 'unreconciled'])->exists();
         if ($unmatched) $errors['matching'] = 'All bank movements in the period must be matched before approval.';
         if ($errors !== []) throw ValidationException::withMessages($errors);

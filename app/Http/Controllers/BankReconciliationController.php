@@ -65,9 +65,9 @@ class BankReconciliationController extends Controller
         }
 
         $selectedPeriod = request()->integer('period_id')
-            ? BankReconciliation::query()->with(['discrepancies.reporter', 'discrepancies.adminReviewer', 'discrepancies.resolver'])->findOrFail(request()->integer('period_id'))
+            ? BankReconciliation::query()->with(['discrepancies.reporter', 'discrepancies.adminReviewer', 'discrepancies.resolver', 'discrepancies.bankLedgerEntry', 'discrepancies.systemRecord'])->findOrFail(request()->integer('period_id'))
             : null;
-        $activePeriod = $selectedPeriod ?: BankReconciliation::query()->with(['discrepancies.reporter', 'discrepancies.adminReviewer', 'discrepancies.resolver'])->latest('period_end')->first();
+        $activePeriod = $selectedPeriod ?: BankReconciliation::query()->with(['discrepancies.reporter', 'discrepancies.adminReviewer', 'discrepancies.resolver', 'discrepancies.bankLedgerEntry', 'discrepancies.systemRecord'])->latest('period_end')->first();
         $confirmedPeriods = BankReconciliation::query()
             ->whereIn('status', ['locked', 'approved_locked'])
             ->whereNotNull('bank_ending_balance')
@@ -331,7 +331,7 @@ class BankReconciliationController extends Controller
         if ($request->hasFile('supporting_evidence')) $data['evidence_path'] = $request->file('supporting_evidence')->store('bank-reconciliation/discrepancies/'.$period->id);
         unset($data['supporting_evidence'], $data['bank_ledger_entry_id'], $data['system_record_type'], $data['system_record_id']);
         $discrepancies->update($period, $discrepancy, $data, $request->user());
-        return redirect()->route('bank-reconciliation.index', ['period_id' => $period->id])->with('success', 'Discrepancy report updated.');
+        return redirect()->route('bank-reconciliation.index', ['period_id' => $period->id, 'section' => 'discrepancies'])->with('success', 'Discrepancy report updated and resubmitted for Admin review.');
     }
 
     public function reviewDiscrepancy(ReviewReconciliationDiscrepancyRequest $request, BankReconciliation $period, ReconciliationDiscrepancy $discrepancy, string $decision, ReconciliationDiscrepancyService $discrepancies): RedirectResponse

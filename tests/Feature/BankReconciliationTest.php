@@ -1173,9 +1173,54 @@ XML);
         $this->actingAs($staff)->get(route('bank-reconciliation.periods.show', $period))
             ->assertOk()
             ->assertSee('Accepted');
+
+        // But a *documented* timing difference (eligible type + evidence + carry_forward) is not a
+        // blocker once Admin accepts it, even though resolution_status stays unresolved -- Step 3
+        // should read "Complete" and explain that it will carry forward on its own.
+        $saved = $discrepancy->fresh();
+        $this->assertFalse($saved->needsFurtherAction());
+        $this->assertNull($saved->remainingActionReason());
+        $this->actingAs($staff)->get(route('bank-reconciliation.periods.show', $period))
+            ->assertOk()
+            ->assertSee('There are no discrepancies requiring further action.')
+            ->assertSee('properly documented and will carry forward automatically')
+            ->assertDontSee('discrepancy(ies) still need further action.');
     }
 
-    public function test_pending_bank_discrepancy_is_hidden_from_needs_matching_until_correction_is_requested(): void
+    public function test_accepted_timing_difference_missing_evidence_still_needs_action_with_reason(): void
+    {
+        $staff = $this->userWithRole('staff');
+        $admin = $this->userWithRole('admin');
+        $period = app(\App\Services\BankReconciliation\ReconciliationPeriodService::class)->create([
+            'period_start' => '2026-09-01', 'period_end' => '2026-09-30', 'opening_balance' => 10000, 'prepared_by' => $staff->id,
+        ]);
+        $missingEvidence = ReconciliationDiscrepancy::query()->create([
+            'bank_reconciliation_id' => $period->id, 'reported_by' => $staff->id, 'type' => 'outstanding_check',
+            'classification' => 'timing_difference', 'amount' => 1200, 'explanation' => 'Issued check not yet presented.',
+            'resolution_status' => 'unresolved', 'admin_review_status' => 'pending', 'carry_forward' => true,
+        ]);
+        $ineligibleType = ReconciliationDiscrepancy::query()->create([
+            'bank_reconciliation_id' => $period->id, 'reported_by' => $staff->id, 'type' => 'other', 'custom_type' => 'Unmatched LANDBANK row',
+            'classification' => 'timing_difference', 'amount' => 500, 'explanation' => 'Bank row with no system record yet.',
+            'evidence_reference' => 'OTHER-001', 'resolution_status' => 'unresolved', 'admin_review_status' => 'pending', 'carry_forward' => true,
+        ]);
+
+        $this->actingAs($admin)->post(route('bank-reconciliation.discrepancies.review', [$period, $missingEvidence, 'accepted']))->assertRedirect();
+        $this->actingAs($admin)->post(route('bank-reconciliation.discrepancies.review', [$period, $ineligibleType, 'accepted']))->assertRedirect();
+
+        $this->assertSame('missing_evidence', $missingEvidence->fresh()->remainingActionReason());
+        $this->assertSame('ineligible_type', $ineligibleType->fresh()->remainingActionReason());
+        $this->assertSame('unresolved', $missingEvidence->fresh()->resolution_status);
+        $this->assertSame('unresolved', $ineligibleType->fresh()->resolution_status);
+
+        $this->actingAs($staff)->get(route('bank-reconciliation.periods.show', $period))
+            ->assertOk()
+            ->assertSee('2 discrepancy(ies) still need further action.')
+            ->assertSee('accepted but missing an evidence reference')
+            ->assertSee('accepted but not an eligible carry-forward type');
+    }
+
+    public function test_unresolved_bank_discrepancy_is_hidden_from_needs_matching_during_review_and_correction(): void
     {
         $staff = $this->userWithRole('staff');
         $admin = $this->userWithRole('admin');
@@ -1201,11 +1246,14 @@ XML);
         $staffView = $this->actingAs($staff)->get(route('bank-reconciliation.periods.show', $period));
         $staffView->assertOk()
             ->assertSee('Pending discrepancy LANDBANK row')
+            ->assertSee('PENDING-DISC-001')
+            ->assertSee('Awaiting Admin review of the reported bank charge.')
             ->assertSee('Pending Review')
             ->assertSee('Actions')
             ->assertSee('View')
             ->assertSee('Update Report')
             ->assertDontSee('Manage Discrepancies')
+            ->assertSee('"reference":"PENDING-DISC-001","amount":175,"status":"unreconciled","discrepancyStatus":"Pending Review","needsMatching":false', false)
             ->assertSee('"needsMatching":false', false)
             ->assertSee('unmatched');
 
@@ -1216,8 +1264,105 @@ XML);
         $this->actingAs($staff)->get(route('bank-reconciliation.periods.show', $period))
             ->assertOk()
             ->assertSee('Correction Required')
-            ->assertSee('"needsMatching":true', false);
+            ->assertSee('"reference":"PENDING-DISC-001","amount":175,"status":"unreconciled","discrepancyStatus":"Correction Required","needsMatching":false', false);
         $this->assertSame('unreconciled', $entry->fresh()->status);
+    }
+
+    public function test_discrepancy_direction_filters_classify_bank_and_system_sources(): void
+    {
+        $staff = $this->userWithRole('staff');
+        $period = $this->reconciliationPeriod($staff);
+        $deposit = $this->ledgerEntry(['transaction_type' => 'deposit', 'transaction_date' => $period->period_start]);
+        $withdrawal = $this->withdrawalEntry(['transaction_date' => $period->period_start]);
+        $contribution = $this->electronicContribution(['received_at' => $period->period_start]);
+        $disbursement = $this->cashDisbursement(['requested_date' => $period->period_start]);
+
+        foreach ([
+            ['explanation' => 'Incoming bank-side report', 'type' => 'deposit_in_transit', 'bank_ledger_entry_id' => $deposit->id],
+            ['explanation' => 'Outgoing bank-side report', 'type' => 'outstanding_check', 'bank_ledger_entry_id' => $withdrawal->id],
+            ['explanation' => 'Incoming system-record report', 'type' => 'deposit_in_transit', 'system_record_type' => 'contribution', 'system_record_id' => $contribution->id],
+            ['explanation' => 'Outgoing system-record report', 'type' => 'outstanding_check', 'system_record_type' => 'cash_disbursement', 'system_record_id' => $disbursement->id],
+        ] as $source) {
+            $period->discrepancies()->create(array_merge([
+                'reported_by' => $staff->id,
+                'classification' => 'timing_difference',
+                'amount' => 100,
+                'resolution_status' => 'unresolved',
+                'admin_review_status' => 'pending',
+            ], $source));
+        }
+
+        $response = $this->actingAs($staff)->get(route('bank-reconciliation.periods.show', $period));
+        $response->assertOk()
+            ->assertSee('Filter discrepancies by transaction direction')
+            ->assertSee('data-discrepancy-direction="all"', false)
+            ->assertSee('data-discrepancy-direction="incoming"', false)
+            ->assertSee('data-discrepancy-direction="outgoing"', false)
+            ->assertSee('Incoming bank-side report')
+            ->assertSee('Outgoing bank-side report')
+            ->assertSee('Incoming system-record report')
+            ->assertSee('Outgoing system-record report');
+
+        $this->assertSame(2, substr_count($response->getContent(), 'data-transaction-direction="incoming"'));
+        $this->assertSame(2, substr_count($response->getContent(), 'data-transaction-direction="outgoing"'));
+    }
+
+    public function test_staff_correction_resubmission_returns_discrepancy_to_admin_pending_review(): void
+    {
+        $staff = $this->userWithRole('staff');
+        $admin = $this->userWithRole('admin');
+        $period = $this->reconciliationPeriod($staff);
+        $entry = $this->withdrawalEntry([
+            'transaction_date' => $period->period_start->copy()->addDays(3),
+            'reference_number' => 'CORRECTION-RESUBMIT-001',
+            'amount' => 4321,
+        ]);
+
+        $this->actingAs($staff)->post(route('bank-reconciliation.discrepancies.store', $period), [
+            'type' => 'outstanding_check', 'classification' => 'timing_difference', 'amount' => 4321,
+            'explanation' => 'Original Staff explanation.', 'evidence_reference' => 'ORIGINAL-EVIDENCE',
+            'bank_ledger_entry_id' => $entry->id, 'resolution_status' => 'unresolved', 'carry_forward' => 1,
+        ])->assertRedirect();
+        $discrepancy = ReconciliationDiscrepancy::query()->where('bank_ledger_entry_id', $entry->id)->firstOrFail();
+
+        $this->actingAs($admin)->post(route('bank-reconciliation.discrepancies.review', [$period, $discrepancy, 'correction_requested']), [
+            'note' => 'Attach the correct LANDBANK advice and clarify the outstanding payment.',
+        ])->assertRedirect();
+
+        $this->actingAs($staff)->get(route('bank-reconciliation.periods.show', $period))
+            ->assertOk()
+            ->assertSee('Correction Required')
+            ->assertSee('Attach the correct LANDBANK advice and clarify the outstanding payment.');
+
+        $this->actingAs($staff)->patch(route('bank-reconciliation.discrepancies.update', [$period, $discrepancy]), [
+            'type' => 'outstanding_check', 'classification' => 'timing_difference', 'amount' => 4321,
+            'explanation' => 'Corrected Staff explanation with the requested payment details.',
+            'evidence_reference' => 'CORRECTED-EVIDENCE', 'resolution_status' => 'unresolved', 'carry_forward' => 1,
+        ])->assertRedirect(route('bank-reconciliation.index', ['period_id' => $period->id, 'section' => 'discrepancies']));
+
+        $saved = $discrepancy->fresh();
+        $this->assertSame('pending', $saved->admin_review_status);
+        $this->assertNull($saved->admin_reviewed_by);
+        $this->assertNull($saved->admin_reviewed_at);
+        $this->assertNull($saved->admin_review_note);
+        $this->assertSame('Corrected Staff explanation with the requested payment details.', $saved->explanation);
+        $this->assertSame('CORRECTED-EVIDENCE', $saved->evidence_reference);
+
+        $event = \App\Models\SecurityActivityEvent::query()
+            ->where('action', 'bank_reconciliation_discrepancy_updated')
+            ->where('actor_id', $staff->id)
+            ->latest('id')->firstOrFail();
+        $this->assertSame('correction_requested', $event->metadata['resubmitted_from']);
+        $this->assertSame('Attach the correct LANDBANK advice and clarify the outstanding payment.', $event->metadata['previous_admin_review_note']);
+
+        $this->actingAs($admin)->get(route('bank-reconciliation.discrepancies.pending'))
+            ->assertOk()
+            ->assertSee('CORRECTION-RESUBMIT-001')
+            ->assertSee(route('bank-reconciliation.discrepancies.pending.show', $saved), false);
+
+        $this->actingAs($staff)->post(route('bank-reconciliation.discrepancies.review', [$period, $saved, 'accepted']))
+            ->assertForbidden();
+        $this->assertSame('pending', $saved->fresh()->admin_review_status);
     }
 
     public function test_staff_cannot_review_a_discrepancy(): void
@@ -1311,7 +1456,7 @@ XML);
         ])->assertRedirect();
         $this->actingAs($staff)->get(route('bank-reconciliation.periods.show', $period))
             ->assertSee('Correction Required')
-            ->assertSee('"reference":"SYSTEM-UNMATCHED-001","amount":2450,"status":"verified","needsMatching":true', false);
+            ->assertSee('"reference":"SYSTEM-UNMATCHED-001","amount":2450,"status":"verified","needsMatching":false', false);
 
         $this->actingAs($admin)->post(route('bank-reconciliation.discrepancies.review', [$period, $discrepancy, 'accepted']))
             ->assertRedirect();
@@ -1322,6 +1467,82 @@ XML);
             ->assertSee('Resolved')
             ->assertSee('"reference":"SYSTEM-UNMATCHED-001","amount":2450,"status":"verified","needsMatching":true', false);
         $this->assertNull($contribution->fresh()->ledgerEntry);
+    }
+
+    public function test_staff_can_report_an_unmatched_outgoing_system_record_and_cannot_duplicate_it(): void
+    {
+        $staff = $this->userWithRole('staff');
+        $admin = $this->userWithRole('admin');
+        $period = $this->reconciliationPeriod($staff);
+        $disbursement = $this->cashDisbursement([
+            'purpose' => 'Unmatched medical assistance payout',
+            'recipient' => 'Outgoing Test Recipient',
+            'amount' => 3675,
+            'requested_date' => $period->period_start->copy()->addDays(7),
+        ]);
+        $disbursement->payment()->update([
+            'payment_date' => $period->period_start->copy()->addDays(8),
+            'reference_number' => 'SYSTEM-OUTGOING-001',
+        ]);
+
+        $this->actingAs($staff)->get(route('bank-reconciliation.periods.show', $period))
+            ->assertOk()
+            ->assertSee('Unmatched medical assistance payout')
+            ->assertSee('SYSTEM-OUTGOING-001')
+            ->assertSee('Report Unmatched Record')
+            ->assertSee("openUnmatchedRecordModal(item, boardType)", false)
+            ->assertSee("direction === 'withdrawal' ? 'cash_disbursement' : 'contribution'", false);
+
+        $payload = [
+            'type' => 'outstanding_check',
+            'classification' => 'timing_difference',
+            'amount' => 3675,
+            'explanation' => 'The paid Fund Request has not appeared as a LANDBANK withdrawal.',
+            'evidence_reference' => 'SYSTEM-OUTGOING-EVIDENCE-001',
+            'system_record_type' => 'cash_disbursement',
+            'system_record_id' => $disbursement->id,
+            'resolution_status' => 'unresolved',
+            'carry_forward' => 1,
+        ];
+
+        $this->actingAs($staff)->post(route('bank-reconciliation.discrepancies.store', $period), $payload)
+            ->assertRedirect(route('bank-reconciliation.index', ['period_id' => $period->id]));
+        $this->assertDatabaseHas('reconciliation_discrepancies', [
+            'bank_reconciliation_id' => $period->id,
+            'system_record_type' => 'cash_disbursement',
+            'system_record_id' => $disbursement->id,
+            'reported_by' => $staff->id,
+            'admin_review_status' => 'pending',
+            'resolution_status' => 'unresolved',
+        ]);
+        $discrepancy = ReconciliationDiscrepancy::query()
+            ->where('system_record_type', 'cash_disbursement')
+            ->where('system_record_id', $disbursement->id)
+            ->firstOrFail();
+
+        $this->actingAs($staff)->get(route('bank-reconciliation.periods.show', $period))
+            ->assertOk()
+            ->assertSee('The paid Fund Request has not appeared as a LANDBANK withdrawal.')
+            ->assertSee('Pending Review')
+            ->assertSee('"reference":"SYSTEM-OUTGOING-001","amount":3675,"status":"approved","needsMatching":false', false);
+
+        $this->actingAs($staff)->post(route('bank-reconciliation.discrepancies.store', $period), $payload)
+            ->assertSessionHasErrors('source');
+        $this->assertSame(1, ReconciliationDiscrepancy::query()
+            ->where('bank_reconciliation_id', $period->id)
+            ->where('system_record_type', 'cash_disbursement')
+            ->where('system_record_id', $disbursement->id)
+            ->count());
+
+        $this->actingAs($admin)->post(route('bank-reconciliation.discrepancies.review', [$period, $discrepancy, 'correction_requested']), [
+            'note' => 'Please correct the report or match the payment.',
+        ])->assertRedirect();
+        $this->actingAs($staff)->get(route('bank-reconciliation.periods.show', $period))
+            ->assertSee('Correction Required')
+            ->assertSee('"reference":"SYSTEM-OUTGOING-001","amount":3675,"status":"approved","needsMatching":false', false);
+
+        $this->assertNull($disbursement->fresh()->withdrawalMatch);
+        $this->assertSame('approved', $disbursement->fresh()->status);
     }
 
     public function test_staff_can_resolve_an_admin_accepted_discrepancy_with_evidence(): void
