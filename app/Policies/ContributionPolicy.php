@@ -19,7 +19,7 @@ class ContributionPolicy
 
     public function create(User $user): bool
     {
-        return $this->viewAny($user);
+        return $this->active($user) && $user->hasRole('staff');
     }
 
     public function update(User $user, Contribution $contribution): bool
