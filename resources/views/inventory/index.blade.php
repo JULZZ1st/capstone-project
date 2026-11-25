@@ -10,64 +10,52 @@
     @endif
 
     <div class="space-y-6">
-        <div class="flex flex-col justify-end gap-2 sm:flex-row">
-            <a href="{{ route('inventory.export.pdf', $filters) }}" class="inline-flex items-center justify-center rounded-md border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50">
-                Export PDF
-            </a>
-            @can('create', App\Models\InventoryCategory::class)
-                <a href="{{ route('inventory.categories.index') }}" class="inline-flex items-center justify-center rounded-md border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50">
-                    Manage Categories &amp; Units
-                </a>
-            @endcan
-            @can('create', App\Models\InventoryItem::class)
-                <x-button type="button" class="w-full gap-2 shadow-sm sm:w-auto" data-dialog-open="create-inventory-item-dialog">
-                    <x-icon name="plus" class="h-4 w-4" />
-                    Add New Inventory Item
-                </x-button>
-            @endcan
-        </div>
-
-        <x-inventory.alert-panel :alerts="$alerts" />
-
-        <div class="ui-card p-5">
-            <div class="space-y-4">
-                <x-inventory.filter-tabs :filters="$filters" />
-                <div class="border-t border-slate-100 pt-4">
-                    <x-inventory.search-bar :filters="$filters" />
+        <form method="GET" action="{{ route('inventory.index') }}" id="inventory-filter-form" class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div class="min-w-0 lg:max-w-sm lg:flex-1">
+                <div class="relative">
+                    <x-icon name="search" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                    <input
+                        id="search"
+                        name="search"
+                        value="{{ $filters['search'] ?? '' }}"
+                        placeholder="Search by item name, category, batch, location, or notes"
+                        autocomplete="off"
+                        aria-label="Search inventory"
+                        class="ui-control block h-10 w-full py-2 pl-9 pr-3"
+                        data-inventory-autosearch
+                    >
                 </div>
             </div>
-        </div>
 
-        <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <x-dashboard.summary-card
-                label="Total Items"
-                :value="number_format((int) $stockSummary->total_items)"
-                description="All inventory items."
-                icon="archive"
-                tone="neutral"
-            />
-            <x-dashboard.summary-card
-                label="In Stock"
-                :value="number_format((int) $stockSummary->in_stock)"
-                description="Items available."
-                icon="check-circle"
-                tone="positive"
-            />
-            <x-dashboard.summary-card
-                label="Low Stock"
-                :value="number_format((int) $stockSummary->low_stock)"
-                description="Below reorder level."
-                icon="alert-triangle"
-                tone="warning"
-            />
-            <x-dashboard.summary-card
-                label="Out of Stock"
-                :value="number_format((int) $stockSummary->out_of_stock)"
-                description="No items available."
-                icon="x-circle"
-                tone="danger"
-            />
-        </section>
+            <div class="flex flex-wrap items-center gap-2">
+                <select id="inventory-filter-category" name="category" aria-label="Category" class="ui-control ui-select--compact h-10 w-44 py-2" data-inventory-autosubmit>
+                    <option value="">All Categories</option>
+                    @foreach ($categories as $category)
+                        <option value="{{ $category->key }}" @selected(($filters['category'] ?? null) === $category->key)>{{ $category->label }}</option>
+                    @endforeach
+                </select>
+
+                <select id="inventory-filter-status" name="status" aria-label="Status" class="ui-control ui-select--compact h-10 w-40 py-2" data-inventory-autosubmit>
+                    <option value="">All statuses</option>
+                    @foreach (config('inventory.item_statuses') as $key => $status)
+                        <option value="{{ $key }}" @selected(($filters['status'] ?? null) === $key)>{{ $status['label'] }}</option>
+                    @endforeach
+                </select>
+
+                @can('create', App\Models\InventoryCategory::class)
+                    <a href="{{ route('inventory.categories.index') }}" class="ui-button ui-button--secondary w-auto">
+                        Manage Categories &amp; Units
+                    </a>
+                @endcan
+
+                @can('create', App\Models\InventoryItem::class)
+                    <a href="{{ route('inventory.create') }}" class="ui-button ui-button--primary w-auto gap-2">
+                        <x-icon name="plus" class="h-4 w-4" />
+                        Add New Inventory Item
+                    </a>
+                @endcan
+            </div>
+        </form>
 
         @if ($items->count())
             <x-inventory.table :items="$items" />
@@ -91,23 +79,13 @@
                         @endif
                     </p>
 
-                    <div class="mt-4 flex flex-wrap items-center justify-center gap-3">
-                        @if (request()->hasAny(['search', 'category', 'status']))
+                    @if (request()->hasAny(['search', 'category', 'status']))
+                        <div class="mt-4 flex flex-wrap items-center justify-center gap-3">
                             <a href="{{ route('inventory.index') }}" class="text-sm font-semibold text-blue-700 hover:text-blue-800">Clear filters</a>
-                        @endif
-                        @can('create', App\Models\InventoryItem::class)
-                            <x-button type="button" class="w-auto" data-dialog-open="create-inventory-item-dialog">
-                                <x-icon name="plus" class="-ml-0.5 mr-1.5 h-4 w-4" />
-                                Add New Inventory Item
-                            </x-button>
-                        @endcan
-                    </div>
+                        </div>
+                    @endif
                 </div>
             </div>
         @endif
     </div>
-
-    @can('create', App\Models\InventoryItem::class)
-        <x-inventory.create-modal :categories="$categories" :units="$units" />
-    @endcan
 @endsection

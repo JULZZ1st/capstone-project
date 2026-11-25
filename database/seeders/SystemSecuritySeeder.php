@@ -5,7 +5,6 @@ namespace Database\Seeders;
 use App\Models\SecurityActivityEvent;
 use App\Models\SecurityPermission;
 use App\Models\User;
-use App\Models\UserSecurityProfile;
 use Illuminate\Database\Seeder;
 
 class SystemSecuritySeeder extends Seeder
@@ -30,16 +29,6 @@ class SystemSecuritySeeder extends Seeder
             ->orderBy('id')
             ->get()
             ->each(function (User $user) use ($permissions): void {
-                UserSecurityProfile::query()->firstOrCreate(
-                    ['user_id' => $user->id],
-                    [
-                        'two_factor_enabled' => true,
-                        'two_factor_enforced' => true,
-                        'two_factor_verified_at' => now(),
-                        'security_key_suffix' => str_pad((string) (($user->id * 82913) % 1000000), 6, '0', STR_PAD_LEFT),
-                    ],
-                );
-
                 $rolePermissions = config("system_security.role_permissions.{$user->roleName()}", []);
                 $sync = collect($rolePermissions)
                     ->filter(fn (string $key) => $permissions->has($key))
@@ -60,7 +49,7 @@ class SystemSecuritySeeder extends Seeder
                     [
                         'user_id' => $admin->id,
                         'action' => 'admin_authenticated',
-                        'summary' => "Authorized admin user {$admin->name} successfully unlocked access with correct credentials and active 2FA.",
+                        'summary' => "Authorized admin user {$admin->name} successfully authenticated.",
                     ],
                     [
                         'actor_id' => $admin->id,

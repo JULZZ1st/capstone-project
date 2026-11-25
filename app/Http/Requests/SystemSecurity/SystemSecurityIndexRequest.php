@@ -18,6 +18,9 @@ class SystemSecurityIndexRequest extends FormRequest
         return [
             'action' => ['nullable', Rule::exists('security_activity_events', 'action')],
             'search' => ['nullable', 'string', 'max:255'],
+            'staff_search' => ['nullable', 'string', 'max:255'],
+            'staff_role' => ['nullable', Rule::in(['admin', 'staff'])],
+            'staff_status' => ['nullable', Rule::in([config('auth_defaults.user_status'), 'deactivated'])],
         ];
     }
 
@@ -26,6 +29,9 @@ class SystemSecurityIndexRequest extends FormRequest
         $this->merge([
             'action' => $this->nullableTrim('action'),
             'search' => $this->nullableTrim('search'),
+            'staff_search' => $this->nullableTrim('staff_search'),
+            'staff_role' => $this->nullableTrim('staff_role'),
+            'staff_status' => $this->nullableTrim('staff_status'),
         ]);
     }
 

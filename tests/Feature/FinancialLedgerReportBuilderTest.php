@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\BankLedgerEntry;
 use App\Models\CashDisbursement;
+use App\Models\CashDisbursementPayment;
 use App\Models\Contribution;
 use App\Models\Donor;
 use App\Models\Role;
@@ -111,6 +112,27 @@ class FinancialLedgerReportBuilderTest extends TestCase
         $report = app(FinancialLedgerReportBuilder::class)->build(2026, 6);
 
         $this->assertSame(2000.0, $report['summary']['disbursement_total']);
+    }
+
+    public function test_actual_payment_total_uses_payment_date_and_excludes_voided_requests(): void
+    {
+        $requester = User::factory()->create(['role_id' => Role::query()->firstOrCreate(['name' => 'staff'], config('auth_defaults.roles.staff'))->id]);
+        $admin = User::factory()->create(['role_id' => Role::query()->firstOrCreate(['name' => 'admin'])->id]);
+
+        $paid = CashDisbursement::query()->create([
+            'amount' => 2400, 'purpose' => 'May request paid in June', 'requested_by' => $requester->id,
+            'status' => 'approved', 'approved_by' => $admin->id, 'approved_at' => '2026-05-20',
+            'created_at' => '2026-05-10',
+        ]);
+        CashDisbursementPayment::query()->create([
+            'cash_disbursement_id' => $paid->id, 'payment_date' => '2026-06-05', 'amount' => 2400,
+            'payment_method' => 'cash', 'released_by' => $requester->id, 'released_at' => '2026-06-05',
+        ]);
+
+        $report = app(FinancialLedgerReportBuilder::class)->build(2026, 6);
+
+        $this->assertSame(2400.0, $report['summary']['actual_payment_total']);
+        $this->assertSame(0.0, $report['summary']['disbursement_total']);
     }
 
     private function cashContribution(array $overrides = []): Contribution

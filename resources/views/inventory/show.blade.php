@@ -16,55 +16,42 @@
 
         <x-inventory.stock-summary :item="$inventoryItem" />
 
-        <div class="overflow-hidden rounded-lg border border-slate-200 bg-white">
-            <div class="border-b border-slate-200 px-4 py-3">
-                <h2 class="text-sm font-semibold text-slate-950">Recent Stock Movements</h2>
-            </div>
-            <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-slate-200 text-sm">
-                    <thead class="bg-slate-50 text-left text-xs font-semibold uppercase text-slate-500">
-                        <tr>
-                            <th class="px-4 py-3">Date</th>
-                            <th class="px-4 py-3">Type</th>
-                            <th class="px-4 py-3 text-right">Before</th>
-                            <th class="px-4 py-3 text-right">Quantity</th>
-                            <th class="px-4 py-3 text-right">After</th>
-                            <th class="px-4 py-3">Reason</th>
-                            <th class="px-4 py-3">Source</th>
-                            <th class="px-4 py-3">Logged by</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-200">
-                        @forelse ($inventoryItem->stockMovements as $movement)
-                            <tr>
-                                <td class="px-4 py-3 text-slate-600">{{ $movement->created_at?->format('M d, Y g:i A') }}</td>
-                                <td class="px-4 py-3 font-medium text-slate-900">{{ config('inventory.movement_types.'.$movement->movement_type, $movement->movement_type) }}</td>
-                                <td class="px-4 py-3 text-right">{{ number_format((float) $movement->quantity_before, 2) }}</td>
-                                <td class="px-4 py-3 text-right">{{ number_format((float) $movement->quantity, 2) }}</td>
-                                <td class="px-4 py-3 text-right">{{ number_format((float) $movement->quantity_after, 2) }}</td>
-                                <td class="px-4 py-3">{{ config('inventory.adjustment_reasons.'.$movement->reason, $movement->reason) }}</td>
-                                <td class="px-4 py-3">
-                                    @if ($movement->contributionItem?->contribution)
-                                        <a href="{{ route('donations.show', $movement->contributionItem->contribution) }}" class="font-medium text-blue-700 hover:text-blue-800">
-                                            {{ $movement->contributionItem->contribution->receipt_number }}
-                                        </a>
-                                        <span class="block text-xs text-slate-500">{{ $movement->contributionItem->contribution->donor?->full_name }}</span>
-                                    @else
-                                        <span class="text-slate-400">Manual / imported</span>
-                                    @endif
-                                </td>
-                                <td class="px-4 py-3">{{ $movement->creator?->name ?? 'System' }}</td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="8" class="px-4 py-8">
-                                    <x-dashboard.empty-state message="No stock movements have been recorded for this item." />
-                                </td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
+        <div class="min-w-0">
+            <x-data-table caption="Recent stock movements" title="Recent Stock Movements" min-width="52rem">
+                <x-slot:head>
+                    <x-data-table.heading>Date</x-data-table.heading>
+                    <x-data-table.heading>Type</x-data-table.heading>
+                    <x-data-table.heading align="right">Before</x-data-table.heading>
+                    <x-data-table.heading align="right">Quantity</x-data-table.heading>
+                    <x-data-table.heading align="right">After</x-data-table.heading>
+                    <x-data-table.heading>Reason</x-data-table.heading>
+                    <x-data-table.heading>Source</x-data-table.heading>
+                    <x-data-table.heading>Logged by</x-data-table.heading>
+                </x-slot:head>
+                @forelse ($inventoryItem->stockMovements as $movement)
+                    <tr>
+                        <td class="px-4 py-3 text-slate-600">{{ $movement->created_at?->format('M d, Y g:i A') }}</td>
+                        <td class="px-4 py-3 font-medium text-slate-900">{{ config('inventory.movement_types.'.$movement->movement_type, $movement->movement_type) }}</td>
+                        <td class="data-table__number">{{ number_format((float) $movement->quantity_before, 2) }}</td>
+                        <td class="data-table__number">{{ number_format((float) $movement->quantity, 2) }}</td>
+                        <td class="data-table__number">{{ number_format((float) $movement->quantity_after, 2) }}</td>
+                        <td class="px-4 py-3">{{ config('inventory.adjustment_reasons.'.$movement->reason, $movement->reason) }}</td>
+                        <td class="px-4 py-3">
+                            @if ($movement->contributionItem?->contribution)
+                                <a href="{{ route('donations.show', $movement->contributionItem->contribution) }}" class="font-medium text-blue-700 hover:text-blue-800">
+                                    {{ $movement->contributionItem->contribution->receipt_number }}
+                                </a>
+                                <span class="block text-xs text-slate-500">{{ $movement->contributionItem->contribution->donor?->full_name }}</span>
+                            @else
+                                <span class="text-slate-400">Manual / imported</span>
+                            @endif
+                        </td>
+                        <td class="px-4 py-3">{{ $movement->creator?->name ?? 'System' }}</td>
+                    </tr>
+                @empty
+                    <x-data-table.empty :columns="8" title="No stock movements have been recorded for this item." />
+                @endforelse
+            </x-data-table>
         </div>
     </div>
 @endsection

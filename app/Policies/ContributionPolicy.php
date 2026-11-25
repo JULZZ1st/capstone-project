@@ -44,7 +44,7 @@ class ContributionPolicy
             && ! $contribution->isVoided()
             && $contribution->status === 'pending'
             && $this->sameWorkspace($user, $contribution)
-            && $user->hasRole(['admin', 'staff'])
+            && $user->hasRole('admin')
             && (int) $contribution->created_by !== (int) $user->id;
     }
 

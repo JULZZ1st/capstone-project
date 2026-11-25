@@ -99,7 +99,7 @@ class SystemSecurityStaffAccountTest extends TestCase
         $this->actingAs($admin)
             ->get(route('system-security.index'))
             ->assertOk()
-            ->assertSee('id="create-staff-account-details"', false)
+            ->assertSee('id="create-staff-account-dialog"', false)
             ->assertSee('open', false)
             ->assertSee('The password field must be at least 12 characters.', false)
             ->assertSee('value="New"', false);
@@ -280,8 +280,7 @@ class SystemSecurityStaffAccountTest extends TestCase
         $indexResponse->assertOk();
         $indexResponse->assertSee($user->email);
         $indexResponse->assertSee('Deactivated');
-        $indexResponse->assertSee('This account is disabled and retained for audit history.');
-        $indexResponse->assertSee('0 Active Accounts');
+        $indexResponse->assertSee('Reactivate');
 
         $response = $this->actingAs($admin)->patch(route('system-security.users.update', $user), [
             'first_name' => $user->first_name,
@@ -304,6 +303,83 @@ class SystemSecurityStaffAccountTest extends TestCase
         $this->actingAs($staff)
             ->patch(route('system-security.users.deactivate', $user))
             ->assertForbidden();
+    }
+
+    public function test_duplicate_staff_email_is_rejected(): void
+    {
+        $admin = $this->userWithRole('admin');
+        $existing = $this->userWithRole('staff');
+
+        $this->actingAs($admin)->post(route('system-security.users.store'), [
+            'first_name' => 'Duplicate',
+            'last_name' => 'Email',
+            'email' => $existing->email,
+            'role' => 'staff',
+            'password' => 'LongPassword123!',
+            'password_confirmation' => 'LongPassword123!',
+        ])->assertSessionHasErrors('email');
+
+        $this->assertSame(1, User::query()->where('email', $existing->email)->count());
+    }
+
+    public function test_role_and_status_filters_apply_to_staff_account_table(): void
+    {
+        $admin = $this->userWithRole('admin');
+        $staff = $this->userWithRole('staff');
+        $inactive = User::factory()->create([
+            'role_id' => Role::query()->where('name', 'staff')->value('id'),
+            'email' => 'inactive.staff@example.test',
+            'status' => 'deactivated',
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('system-security.index', ['staff_role' => 'staff', 'staff_status' => 'deactivated']))
+            ->assertOk()
+            ->assertSee($inactive->email)
+            ->assertDontSee($staff->email)
+            ->assertDontSee('<td><span class="text-slate-700">'.$admin->email.'</span></td>', false);
+    }
+
+    public function test_admin_can_toggle_staff_status_with_audit_history(): void
+    {
+        $admin = $this->userWithRole('admin');
+        $staff = $this->userWithRole('staff');
+
+        $this->actingAs($admin)
+            ->patch(route('system-security.users.toggle-status', $staff))
+            ->assertRedirect(route('system-security.index'))
+            ->assertSessionHas('success', 'Staff account deactivated.');
+
+        $this->assertDatabaseHas('users', ['id' => $staff->id, 'status' => 'deactivated']);
+        $this->assertDatabaseHas('security_activity_events', [
+            'user_id' => $staff->id,
+            'actor_id' => $admin->id,
+            'action' => 'staff_account_deactivated',
+        ]);
+
+        $this->actingAs($admin)
+            ->patch(route('system-security.users.toggle-status', $staff))
+            ->assertRedirect(route('system-security.index'))
+            ->assertSessionHas('success', 'Staff account reactivated.');
+
+        $this->assertDatabaseHas('users', ['id' => $staff->id, 'status' => config('auth_defaults.user_status')]);
+        $this->assertDatabaseHas('security_activity_events', [
+            'user_id' => $staff->id,
+            'actor_id' => $admin->id,
+            'action' => 'staff_account_reactivated',
+        ]);
+    }
+
+    public function test_staff_cannot_toggle_another_staff_account_status(): void
+    {
+        $staff = $this->userWithRole('staff');
+        $target = $this->userWithRole('staff');
+
+        $this->actingAs($staff)
+            ->patch(route('system-security.users.toggle-status', $target))
+            ->assertForbidden();
+
+        $this->assertDatabaseHas('users', ['id' => $target->id, 'status' => config('auth_defaults.user_status')]);
     }
 
     private function userWithRole(string $role): User

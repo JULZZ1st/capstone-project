@@ -47,7 +47,7 @@ class DisbursementController extends Controller
 
         $disbursements->getCollection()->each(fn (CashDisbursement $disbursement) => $this->attachAuditHistory($disbursement));
 
-        return view('disbursements.index', [
+        return view('disbursements.list', [
             'disbursements' => $disbursements,
             'fundRequestProvinces' => Province::query()->orderBy('name')->get(['code', 'name']),
             'fundRequestLocationDefaults' => [
@@ -62,6 +62,20 @@ class DisbursementController extends Controller
     {
         $creator->handle($request->validated(), $request->user());
         return redirect()->route('disbursements.index')->with('success', 'Fund request submitted.');
+    }
+
+    public function create(): View
+    {
+        Gate::authorize('create', CashDisbursement::class);
+
+        return view('disbursements.create', [
+            'fundRequestProvinces' => Province::query()->orderBy('name')->get(['code', 'name']),
+            'fundRequestLocationDefaults' => [
+                'province' => old('province', config('disbursements.barangay.province') ?: 'Cebu'),
+                'city_municipality' => old('city_municipality', config('disbursements.barangay.city_municipality')),
+                'barangay' => old('barangay', config('disbursements.barangay.location_barangay')),
+            ],
+        ]);
     }
 
     public function update(UpdateDisbursementRequest $request, CashDisbursement $disbursement, UpdateDisbursement $updater): RedirectResponse
@@ -86,7 +100,7 @@ class DisbursementController extends Controller
         $disbursement->load(['requester', 'approver', 'voider', 'treasurerCertifier', 'latestVoucher.uploader', 'latestVoucher.reviewer', 'payment.releaser']);
         $this->attachAuditHistory($disbursement);
 
-        return view('disbursements.show-modal', [
+        return view('disbursements.show', [
             'disbursement' => $disbursement,
             'fundRequestProvinces' => Province::query()->orderBy('name')->get(['code', 'name']),
         ]);

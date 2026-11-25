@@ -24,7 +24,7 @@ class InventoryManagementTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('In-Kind Inventory');
-        $response->assertSee('Inventory Alerts');
+        $response->assertSee('Search by item name, category, batch, location, or notes');
     }
 
     public function test_inventory_search_filters_items(): void

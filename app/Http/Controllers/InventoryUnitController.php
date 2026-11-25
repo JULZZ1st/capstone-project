@@ -33,4 +33,22 @@ class InventoryUnitController extends Controller
 
         return redirect()->route('inventory.categories.index')->with('success', 'Unit deleted successfully.');
     }
+
+    public function deactivate(InventoryUnit $inventoryUnit, ManageInventoryReferenceItem $manager): RedirectResponse
+    {
+        Gate::authorize('update', $inventoryUnit);
+
+        $manager->deactivate($inventoryUnit);
+
+        return redirect()->route('inventory.categories.index')->with('success', 'Unit deactivated successfully.');
+    }
+
+    public function reactivate(InventoryUnit $inventoryUnit, ManageInventoryReferenceItem $manager): RedirectResponse
+    {
+        Gate::authorize('update', $inventoryUnit);
+
+        $manager->reactivate($inventoryUnit);
+
+        return redirect()->route('inventory.categories.index')->with('success', 'Unit reactivated successfully.');
+    }
 }

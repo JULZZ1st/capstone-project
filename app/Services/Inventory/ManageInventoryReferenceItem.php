@@ -2,6 +2,7 @@
 
 namespace App\Services\Inventory;
 
+use App\Models\InventoryCategory;
 use App\Models\InventoryItem;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
@@ -31,8 +32,27 @@ class ManageInventoryReferenceItem
             $item->update([
                 'key' => $data['key'],
                 'label' => $data['label'],
-                'is_active' => $data['is_active'] ?? true,
             ]);
+
+            return $item;
+        });
+    }
+
+    public function deactivate(Model $item): Model
+    {
+        return DB::transaction(function () use ($item) {
+            $item = $item->newQuery()->lockForUpdate()->findOrFail($item->getKey());
+            $item->update(['is_active' => false]);
+
+            return $item;
+        });
+    }
+
+    public function reactivate(Model $item): Model
+    {
+        return DB::transaction(function () use ($item) {
+            $item = $item->newQuery()->lockForUpdate()->findOrFail($item->getKey());
+            $item->update(['is_active' => true]);
 
             return $item;
         });
@@ -47,6 +67,12 @@ class ManageInventoryReferenceItem
             if ($this->isInUse($item)) {
                 throw ValidationException::withMessages([
                     'key' => "This {$column} is used by existing inventory items. Deactivate it instead of deleting.",
+                ]);
+            }
+
+            if ($item instanceof InventoryCategory && $item->subcategories()->exists()) {
+                throw ValidationException::withMessages([
+                    'key' => 'This category has subcategories and cannot be deleted. Deactivate it instead, or remove its subcategories first.',
                 ]);
             }
 

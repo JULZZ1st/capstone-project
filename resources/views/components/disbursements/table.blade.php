@@ -1,6 +1,6 @@
 @props(['disbursements'])
 
-<x-data-table caption="Fund request records" title="Fund requests" description="Review recipients, amounts, and approval status. Open a request to see its full details." min-width="57rem" scroll-hook="data-fund-request-scroll" data-fund-request-table>
+<x-data-table caption="Fund request records" min-width="57rem" scroll-hook="data-fund-request-scroll" data-fund-request-table>
     <x-slot:head>
         <x-data-table.heading>Requested</x-data-table.heading>
         <x-data-table.heading>Recipient / Payee</x-data-table.heading>

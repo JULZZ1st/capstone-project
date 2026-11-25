@@ -83,11 +83,45 @@ class InventoryCategoryManagementTest extends TestCase
         $category = $manager->create(InventoryCategory::class, ['key' => 'service_test', 'label' => 'Service Test', 'is_active' => true]);
         $this->assertDatabaseHas('inventory_categories', ['key' => 'service_test', 'label' => 'Service Test']);
 
-        $manager->update($category, ['key' => 'service_test', 'label' => 'Service Test Updated', 'is_active' => false]);
-        $this->assertDatabaseHas('inventory_categories', ['key' => 'service_test', 'label' => 'Service Test Updated', 'is_active' => false]);
+        $manager->update($category, ['key' => 'service_test', 'label' => 'Service Test Updated']);
+        $this->assertDatabaseHas('inventory_categories', ['key' => 'service_test', 'label' => 'Service Test Updated', 'is_active' => true]);
 
         $manager->delete($category);
         $this->assertDatabaseMissing('inventory_categories', ['key' => 'service_test']);
+    }
+
+    public function test_manage_inventory_reference_item_service_can_deactivate_and_reactivate_a_category(): void
+    {
+        $manager = app(ManageInventoryReferenceItem::class);
+        $category = InventoryCategory::query()->where('key', 'food')->firstOrFail();
+
+        $manager->deactivate($category);
+        $this->assertFalse($category->fresh()->is_active);
+
+        $manager->reactivate($category);
+        $this->assertTrue($category->fresh()->is_active);
+    }
+
+    public function test_updating_key_and_label_does_not_change_is_active(): void
+    {
+        $manager = app(ManageInventoryReferenceItem::class);
+        $category = InventoryCategory::query()->create(['key' => 'toggle_test', 'label' => 'Toggle Test', 'is_active' => false]);
+
+        $manager->update($category, ['key' => 'toggle_test', 'label' => 'Toggle Test Renamed']);
+
+        $this->assertFalse($category->fresh()->is_active);
+    }
+
+    public function test_manage_inventory_reference_item_service_blocks_delete_when_category_has_a_subcategory(): void
+    {
+        $manager = app(ManageInventoryReferenceItem::class);
+        $category = InventoryCategory::query()->create(['key' => 'has_subcat', 'label' => 'Has Subcat']);
+        InventorySubcategory::query()->create([
+            'inventory_category_id' => $category->id, 'key' => 'unused_child', 'label' => 'Unused Child', 'is_active' => false,
+        ]);
+
+        $this->expectException(ValidationException::class);
+        $manager->delete($category);
     }
 
     public function test_manage_inventory_reference_item_service_blocks_delete_when_in_use(): void
@@ -234,6 +268,76 @@ class InventoryCategoryManagementTest extends TestCase
         $this->assertDatabaseMissing('inventory_units', ['id' => $unit->id]);
     }
 
+    public function test_admin_can_deactivate_and_reactivate_a_category_over_http(): void
+    {
+        $admin = $this->userWithRole('admin');
+        $category = InventoryCategory::query()->where('key', 'food')->firstOrFail();
+
+        $this->actingAs($admin)->patch(route('inventory.categories.deactivate', $category))
+            ->assertRedirect(route('inventory.categories.index'));
+        $this->assertFalse($category->fresh()->is_active);
+
+        $this->actingAs($admin)->patch(route('inventory.categories.reactivate', $category))
+            ->assertRedirect(route('inventory.categories.index'));
+        $this->assertTrue($category->fresh()->is_active);
+    }
+
+    public function test_non_admin_cannot_deactivate_or_reactivate_a_category(): void
+    {
+        $secretary = $this->userWithRole('staff');
+        $category = InventoryCategory::query()->where('key', 'food')->firstOrFail();
+
+        $this->actingAs($secretary)->patch(route('inventory.categories.deactivate', $category))->assertForbidden();
+        $this->actingAs($secretary)->patch(route('inventory.categories.reactivate', $category))->assertForbidden();
+    }
+
+    public function test_admin_can_deactivate_and_reactivate_a_unit_over_http(): void
+    {
+        $admin = $this->userWithRole('admin');
+        $unit = InventoryUnit::query()->where('key', 'piece')->firstOrFail();
+
+        $this->actingAs($admin)->patch(route('inventory.units.deactivate', $unit))->assertRedirect(route('inventory.categories.index'));
+        $this->assertFalse($unit->fresh()->is_active);
+
+        $this->actingAs($admin)->patch(route('inventory.units.reactivate', $unit))->assertRedirect(route('inventory.categories.index'));
+        $this->assertTrue($unit->fresh()->is_active);
+    }
+
+    public function test_non_admin_cannot_deactivate_or_reactivate_a_unit(): void
+    {
+        $secretary = $this->userWithRole('staff');
+        $unit = InventoryUnit::query()->where('key', 'piece')->firstOrFail();
+
+        $this->actingAs($secretary)->patch(route('inventory.units.deactivate', $unit))->assertForbidden();
+        $this->actingAs($secretary)->patch(route('inventory.units.reactivate', $unit))->assertForbidden();
+    }
+
+    public function test_updating_a_category_over_http_no_longer_accepts_is_active(): void
+    {
+        $admin = $this->userWithRole('admin');
+        $category = InventoryCategory::query()->where('key', 'food')->firstOrFail();
+        $this->assertTrue($category->is_active);
+
+        $this->actingAs($admin)->patch(route('inventory.categories.update', $category), [
+            'key' => 'food', 'label' => 'Food', 'is_active' => '0',
+        ])->assertRedirect(route('inventory.categories.index'));
+
+        $this->assertTrue($category->fresh()->is_active);
+    }
+
+    public function test_updating_a_unit_over_http_no_longer_accepts_is_active(): void
+    {
+        $admin = $this->userWithRole('admin');
+        $unit = InventoryUnit::query()->where('key', 'piece')->firstOrFail();
+        $this->assertTrue($unit->is_active);
+
+        $this->actingAs($admin)->patch(route('inventory.units.update', $unit), [
+            'key' => 'piece', 'label' => 'Piece', 'is_active' => '0',
+        ])->assertRedirect(route('inventory.categories.index'));
+
+        $this->assertTrue($unit->fresh()->is_active);
+    }
+
     public function test_manage_categories_page_lists_seeded_categories_and_units(): void
     {
         $admin = $this->userWithRole('admin');
@@ -244,6 +348,109 @@ class InventoryCategoryManagementTest extends TestCase
         $response->assertSee('Manage Item Categories');
         $response->assertSee('Food');
         $response->assertSee('Piece');
+    }
+
+    public function test_manage_categories_page_computes_category_and_unit_dependency_counts(): void
+    {
+        $admin = $this->userWithRole('admin');
+        $food = InventoryCategory::query()->where('key', 'food')->firstOrFail();
+
+        InventoryItem::query()->create([
+            'name' => 'Count Fixture', 'category' => 'food', 'unit' => 'piece',
+            'quantity' => 1, 'current_quantity' => 1, 'minimum_reserve_quantity' => 0,
+            'storage_location' => 'Main Storage', 'status' => config('inventory.defaults.status'), 'received_at' => now(),
+        ]);
+
+        $response = $this->actingAs($admin)->get(route('inventory.categories.index'));
+        $response->assertOk();
+
+        $categories = $response->viewData('categories');
+        $units = $response->viewData('units');
+        $freshFood = $categories->firstWhere('key', 'food');
+        $piece = $units->firstWhere('key', 'piece');
+
+        $this->assertSame(1, $freshFood->inventory_item_count);
+        $this->assertSame($food->subcategories()->count(), $freshFood->subcategory_count);
+        $this->assertSame(1, $piece->inventory_item_count);
+    }
+
+    public function test_manage_categories_page_computes_subcategory_dependency_counts(): void
+    {
+        $admin = $this->userWithRole('admin');
+        $food = InventoryCategory::query()->where('key', 'food')->firstOrFail();
+        $subcategory = InventorySubcategory::query()->where('inventory_category_id', $food->id)->where('key', 'rice_grains')->firstOrFail();
+
+        InventoryItem::query()->create([
+            'name' => 'Subcat FK Fixture', 'category' => 'food', 'inventory_subcategory_id' => $subcategory->id, 'unit' => 'piece',
+            'quantity' => 1, 'current_quantity' => 1, 'minimum_reserve_quantity' => 0,
+            'storage_location' => 'Main Storage', 'status' => config('inventory.defaults.status'), 'received_at' => now(),
+        ]);
+        $this->createContributionItem($admin, 'food', 'rice_grains');
+
+        $response = $this->actingAs($admin)->get(route('inventory.categories.index'));
+        $response->assertOk();
+
+        $categories = $response->viewData('categories');
+        $freshSubcategory = $categories->firstWhere('key', 'food')->subcategories->firstWhere('key', 'rice_grains');
+
+        $this->assertSame(1, $freshSubcategory->inventory_item_count);
+        $this->assertSame(1, $freshSubcategory->donation_item_count);
+    }
+
+    public function test_category_dependency_count_matches_the_cross_workspace_delete_guard(): void
+    {
+        $admin = $this->userWithRole('admin');
+        $workspace = Workspace::query()->create(['slug' => 'count-other', 'name' => 'Other Workspace', 'status' => 'active']);
+        $this->referenceItem(['workspace_id' => $workspace->id]); // category 'food', unit 'piece', in a different workspace
+
+        $response = $this->actingAs($admin)->get(route('inventory.categories.index'));
+        $response->assertOk();
+
+        $food = $response->viewData('categories')->firstWhere('key', 'food');
+        $piece = $response->viewData('units')->firstWhere('key', 'piece');
+
+        $this->assertGreaterThan(0, $food->inventory_item_count);
+        $this->assertGreaterThan(0, $piece->inventory_item_count);
+    }
+
+    public function test_in_use_active_category_shows_deactivate_not_delete(): void
+    {
+        $admin = $this->userWithRole('admin');
+        $this->referenceItem(); // uses category 'food', unit 'piece'
+        $food = InventoryCategory::query()->where('key', 'food')->firstOrFail();
+
+        $response = $this->actingAs($admin)->get(route('inventory.categories.index'));
+
+        $response->assertOk();
+        $response->assertSee("data-dialog-open=\"category-deactivate-{$food->id}\"", false);
+        $response->assertDontSee("data-dialog-open=\"category-delete-{$food->id}\"", false);
+    }
+
+    public function test_unused_inactive_category_shows_reactivate_and_delete(): void
+    {
+        $admin = $this->userWithRole('admin');
+        $category = InventoryCategory::query()->create(['key' => 'retired_unused', 'label' => 'Retired Unused', 'is_active' => false]);
+
+        $response = $this->actingAs($admin)->get(route('inventory.categories.index'));
+
+        $response->assertOk();
+        $response->assertSee("data-dialog-open=\"category-reactivate-{$category->id}\"", false);
+        $response->assertSee("data-dialog-open=\"category-delete-{$category->id}\"", false);
+    }
+
+    public function test_edit_modals_no_longer_have_an_active_checkbox(): void
+    {
+        $admin = $this->userWithRole('admin');
+
+        $response = $this->actingAs($admin)->get(route('inventory.categories.index'));
+        $response->assertOk();
+
+        // Exactly 3 "create" dialogs (category/unit/subcategory) should still carry the
+        // is_active control — each renders 2 inputs named is_active (hidden "0" + checkbox
+        // "1", see reference-form-modal.blade.php). No "edit" dialog should contribute any,
+        // regardless of how many categories/units/subcategories exist, so the total must
+        // stay exactly 6 — not "zero", which would wrongly break the Create forms too.
+        $this->assertSame(6, substr_count($response->getContent(), 'name="is_active"'));
     }
 
     public function test_non_admin_cannot_view_categories_index(): void
@@ -316,9 +523,9 @@ class InventoryCategoryManagementTest extends TestCase
         $this->assertDatabaseHas('inventory_items', ['name' => 'Emergency Kit Bundle', 'category' => 'emergency_kits']);
     }
 
-    public function test_inventory_modal_exposes_subcategories_grouped_by_category(): void
+    public function test_inventory_create_page_exposes_subcategories_grouped_by_category(): void
     {
-        $response = $this->actingAs($this->userWithRole('admin'))->get(route('inventory.index'));
+        $response = $this->actingAs($this->userWithRole('admin'))->get(route('inventory.create'));
 
         $response->assertOk()
             ->assertSee('data-inventory-item-form', false)
@@ -507,8 +714,10 @@ class InventoryCategoryManagementTest extends TestCase
             'inventory_category_id' => $category->id,
             'key' => 'custom_subcategory',
             'label' => 'Renamed Subcategory',
-            'is_active' => '0',
         ])->assertRedirect(route('inventory.categories.index'));
+
+        $this->actingAs($admin)->patch(route('inventory.subcategories.deactivate', $subcategory))
+            ->assertRedirect(route('inventory.categories.index'));
 
         $this->assertDatabaseHas('inventory_subcategories', [
             'id' => $subcategory->id,
@@ -537,8 +746,10 @@ class InventoryCategoryManagementTest extends TestCase
             'inventory_category_id' => $food->id,
             'key' => 'rice_grains',
             'label' => 'Rice and Grains',
-            'is_active' => '0',
         ])->assertRedirect(route('inventory.categories.index'));
+
+        $this->actingAs($admin)->patch(route('inventory.subcategories.deactivate', $subcategory))
+            ->assertRedirect(route('inventory.categories.index'));
 
         $this->assertDatabaseHas('inventory_subcategories', [
             'id' => $subcategory->id,
@@ -551,7 +762,6 @@ class InventoryCategoryManagementTest extends TestCase
             'inventory_category_id' => $food->id,
             'key' => 'renamed_rice',
             'label' => 'Renamed Rice',
-            'is_active' => '1',
         ])->assertSessionHasErrors('key');
 
         $this->assertDatabaseMissing('inventory_subcategories', [
@@ -587,6 +797,57 @@ class InventoryCategoryManagementTest extends TestCase
             'inventory_category_id' => $food->id,
             'key' => 'rice_grains',
         ]);
+    }
+
+    public function test_subcategory_referenced_only_by_an_inventory_item_cannot_be_deleted(): void
+    {
+        $admin = $this->userWithRole('admin');
+        $food = InventoryCategory::query()->where('key', 'food')->firstOrFail();
+        $subcategory = InventorySubcategory::query()->where('inventory_category_id', $food->id)->where('key', 'rice_grains')->firstOrFail();
+
+        InventoryItem::query()->create([
+            'name' => 'FK-Linked Item', 'category' => 'food', 'inventory_subcategory_id' => $subcategory->id, 'unit' => 'piece',
+            'quantity' => 1, 'current_quantity' => 1, 'minimum_reserve_quantity' => 0,
+            'storage_location' => 'Main Storage', 'status' => config('inventory.defaults.status'), 'received_at' => now(),
+        ]);
+
+        $this->actingAs($admin)->delete(route('inventory.subcategories.destroy', $subcategory))->assertSessionHasErrors('key');
+        $this->assertDatabaseHas('inventory_subcategories', ['id' => $subcategory->id]);
+    }
+
+    public function test_admin_can_deactivate_and_reactivate_a_subcategory_over_http(): void
+    {
+        $admin = $this->userWithRole('admin');
+        $subcategory = InventorySubcategory::query()->where('key', 'rice_grains')->firstOrFail();
+
+        $this->actingAs($admin)->patch(route('inventory.subcategories.deactivate', $subcategory))->assertRedirect(route('inventory.categories.index'));
+        $this->assertFalse($subcategory->fresh()->is_active);
+
+        $this->actingAs($admin)->patch(route('inventory.subcategories.reactivate', $subcategory))->assertRedirect(route('inventory.categories.index'));
+        $this->assertTrue($subcategory->fresh()->is_active);
+    }
+
+    public function test_non_admin_cannot_deactivate_or_reactivate_a_subcategory(): void
+    {
+        $secretary = $this->userWithRole('staff');
+        $subcategory = InventorySubcategory::query()->where('key', 'rice_grains')->firstOrFail();
+
+        $this->actingAs($secretary)->patch(route('inventory.subcategories.deactivate', $subcategory))->assertForbidden();
+        $this->actingAs($secretary)->patch(route('inventory.subcategories.reactivate', $subcategory))->assertForbidden();
+    }
+
+    public function test_updating_a_subcategory_over_http_no_longer_accepts_is_active(): void
+    {
+        $admin = $this->userWithRole('admin');
+        $food = InventoryCategory::query()->where('key', 'food')->firstOrFail();
+        $subcategory = InventorySubcategory::query()->where('inventory_category_id', $food->id)->where('key', 'rice_grains')->firstOrFail();
+        $this->assertTrue($subcategory->is_active);
+
+        $this->actingAs($admin)->patch(route('inventory.subcategories.update', $subcategory), [
+            'inventory_category_id' => $food->id, 'key' => 'rice_grains', 'label' => 'Rice & Grains', 'is_active' => '0',
+        ])->assertRedirect(route('inventory.categories.index'));
+
+        $this->assertTrue($subcategory->fresh()->is_active);
     }
 
     private function createContributionItem(User $user, string $category, string $subcategory): void

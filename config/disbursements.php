@@ -17,5 +17,6 @@ return [
         'city_municipality' => env('BARANGAY_CITY_MUNICIPALITY'),
         'province' => env('BARANGAY_PROVINCE'),
         'location_barangay' => env('BARANGAY_BARANGAY'),
+        'tel_no' => env('BARANGAY_TEL_NO'),
     ],
 ];

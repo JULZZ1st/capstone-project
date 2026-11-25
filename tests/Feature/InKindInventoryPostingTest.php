@@ -223,7 +223,7 @@ class InKindInventoryPostingTest extends TestCase
         $this->assertSame(0, InventoryStockMovement::query()->count());
     }
 
-    public function test_donation_filters_cover_date_donor_amount_item_and_category(): void
+    public function test_simplified_donation_search_covers_item_names(): void
     {
         $user = User::factory()->create();
         $matchingDonor = $this->donor('Filter Match Donor');
@@ -262,13 +262,8 @@ class InKindInventoryPostingTest extends TestCase
         ]);
 
         $this->actingAs($user)->get(route('donations.index', [
-            'date_from' => '2026-11-01',
-            'date_to' => '2026-11-30',
-            'donor_id' => $matchingDonor->id,
-            'amount_min' => 500,
-            'amount_max' => 1000,
-            'item' => 'Rice',
-            'category' => 'food_relief',
+            'search' => 'Rice Packs',
+            'type' => 'cash',
         ]))->assertOk()
             ->assertSee('DON-FILTER-MATCH')
             ->assertDontSee('DON-FILTER-OTHER');

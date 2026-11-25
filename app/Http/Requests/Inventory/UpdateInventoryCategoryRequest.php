@@ -17,7 +17,6 @@ class UpdateInventoryCategoryRequest extends FormRequest
         return [
             'key' => ['required', 'string', 'max:100', Rule::unique('inventory_categories', 'key')->ignore($this->route('inventoryCategory'))],
             'label' => ['required', 'string', 'max:255'],
-            'is_active' => ['boolean'],
         ];
     }
 
@@ -26,7 +25,6 @@ class UpdateInventoryCategoryRequest extends FormRequest
         $this->merge([
             'key' => $this->normalizedKey('key'),
             'label' => $this->nullableTrim('label'),
-            'is_active' => $this->boolean('is_active'),
         ]);
     }
 

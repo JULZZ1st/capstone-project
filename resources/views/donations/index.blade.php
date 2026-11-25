@@ -12,60 +12,43 @@
         </x-alert>
     @endif
 
-    <div class="space-y-4">
-        <div class="space-y-3">
-            <div class="flex flex-col gap-2 sm:flex-row sm:justify-end">
-                @can('viewAny', \App\Models\Donor::class)
-                    <button
-                        type="button"
-                        class="inline-flex h-10 w-full items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 sm:w-auto"
-                        data-dialog-open="donor-directory-modal"
-                    >
-                        <x-icon name="users" class="h-4 w-4" />
-                        View All Donors
-                    </button>
-                @endcan
-
-                @can('create', \App\Models\Contribution::class)
-                    <x-button
-                        type="button"
-                        class="h-10 w-full gap-2 px-4 shadow-sm sm:w-auto"
-                        data-dialog-open="log-contribution-dialog"
-                    >
-                        <x-icon name="plus" class="h-4 w-4" />
-                        Add Donation
-                    </x-button>
-                @endcan
-            </div>
-
+    <div class="donations-page flex h-full min-h-0 flex-col gap-3 overflow-hidden">
             <x-donations.filter-bar
                 :filters="$filters"
                 :types="$availableDonationTypes"
-                :donors="$filterDonors"
-                :categories="$itemCategories"
-            />
-        </div>
+            >
+                @can('viewAny', \App\Models\Donor::class)
+                    <a
+                        href="{{ route('donors.index', ['from' => 'donations']) }}"
+                        class="inline-flex h-10 w-full items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 sm:w-auto"
+                    >
+                        <x-icon name="users" class="h-4 w-4" />
+                        View All Donors
+                    </a>
+                @endcan
+
+                @can('create', \App\Models\Contribution::class)
+                    <a href="{{ route('donations.create') }}" class="ui-button ui-button--primary inline-flex h-10 w-full items-center justify-center gap-2 px-4 shadow-sm sm:w-auto">
+                        <x-icon name="plus" class="h-4 w-4" />
+                        Add Donation
+                    </a>
+                @endcan
+            </x-donations.filter-bar>
 
         @if ($contributions->count())
             <x-donations.table :contributions="$contributions" />
         @else
             <div class="rounded-2xl border border-slate-200 bg-white shadow-sm">
-                <div class="border-b border-slate-200 px-5 py-4">
-                    <h2 class="text-base font-semibold text-slate-950">
-                        Contributions
-                    </h2>
-                </div>
-
                 <div class="p-8">
                     <x-dashboard.empty-state
                         icon="cube"
-                        :message="request()->hasAny(['search', 'type', 'status', 'date_from', 'date_to', 'donor_id', 'amount_min', 'amount_max', 'item', 'category'])
+                        :message="request()->hasAny(['search', 'type'])
                             ? 'No contributions match the current filters.'
                             : 'No contributions have been logged yet.'"
                     />
                     <p class="mt-1 text-center text-sm text-slate-400">
 
-                        @if (request()->hasAny(['search', 'type', 'status', 'date_from', 'date_to', 'donor_id', 'amount_min', 'amount_max', 'item', 'category']))
+                        @if (request()->hasAny(['search', 'type']))
 
                             Try adjusting your search or filters.
 
@@ -78,7 +61,7 @@
                     </p>
 
                     <div class="mt-4 flex flex-wrap items-center justify-center gap-3">
-                        @if (request()->hasAny(['search', 'type', 'status']))
+                        @if (request()->hasAny(['search', 'type']))
                             <a
                                 href="{{ route('donations.index') }}"
                                 class="text-sm font-semibold text-blue-700 hover:text-blue-800"
@@ -88,17 +71,13 @@
                         @endif
 
                         @can('create', \App\Models\Contribution::class)
-                            <x-button
-                                type="button"
-                                class="w-auto"
-                                data-dialog-open="log-contribution-dialog"
-                            >
+                            <a href="{{ route('donations.create') }}" class="ui-button ui-button--primary inline-flex w-auto items-center justify-center">
                                 <x-icon
                                     name="plus"
                                     class="-ml-0.5 mr-1.5 h-4 w-4"
                                 />
                                 Add Donation
-                            </x-button>
+                            </a>
                         @endcan
 
                     </div>
@@ -110,17 +89,5 @@
         @endif
 
     </div>
-
-
-    {{-- LOG CONTRIBUTION MODAL --}}
-    @can('create', \App\Models\Contribution::class)
-        <x-donations.log-modal
-            :donors="$donors"
-        />
-    @endcan
-
-    @can('viewAny', \App\Models\Donor::class)
-        <x-donations.donor-directory-modal :donors="$donorDirectory" />
-    @endcan
 
 @endsection

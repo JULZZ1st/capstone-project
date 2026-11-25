@@ -12,7 +12,7 @@
     $items = array_values(array_filter($items, fn (array $item): bool => (bool) ($item['visible'] ?? true)));
 @endphp
 
-<aside id="app-sidebar" class="border-b border-slate-700/60 bg-gradient-to-b from-[#0f1d46] via-[#0f1c3a] to-[#0a1024] text-white shadow-[0_20px_45px_rgba(15,23,42,0.28)] lg:sticky lg:top-0 lg:h-screen lg:w-64 lg:shrink-0 lg:overflow-hidden lg:border-b-0 transition-width">
+<aside id="app-sidebar" class="app-shell__sidebar border-b border-slate-700/60 bg-gradient-to-b from-[#0f1d46] via-[#0f1c3a] to-[#0a1024] text-white shadow-[0_20px_45px_rgba(15,23,42,0.28)] lg:sticky lg:top-0 lg:h-full lg:w-64 lg:shrink-0 lg:overflow-hidden lg:border-b-0 transition-width">
     <style>
         /* Preserve the original sidebar visual treatment while keeping its geometry stable. */
         .transition-width { transition: width 200ms ease; }
@@ -56,15 +56,28 @@
             #app-sidebar .nav-item { white-space: nowrap; }
         }
         @media (max-width: 1023px) {
+            #app-sidebar { position: relative; z-index: 40; }
             #app-sidebar #sidebar-menu { display: none; }
-            #app-sidebar.mobile-open #sidebar-menu { display: flex; max-height: calc(100dvh - 5rem); overflow-y: auto; }
+            #app-sidebar.mobile-open #sidebar-menu {
+                position: absolute;
+                top: 100%;
+                right: 0;
+                left: 0;
+                z-index: 50;
+                display: flex;
+                max-height: calc(100dvh - 5rem);
+                overflow-y: auto;
+                background: linear-gradient(180deg, #0f1c3a, #0a1024);
+                box-shadow: 0 20px 30px rgb(15 23 42 / 0.28);
+            }
+            #app-sidebar.mobile-open nav { flex: none; overflow: visible; }
         }
         @media (hover: none), (pointer: coarse) {
             #sidebar-toggle { opacity: 1; pointer-events: auto; }
         }
     </style>
 
-    <noscript><style>@media (max-width: 1023px) { #app-sidebar #sidebar-menu { display: flex; } }</style></noscript>
+    <noscript><style>@media (max-width: 1023px) { #app-sidebar #sidebar-menu { position: absolute; top: 100%; right: 0; left: 0; z-index: 50; display: flex; max-height: calc(100dvh - 5rem); overflow-y: auto; background: linear-gradient(180deg, #0f1c3a, #0a1024); } #app-sidebar nav { flex: none; overflow: visible; } }</style></noscript>
 
     <div class="flex h-full flex-col">
         <div id="sidebar-logo" class="group flex items-center gap-3 border-b border-white/10 px-4 py-4">

@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\Reports\ReportIndexRequest;
 use App\Models\BankReconciliation;
+use App\Services\Reports\Annex11PdfExporter;
+use App\Services\Reports\Annex11ReportBuilder;
 use App\Services\Reports\AuditTrailReportBuilder;
 use App\Services\Reports\DonorGivingSummaryPdfExporter;
 use App\Services\Reports\DonorGivingSummaryReportBuilder;
@@ -108,6 +110,32 @@ class ReportController extends Controller
         $filename = sprintf('donor-giving-summary-%04d-%02d.pdf', $request->year(), $request->month());
 
         return $exporter->handle($donorSummary, $filename);
+    }
+
+    public function philanthropyRosterCsv(
+        ReportIndexRequest $request,
+        DonorGivingSummaryReportBuilder $builder,
+        ReportCsvExporter $exporter
+    ): StreamedResponse {
+        $this->authorizeReport($request, 'philanthropy-roster');
+        $report = $builder->build([
+            'year' => $request->year(),
+            'month' => $request->month(),
+            'search' => $request->search(),
+            'sort' => $request->sort(),
+        ]);
+        $rows = $report['rows']->map(fn (array $row) => [
+            $row['donor_name'], $row['email'], $row['phone'], $row['total_donation_count'],
+            number_format($row['total_cash_donations'], 2, '.', ''),
+            number_format($row['total_in_kind_donations'], 2, '.', ''),
+            number_format($row['combined_donation_value'], 2, '.', ''),
+            $row['first_donation_date'], $row['last_donation_date'],
+        ]);
+
+        return $exporter->handle($rows, [
+            'Donor', 'Email', 'Phone', 'Contributions', 'Cash (PHP)', 'In-Kind Estimated (PHP)',
+            'Combined (PHP)', 'First Gift', 'Last Gift',
+        ], sprintf('donor-giving-summary-%04d-%02d.csv', $request->year(), $request->month()));
     }
 
     public function financialCsv(
@@ -229,6 +257,15 @@ class ReportController extends Controller
         abort_unless($periodId, 422, 'A reconciliation period is required.');
         $report = $builder->build($periodId);
         return Pdf::loadView('reports.pdf.reconciliation', compact('report'))->setPaper('a4', 'landscape')->download('bank-reconciliation-'.$report['period']->id.'.pdf');
+    }
+
+    public function reconciliationAnnex11Pdf(ReportIndexRequest $request, Annex11ReportBuilder $builder, Annex11PdfExporter $exporter): Response
+    {
+        $this->authorizeReport($request, 'reconciliation');
+        $periodId = $request->periodId();
+        abort_unless($periodId, 422, 'A reconciliation period is required.');
+        $report = $builder->build($periodId);
+        return $exporter->handle($report, 'annex-11-bank-reconciliation-'.$report['period']->id.'.pdf');
     }
 
 }
