@@ -234,6 +234,7 @@ class ReconciliationPeriodService
             ->whereNull('cleared_bank_ledger_entry_id')
             ->whereNotNull('evidence_reference')
             ->where('evidence_reference', '!=', '')
+            ->lockForUpdate()
             ->get();
 
         foreach ($items as $item) {
@@ -244,6 +245,8 @@ class ReconciliationPeriodService
                 ->whereDate('transaction_date', '<=', $end->toDateString())
                 ->where('transaction_type', $transactionType)
                 ->where('status', '!=', 'reconciled')
+                ->whereNull('matched_contribution_id')
+                ->whereDoesntHave('matchedDisbursements')
                 ->where('amount', $item->amount)
                 ->when($item->bank_ledger_entry_id, fn ($query, $entryId) => $query->where('id', '!=', $entryId))
                 ->where(function ($query) use ($item) {
@@ -251,6 +254,7 @@ class ReconciliationPeriodService
                         ->orWhere('statement_id', $item->evidence_reference);
                 })
                 ->whereDoesntHave('clearedDiscrepancy')
+                ->lockForUpdate()
                 ->first();
 
             if ($entry) {
@@ -259,25 +263,39 @@ class ReconciliationPeriodService
                     'reconciled_at' => now(),
                 ];
 
-                if ($item->system_record_type === 'contribution' && $item->system_record_id) {
-                    $contribution = Contribution::query()->find($item->system_record_id);
-                    if ($contribution
-                        && ! $contribution->ledgerEntry()->exists()
-                        && bccomp((string) $contribution->amount, (string) $entry->amount, 2) === 0) {
-                        $entryUpdates['matched_contribution_id'] = $contribution->id;
-                        $entryUpdates['matched_at'] = now();
+                $bankAccount = $entry->bank_account ?? config('bank_reconciliation.bank_accounts.0');
+                if ($item->system_record_type === 'contribution') {
+                    $contribution = Contribution::query()
+                        ->eligibleForReconciliation()
+                        ->forReconciliationBankAccount($bankAccount)
+                        ->whereKey($item->system_record_id)
+                        ->whereDate('received_at', '<=', $entry->transaction_date->toDateString())
+                        ->where('amount', $entry->amount)
+                        ->lockForUpdate()
+                        ->first();
+                    if (! $contribution || $transactionType !== 'deposit') {
+                        continue;
                     }
-                }
-
-                if ($item->system_record_type === 'cash_disbursement' && $item->system_record_id) {
-                    $disbursement = CashDisbursement::query()->find($item->system_record_id);
-                    if ($disbursement
-                        && ! $disbursement->withdrawalMatch()->exists()
-                        && bccomp((string) $disbursement->amount, (string) $entry->amount, 2) === 0) {
-                        $entry->matchedDisbursements()->syncWithoutDetaching([
-                            $disbursement->id => ['workspace_id' => $period->workspace_id],
-                        ]);
+                    $entryUpdates['matched_contribution_id'] = $contribution->id;
+                    $entryUpdates['matched_at'] = now();
+                } elseif ($item->system_record_type === 'cash_disbursement') {
+                    $disbursement = CashDisbursement::query()
+                        ->eligibleForWithdrawalMatching(
+                            throughDate: $entry->transaction_date->toDateString(),
+                            bankAccount: $bankAccount,
+                        )
+                        ->whereKey($item->system_record_id)
+                        ->where('amount', $entry->amount)
+                        ->lockForUpdate()
+                        ->first();
+                    if (! $disbursement || $transactionType !== 'withdrawal') {
+                        continue;
                     }
+                    $entry->matchedDisbursements()->syncWithoutDetaching([
+                        $disbursement->id => ['workspace_id' => $period->workspace_id],
+                    ]);
+                } elseif ($item->system_record_type !== null || $item->system_record_id !== null) {
+                    continue;
                 }
 
                 $entry->forceFill($entryUpdates)->save();

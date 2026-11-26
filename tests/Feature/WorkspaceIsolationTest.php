@@ -63,6 +63,16 @@ class WorkspaceIsolationTest extends TestCase
         $this->get(route('donors.show', $donorB))
             ->assertNotFound();
 
+        app(WorkspaceContext::class)->set($workspaceB);
+        $foreignStock = InventoryItem::query()->create([
+            'name' => 'Private Workspace B Stock', 'category' => 'food', 'quantity' => 1,
+            'current_quantity' => 1, 'unit' => 'pack', 'status' => 'active',
+        ]);
+        app(WorkspaceContext::class)->set($workspaceA);
+        $stock = $this->getJson(route('inventory.index'))->assertOk();
+        $this->assertStringNotContainsString($foreignStock->name, $stock->json('html'));
+        $this->getJson(route('inventory.show', $foreignStock))->assertNotFound();
+
         $this->get(route('reports.index', [
             'tab' => 'philanthropy-roster',
             'year' => Carbon::now()->year,

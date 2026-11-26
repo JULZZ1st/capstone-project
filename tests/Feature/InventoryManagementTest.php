@@ -41,6 +41,47 @@ class InventoryManagementTest extends TestCase
         $response->assertDontSee($other->name);
     }
 
+    public function test_live_inventory_refresh_returns_filtered_current_stock(): void
+    {
+        $item = $this->inventoryItem(['name' => 'Live Rice', 'current_quantity' => 10]);
+        $this->inventoryItem(['name' => 'Blankets']);
+        $user = User::factory()->create();
+        $url = route('inventory.index', ['search' => 'Live Rice']);
+
+        $before = $this->actingAs($user)->getJson($url)->assertOk();
+        $this->assertStringContainsString('10.00', $before->json('html'));
+        $this->assertStringNotContainsString('Blankets', $before->json('html'));
+
+        $this->post(route('inventory.adjustments.store', $item), [
+            'movement_type' => 'stock_out', 'quantity' => 3, 'reason' => 'distribution',
+        ])->assertRedirect();
+
+        $after = $this->getJson($url)->assertOk();
+        $this->assertStringContainsString('7.00', $after->json('html'));
+        $this->assertStringContainsString('adjust-stock-dialog-'.$item->id, $after->json('html'));
+        $this->assertStringContainsString('no-store', $after->headers->get('Cache-Control'));
+    }
+
+    public function test_live_item_details_include_new_stock_movements(): void
+    {
+        $item = $this->inventoryItem(['name' => 'Live Stock History', 'current_quantity' => 10]);
+        $this->actingAs(User::factory()->create())->post(route('inventory.adjustments.store', $item), [
+            'movement_type' => 'stock_in', 'quantity' => 4, 'reason' => 'correction',
+        ])->assertRedirect();
+
+        $response = $this->getJson(route('inventory.show', $item))->assertOk();
+        $this->assertStringContainsString('14.00', $response->json('html'));
+        $this->assertStringContainsString('Stock In', $response->json('html'));
+        $this->assertStringContainsString('Recent Stock Movements', $response->json('html'));
+    }
+
+    public function test_guest_cannot_poll_inventory(): void
+    {
+        $item = $this->inventoryItem();
+        $this->getJson(route('inventory.index'))->assertUnauthorized();
+        $this->getJson(route('inventory.show', $item))->assertUnauthorized();
+    }
+
     public function test_category_filter_limits_inventory_items(): void
     {
         $food = $this->inventoryItem(['name' => 'Canned Goods', 'category' => 'food']);

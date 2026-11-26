@@ -52,5 +52,7 @@ jobs:
         run: npm ci
       - name: Build assets
         run: npm run build
+      - name: Run JavaScript tests
+        run: npm run test:js
       - name: Run application tests
         run: php artisan test --compact

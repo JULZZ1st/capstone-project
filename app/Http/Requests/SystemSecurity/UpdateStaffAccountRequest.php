@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\SystemSecurity;
 
+use App\Http\Requests\Concerns\ReadsScalarInput;
 use App\Models\SecurityActivityEvent;
 use App\Support\Workspaces\WorkspaceAuthorizer;
 use Illuminate\Foundation\Http\FormRequest;
@@ -10,6 +11,8 @@ use Illuminate\Support\Str;
 
 class UpdateStaffAccountRequest extends FormRequest
 {
+    use ReadsScalarInput;
+
     public function authorize(): bool
     {
         $user = $this->user();
@@ -38,9 +41,9 @@ class UpdateStaffAccountRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         $this->merge([
-            'first_name' => trim((string) $this->input('first_name')),
-            'last_name' => trim((string) $this->input('last_name')),
-            'email' => Str::lower(trim((string) $this->input('email'))),
+            'first_name' => trim((string) $this->scalarInput('first_name')),
+            'last_name' => trim((string) $this->scalarInput('last_name')),
+            'email' => Str::lower(trim((string) $this->scalarInput('email'))),
         ]);
     }
 }

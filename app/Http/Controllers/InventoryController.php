@@ -13,13 +13,15 @@ use App\Services\Inventory\ResolveInventoryClassification;
 use App\Services\Reports\InventoryReportBuilder;
 use App\Services\Reports\InventoryReportPdfExporter;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\View\View;
 
 class InventoryController extends Controller
 {
-    public function index(InventoryIndexRequest $request): View
+    public function index(InventoryIndexRequest $request): View|JsonResponse
     {
         $filters = $request->validated();
 
@@ -49,6 +51,12 @@ class InventoryController extends Controller
             ->latest('updated_at')
             ->paginate(config('inventory.pagination.per_page'))
             ->withQueryString();
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'html' => view('inventory.partials.results', compact('items'))->render(),
+            ])->header('Cache-Control', 'no-store, private');
+        }
 
         return view('inventory.index', [
             'items' => $items,
@@ -95,7 +103,7 @@ class InventoryController extends Controller
             ->with('highlight_inventory_item', $item->id);
     }
 
-    public function show(InventoryItem $inventoryItem): View
+    public function show(Request $request, InventoryItem $inventoryItem): View|JsonResponse
     {
         Gate::authorize('view', $inventoryItem);
 
@@ -112,6 +120,12 @@ class InventoryController extends Controller
                 ->latest()
                 ->limit(25),
         ]);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'html' => view('inventory.partials.details', compact('inventoryItem'))->render(),
+            ])->header('Cache-Control', 'no-store, private');
+        }
 
         return view('inventory.show', compact('inventoryItem'));
     }

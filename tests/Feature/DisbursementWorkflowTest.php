@@ -18,6 +18,23 @@ class DisbursementWorkflowTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_existing_staff_permission_assignments_are_preserved_when_defaults_are_updated(): void
+    {
+        $staff = $this->userWithRole('staff');
+        $permission = \App\Models\SecurityPermission::create([
+            'key' => 'register_in_kind_supplies', 'name' => 'Register supplies',
+            'description' => 'Existing permission', 'sort_order' => 1,
+        ]);
+        $staff->securityPermissions()->attach($permission);
+
+        $this->actingAs($staff)->get(route('disbursements.create'))->assertForbidden();
+        $this->seed(\Database\Seeders\SystemSecuritySeeder::class);
+
+        $this->assertTrue($staff->hasSecurityPermission('register_in_kind_supplies'));
+        $this->assertTrue($staff->hasSecurityPermission('submit_fund_requests'));
+        $this->get(route('disbursements.create'))->assertOk();
+    }
+
     public function test_disbursement_request_saves_new_fields_as_pending_and_displays_in_history(): void
     {
         $requester = $this->userWithRole('staff');

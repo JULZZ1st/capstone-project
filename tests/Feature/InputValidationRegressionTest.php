@@ -33,6 +33,8 @@ class InputValidationRegressionTest extends TestCase
             'donation search' => ['GET', 'donations.index', ['search' => ['bad']], 'search'],
             'inventory search' => ['GET', 'inventory.index', ['search' => ['bad']], 'search'],
             'security search' => ['GET', 'system-security.index', ['search' => ['bad']], 'search'],
+            'report tab' => ['GET', 'reports.index', ['tab' => ['bad']], 'tab'],
+            'staff first name' => ['POST', 'system-security.users.store', ['first_name' => ['bad']], 'first_name'],
             'province query' => ['GET', 'locations.provinces', ['region_code' => ['bad']], 'region_code'],
             'city query' => ['GET', 'locations.cities', ['province_code' => ['bad']], 'province_code'],
             'barangay query' => ['GET', 'locations.barangays', ['city_code' => ['bad']], 'city_code'],
@@ -43,5 +45,17 @@ class InputValidationRegressionTest extends TestCase
             'withdrawal description' => ['POST', 'bank-reconciliation.withdrawals.store', ['description' => ['bad']], 'description'],
             'category label' => ['POST', 'inventory.categories.store', ['label' => ['bad']], 'label'],
         ];
+    }
+
+    public function test_malformed_staff_update_returns_a_validation_error(): void
+    {
+        $role = Role::firstOrCreate(['name' => 'admin'], config('auth_defaults.roles.admin'));
+        $admin = User::factory()->create(['role_id' => $role->id]);
+        $staff = User::factory()->create();
+
+        $this->actingAs($admin)->patchJson(route('system-security.users.update', $staff), [
+            'first_name' => ['invalid'], 'last_name' => $staff->last_name,
+            'email' => $staff->email, 'role' => 'staff',
+        ])->assertUnprocessable()->assertJsonValidationErrors('first_name');
     }
 }

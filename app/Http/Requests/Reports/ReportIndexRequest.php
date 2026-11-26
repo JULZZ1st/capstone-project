@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Reports;
 
+use App\Http\Requests\Concerns\ReadsScalarInput;
 use App\Support\Authorization\ReportAccess;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -9,6 +10,8 @@ use App\Support\Workspaces\WorkspaceValidationRules;
 
 class ReportIndexRequest extends FormRequest
 {
+    use ReadsScalarInput;
+
     public function authorize(): bool
     {
         if (! $this->user()) {
@@ -22,7 +25,7 @@ class ReportIndexRequest extends FormRequest
             'reports.philanthropy-roster' => 'philanthropy-roster',
         ][$this->route()?->getName()] ?? null;
 
-        $tab = $routeTab ?? $this->input('tab');
+        $tab = $routeTab ?? $this->scalarInput('tab');
         return app(ReportAccess::class)->can($this->user(), (string) ($tab ?: app(ReportAccess::class)->allowedTabs($this->user())->first()));
     }
 

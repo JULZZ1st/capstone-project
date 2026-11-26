@@ -1,4 +1,5 @@
 import './bootstrap';
+import './inventory-live';
 
 const donorSearchTimers = new WeakMap();
 const donorSearchRequests = new WeakMap();
