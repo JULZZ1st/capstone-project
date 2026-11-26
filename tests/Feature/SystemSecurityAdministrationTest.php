@@ -6,7 +6,6 @@ use App\Models\Role;
 use App\Models\SecurityActivityEvent;
 use App\Models\SecurityPermission;
 use App\Models\User;
-use App\Models\UserSecurityProfile;
 use Database\Seeders\SystemSecuritySeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -23,11 +22,15 @@ class SystemSecurityAdministrationTest extends TestCase
         $response = $this->actingAs($admin)->get(route('system-security.index'));
 
         $response->assertOk();
-        $response->assertSee('System Security Administration');
-        $response->assertSee('Workspace Staff');
-        $response->assertSee('Security Activity Trail Ledger');
+        $response->assertSee('Staff Account Management');
+        $response->assertSee('Create Staff Account');
+        $response->assertSee('Security Activity Trail');
+        $response->assertSee('Admin and staff accounts', false);
         $response->assertDontSee('<option value="admin">Administrator</option>', false);
         $response->assertSee('value="staff"', false);
+        $response->assertDontSee('TOTP');
+        $response->assertDontSee('Simulated Key');
+        $response->assertDontSee('Task permissions');
         $this->assertDatabaseHas('security_permissions', ['name' => SecurityPermission::query()->firstOrFail()->name]);
     }
 
@@ -64,31 +67,17 @@ class SystemSecurityAdministrationTest extends TestCase
         $response->assertSee('Reviewed administrative security permissions.');
     }
 
-    public function test_admin_can_toggle_two_factor_enforcement_and_audit_event_is_recorded(): void
+    public function test_unused_two_factor_controls_are_disabled_without_dropping_legacy_storage(): void
     {
         $admin = $this->userWithRole('admin');
-        $staff = $this->userWithRole('staff');
         $this->seed(SystemSecuritySeeder::class);
 
-        UserSecurityProfile::query()->updateOrCreate(
-            ['user_id' => $staff->id],
-            ['two_factor_enabled' => true, 'two_factor_enforced' => false],
-        );
-
-        $response = $this->actingAs($admin)->patch(route('system-security.two-factor-enforcement.update', $staff), [
-            'enforced' => true,
-        ]);
-
-        $response->assertRedirect(route('system-security.index'));
-        $this->assertDatabaseHas('user_security_profiles', [
-            'user_id' => $staff->id,
-            'two_factor_enforced' => true,
-        ]);
-        $this->assertDatabaseHas('security_activity_events', [
-            'user_id' => $staff->id,
-            'actor_id' => $admin->id,
-            'action' => 'two_factor_enforced',
-        ]);
+        $this->assertFalse(\Illuminate\Support\Facades\Route::has('system-security.two-factor-enforcement.update'));
+        $this->assertDatabaseCount('user_security_profiles', 0);
+        $this->actingAs($admin)->get(route('system-security.index'))
+            ->assertOk()
+            ->assertDontSee('two-factor-enforcement')
+            ->assertDontSee('2FA Authorization');
     }
 
     private function userWithRole(string $role): User

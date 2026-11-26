@@ -111,6 +111,19 @@ return [
         'other' => 'Other',
     ],
 
+    // In-kind donation categories use a deliberately smaller intake taxonomy.
+    // These mappings keep the two existing taxonomies stable while allowing
+    // automatic posting into the canonical inventory categories.
+    'contribution_category_map' => [
+        'food_relief' => 'food',
+        'medical_health' => 'medical_supplies',
+        'it_office_equipment' => 'electronics',
+        'disaster_safety' => 'disaster_relief_supplies',
+        'construction_hardware' => 'tools_hardware',
+        'furniture_fixtures' => 'furniture',
+        'others' => 'other',
+    ],
+
     'defaults' => [
         'status' => 'active',
         'unit' => 'piece',

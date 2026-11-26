@@ -306,6 +306,18 @@ class ReportGeneratorTest extends TestCase
         $this->assertStringStartsWith('%PDF', $response->getContent());
     }
 
+    public function test_authorized_user_can_download_philanthropy_roster_csv(): void
+    {
+        $this->cashContribution(['amount' => 5000, 'received_at' => now(), 'donor_name' => 'Philanthropy CSV Donor']);
+
+        $response = $this->actingAs(User::factory()->create())
+            ->get(route('reports.philanthropy-roster.csv', ['year' => now()->year, 'month' => now()->month]));
+
+        $response->assertOk();
+        $this->assertStringContainsString('text/csv', $response->headers->get('Content-Type'));
+        $this->assertStringContainsString('Philanthropy CSV Donor', $response->streamedContent());
+    }
+
     public function test_authorized_user_can_download_inventory_and_audit_exports(): void
     {
         $item = InventoryItem::query()->create([

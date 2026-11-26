@@ -3,6 +3,7 @@
 namespace App\Services\Reports;
 
 use App\Models\CashDisbursement;
+use App\Models\CashDisbursementPayment;
 use App\Models\Contribution;
 use App\Models\BankLedgerEntry;
 use Illuminate\Support\Carbon;
@@ -39,9 +40,15 @@ class FinancialLedgerReportBuilder
             ->whereDate('transaction_date', '<=', $periodEnd->toDateString())
             ->get();
 
+        $actualPaymentTotal = (float) CashDisbursementPayment::query()
+            ->whereBetween('payment_date', [$periodStart->toDateString(), $periodEnd->toDateString()])
+            ->whereHas('disbursement', fn ($query) => $query->whereNull('voided_at'))
+            ->sum('amount');
+
         return [
             'period' => $periodStart,
             'summary' => array_merge($this->summarize($contributions, $disbursements), [
+                'actual_payment_total' => $actualPaymentTotal,
                 'bank_cleared_total' => (float) $bankEntries->where('status', 'reconciled')->sum('amount'),
                 'bank_unmatched_total' => (float) $bankEntries->whereIn('status', ['unmatched', 'unreconciled'])->sum('amount'),
                 'bank_voided_total' => (float) $bankEntries->where('status', 'voided')->sum('amount'),

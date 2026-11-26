@@ -33,7 +33,10 @@ class MatchWithdrawalDisbursements
                 $payment = $disbursement->payment()->lockForUpdate()->first();
                 $match = $disbursement->withdrawalMatch()->lockForUpdate()->first();
                 if ($disbursement->status !== 'approved' || $disbursement->isVoided()
-                    || ($payment && $payment->payment_method !== 'bank_transfer')
+                    || ! $payment
+                    || $payment->payment_method !== 'bank_transfer'
+                    || $payment->payment_date?->gt($withdrawal->transaction_date)
+                    || ($payment->bank_account ?? config('bank_reconciliation.bank_accounts.0')) !== ($withdrawal->bank_account ?? config('bank_reconciliation.bank_accounts.0'))
                     || ($match && (int) $match->bank_ledger_entry_id !== (int) $withdrawal->id)) {
                     $eligible = false;
                     break;
@@ -42,7 +45,7 @@ class MatchWithdrawalDisbursements
 
             if (! $eligible) {
                 throw ValidationException::withMessages([
-                    'disbursement_ids' => 'Selected requests must be approved, active, unpaid or paid by bank transfer, and not matched to another withdrawal.',
+                    'disbursement_ids' => 'Selected requests must be approved, active, have a recorded bank-transfer payment, and not be matched to another withdrawal.',
                 ]);
             }
 

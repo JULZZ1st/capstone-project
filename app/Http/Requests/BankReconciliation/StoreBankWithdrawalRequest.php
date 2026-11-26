@@ -6,6 +6,7 @@ use App\Http\Requests\Concerns\ReadsScalarInput;
 use App\Models\BankLedgerEntry;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
+use Illuminate\Validation\Rule;
 
 class StoreBankWithdrawalRequest extends FormRequest
 {
@@ -27,6 +28,7 @@ class StoreBankWithdrawalRequest extends FormRequest
             ],
             'description' => ['required', 'string', 'max:255'],
             'amount' => ['required', 'numeric', 'decimal:0,2', 'gt:0', 'max:9999999999.99'],
+            'bank_account' => ['nullable', 'string', Rule::in(config('bank_reconciliation.bank_accounts', []))],
         ];
     }
 
@@ -39,6 +41,7 @@ class StoreBankWithdrawalRequest extends FormRequest
                 }
 
                 $duplicateExists = BankLedgerEntry::query()
+                    ->forBankAccount($this->input('bank_account') ?: config('bank_reconciliation.bank_accounts.0'))
                     ->where('transaction_type', 'withdrawal')
                     ->where('reference_number', $this->input('reference_number'))
                     ->whereDate('transaction_date', $this->input('transaction_date'))

@@ -20,22 +20,6 @@
     />
     <div class="grid gap-4 md:grid-cols-2">
         <div>
-            <x-form.label for="purpose_type">What is the donation for?</x-form.label>
-            <x-form.custom-select id="purpose_type" name="purpose_type" placeholder="Select what the donation is for" data-donation-purpose aria-label="What is the donation for?">
-                <option value="">Select purpose</option>
-                <option value="general" @selected(old('purpose_type', 'general') === 'general')>General Barangay Use</option>
-                <option value="specific" @selected(old('purpose_type') === 'specific')>For a Specific Purpose</option>
-            </x-form.custom-select>
-            <x-form.error name="purpose_type" />
-        </div>
-        <div data-purpose-name-field hidden>
-            <x-form.label for="purpose_name">Specify Purpose</x-form.label>
-            <input id="purpose_name" name="purpose_name" type="text" value="{{ old('purpose_name') }}" placeholder="Enter the project or purpose" disabled class="mt-1 block h-10 w-full rounded-lg border-slate-300 px-3 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500">
-            <x-form.error name="purpose_name" />
-        </div>
-    </div>
-    <div class="grid gap-4 md:grid-cols-2">
-        <div>
             <x-form.label for="amount">Donation Amount</x-form.label>
             <div class="relative mt-1">
                 <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-sm font-medium text-slate-500">PHP</span>
@@ -59,7 +43,7 @@
             <x-form.label for="payment_method">How was the donation received?</x-form.label>
             <x-form.custom-select id="payment_method" name="payment_method" placeholder="Select how it was received" data-payment-method aria-label="How was the donation received?">
                 <option value="">Select method</option>
-                @foreach (config('donations.payment_methods') as $value => $label)
+                @foreach (collect(config('donations.payment_methods'))->except('money_order')->all() as $value => $label)
                     <option value="{{ $value }}" @selected(old('payment_method') === $value)>{{ $label }}</option>
                 @endforeach
             </x-form.custom-select>

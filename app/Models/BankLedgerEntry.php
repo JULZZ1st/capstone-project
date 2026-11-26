@@ -16,6 +16,7 @@ class BankLedgerEntry extends Model
 
     protected $fillable = [
         'workspace_id',
+        'bank_account',
         'statement_id',
         'duplicate_fingerprint',
         'description',
@@ -107,9 +108,67 @@ class BankLedgerEntry extends Model
             ->where('status', 'unreconciled');
     }
 
+    public function scopeForBankAccount($query, ?string $bankAccount)
+    {
+        $primary = config('bank_reconciliation.bank_accounts.0');
+
+        return $query->where(function ($query) use ($bankAccount, $primary) {
+            $query->where('bank_account', $bankAccount);
+            if ($bankAccount === $primary) {
+                $query->orWhereNull('bank_account');
+            }
+        });
+    }
+
     public function isReconciled(): bool
     {
         return $this->status === 'reconciled';
+    }
+
+    /**
+     * Whether this bank movement blocks SUBMISSION because it is still
+     * unmatched/unreconciled and has no discrepancy report that is itself
+     * submission-safe. Mirrors ReconciliationDiscrepancy::blocksSubmission() so the two
+     * checks can never disagree: a bank row documented by a discrepancy that Admin has
+     * accepted (or a self-certifying, evidence-backed carry-forward timing item) doesn't
+     * need to wait for literal matching before Staff can submit the period. See
+     * blocksApproval() for the stricter rule final approval uses.
+     */
+    public function blocksSubmission(): bool
+    {
+        if (! in_array($this->status, ['unmatched', 'unreconciled'], true)) {
+            return false;
+        }
+
+        $report = $this->discrepancies->sortByDesc('id')->first();
+
+        return ! $report || $report->blocksSubmission();
+    }
+
+    /**
+     * Whether this bank movement blocks FINAL APPROVAL. Resolving a discrepancy (Staff's
+     * "Resolve Discrepancy" action, or the auto-resolve-on-accept path for
+     * accounting_adjustment discrepancies) never flips this row's own `status` column --
+     * only an actual board match, a withdrawal finalize, or ReconciliationPeriodService's
+     * cross-period clearTimingItems() does that. Without this check, a bank row whose
+     * discrepancy is already fully resolved/accounted, or validly documented as a
+     * carry-forward timing item, would block approval forever even though
+     * ReconciliationDiscrepancy::needsFurtherAction() already considers it done -- the
+     * same contradiction test_documented_timing_item_does_not_block_independent_approval
+     * was meant to rule out, just never exercised with a real tied bank_ledger_entry_id.
+     * Mirrors blocksSubmission() but uses the strict needsFurtherAction() bar instead of
+     * the looser blocksSubmission() one, since final approval must not be bypassed by a
+     * merely Admin-accepted-but-still-undocumented explanation.
+     */
+    public function blocksApproval(): bool
+    {
+        if (! in_array($this->status, ['unmatched', 'unreconciled'], true)) {
+            return false;
+        }
+
+        $report = $this->discrepancies->sortByDesc('id')->first();
+
+        return ! $report || $report->needsFurtherAction();
     }
 
     public function isWithdrawal(): bool

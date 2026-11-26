@@ -26,15 +26,13 @@ class StoreContributionRequest extends FormRequest
         return [
             'donation_type' => ['required', Rule::in(array_keys(config('donations.types')))],
             'donor_id' => [
-                'required',
+                'nullable',
                 'integer',
                 WorkspaceValidationRules::exists('donors')
                     ->where('status', config('donors.defaults.status')),
             ],
             'received_at' => ['nullable', 'date_format:Y-m-d'],
             'amount' => ['required_if:donation_type,cash', 'nullable', 'numeric', 'decimal:0,2', 'min:0.01', 'max:99999999.99'],
-            'purpose_type' => ['nullable', Rule::in(['general', 'specific'])],
-            'purpose_name' => ['required_if:purpose_type,specific', 'nullable', 'string', 'max:255'],
             'payment_method' => ['required_if:donation_type,cash', 'nullable', Rule::in(array_merge(
                 array_keys(config('donations.payment_methods')),
                 config('donations.legacy_input_payment_methods', []),
@@ -133,10 +131,7 @@ class StoreContributionRequest extends FormRequest
         $this->merge([
             'donation_type' => $donationType,
             'amount' => $this->nullableValue($this->scalarInput('amount')),
-            'purpose_type' => $this->input('donation_type') === 'cash'
-                ? ($this->nullableLower($this->scalarInput('purpose_type')) ?? 'general')
-                : null,
-            'purpose_name' => $this->nullableValue($this->scalarInput('purpose_name')),
+            'donor_id' => $this->nullableValue($this->scalarInput('donor_id')),
             'payment_method' => $this->nullableLower($this->scalarInput('payment_method')),
             'payment_method_name' => $this->nullableValue($this->scalarInput('payment_method_name')),
             'official_receipt_number' => $this->nullableValue($this->scalarInput('official_receipt_number')),

@@ -29,13 +29,15 @@
             <x-form.input name="key" :id="$dialogId.'-key'" :use-old="$restoreInput" label="Key" :value="$subcategory?->key" required />
             <x-form.input name="label" :id="$dialogId.'-label'" :use-old="$restoreInput" label="Label" :value="$subcategory?->label" required />
 
-            <div>
-                <input type="hidden" name="is_active" value="0">
-                <label class="inline-flex items-center gap-2 text-sm text-slate-700">
-                    <input type="checkbox" name="is_active" value="1" class="rounded border-slate-300" @checked($restoreInput ? old('is_active') : ($subcategory?->is_active ?? true))>
-                    Active
-                </label>
-            </div>
+            @if (! $subcategory)
+                <div>
+                    <input type="hidden" name="is_active" value="0">
+                    <label class="inline-flex items-center gap-2 text-sm text-slate-700">
+                        <input type="checkbox" name="is_active" value="1" class="rounded border-slate-300" @checked($restoreInput ? old('is_active') : true)>
+                        Active
+                    </label>
+                </div>
+            @endif
         </div>
 
         <div class="flex flex-col-reverse gap-3 border-t border-slate-200 bg-slate-50 px-5 py-4 sm:flex-row sm:justify-end">

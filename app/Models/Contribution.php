@@ -29,6 +29,7 @@ class Contribution extends Model
         'check_number',
         'bank_name',
         'registered_bank_account',
+        'reconciliation_bank_account',
         'official_receipt_number',
         'certificate_requested',
         'certificate_status',
@@ -67,6 +68,11 @@ class Contribution extends Model
     public function donor(): BelongsTo
     {
         return $this->belongsTo(Donor::class);
+    }
+
+    public function campaign(): BelongsTo
+    {
+        return $this->belongsTo(Campaign::class);
     }
 
     public function creator(): BelongsTo
@@ -119,6 +125,18 @@ class Contribution extends Model
             ->whereDoesntHave('ledgerEntry');
     }
 
+    public function scopeForReconciliationBankAccount($query, ?string $bankAccount)
+    {
+        $primary = config('bank_reconciliation.bank_accounts.0');
+
+        return $query->where(function ($query) use ($bankAccount, $primary) {
+            $query->where('reconciliation_bank_account', $bankAccount);
+            if ($bankAccount === $primary) {
+                $query->orWhereNull('reconciliation_bank_account');
+            }
+        });
+    }
+
     public function scopeType($query, ?string $type)
     {
         return $type ? $query->where('type', $type) : $query;
@@ -127,6 +145,41 @@ class Contribution extends Model
     public function scopeStatus($query, ?string $status)
     {
         return $status ? $query->where('status', $status) : $query;
+    }
+
+    public function scopeReceivedBetween($query, ?string $from, ?string $to)
+    {
+        return $query
+            ->when($from, fn ($builder) => $builder->whereDate('received_at', '>=', $from))
+            ->when($to, fn ($builder) => $builder->whereDate('received_at', '<=', $to));
+    }
+
+    public function scopeDonorId($query, ?int $donorId)
+    {
+        return $donorId ? $query->where('donor_id', $donorId) : $query;
+    }
+
+    public function scopeAmountBetween($query, mixed $minimum, mixed $maximum)
+    {
+        return $query
+            ->when($minimum !== null && $minimum !== '', fn ($builder) => $builder->where('amount', '>=', $minimum))
+            ->when($maximum !== null && $maximum !== '', fn ($builder) => $builder->where('amount', '<=', $maximum));
+    }
+
+    public function scopeItemName($query, ?string $item)
+    {
+        $item = trim((string) $item);
+
+        return $item === ''
+            ? $query
+            : $query->whereHas('items', fn ($builder) => $builder->where('name', 'like', "%{$item}%"));
+    }
+
+    public function scopeItemCategory($query, ?string $category)
+    {
+        return $category
+            ? $query->whereHas('items', fn ($builder) => $builder->where('category', $category))
+            : $query;
     }
 
     public function scopeSearch($query, ?string $term)
@@ -161,6 +214,11 @@ class Contribution extends Model
     public function isCash(): bool
     {
         return $this->type === 'cash';
+    }
+
+    public function isInKind(): bool
+    {
+        return $this->type === 'in_kind';
     }
 
     public function verificationErrors(): array

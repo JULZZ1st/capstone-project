@@ -7,6 +7,7 @@ use App\Support\Workspaces\WorkspaceAuthorizer;
 use App\Support\Workspaces\WorkspaceContext;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rules\Password;
+use Illuminate\Support\Str;
 
 class CreateStaffAccountRequest extends FormRequest
 {
@@ -31,5 +32,14 @@ class CreateStaffAccountRequest extends FormRequest
             'role' => ['required', 'string', 'in:staff'],
             'password' => ['required', 'confirmed', Password::min(12)],
         ];
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'first_name' => trim((string) $this->input('first_name')),
+            'last_name' => trim((string) $this->input('last_name')),
+            'email' => Str::lower(trim((string) $this->input('email'))),
+        ]);
     }
 }

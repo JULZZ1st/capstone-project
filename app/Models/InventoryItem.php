@@ -68,6 +68,11 @@ class InventoryItem extends Model
         return $this->belongsTo(InventorySubcategory::class, 'inventory_subcategory_id');
     }
 
+    public function contributionItems(): HasMany
+    {
+        return $this->hasMany(ContributionItem::class);
+    }
+
     public function scopeReceived($query)
     {
         return $query->where('status', config('dashboard.inventory_statuses.received'));

@@ -20,7 +20,6 @@ class UpdateInventoryUnitRequest extends FormRequest
         return [
             'key' => ['required', 'string', 'max:100', Rule::unique('inventory_units', 'key')->ignore($this->route('inventoryUnit'))],
             'label' => ['required', 'string', 'max:255'],
-            'is_active' => ['boolean'],
         ];
     }
 
@@ -29,7 +28,6 @@ class UpdateInventoryUnitRequest extends FormRequest
         $this->merge([
             'key' => $this->normalizedKey('key'),
             'label' => $this->nullableTrim('label'),
-            'is_active' => $this->boolean('is_active'),
         ]);
     }
 

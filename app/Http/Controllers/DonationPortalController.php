@@ -17,6 +17,7 @@ use App\Models\InventorySubcategory;
 use App\Models\SecurityActivityEvent;
 use App\Services\Contributions\LogContribution;
 use App\Services\Contributions\UploadContributionDeed;
+use App\Services\Inventory\PostContributionToInventory;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -80,7 +81,6 @@ class DonationPortalController extends Controller
             ->withSum('items', 'estimated_value')
             ->search($filters['search'] ?? null)
             ->type($filters['type'] ?? null)
-            ->status($filters['status'] ?? null)
             ->latest('received_at')
             ->latest()
             ->paginate(config('donations.pagination.per_page'))
@@ -90,35 +90,20 @@ class DonationPortalController extends Controller
         return view('donations.index', [
             'contributions' => $contributions,
             'filters' => $filters,
+            'availableDonationTypes' => config('donations.types'),
+        ]);
+    }
+
+    public function create(): View
+    {
+        Gate::authorize('create', Contribution::class);
+
+        return view('donations.create', [
             'donors' => Donor::query()
                 ->active()
+                ->where('full_name', '!=', 'Anonymous')
                 ->orderBy('full_name')
                 ->get(['id', 'full_name', 'contact_number']),
-            'donorDirectory' => Donor::query()
-                ->orderBy('full_name')
-                ->get([
-                    'id',
-                    'workspace_id',
-                    'donor_type',
-                    'first_name',
-                    'middle_name',
-                    'last_name',
-                    'suffix',
-                    'full_name',
-                    'contact_person',
-                    'contact_number',
-                    'email',
-                    'preferred_contact_method',
-                    'tin',
-                    'address',
-                    'barangay',
-                    'barangay_area',
-                    'city_municipality',
-                    'province',
-                    'region',
-                    'notes',
-                    'status',
-                ]),
         ]);
     }
 
@@ -158,6 +143,7 @@ class DonationPortalController extends Controller
             'verifier.role',
             'certificateIssuer.role',
             'items',
+            'items.inventoryItem',
             'evidence',
         ]);
 
@@ -210,9 +196,9 @@ class DonationPortalController extends Controller
         ]);
     }
 
-    public function update(UpdateContributionRequest $request, Contribution $contribution): RedirectResponse
+    public function update(UpdateContributionRequest $request, Contribution $contribution, PostContributionToInventory $inventoryPoster): RedirectResponse
     {
-        DB::transaction(function () use ($request, $contribution): void {
+        DB::transaction(function () use ($request, $contribution, $inventoryPoster): void {
             $contribution = Contribution::query()->lockForUpdate()->findOrFail($contribution->id);
             Gate::authorize('update', $contribution);
             $data = $request->validated();
@@ -225,6 +211,12 @@ class DonationPortalController extends Controller
             }
 
             $contribution->update($data);
+
+            // New in-kind records are posted by LogContribution. Keep direct
+            // legacy/API transitions safe and idempotent for older records.
+            if ($contribution->isInKind() && $contribution->status === 'received') {
+                $inventoryPoster->handle($contribution, $request->user());
+            }
 
             if ($contribution->isCash() && $request->user()->hasRole('admin') && $previousStatus !== $contribution->status) {
                 $this->audit($request->user(), 'cash_donation_admin_decision', $contribution, "{$request->user()->name} changed cash donation {$contribution->receipt_number} from {$previousStatus} to {$contribution->status}.");

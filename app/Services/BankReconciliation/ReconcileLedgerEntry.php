@@ -42,6 +42,17 @@ class ReconcileLedgerEntry
                 throw ValidationException::withMessages(['contribution_id' => 'Only deposits with an exact contribution amount can be reconciled.']);
             }
 
+            if ($contribution->received_at?->gt($entry->transaction_date->endOfDay())) {
+                throw ValidationException::withMessages(['contribution_id' => 'A bank deposit cannot be matched to a future-dated contribution.']);
+            }
+
+            $primary = config('bank_reconciliation.bank_accounts.0');
+            $entryAccount = $entry->bank_account ?? $primary;
+            $contributionAccount = $contribution->reconciliation_bank_account ?? $primary;
+            if ($entryAccount !== $contributionAccount) {
+                throw ValidationException::withMessages(['contribution_id' => 'The contribution belongs to a different reconciliation bank account.']);
+            }
+
             if ($entry->isReconciled()) {
                 throw ValidationException::withMessages([
                     'bank_ledger_entry_id' => 'This ledger entry has already been reconciled.',

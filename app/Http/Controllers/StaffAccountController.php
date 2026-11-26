@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Services\SystemSecurity\CreateStaffAccount;
 use App\Services\SystemSecurity\DeactivateStaffAccount;
 use App\Services\SystemSecurity\UpdateStaffAccount;
+use App\Services\SystemSecurity\ToggleStaffAccountStatus;
 use Illuminate\Http\RedirectResponse;
 
 class StaffAccountController extends Controller
@@ -38,5 +39,14 @@ class StaffAccountController extends Controller
         return redirect()
             ->route('system-security.index')
             ->with('success', 'Staff account deactivated.');
+    }
+
+    public function toggleStatus(DeactivateStaffAccountRequest $request, User $user, ToggleStaffAccountStatus $toggler): RedirectResponse
+    {
+        $updated = $toggler->handle($user, $request->user());
+
+        return redirect()
+            ->route('system-security.index')
+            ->with('success', sprintf('Staff account %s.', $updated->status === config('auth_defaults.user_status') ? 'reactivated' : 'deactivated'));
     }
 }

@@ -135,7 +135,7 @@ class BankReconciliationOutgoingFixtureSeeder extends Seeder
 
     private function workspaceStaff(Workspace $workspace, User $excluded): ?User
     {
-        return $this->workspaceUsers($workspace, ['staff', 'secretary', 'treasurer'])->first(fn (User $user): bool => $user->isNot($excluded));
+        return $this->workspaceUsers($workspace, 'staff')->first(fn (User $user): bool => $user->isNot($excluded));
     }
 
     private function workspaceUsers(Workspace $workspace, string|array $role)

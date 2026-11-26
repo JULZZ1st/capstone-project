@@ -15,53 +15,57 @@ class DonorInteractionRegressionTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_directory_creation_returns_to_the_portal_with_the_directory_open(): void
+    public function test_directory_creation_returns_to_the_donor_page_linked_from_the_portal(): void
     {
-        $response = $this->actingAs($this->admin())->post(route('donors.store'), [
-            '_modal' => 'directory-add-donor-modal',
+        $response = $this->actingAs($this->admin())->from(route('donors.index'))->post(route('donors.store'), [
+            '_modal' => 'create',
             'donor_type' => 'individual', 'first_name' => 'Maria', 'last_name' => 'Santos',
             'contact_number' => '09170000123',
         ]);
 
-        $response->assertRedirect(route('donations.index'))->assertSessionHas('donor_directory_open', true);
+        $response->assertRedirect(route('donors.index'));
+        $this->get(route('donations.index'))->assertOk()
+            ->assertSee(route('donors.index', ['from' => 'donations']), false);
+        $this->get(route('donors.index', ['from' => 'donations']))->assertOk()
+            ->assertSee('Back to Donations Portal');
         $this->assertDatabaseHas('donors', ['full_name' => 'Maria Santos']);
-        $page = $this->get(route('donations.index'))->assertOk();
+        $page = $this->get(route('donors.index'))->assertOk();
         $document = new \DOMDocument();
         $document->loadHTML($page->getContent(), LIBXML_NOERROR | LIBXML_NOWARNING);
         $xpath = new \DOMXPath($document);
-        $this->assertSame(1, $xpath->query('//dialog[@id="donor-directory-modal"][@data-reopen="true"]')->length);
-        $this->assertSame(0, $xpath->query('//dialog[@id="directory-add-donor-modal"][@open]')->length);
+        $this->assertSame(1, $xpath->query('//dialog[@id="create-donor-modal"]')->length);
+        $this->assertSame(0, $xpath->query('//dialog[@id="create-donor-modal"][@open]')->length);
+        $page->assertSee('Maria Santos');
     }
 
-    public function test_directory_validation_keeps_the_form_values_and_both_dialogs_available(): void
+    public function test_directory_validation_reopens_the_donor_form_with_submitted_values(): void
     {
-        $this->actingAs($this->admin())->post(route('donors.store'), [
-            '_modal' => 'directory-add-donor-modal',
+        $this->actingAs($this->admin())->from(route('donors.index'))->post(route('donors.store'), [
+            '_modal' => 'create',
             'donor_type' => 'individual', 'first_name' => 'Maria',
             'contact_number' => '09170000123',
-        ])->assertRedirect(route('donations.index'))->assertSessionHasErrors('last_name');
+        ])->assertRedirect(route('donors.index'))->assertSessionHasErrors('last_name');
 
-        $page = $this->get(route('donations.index'))->assertOk();
+        $page = $this->get(route('donors.index'))->assertOk();
         $document = new \DOMDocument();
         $document->loadHTML($page->getContent(), LIBXML_NOERROR | LIBXML_NOWARNING);
         $xpath = new \DOMXPath($document);
-        $this->assertSame(1, $xpath->query('//dialog[@id="donor-directory-modal"][@data-reopen="true"]')->length);
-        $this->assertSame(1, $xpath->query('//dialog[@id="directory-add-donor-modal"][@open]')->length);
-        $this->assertSame('Maria', $xpath->evaluate('string(//dialog[@id="directory-add-donor-modal"]//input[@name="first_name"]/@value)'));
+        $this->assertSame(1, $xpath->query('//dialog[@id="create-donor-modal"][@open]')->length);
+        $this->assertSame('Maria', $xpath->evaluate('string(//dialog[@id="create-donor-modal"]//input[@name="first_name"]/@value)'));
         $this->assertDatabaseCount('donors', 0);
     }
 
     public function test_duplicate_directory_creation_returns_to_the_same_form_for_review(): void
     {
         $donor = $this->donor();
-        $this->actingAs($this->admin())->post(route('donors.store'), [
-            '_modal' => 'directory-add-donor-modal',
+        $this->actingAs($this->admin())->from(route('donors.index'))->post(route('donors.store'), [
+            '_modal' => 'create',
             'donor_type' => 'individual', 'first_name' => $donor->first_name, 'last_name' => $donor->last_name,
             'contact_number' => $donor->contact_number,
-        ])->assertRedirect(route('donations.index'))->assertSessionHas('duplicate_donor_detected', true);
+        ])->assertRedirect(route('donors.index'))->assertSessionHas('duplicate_donor_detected', true);
 
         $this->assertDatabaseCount('donors', 1);
-        $this->get(route('donations.index'))->assertOk()->assertSee('name="_confirm_duplicate" value="1"', false);
+        $this->get(route('donors.index'))->assertOk()->assertSee('name="_confirm_duplicate" value="1"', false);
     }
 
     public function test_ajax_donor_removal_returns_success_instead_of_a_server_error(): void
@@ -132,12 +136,12 @@ class DonorInteractionRegressionTest extends TestCase
             ->assertOk()->assertJsonFragment(['name' => 'City of Cebu']);
     }
 
-    public function test_donor_forms_have_unique_field_ids_on_both_pages(): void
+    public function test_donor_forms_have_unique_field_ids_on_directory_and_donation_entry_pages(): void
     {
         $this->donor();
         $this->donor();
 
-        foreach (['donors.index', 'donations.index'] as $route) {
+        foreach (['donors.index', 'donations.create'] as $route) {
             $xpath = $this->page($route);
             $this->assertSame(0, $xpath->query('//*[starts-with(name(), "x-")]')->length, $route.' contains unrendered Blade components');
             $ids = [];
@@ -149,7 +153,7 @@ class DonorInteractionRegressionTest extends TestCase
         }
     }
 
-    public function test_organization_profile_details_are_complete_in_both_directories(): void
+    public function test_organization_profile_details_are_complete_in_both_directory_contexts(): void
     {
         $donor = $this->donor([
             'donor_type' => 'organization', 'full_name' => 'Community Relief Foundation',
@@ -161,8 +165,9 @@ class DonorInteractionRegressionTest extends TestCase
             'notes' => "Contact the coordinator.\nAvailable on weekdays.",
         ]);
 
-        foreach (['donors.index', 'donations.index'] as $route) {
-            $xpath = $this->page($route);
+        foreach ([[], ['from' => 'donations']] as $query) {
+            $route = 'donors.index';
+            $xpath = $this->page($route, $query);
             $dialog = '//dialog[@id="view-donor-modal-'.$donor->id.'"]';
             $this->assertSame(1, $xpath->query($dialog)->length);
             $this->assertSame($donor->full_name, $xpath->evaluate('string('.$dialog.'//h2)'));
@@ -186,9 +191,9 @@ class DonorInteractionRegressionTest extends TestCase
         }
     }
 
-    private function page(string $route): \DOMXPath
+    private function page(string $route, array $query = []): \DOMXPath
     {
-        $response = $this->actingAs($this->admin())->get(route($route))->assertOk();
+        $response = $this->actingAs($this->admin())->get(route($route, $query))->assertOk();
         $document = new \DOMDocument();
         $document->loadHTML('<?xml encoding="utf-8" ?>'.$response->getContent(), LIBXML_NOERROR | LIBXML_NOWARNING);
 

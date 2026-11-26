@@ -6,6 +6,7 @@ use App\Models\SecurityActivityEvent;
 use App\Support\Workspaces\WorkspaceAuthorizer;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Str;
 
 class UpdateStaffAccountRequest extends FormRequest
 {
@@ -32,5 +33,14 @@ class UpdateStaffAccountRequest extends FormRequest
             'role' => ['required', 'string', 'in:staff'],
             'status' => ['nullable', 'string', Rule::in([config('auth_defaults.user_status'), 'deactivated'])],
         ];
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'first_name' => trim((string) $this->input('first_name')),
+            'last_name' => trim((string) $this->input('last_name')),
+            'email' => Str::lower(trim((string) $this->input('email'))),
+        ]);
     }
 }

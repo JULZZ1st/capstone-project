@@ -1,7 +1,7 @@
 @extends('layouts.app')
 @section('title', 'Bank Reconciliation | '.config('dashboard.barangay_name'))
-@section('page-title', 'Bank Reconciliation Workspace')
-@section('page-subtitle', 'Review, match, and lock bank activity for the active workspace.')
+@section('page-title', 'Reconciliation Details')
+@section('page-subtitle', 'Review, match, and complete the selected bank reconciliation period.')
 @section('content')
 @php
     $bankTransactions = collect()->concat($ledgerEntries)->concat($withdrawals)->concat($history)->concat($withdrawalHistory)->unique('id')->sortByDesc('transaction_date')->values();
@@ -19,15 +19,64 @@
         ->map(fn ($key) => $errors->first($key))
         ->first(fn ($message) => filled($message));
     $activePeriod = $latestReconciliationPeriod;
+    $isAdmin = auth()->user()->hasRole('admin');
+    // Matching (checkboxes, Confirm Match, Upload Statement) is Staff's job while a period
+    // is Draft. Once Admin is reviewing a submitted period, or the period is approved/locked
+    // for anyone, there is nothing left to match -- the board becomes read-only.
+    $canMatchTransactions = $activePeriod !== null && ! $activePeriod->isApproved() && ! ($isAdmin && $activePeriod->isReadyForReview());
     $periodTransactionEntries = $activePeriod
         ? $bankTransactions->filter(fn ($entry) => $entry->transaction_date && $entry->transaction_date->betweenIncluded($activePeriod->period_start, $activePeriod->period_end))
         : collect();
-    $unmatchedPeriodTransactionCount = $periodTransactionEntries->whereIn('status', ['unmatched', 'unreconciled'])->count();
+    $needsMatching = function ($entry): bool {
+        if (! in_array($entry->status, ['unmatched', 'unreconciled'], true)) return false;
+        $report = ($entry->discrepancies ?? collect())->sortByDesc('id')->first();
+        return ! $report || $report->resolution_status !== 'unresolved';
+    };
+    $unmatchedPeriodTransactionCount = $periodTransactionEntries->filter($needsMatching)->count();
     $periodTransactionCount = $periodTransactionEntries->count();
-    $unresolvedDiscrepancyCount = $activePeriod?->discrepancies->where('resolution_status', 'unresolved')->count() ?? 0;
+    // Submission's "is matching done" gate must run the EXACT same query
+    // ReconciliationApprovalService::validateForApproval() runs (not the possibly
+    // feed-limited $periodTransactionEntries above) so the button and the backend
+    // validator can never disagree. A bank row blocks submission only if it's still
+    // unmatched/unreconciled AND has no discrepancy report that is itself
+    // submission-safe (BankLedgerEntry::blocksSubmission() mirrors
+    // ReconciliationDiscrepancy::blocksSubmission()). Final approval still requires
+    // every bank movement to be genuinely matched, regardless of this.
+    $unmatchedBlockingSubmissionCount = $activePeriod
+        ? \App\Models\BankLedgerEntry::query()->forBankAccount($activePeriod->bank_account)
+            ->whereDate('transaction_date', '>=', $activePeriod->period_start->toDateString())
+            ->whereDate('transaction_date', '<=', $activePeriod->period_end->toDateString())
+            ->whereIn('status', ['unmatched', 'unreconciled'])
+            ->with('discrepancies')
+            ->get()
+            ->filter(fn ($entry) => $entry->blocksSubmission())
+            ->count()
+        : 0;
+    // "Needs action" mirrors ReconciliationApprovalService::validateForApproval() exactly: a
+    // documented timing difference (eligible type, evidence reference, carry_forward flag,
+    // positive amount) does not block the period even while resolution_status stays
+    // 'unresolved' -- it will clear via matching or carry forward on its own.
+    $blockingDiscrepancies = $activePeriod?->discrepancies->filter(fn ($report) => $report->needsFurtherAction()) ?? collect();
+    $unresolvedDiscrepancyCount = $blockingDiscrepancies->count();
+    $blockingReasons = $blockingDiscrepancies->countBy(fn ($report) => $report->remainingActionReason());
+    $pendingAdminReviewCount = $blockingReasons->get('pending_review', 0);
+    $correctionRequiredCount = $blockingReasons->get('correction_required', 0);
+    $missingEvidenceCount = $blockingReasons->get('missing_evidence', 0);
+    $ineligibleTypeCount = $blockingReasons->get('ineligible_type', 0);
+    $notFlaggedCarryForwardCount = $blockingReasons->get('not_flagged_carry_forward', 0);
+    $needsResolutionCount = $blockingReasons->get('needs_resolution', 0);
+    $carryForwardReadyCount = ($activePeriod?->discrepancies->where('resolution_status', 'unresolved')->count() ?? 0) - $unresolvedDiscrepancyCount;
+    // Submission uses a looser gate than Step 3's own "needs action" display: a discrepancy
+    // that Admin has already reviewed and accepted does not block Submit, even while it still
+    // reads "Needs Action" in Step 3 (it isn't truly done until it clears or carries forward,
+    // but there's nothing left for Staff to do before Admin reviews the period). Final approval
+    // still enforces the strict needsFurtherAction() rule in ReconciliationApprovalService.
+    $submissionBlockingDiscrepancies = $activePeriod?->discrepancies->filter(fn ($report) => $report->blocksSubmission()) ?? collect();
+    $submissionBlockingCount = $submissionBlockingDiscrepancies->count();
+    $adminAcceptedAwaitingFinalizationCount = $unresolvedDiscrepancyCount - $submissionBlockingCount;
     $periodDifference = $activePeriod?->reconciliation_difference;
     $periodBalancesReady = $activePeriod !== null && $activePeriod->bank_ending_balance !== null && $periodDifference !== null && abs((float) $periodDifference) < 0.005;
-    $periodSubmitReady = $periodBalancesReady && $unmatchedPeriodTransactionCount === 0 && $unresolvedDiscrepancyCount === 0;
+    $periodSubmitReady = $periodBalancesReady && $unmatchedBlockingSubmissionCount === 0 && $submissionBlockingCount === 0;
     $bankDiscrepancyData = $bankTransactions->flatMap(fn ($entry) => ($entry->discrepancies ?? collect())->map(fn ($report) => [$entry->id => ['type' => $report->typeLabel(), 'explanation' => $report->explanation, 'amount' => 'PHP '.number_format((float) $report->amount, 2), 'evidence' => $report->evidence_reference ?: ($report->evidence_path ? 'Attached file' : 'Not provided'), 'reporter' => $report->reporter?->name ?: 'Not recorded', 'reviewer' => $report->adminReviewer?->name ?: 'Not reviewed', 'reviewed_at' => $report->admin_reviewed_at?->format('M d, Y h:i A') ?: 'Not reviewed', 'decision' => $report->admin_review_status === 'accepted' ? 'Accepted' : ($report->admin_review_status === 'correction_requested' ? 'Correction Required' : 'Pending Review'), 'remarks' => $report->admin_review_note ?: 'No Admin remarks recorded.', 'resolution_status' => ucfirst((string) $report->resolution_status), 'resolution_explanation' => $report->resolution_explanation, 'resolution_evidence' => $report->resolution_evidence_path ? 'Attached resolution evidence' : null, 'resolution_evidence_url' => $report->resolution_evidence_path ? route('bank-reconciliation.discrepancies.resolution-evidence', [$report->bank_reconciliation_id, $report]) : null, 'resolved_by' => $report->resolver?->name ?: null, 'resolved_at' => $report->resolved_at?->format('M d, Y h:i A'), 'resolve_url' => route('bank-reconciliation.discrepancies.resolve', [$report->bank_reconciliation_id, $report])]]) )->collapse()->all();
     $rawBankDiscrepancyData = collect($bankDiscrepancyData)->values();
     $bankDiscrepancyData = [];
@@ -42,16 +91,27 @@
             $bankDiscrepancyPayloadIndex++;
         }
     }
-    $boardBankRows = $boardBankTransactions->map(fn ($entry) => ['id' => $entry->id, 'type' => $entry->transaction_type === 'withdrawal' ? 'withdrawal' : 'deposit', 'date' => $entry->transaction_date?->toDateString(), 'description' => $entry->description, 'reference' => $entry->reference_number, 'amount' => (float) $entry->amount, 'status' => $entry->status === 'reconciled' ? 'matched' : $entry->status, 'matchUrl' => route('bank-reconciliation.reconcile'), 'outgoingFinalizeUrl' => route('bank-reconciliation.withdrawals.reconcile', $entry)])->values();
+    $boardBankRows = $boardBankTransactions->map(function ($entry) use ($needsMatching) {
+        $report = ($entry->discrepancies ?? collect())->sortByDesc('id')->first();
+        $discrepancyStatus = ! $report ? null
+            : ($report->resolution_status === 'resolved' ? 'Resolved'
+                : ($report->admin_review_status === 'accepted' ? 'Accepted'
+                    : ($report->admin_review_status === 'correction_requested' ? 'Correction Required' : 'Pending Review')));
+        return ['id' => $entry->id, 'type' => $entry->transaction_type === 'withdrawal' ? 'withdrawal' : 'deposit', 'date' => $entry->transaction_date?->toDateString(), 'description' => $entry->description, 'reference' => $entry->reference_number, 'amount' => (float) $entry->amount, 'status' => $entry->status === 'reconciled' ? 'matched' : $entry->status, 'discrepancyStatus' => $discrepancyStatus, 'needsMatching' => $needsMatching($entry), 'matchUrl' => route('bank-reconciliation.reconcile'), 'outgoingFinalizeUrl' => route('bank-reconciliation.withdrawals.reconcile', $entry)];
+    })->values();
     $systemDiscrepancyFor = function (string $type, int $id) use ($activePeriod) {
         $reports = $activePeriod?->discrepancies?->filter(fn ($report) => $report->system_record_type === $type && (int) $report->system_record_id === $id) ?? collect();
-        $report = $reports->first(fn ($item) => $item->resolution_status === 'resolved') ?: $reports->first(fn ($item) => $item->admin_review_status === 'correction_requested') ?: $reports->first(fn ($item) => $item->admin_review_status === 'accepted') ?: $reports->first();
-        return $report ? ['id' => $report->id, 'status' => $report->resolution_status === 'resolved' ? 'Resolved' : ($report->admin_review_status === 'accepted' ? 'Accepted' : ($report->admin_review_status === 'correction_requested' ? 'Correction Required' : 'Pending Review')), 'data' => ['type' => $report->typeLabel(), 'explanation' => $report->explanation, 'amount' => 'PHP '.number_format((float) $report->amount, 2), 'evidence' => $report->evidence_reference ?: ($report->evidence_path ? 'Attached file' : 'Not provided'), 'reporter' => $report->reporter?->name ?: 'Not recorded', 'reviewer' => $report->adminReviewer?->name ?: 'Not reviewed', 'reviewed_at' => $report->admin_reviewed_at?->format('M d, Y h:i A') ?: 'Not reviewed', 'decision' => $report->admin_review_status === 'accepted' ? 'Accepted' : ($report->admin_review_status === 'correction_requested' ? 'Correction Required' : 'Pending Review'), 'remarks' => $report->admin_review_note ?: 'No Admin remarks recorded.', 'resolution_status' => ucfirst((string) $report->resolution_status), 'resolution_explanation' => $report->resolution_explanation, 'resolution_evidence' => $report->resolution_evidence_path ? 'Attached resolution evidence' : null, 'resolution_evidence_url' => $report->resolution_evidence_path ? route('bank-reconciliation.discrepancies.resolution-evidence', [$report->bank_reconciliation_id, $report]) : null, 'resolved_by' => $report->resolver?->name ?: null, 'resolved_at' => $report->resolved_at?->format('M d, Y h:i A'), 'resolve_url' => route('bank-reconciliation.discrepancies.resolve', [$report->bank_reconciliation_id, $report])]] : null;
+        $report = $reports->sortByDesc('id')->first();
+        return $report ? ['id' => $report->id, 'status' => $report->resolution_status === 'resolved' ? 'Resolved' : ($report->admin_review_status === 'accepted' ? 'Accepted' : ($report->admin_review_status === 'correction_requested' ? 'Correction Required' : 'Pending Review')), 'needsMatching' => $report->resolution_status !== 'unresolved', 'data' => ['type' => $report->typeLabel(), 'explanation' => $report->explanation, 'amount' => 'PHP '.number_format((float) $report->amount, 2), 'evidence' => $report->evidence_reference ?: ($report->evidence_path ? 'Attached file' : 'Not provided'), 'reporter' => $report->reporter?->name ?: 'Not recorded', 'reviewer' => $report->adminReviewer?->name ?: 'Not reviewed', 'reviewed_at' => $report->admin_reviewed_at?->format('M d, Y h:i A') ?: 'Not reviewed', 'decision' => $report->admin_review_status === 'accepted' ? 'Accepted' : ($report->admin_review_status === 'correction_requested' ? 'Correction Required' : 'Pending Review'), 'remarks' => $report->admin_review_note ?: 'No Admin remarks recorded.', 'resolution_status' => ucfirst((string) $report->resolution_status), 'resolution_explanation' => $report->resolution_explanation, 'resolution_evidence' => $report->resolution_evidence_path ? 'Attached resolution evidence' : null, 'resolution_evidence_url' => $report->resolution_evidence_path ? route('bank-reconciliation.discrepancies.resolution-evidence', [$report->bank_reconciliation_id, $report]) : null, 'resolved_by' => $report->resolver?->name ?: null, 'resolved_at' => $report->resolved_at?->format('M d, Y h:i A'), 'resolve_url' => route('bank-reconciliation.discrepancies.resolve', [$report->bank_reconciliation_id, $report])]] : null;
     };
-    $boardDepositRows = $boardContributions->map(fn ($receipt) => ['id' => $receipt->id, 'date' => $receipt->received_at?->toDateString(), 'label' => $receipt->donor?->full_name ?? 'Verified donation', 'detail' => $receipt->reference_number ?? 'Electronic cash donation', 'reference' => $receipt->reference_number, 'amount' => (float) $receipt->amount, 'status' => $receipt->ledgerEntry ? 'matched' : 'verified', 'discrepancy' => $systemDiscrepancyFor('contribution', (int) $receipt->id)])->values();
-    $boardWithdrawalRows = $boardDisbursements->map(fn ($request) => ['id' => $request->id, 'date' => $request->approved_at?->toDateString() ?? $request->requested_date?->toDateString(), 'label' => $request->recipient ?? 'Approved fund request', 'detail' => $request->purpose, 'reference' => $request->supporting_reference, 'amount' => (float) $request->amount, 'status' => $request->withdrawalMatch ? 'matched' : 'approved', 'discrepancy' => $systemDiscrepancyFor('cash_disbursement', (int) $request->id)])->values();
+    $boardDepositRows = $boardContributions->map(function ($receipt) use ($systemDiscrepancyFor) { $discrepancy = $systemDiscrepancyFor('contribution', (int) $receipt->id); $matched = (bool) $receipt->ledgerEntry; return ['id' => $receipt->id, 'date' => $receipt->received_at?->toDateString(), 'label' => $receipt->donor?->full_name ?? 'Verified donation', 'detail' => $receipt->reference_number ?? 'Electronic cash donation', 'reference' => $receipt->reference_number, 'amount' => (float) $receipt->amount, 'status' => $matched ? 'matched' : 'verified', 'needsMatching' => ! $matched && ($discrepancy['needsMatching'] ?? true), 'discrepancy' => $discrepancy]; })->values();
+    $boardWithdrawalRows = $boardDisbursements->map(function ($request) use ($systemDiscrepancyFor) { $discrepancy = $systemDiscrepancyFor('cash_disbursement', (int) $request->id); $matched = (bool) $request->withdrawalMatch; return ['id' => $request->id, 'date' => $request->payment?->payment_date?->toDateString(), 'label' => $request->recipient ?? 'Approved fund request', 'detail' => $request->purpose, 'reference' => $request->payment?->reference_number ?? $request->supporting_reference, 'amount' => (float) ($request->payment?->amount ?? $request->amount), 'status' => $matched ? 'matched' : 'approved', 'needsMatching' => ! $matched && ($discrepancy['needsMatching'] ?? true), 'discrepancy' => $discrepancy]; })->values();
     $confirmedPeriodRows = $confirmedPeriods->map(fn ($period) => ['bank_account' => $period->bank_account ?: config('bank_reconciliation.bank_accounts.0'), 'period_end' => $period->period_end?->toDateString(), 'ending_balance' => (float) $period->bank_ending_balance])->values();
     $periodRows = $reconciliationPeriods->map(fn ($period) => ['bank_account' => $period->bank_account ?: config('bank_reconciliation.bank_accounts.0'), 'period_end' => $period->period_end?->toDateString(), 'status' => $period->status])->values();
+    $initialDetailsTab = $discrepancyValidationFailed ? 'discrepancies' : request()->get('section', request()->get('tab', 'transactions'));
+    $selectedDiscrepancyIndex = request()->integer('discrepancy_id') && $latestReconciliationPeriod
+        ? $latestReconciliationPeriod->discrepancies->search(fn ($report) => (int) $report->id === request()->integer('discrepancy_id'))
+        : false;
 @endphp
 @if($activePeriod)
 <template id="bank-period-workflow-template">
@@ -64,26 +124,57 @@
         <div data-period-panels>
             <section id="period-step-1" data-period-panel="1" class="period-step-panel space-y-3"><h4 class="text-base font-bold text-slate-900">Step 1: Confirm the period</h4><p class="text-sm text-slate-600">This is the active period you are preparing. No action is needed here.</p><div class="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800"><strong>Complete:</strong> The active period is selected.</div></section>
             <section id="period-step-2" data-period-panel="2" class="period-step-panel hidden space-y-3"><h4 class="text-base font-bold text-slate-900">Step 2: Match bank transactions</h4><div class="rounded-lg border {{ $unmatchedPeriodTransactionCount ? 'border-amber-200 bg-amber-50 text-amber-900' : 'border-emerald-200 bg-emerald-50 text-emerald-800' }} p-3 text-sm"><strong>{{ $unmatchedPeriodTransactionCount ? 'Needs action:' : 'Complete:' }}</strong> {{ $unmatchedPeriodTransactionCount ? $unmatchedPeriodTransactionCount.' bank transaction(s) still need matching.' : 'All '.$periodTransactionCount.' bank transaction(s) in this period are matched.' }}</div>@if($unmatchedPeriodTransactionCount)<button type="button" data-guided-action="match" class="primary-button">Match transactions</button>@else<p class="text-sm text-slate-600">If the table is empty, import the LANDBANK statement before continuing.</p>@endif</section>
-            <section id="period-step-3" data-period-panel="3" class="period-step-panel hidden space-y-3"><h4 class="text-base font-bold text-slate-900">Step 3: Review discrepancies</h4><div class="rounded-lg border {{ $unresolvedDiscrepancyCount ? 'border-amber-200 bg-amber-50 text-amber-900' : 'border-emerald-200 bg-emerald-50 text-emerald-800' }} p-3 text-sm"><strong>{{ $unresolvedDiscrepancyCount ? 'Needs action:' : 'Complete:' }}</strong> {{ $unresolvedDiscrepancyCount ? $unresolvedDiscrepancyCount.' unresolved discrepancy(ies) must be investigated.' : 'There are no unresolved discrepancies.' }}</div>@if($activePeriod->isDraft() || $activePeriod->isReadyForReview())<button type="button" data-period-discrepancies class="secondary-button">{{ $activePeriod->isReadyForReview() ? 'Review discrepancies' : ($unresolvedDiscrepancyCount ? 'Review discrepancies' : 'Open discrepancy manager') }}</button>@else<p class="text-sm text-slate-600">This period is locked; discrepancy changes require an authorized audited reopening.</p>@endif</section>
+            <section id="period-step-3" data-period-panel="3" class="period-step-panel hidden space-y-3"><h4 class="text-base font-bold text-slate-900">Step 3: Review discrepancies</h4><div class="rounded-lg border {{ $unresolvedDiscrepancyCount ? 'border-amber-200 bg-amber-50 text-amber-900' : 'border-emerald-200 bg-emerald-50 text-emerald-800' }} p-3 text-sm"><strong>{{ $unresolvedDiscrepancyCount ? 'Needs action:' : 'Complete:' }}</strong> {{ $unresolvedDiscrepancyCount ? $unresolvedDiscrepancyCount.' discrepancy(ies) still need further action.' : 'There are no discrepancies requiring further action.' }}</div>@if($unresolvedDiscrepancyCount)<ul class="space-y-1.5 rounded-lg border border-slate-200 bg-white p-3 text-sm text-slate-700">@if($pendingAdminReviewCount)<li><strong>{{ $pendingAdminReviewCount }}</strong> pending Admin review &mdash; no Staff action needed yet.</li>@endif @if($correctionRequiredCount)<li><strong>{{ $correctionRequiredCount }}</strong> returned for correction &mdash; update the report with the requested fix and it will go back to Admin for review.</li>@endif @if($missingEvidenceCount)<li><strong>{{ $missingEvidenceCount }}</strong> accepted but missing an evidence reference &mdash; add one so it can carry forward, or match the underlying bank transaction.</li>@endif @if($ineligibleTypeCount)<li><strong>{{ $ineligibleTypeCount }}</strong> accepted but not an eligible carry-forward type &mdash; match the underlying bank transaction, or open the report and use Resolve to document what was done.</li>@endif @if($notFlaggedCarryForwardCount)<li><strong>{{ $notFlaggedCarryForwardCount }}</strong> accepted but not marked to carry forward &mdash; update the report to flag it, or resolve it directly.</li>@endif @if($needsResolutionCount)<li><strong>{{ $needsResolutionCount }}</strong> accepted, still needs resolution &mdash; open the report and use Resolve to document what was done.</li>@endif</ul>@endif @if($carryForwardReadyCount)<div class="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800"><strong>{{ $carryForwardReadyCount }}</strong> accepted timing difference(s) are properly documented and will carry forward automatically &mdash; no further action needed.</div>@endif @if($activePeriod->isDraft() || $activePeriod->isReadyForReview())<button type="button" data-period-discrepancies class="secondary-button">{{ $activePeriod->isReadyForReview() ? 'Review discrepancies' : ($unresolvedDiscrepancyCount ? 'Review discrepancies' : 'Open discrepancy manager') }}</button>@else<p class="text-sm text-slate-600">This period is locked; discrepancy changes require an authorized audited reopening.</p>@endif</section>
             <section id="period-step-4" data-period-panel="4" class="period-step-panel hidden space-y-3"><h4 class="text-base font-bold text-slate-900">Step 4: Review balances</h4><div class="grid gap-2 sm:grid-cols-2"><div class="rounded-lg border bg-slate-50 p-3"><p class="text-xs text-slate-500">Starting bank balance</p><p class="mt-1 font-bold">PHP {{ number_format((float) $activePeriod->opening_balance, 2) }}</p></div><div class="rounded-lg border bg-slate-50 p-3"><p class="text-xs text-slate-500">Remaining bank balance</p><p class="mt-1 font-bold">{{ $activePeriod->bank_ending_balance === null ? 'Not entered' : 'PHP '.number_format((float) $activePeriod->bank_ending_balance, 2) }}</p></div><div class="rounded-lg border bg-slate-50 p-3"><p class="text-xs text-slate-500">Bank movement</p><p class="mt-1 font-semibold">+ PHP {{ number_format((float) $activePeriod->calculated_bank_cash_in, 2) }} / − PHP {{ number_format((float) $activePeriod->calculated_bank_cash_out, 2) }}</p></div><div class="rounded-lg border bg-slate-50 p-3"><p class="text-xs text-slate-500">Ledger ending balance</p><p class="mt-1 font-bold">PHP {{ number_format((float) $activePeriod->financial_ledger_ending_balance, 2) }}</p></div></div><div class="rounded-xl border-2 {{ $periodBalancesReady ? 'border-emerald-300 bg-emerald-50' : 'border-amber-300 bg-amber-50' }} p-4"><p class="text-xs font-semibold uppercase tracking-wide">Difference</p><p class="mt-1 text-2xl font-bold">{{ $periodDifference === null ? 'Not calculated' : 'PHP '.number_format((float) $periodDifference, 2) }}</p><p class="mt-1 text-sm">{{ $periodDifference === null ? 'Enter the remaining bank balance and recalculate.' : ($periodBalancesReady ? 'The adjusted bank balance equals the ledger balance.' : 'The adjusted bank balance does not equal the ledger balance. Check the entered balance or record a supported discrepancy with evidence.') }}</p></div>@can('update', $activePeriod)<form method="POST" action="{{ route('bank-reconciliation.periods.update', $activePeriod) }}" class="grid gap-3 rounded-lg border bg-white p-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">@csrf @method('PATCH')<label class="text-sm font-semibold">Starting bank balance<input name="opening_balance" type="number" min="0" step="0.01" value="{{ $activePeriod->opening_balance }}" required class="mt-1 w-full rounded border-slate-300 text-sm"></label><label class="text-sm font-semibold">Remaining bank balance<input name="bank_ending_balance" type="number" min="0" step="0.01" value="{{ $activePeriod->bank_ending_balance }}" required class="mt-1 w-full rounded border-slate-300 text-sm"></label><button type="submit" class="secondary-button">Check balances</button></form>@endcan</section>
-            <section id="period-step-5" data-period-panel="5" class="period-step-panel hidden space-y-3"><h4 class="text-base font-bold text-slate-900">Step 5: Submit for Admin review</h4><div class="rounded-lg border {{ $activePeriod->isReadyForReview() || $activePeriod->isApproved() ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-amber-200 bg-amber-50 text-amber-900' }} p-3 text-sm"><strong>{{ $activePeriod->isReadyForReview() || $activePeriod->isApproved() ? 'Complete:' : 'Blocked:' }}</strong> {{ $activePeriod->isApproved() ? 'This period is approved and locked.' : ($activePeriod->isReadyForReview() ? 'This period is waiting for independent Admin review.' : 'Resolve the blockers below before submitting.') }}</div>@if($activePeriod->isDraft())<ul class="space-y-2 text-sm">@if($unmatchedPeriodTransactionCount)<li class="flex items-center justify-between gap-3 rounded border border-amber-200 bg-amber-50 p-3"><span><strong>Matching:</strong> {{ $unmatchedPeriodTransactionCount }} bank transaction(s) are unmatched.</span><button type="button" data-period-jump="2" class="font-semibold text-blue-700">Match transactions</button></li>@endif @if($unresolvedDiscrepancyCount)<li class="flex items-center justify-between gap-3 rounded border border-amber-200 bg-amber-50 p-3"><span><strong>Discrepancies:</strong> {{ $unresolvedDiscrepancyCount }} item(s) are unresolved.</span><button type="button" data-period-jump="3" class="font-semibold text-blue-700">Review discrepancies</button></li>@endif @if(!$periodBalancesReady)<li class="flex items-center justify-between gap-3 rounded border border-amber-200 bg-amber-50 p-3"><span><strong>Balances:</strong> Difference must be PHP 0.00{{ $periodDifference !== null ? ' (currently PHP '.number_format((float) $periodDifference, 2).')' : '' }}.</span><button type="button" data-period-jump="4" class="font-semibold text-blue-700">Check balances</button></li>@endif @if($periodSubmitReady)<li class="rounded border border-emerald-200 bg-emerald-50 p-3 text-emerald-800">All submission requirements are complete. Submit using the footer button.</li>@endif</ul>@endif</section>
+            <section id="period-step-5" data-period-panel="5" class="period-step-panel hidden space-y-3"><h4 class="text-base font-bold text-slate-900">Step 5: Submit for Admin review</h4><div class="rounded-lg border {{ $activePeriod->isReadyForReview() || $activePeriod->isApproved() ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-amber-200 bg-amber-50 text-amber-900' }} p-3 text-sm"><strong>{{ $activePeriod->isReadyForReview() || $activePeriod->isApproved() ? 'Complete:' : 'Blocked:' }}</strong> {{ $activePeriod->isApproved() ? 'This period is approved and locked.' : ($activePeriod->isReadyForReview() ? 'This period is waiting for independent Admin review.' : 'Resolve the blockers below before submitting.') }}</div>@if($activePeriod->isDraft())<ul class="space-y-2 text-sm">@if($unmatchedBlockingSubmissionCount)<li class="flex items-center justify-between gap-3 rounded border border-amber-200 bg-amber-50 p-3"><span><strong>Matching:</strong> {{ $unmatchedBlockingSubmissionCount }} bank transaction(s) still need matching or an Admin-accepted discrepancy explanation.</span><button type="button" data-period-jump="2" class="font-semibold text-blue-700">Match transactions</button></li>@endif @if($submissionBlockingCount)<li class="flex items-center justify-between gap-3 rounded border border-amber-200 bg-amber-50 p-3"><span><strong>Discrepancies:</strong> {{ $submissionBlockingCount }} item(s) still need Admin review and acceptance.</span><button type="button" data-period-jump="3" class="font-semibold text-blue-700">Review discrepancies</button></li>@endif @if($adminAcceptedAwaitingFinalizationCount > 0)<li class="rounded border border-blue-200 bg-blue-50 p-3 text-blue-800"><strong>{{ $adminAcceptedAwaitingFinalizationCount }}</strong> discrepancy(ies) still show Needs Action in Step 3 but won't block submission &mdash; Admin already reviewed and accepted them.</li>@endif @if(!$periodBalancesReady)<li class="flex items-center justify-between gap-3 rounded border border-amber-200 bg-amber-50 p-3"><span><strong>Balances:</strong> Difference must be PHP 0.00{{ $periodDifference !== null ? ' (currently PHP '.number_format((float) $periodDifference, 2).')' : '' }}.</span><button type="button" data-period-jump="4" class="font-semibold text-blue-700">Check balances</button></li>@endif @if($periodSubmitReady)<li class="rounded border border-emerald-200 bg-emerald-50 p-3 text-emerald-800">All submission requirements are complete. Submit using the footer button.</li>@endif</ul>@endif</section>
         </div>
         <div data-period-actions class="hidden">@can('submit', $activePeriod)<form method="POST" action="{{ route('bank-reconciliation.periods.submit', $activePeriod) }}">@csrf<button type="submit" class="primary-button" @disabled(!$periodSubmitReady)>Submit for Admin Review</button></form>@endcan @can('approve', $activePeriod)<form method="POST" action="{{ route('bank-reconciliation.periods.approve', $activePeriod) }}">@csrf<button type="submit" class="primary-button">Approve &amp; Lock Period</button></form><form method="POST" action="{{ route('bank-reconciliation.periods.reject', $activePeriod) }}" class="flex gap-2"><input name="reason" required placeholder="Reason for correction" class="w-48 rounded border-slate-300 text-sm"><button type="submit" class="secondary-button text-rose-700">Reject for Correction</button></form>@endcan</div>
     </section>
 </template>
 @endif
-<div class="flex min-h-0 flex-col gap-4">
-    <div class="flex flex-wrap justify-end gap-2">
-        @can('import', \App\Models\BankLedgerEntry::class)<button type="button" data-dialog-open="bank-import-modal" class="rounded-lg bg-blue-700 px-4 py-2.5 text-sm font-semibold text-white">Upload Bank Statement</button>@endcan
-        @if($reconciliationPeriods->contains(fn ($period) => $period->status === 'draft'))
-        <label class="flex items-center gap-2 text-sm font-semibold text-slate-700"><span class="sr-only">Working period</span><select data-period-selector aria-label="Working reconciliation period" class="rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm">@forelse($reconciliationPeriods as $periodOption)<option value="{{ $periodOption->id }}" @selected($activePeriod?->id === $periodOption->id)>{{ $periodOption->period_start?->format('M Y') }} · {{ ucfirst(str_replace('_', ' ', $periodOption->status)) }}</option>@empty<option value="" selected disabled>No reconciliation periods available</option>@endforelse</select></label>
+<div data-reconciliation-details>
+    <header class="pb-4">
+        <a href="{{ route('bank-reconciliation.index') }}" class="inline-flex items-center gap-1 text-xs font-medium text-slate-500 transition hover:text-blue-700"><x-icon name="chevron-left" class="h-3.5 w-3.5" /> Back to Reconciliation Periods</a>
+        <div class="mt-4 flex items-start justify-between gap-4">
+            <div class="min-w-0">
+                <h2 class="text-xl font-bold tracking-tight text-slate-950">{{ $activePeriod?->period_start?->format('F Y') ?? 'Reconciliation workspace' }}</h2>
+                <p class="mt-1 truncate text-sm text-slate-500">{{ $activePeriod?->bank_account ?: 'No bank account selected' }}</p>
+            </div>
+            @if($activePeriod)
+                @php
+                    $detailStatusLabel = $activePeriod->isApproved() ? 'Approved & Locked' : ($activePeriod->isReadyForReview() ? 'Pending Review' : 'Draft');
+                    $detailStatusClass = $activePeriod->isApproved() ? 'bg-emerald-50 text-emerald-700 ring-emerald-200' : ($activePeriod->isReadyForReview() ? 'bg-amber-50 text-amber-700 ring-amber-200' : 'bg-slate-100 text-slate-700 ring-slate-200');
+                @endphp
+                <span class="inline-flex shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset {{ $detailStatusClass }}">{{ $detailStatusLabel }}</span>
+            @endif
+        </div>
+        @if($activePeriod && $errors->hasAny(['period', 'bank_ending_balance', 'reconciliation_difference', 'discrepancies', 'matching']))
+            <div class="mt-3 rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800" role="alert">
+                <p class="font-semibold">This action could not be completed:</p>
+                <ul class="mt-1 list-disc space-y-0.5 pl-5">
+                    @foreach(['period', 'bank_ending_balance', 'reconciliation_difference', 'discrepancies', 'matching'] as $field)
+                        @error($field)<li>{{ $message }}</li>@enderror
+                    @endforeach
+                </ul>
+            </div>
         @endif
-        @can('prepare', \App\Models\BankReconciliation::class)<button type="button" data-dialog-open="new-bank-period-modal" class="rounded-lg border border-blue-200 bg-blue-50 px-4 py-2.5 text-sm font-semibold text-blue-700">New Reconciliation Period</button>@endcan
-        @can('viewAny', \App\Models\BankLedgerEntry::class)<button type="button" data-dialog-open="bank-period-modal" class="rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700">Manage Reconciliation Period</button>@endcan
-        @if($latestReconciliationPeriod && ! $latestReconciliationPeriod->isApproved())<button type="button" data-dialog-open="bank-discrepancy-modal" class="rounded-lg border border-blue-200 bg-blue-50 px-4 py-2.5 text-sm font-semibold text-blue-700">Discrepancy Reports</button>@endif
-        @if($activePeriod)<a href="{{ route('reports.reconciliation.pdf', ['period_id' => $activePeriod->id]) }}" class="rounded-lg border border-blue-200 bg-blue-50 px-4 py-2.5 text-sm font-semibold text-blue-700">Generate Bank Reconciliation Statement</a>@endif
-        <button type="button" data-dialog-open="bank-history-modal" class="rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700">View History</button>
+    </header>
+
+    <div class="flex flex-col gap-3 border-y border-slate-200 py-3 sm:flex-row sm:items-center sm:justify-between">
+        <nav class="flex min-w-0 gap-1 overflow-x-auto" role="tablist" aria-label="Reconciliation details">
+            <button type="button" role="tab" aria-selected="true" aria-controls="reconciliation-transactions-panel" data-details-tab="transactions" class="details-tab whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold text-slate-500 transition hover:text-slate-900">Transactions</button>
+            <button type="button" role="tab" aria-selected="false" aria-controls="reconciliation-discrepancies-panel" data-details-tab="discrepancies" class="details-tab whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold text-slate-500 transition hover:text-slate-900">Discrepancies</button>
+            <button type="button" role="tab" aria-selected="false" aria-controls="reconciliation-statement-panel" data-details-tab="statement" class="details-tab whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold text-slate-500 transition hover:text-slate-900">Statement</button>
+            <button type="button" role="tab" aria-selected="false" aria-controls="reconciliation-history-panel" data-details-tab="history" class="details-tab whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold text-slate-500 transition hover:text-slate-900">History</button>
+        </nav>
+        <style>.details-tab[aria-selected="true"] { background-color: #0f172a; color: #fff; }</style>
+        @if($canMatchTransactions)
+            @can('import', \App\Models\BankLedgerEntry::class)
+                <button type="button" data-transaction-action data-dialog-open="bank-import-modal" class="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-full bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800"><x-icon name="upload" class="h-4 w-4" /> Upload Statement</button>
+            @endcan
+        @endif
     </div>
+
     <div class="hidden" aria-hidden="true">
         <button type="button" data-bank-filter-card="deposit" aria-pressed="false" class="bank-summary-card group rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-left transition hover:border-emerald-400 hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"><span class="flex items-center justify-between"><span class="text-xs font-semibold uppercase tracking-wide text-emerald-700">Incoming · Credit</span><span class="text-xs font-semibold text-emerald-700 opacity-0 transition group-hover:opacity-100" data-card-hint>Filter</span></span><span class="mt-1 block text-2xl font-bold text-emerald-950">&#8369;{{ number_format($bankTransactions->where('transaction_type', 'deposit')->sum('amount'), 2) }}</span></button>
         <button type="button" data-bank-filter-card="withdrawal" aria-pressed="false" class="bank-summary-card group rounded-xl border border-rose-200 bg-rose-50 p-4 text-left transition hover:border-rose-400 hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-rose-500"><span class="flex items-center justify-between"><span class="text-xs font-semibold uppercase tracking-wide text-rose-700">Outgoing · Debit</span><span class="text-xs font-semibold text-rose-700 opacity-0 transition group-hover:opacity-100" data-card-hint>Filter</span></span><span class="mt-1 block text-2xl font-bold text-rose-950">&#8369;{{ number_format($bankTransactions->where('transaction_type', 'withdrawal')->sum('amount'), 2) }}</span></button>
@@ -92,20 +183,29 @@
         <article class="rounded-xl border border-emerald-200 bg-emerald-50 p-4"><p class="text-xs font-semibold uppercase tracking-wide text-emerald-700">Incoming · Credit</p><p class="mt-1 text-2xl font-bold text-emerald-950">&#8369;{{ number_format($bankTransactions->where('transaction_type', 'deposit')->sum('amount'), 2) }}</p></article>
         <article class="rounded-xl border border-rose-200 bg-rose-50 p-4"><p class="text-xs font-semibold uppercase tracking-wide text-rose-700">Outgoing · Debit</p><p class="mt-1 text-2xl font-bold text-rose-950">&#8369;{{ number_format($bankTransactions->where('transaction_type', 'withdrawal')->sum('amount'), 2) }}</p></article>
     </div>
-    <section class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm" data-reconciliation-board>
-        <div class="flex flex-wrap items-start justify-between gap-3">
-            <div><p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Confirm activity</p><h2 class="mt-1 text-lg font-bold text-slate-900">Match system records to LANDBANK</h2><p class="mt-1 text-sm text-slate-600">Select one LANDBANK transaction and its valid system record(s). Confirm Match stays disabled until the records and amounts match.</p></div>
-            <div class="flex flex-wrap items-center gap-2"><div class="flex rounded-lg border border-slate-200 bg-slate-50 p-1" role="tablist" aria-label="Transaction direction"><button type="button" data-board-tab="deposit" aria-selected="true" class="rounded-md px-3 py-2 text-sm font-semibold transition hover:bg-blue-50 hover:text-blue-700">Incoming</button><button type="button" data-board-tab="withdrawal" aria-selected="false" class="rounded-md px-3 py-2 text-sm font-semibold transition hover:bg-blue-50 hover:text-blue-700">Outgoing</button></div><div class="flex rounded-lg border border-slate-200 bg-white p-1" role="group" aria-label="Matching status"><button type="button" data-board-filter="needs" class="rounded-md bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700">Needs Matching</button><button type="button" data-board-filter="all" class="rounded-md px-3 py-2 text-xs font-semibold text-slate-600 transition hover:bg-blue-50 hover:text-blue-700">All</button><button type="button" data-board-filter="matched" class="rounded-md px-3 py-2 text-xs font-semibold text-slate-600 transition hover:bg-blue-50 hover:text-blue-700">Matched</button></div></div>
+    <div class="pb-6 sm:pb-4" data-reconciliation-content>
+    <section id="reconciliation-transactions-panel" role="tabpanel" data-details-panel="transactions" class="space-y-4 py-5">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <h2 class="text-lg font-bold text-slate-950">Bank Transactions</h2>
+            <div class="flex items-center gap-1" role="tablist" aria-label="Transaction view">
+                <button type="button" role="tab" aria-selected="true" aria-controls="transaction-needs-panel" data-transaction-view="needs" class="transaction-view rounded-full px-4 py-2 text-sm font-semibold">Needs Matching</button>
+                <button type="button" role="tab" aria-selected="false" aria-controls="transaction-all-panel" data-transaction-view="all" class="transaction-view rounded-full px-4 py-2 text-sm font-semibold">All Transactions</button>
+            </div>
         </div>
-        <div class="mt-4 grid gap-4 xl:grid-cols-2">
+    <section id="transaction-needs-panel" role="tabpanel" data-transaction-view-panel="needs" data-reconciliation-board>
+        <div class="flex flex-wrap items-start justify-between gap-3">
+            <div class="flex items-center gap-1" role="tablist" aria-label="Transaction direction"><button type="button" data-board-tab="deposit" aria-selected="true" class="rounded-full px-3 py-2 text-sm font-semibold transition hover:bg-slate-100">Incoming</button><button type="button" data-board-tab="withdrawal" aria-selected="false" class="rounded-full px-3 py-2 text-sm font-semibold transition hover:bg-slate-100">Outgoing</button></div>
+            <p class="pt-2 text-xs text-slate-500">{{ $canMatchTransactions ? 'Select a bank entry and its matching system record' : 'Read-only — matching is handled by Staff while the period is in Draft.' }}</p>
+        </div>
+        <div class="mt-3 grid gap-3 lg:grid-cols-2">
             <section class="min-w-0 rounded-lg border border-slate-200" aria-labelledby="system-records-heading"><div class="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-4 py-3"><div><h3 id="system-records-heading" class="font-semibold text-slate-900">System Records</h3><p class="text-xs text-slate-500">Verified incoming donations or approved fund payments</p></div><span data-board-system-count class="rounded-full bg-white px-2 py-1 text-xs font-semibold text-slate-600"></span></div><div class="bank-board-scroll"><table class="min-w-full text-left text-sm"><thead class="sticky top-0 z-10 bg-white text-xs uppercase tracking-wide text-slate-500"><tr><th class="w-10 px-4 py-3">&nbsp;</th><th class="px-4 py-3">Record</th><th class="px-4 py-3 text-right">Amount</th><th class="px-4 py-3">Status</th><th class="px-4 py-3 text-right">&nbsp;</th></tr></thead><tbody data-board-system-body></tbody></table><p data-board-system-empty class="hidden p-6 text-center text-sm text-slate-500">No eligible system records are available for this direction.</p></div></section>
             <section class="min-w-0 rounded-lg border border-slate-200" aria-labelledby="landbank-transactions-heading"><div class="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-4 py-3"><div><h3 id="landbank-transactions-heading" class="font-semibold text-slate-900">LANDBANK Transactions</h3><p class="text-xs text-slate-500">Imported statement rows for the selected period</p></div><span data-board-bank-count class="rounded-full bg-white px-2 py-1 text-xs font-semibold text-slate-600"></span></div><div class="bank-board-scroll"><table class="min-w-full text-left text-sm"><thead class="sticky top-0 z-10 bg-white text-xs uppercase tracking-wide text-slate-500"><tr><th class="w-10 px-4 py-3">&nbsp;</th><th class="px-4 py-3">Transaction</th><th class="px-4 py-3 text-right">Amount</th><th class="px-4 py-3">Status</th></tr></thead><tbody data-board-bank-body></tbody></table><p data-board-bank-empty class="hidden p-6 text-center text-sm text-slate-500">No imported LANDBANK transactions are available for this direction.</p></div></section>
         </div>
-<div class="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-blue-100 bg-blue-50/60 p-3"><div class="min-w-0 space-y-1"><p data-board-selection class="text-sm font-semibold text-blue-900">Select one LANDBANK transaction and its matching system record(s).</p><p data-board-amount-summary class="text-xs text-blue-800">Bank amount: PHP 0.00 · System amount: PHP 0.00 · Difference: PHP 0.00</p><p data-board-selection-help class="text-xs text-slate-600">Confirm Match is disabled until one valid bank transaction and matching system record(s) are selected.</p></div><button type="button" data-board-clear class="primary-button reconciliation-confirm-match" disabled>Confirm Match</button></div>
+<div data-board-selection-container class="hidden mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-blue-100 bg-blue-50/60 p-3"><div class="min-w-0 space-y-1"><p data-board-selection class="text-sm font-semibold text-blue-900">Select one LANDBANK transaction and its matching system record(s).</p><p data-board-amount-summary class="text-xs text-blue-800">Bank amount: PHP 0.00 · System amount: PHP 0.00 · Difference: PHP 0.00</p><p data-board-selection-help class="text-xs text-slate-600">Confirm Match is disabled until one valid bank transaction and matching system record(s) are selected.</p></div><button type="button" data-board-clear class="primary-button reconciliation-confirm-match" disabled>Confirm Match</button></div>
     </section>
-    <section class="flex min-h-0 flex-1 flex-col" data-bank-transaction-table>
+    <section id="transaction-all-panel" role="tabpanel" class="hidden" data-transaction-view-panel="all" data-bank-transaction-table>
         <div class="flex flex-wrap items-center justify-between gap-2 pb-3"><button type="button" data-bank-all-filter class="hidden rounded-full border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-100">Show all transactions</button><div class="ml-auto flex w-full flex-wrap gap-2 sm:w-auto sm:justify-end"><input data-bank-search aria-label="Search transactions" placeholder="Search description or reference" class="min-h-10 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm sm:w-64"><select data-bank-type aria-label="Filter transaction type" class="min-h-10 max-w-full rounded-lg border border-slate-300 bg-white px-3 py-2 pr-10 text-sm"><option value="all">All types</option><option value="deposit">Incoming</option><option value="withdrawal">Outgoing</option></select><select data-bank-status aria-label="Filter transaction status" class="min-h-10 max-w-full rounded-lg border border-slate-300 bg-white px-3 py-2 pr-10 text-sm"><option value="all">All statuses</option><option value="unmatched">Unmatched</option><option value="reconciled">Reconciled</option></select></div></div>
-        <div class="min-w-0"><x-data-table caption="Bank transactions" min-width="49rem" title="Bank transactions">
+        <div class="min-w-0"><x-data-table caption="Bank transactions" min-width="49rem" max-height="none" title="Bank transactions">
 <x-slot:head><x-data-table.heading>Date</x-data-table.heading>
 <x-data-table.heading>Transaction</x-data-table.heading>
 <x-data-table.heading>Reference</x-data-table.heading>
@@ -123,6 +223,105 @@
 </x-data-table></div>
         <div class="bank-table-footer flex shrink-0 items-center justify-between gap-3 border-t border-slate-200 bg-white py-3 text-xs text-slate-500"><span data-bank-summary></span><span class="flex items-center gap-1"><button type="button" data-bank-prev class="rounded border px-3 py-1.5 disabled:cursor-not-allowed disabled:opacity-40">Previous</button><span data-bank-pages class="flex gap-1"></span><button type="button" data-bank-next class="rounded border px-3 py-1.5 disabled:cursor-not-allowed disabled:opacity-40">Next</button></span></div>
     </section>
+    </section>
+
+    <section id="reconciliation-discrepancies-panel" role="tabpanel" data-details-panel="discrepancies" class="hidden py-5">
+        <div class="mx-auto max-w-5xl space-y-4">
+            <div><h2 class="text-lg font-bold text-slate-950">Discrepancy Reports</h2><p class="mt-1 text-sm text-slate-500">Review unmatched records, investigation notes, evidence, and resolution status for this period.</p></div>
+            <div class="overflow-hidden rounded-xl border border-slate-200">
+                <div class="flex flex-wrap items-center gap-2 border-b border-slate-200 px-4 py-3" role="group" aria-label="Filter discrepancies by transaction direction" data-discrepancy-direction-filters>
+                    <button type="button" data-discrepancy-direction="all" aria-pressed="true" class="rounded-full bg-blue-600 px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm">All</button>
+                    <button type="button" data-discrepancy-direction="incoming" aria-pressed="false" class="rounded-full px-3.5 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-100 hover:text-slate-900">Incoming</button>
+                    <button type="button" data-discrepancy-direction="outgoing" aria-pressed="false" class="rounded-full px-3.5 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-100 hover:text-slate-900">Outgoing</button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full min-w-[48rem] text-left text-sm" data-discrepancy-reports-table>
+                        <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500"><tr><th class="px-4 py-3">Type</th><th class="px-4 py-3">Explanation</th><th class="px-4 py-3 text-right">Amount</th><th class="px-4 py-3">Status</th><th class="px-4 py-3 text-right">Actions</th></tr></thead>
+                        <tbody class="divide-y divide-slate-100">
+                            @forelse($activePeriod?->discrepancies ?? collect() as $report)
+                                @php $reportDisplayStatus = $report->resolution_status === 'resolved' ? 'Resolved' : ($report->admin_review_status === 'accepted' ? 'Accepted' : ($report->admin_review_status === 'correction_requested' ? 'Correction Required' : 'Pending Review')); @endphp
+                                <tr data-discrepancy-report-row data-transaction-direction="{{ $report->transactionDirection() }}"><td class="px-4 py-3 font-semibold text-slate-900">{{ $report->typeLabel() }}</td><td class="max-w-md px-4 py-3 text-slate-600">{{ $report->explanation }}</td><td class="whitespace-nowrap px-4 py-3 text-right font-medium">PHP {{ number_format((float) $report->amount, 2) }}</td><td class="px-4 py-3"><span class="inline-flex whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold {{ $reportDisplayStatus === 'Pending Review' ? 'bg-amber-100 text-amber-800' : ($reportDisplayStatus === 'Correction Required' ? 'bg-rose-100 text-rose-800' : 'bg-emerald-100 text-emerald-800') }}">{{ $reportDisplayStatus }}</span></td><td class="px-4 py-3 text-right"><div class="flex justify-end gap-2"><button type="button" data-discrepancy-details data-discrepancy-report-index="{{ $loop->index }}" class="rounded-lg border border-blue-200 px-2.5 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-50">View</button>@if($report->resolution_status === 'unresolved' && auth()->user()->can('prepare', \App\Models\BankReconciliation::class))<button type="button" data-edit-discrepancy data-edit-action="{{ route('bank-reconciliation.discrepancies.update', [$activePeriod, $report]) }}" data-edit-type="{{ $report->type }}" data-edit-custom-type="{{ $report->custom_type }}" data-edit-classification="{{ $report->classification }}" data-edit-amount="{{ $report->amount }}" data-edit-explanation="{{ $report->explanation }}" data-edit-reference="{{ $report->evidence_reference }}" class="whitespace-nowrap rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">Update Report</button>@endif</div></td></tr>
+                            @empty
+                                <tr><td colspan="5" class="px-4 py-12 text-center"><p class="font-semibold text-slate-900">No discrepancy reports</p><p class="mt-1 text-sm text-slate-500">Unmatched records reported during reconciliation will appear here.</p></td></tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                    <div data-discrepancy-direction-empty hidden class="px-4 py-12 text-center"><p class="font-semibold text-slate-900">No discrepancies in this direction</p><p class="mt-1 text-sm text-slate-500">Choose another filter to view the period's discrepancy reports.</p></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="reconciliation-statement-panel" role="tabpanel" data-details-panel="statement" class="hidden py-5">
+        <div class="mx-auto max-w-4xl space-y-5">
+            <div class="flex flex-wrap items-start justify-between gap-3">
+                <div><h2 class="text-lg font-bold text-slate-950">Bank Reconciliation Statement</h2><p class="mt-1 text-sm text-slate-500">Review the period totals and generate the official statement for reporting.</p></div>
+                @if($activePeriod)
+                    <div class="flex flex-wrap items-center gap-2">
+                        <a href="{{ route('reports.reconciliation.pdf', ['period_id' => $activePeriod->id]) }}" class="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-blue-700 px-4 text-sm font-semibold text-white hover:bg-blue-800"><x-icon name="document" class="h-4 w-4" /> Generate Bank Reconciliation Statement</a>
+                        <a href="{{ route('reports.reconciliation.annex11', ['period_id' => $activePeriod->id]) }}" class="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-slate-950 px-4 text-sm font-semibold text-white hover:bg-slate-800"><x-icon name="document" class="h-4 w-4" /> Download Annex 11 PDF</a>
+                    </div>
+                @endif
+            </div>
+            @if($activePeriod)
+                <dl class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    <div class="rounded-xl border border-slate-200 bg-slate-50 p-4"><dt class="text-xs font-medium text-slate-500">Opening balance</dt><dd class="mt-1 text-lg font-bold text-slate-950">PHP {{ number_format((float) $activePeriod->opening_balance, 2) }}</dd></div>
+                    <div class="rounded-xl border border-slate-200 bg-slate-50 p-4"><dt class="text-xs font-medium text-slate-500">Ending balance</dt><dd class="mt-1 text-lg font-bold text-slate-950">{{ $activePeriod->bank_ending_balance === null ? 'Not entered' : 'PHP '.number_format((float) $activePeriod->bank_ending_balance, 2) }}</dd></div>
+                    <div class="rounded-xl border border-slate-200 bg-slate-50 p-4"><dt class="text-xs font-medium text-slate-500">Difference</dt><dd class="mt-1 text-lg font-bold {{ $periodBalancesReady ? 'text-emerald-700' : 'text-amber-700' }}">{{ $periodDifference === null ? 'Not calculated' : 'PHP '.number_format((float) $periodDifference, 2) }}</dd></div>
+                </dl>
+            @else
+                <p class="rounded-xl border border-dashed border-slate-300 p-10 text-center text-sm text-slate-500">Select a reconciliation period before generating a statement.</p>
+            @endif
+        </div>
+    </section>
+
+    <section id="reconciliation-history-panel" role="tabpanel" data-details-panel="history" class="hidden py-5">
+        <div class="mx-auto max-w-5xl space-y-4">
+            <div><h2 class="text-lg font-bold text-slate-950">Reconciliation History</h2><p class="mt-1 text-sm text-slate-500">Completed incoming and outgoing matches recorded for the workspace.</p></div>
+            <input data-history-search aria-label="Search history" placeholder="Search reference or description" class="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm sm:max-w-sm">
+            <div class="overflow-hidden rounded-xl border border-slate-200"><div class="overflow-x-auto"><table class="min-w-full text-left text-sm"><thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500"><tr><th class="px-4 py-3">Date</th><th class="px-4 py-3">Description</th><th class="px-4 py-3">Reference</th><th class="px-4 py-3 text-right">Amount</th></tr></thead><tbody class="divide-y divide-slate-100">@forelse($history->concat($withdrawalHistory)->unique('id') as $entry)<tr data-history-row data-history-search="{{ strtolower($entry->description.' '.$entry->reference_number) }}"><td class="whitespace-nowrap px-4 py-3">{{ $entry->transaction_date?->format('M d, Y') }}</td><td class="px-4 py-3 font-medium text-slate-900">{{ $entry->description }}</td><td class="px-4 py-3 text-slate-600">{{ $entry->reference_number ?: '-' }}</td><td class="whitespace-nowrap px-4 py-3 text-right font-medium">PHP {{ number_format((float) $entry->amount, 2) }}</td></tr>@empty<tr><td colspan="4" class="px-4 py-12 text-center text-sm text-slate-500">No reconciled transactions yet.</td></tr>@endforelse</tbody></table></div></div>
+        </div>
+    </section>
+    </div>
+
+    <footer data-reconciliation-actions class="sticky bottom-0 z-20 -mx-1 flex flex-wrap items-center justify-end gap-2 border-t border-slate-200 bg-white/95 px-1 py-2.5 shadow-[0_-8px_20px_-16px_rgba(15,23,42,0.45)] backdrop-blur supports-[backdrop-filter]:bg-white/90">
+        @can('viewAny', \App\Models\BankLedgerEntry::class)
+            <button type="button" data-dialog-open="bank-period-modal" class="inline-flex h-9 items-center justify-center gap-2 rounded-full border border-slate-400 bg-white px-4 text-sm font-semibold text-slate-800 shadow-sm transition hover:border-slate-500 hover:bg-slate-50 hover:shadow"><x-icon name="filter" class="h-4 w-4" /> Manage Period</button>
+        @endcan
+        @if($activePeriod)
+            @can('submit', $activePeriod)
+                <form method="POST" action="{{ route('bank-reconciliation.periods.submit', $activePeriod) }}">@csrf<button type="submit" class="inline-flex h-9 items-center justify-center rounded-full bg-slate-950 px-5 text-sm font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40" @disabled(!$periodSubmitReady)>Submit for Review</button></form>
+            @endcan
+            @can('approve', $activePeriod)
+                <button type="button" data-dialog-open="bank-period-reject-modal" class="inline-flex h-9 items-center justify-center rounded-full border border-rose-300 bg-white px-4 text-sm font-semibold text-rose-700 hover:bg-rose-50">Reject / Return for Correction</button>
+                <form method="POST" action="{{ route('bank-reconciliation.periods.approve', $activePeriod) }}">@csrf<button type="submit" class="inline-flex h-9 items-center justify-center rounded-full bg-emerald-700 px-5 text-sm font-semibold text-white hover:bg-emerald-800">Approve &amp; Lock</button></form>
+            @endcan
+        @endif
+    </footer>
+
+    @if($activePeriod)
+        @can('approve', $activePeriod)
+            <dialog id="bank-period-reject-modal" class="bank-modal">
+                <form method="POST" action="{{ route('bank-reconciliation.periods.reject', $activePeriod) }}" class="bank-modal-shell">
+                    @csrf
+                    <header class="bank-modal-header">
+                        <h2>Reject &amp; Return for Correction</h2>
+                        <button type="button" data-dialog-close="bank-period-reject-modal" aria-label="Close">&times;</button>
+                    </header>
+                    <div class="bank-modal-body space-y-3">
+                        <p class="text-sm text-slate-600">This returns the period to Draft so the preparer can address the issue. A reason is required and is recorded in the audit history.</p>
+                        <label class="block space-y-1 text-sm font-semibold text-slate-800">Reason for correction
+                            <textarea name="reason" required minlength="3" rows="4" class="mt-1 w-full rounded-lg border-slate-300 text-sm" placeholder="Explain what needs to be corrected before this period can be resubmitted."></textarea>
+                        </label>
+                    </div>
+                    <footer class="bank-modal-footer">
+                        <button type="button" data-dialog-close="bank-period-reject-modal" class="secondary-button">Cancel</button>
+                        <button type="submit" class="primary-button bg-rose-700 hover:bg-rose-800">Confirm Rejection</button>
+                    </footer>
+                </form>
+            </dialog>
+        @endcan
+    @endif
 
     <template id="bank-reconciliation-workflows">
         <h2>Bank Transactions to Review</h2>
@@ -196,34 +395,37 @@
     </template>
     @endif
     @if($latestReconciliationPeriod && ! $latestReconciliationPeriod->isApproved())
-    <dialog id="bank-discrepancy-modal" class="bank-modal">
+    <div id="discrepancy-data-source" hidden>
         <div class="bank-modal-shell">
             <header class="bank-modal-header">
                 <div>
                     <p class="text-xs font-semibold uppercase tracking-wide text-blue-700">Reconciliation review</p>
-                    <h2>Discrepancy Reports</h2>
-                    <p class="mt-1 text-sm font-normal text-slate-500">Review report decisions separately from matching and final period approval.</p>
+                    <h2>Discrepancy data</h2>
+                    <p>Supporting data for discrepancy actions.</p>
                 </div>
-                <button type="button" data-dialog-close="bank-discrepancy-modal" aria-label="Close">&times;</button>
+                <span></span>
             </header>
             <div class="bank-modal-body space-y-4">
         @php
             $discrepancyReports = $latestReconciliationPeriod->discrepancies;
-            $pendingReviewCount = $discrepancyReports->filter(fn ($report) => ! in_array($report->admin_review_status, ['accepted', 'correction_requested'], true))->count();
-            $acceptedReviewCount = $discrepancyReports->where('admin_review_status', 'accepted')->count();
-            $correctionReviewCount = $discrepancyReports->where('admin_review_status', 'correction_requested')->count();
+            $unresolvedDiscrepancyReports = $discrepancyReports->whereNotIn('resolution_status', ['resolved', 'accounted']);
+            $resolvedReviewCount = $discrepancyReports->count() - $unresolvedDiscrepancyReports->count();
+            $pendingReviewCount = $unresolvedDiscrepancyReports->filter(fn ($report) => ! in_array($report->admin_review_status, ['accepted', 'correction_requested'], true))->count();
+            $acceptedReviewCount = $unresolvedDiscrepancyReports->where('admin_review_status', 'accepted')->count();
+            $correctionReviewCount = $unresolvedDiscrepancyReports->where('admin_review_status', 'correction_requested')->count();
             $discrepancyReportData = $discrepancyReports->map(fn ($report) => ['type' => $report->typeLabel(), 'explanation' => $report->explanation, 'amount' => 'PHP '.number_format((float) $report->amount, 2), 'evidence' => $report->evidence_reference ?: ($report->evidence_path ? 'Attached file' : 'Not provided'), 'reporter' => $report->reporter?->name ?: 'Not recorded', 'reviewer' => $report->adminReviewer?->name ?: 'Not reviewed', 'reviewed_at' => $report->admin_reviewed_at?->format('M d, Y h:i A') ?: 'Not reviewed', 'decision' => $report->admin_review_status === 'accepted' ? 'Accepted' : ($report->admin_review_status === 'correction_requested' ? 'Correction Required' : 'Pending Review'), 'remarks' => $report->admin_review_note ?: 'No Admin remarks recorded.', 'resolution_status' => ucfirst((string) $report->resolution_status), 'resolution_explanation' => $report->resolution_explanation, 'resolution_evidence' => $report->resolution_evidence_path ? 'Attached resolution evidence' : null, 'resolution_evidence_url' => $report->resolution_evidence_path ? route('bank-reconciliation.discrepancies.resolution-evidence', [$latestReconciliationPeriod, $report]) : null, 'resolved_by' => $report->resolver?->name ?: null, 'resolved_at' => $report->resolved_at?->format('M d, Y h:i A'), 'resolve_url' => route('bank-reconciliation.discrepancies.resolve', [$latestReconciliationPeriod, $report])]);
         @endphp
-        <div class="grid grid-cols-3 gap-2" aria-label="Discrepancy report summary">
+        <div class="grid grid-cols-2 gap-2" aria-label="Discrepancy report summary">
             <button type="button" data-discrepancy-filter="pending" class="discrepancy-filter-card rounded-lg border border-amber-200 bg-amber-50 p-2 text-left text-xs" aria-pressed="false"><span class="block font-semibold text-amber-800">Pending Review</span><span class="mt-1 block text-lg font-bold text-amber-950">{{ $pendingReviewCount }}</span></button>
-            <button type="button" data-discrepancy-filter="accepted" class="discrepancy-filter-card rounded-lg border border-emerald-200 bg-emerald-50 p-2 text-left text-xs" aria-pressed="false"><span class="block font-semibold text-emerald-800">Accepted</span><span class="mt-1 block text-lg font-bold text-emerald-950">{{ $acceptedReviewCount }}</span></button>
             <button type="button" data-discrepancy-filter="correction_requested" class="discrepancy-filter-card rounded-lg border border-rose-200 bg-rose-50 p-2 text-left text-xs" aria-pressed="false"><span class="block font-semibold text-rose-800">Correction Required</span><span class="mt-1 block text-lg font-bold text-rose-950">{{ $correctionReviewCount }}</span></button>
+            <button type="button" data-discrepancy-filter="accepted" class="discrepancy-filter-card rounded-lg border border-blue-200 bg-blue-50 p-2 text-left text-xs" aria-pressed="false"><span class="block font-semibold text-blue-800">Accepted</span><span class="mt-1 block text-lg font-bold text-blue-950">{{ $acceptedReviewCount }}</span></button>
+            <button type="button" data-discrepancy-filter="resolved" class="discrepancy-filter-card rounded-lg border border-emerald-200 bg-emerald-50 p-2 text-left text-xs" aria-pressed="false"><span class="block font-semibold text-emerald-800">Resolved</span><span class="mt-1 block text-lg font-bold text-emerald-950">{{ $resolvedReviewCount }}</span></button>
         </div>
         <label class="block text-sm font-semibold text-slate-800">Search reports<input type="search" data-discrepancy-search placeholder="Search type, explanation, reporter, or amount" class="mt-1 w-full rounded-lg border-slate-300 text-sm"></label>
         <script type="application/json" id="discrepancy-report-data">@json($discrepancyReportData)</script>
         <section data-discrepancy-panel class="space-y-4 rounded-xl border border-amber-200 bg-amber-50/60 p-4">
             <div class="flex items-start justify-between gap-3">
-                <div><h3 class="text-base font-semibold text-slate-900">{{ auth()->user()->can('reviewDiscrepancy', $latestReconciliationPeriod) ? 'Resolve Discrepancies' : 'Manage Discrepancies' }}</h3><p class="mt-1 text-xs leading-5 text-slate-600">{{ auth()->user()->can('reviewDiscrepancy', $latestReconciliationPeriod) ? 'Review Staff-submitted explanations and evidence separately from final period approval.' : 'View submitted reports and update an item when Admin requests correction.' }}</p></div>
+                <div><h3>Discrepancy records</h3></div>
                 <span class="rounded-full {{ auth()->user()->can('reviewDiscrepancy', $latestReconciliationPeriod) ? 'bg-blue-100 text-blue-800' : 'bg-amber-100 text-amber-800' }} px-2.5 py-1 text-xs font-semibold">{{ auth()->user()->can('reviewDiscrepancy', $latestReconciliationPeriod) ? 'Admin review' : 'Draft period' }}</span>
             </div>
             @if($errors->hasAny(['type', 'classification', 'amount', 'explanation', 'evidence_reference', 'resolution_status', 'adjustment_amount', 'carry_forward']))
@@ -231,7 +433,7 @@
             @endif
             <div class="space-y-2" data-discrepancy-list>
                 @forelse($latestReconciliationPeriod->discrepancies as $discrepancy)
-                    <article class="rounded-lg border border-white bg-white p-3 text-sm"><div class="flex flex-wrap items-center justify-between gap-2"><strong>{{ $discrepancy->typeLabel() }}</strong><div class="flex flex-wrap gap-1.5"><span class="rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold capitalize">{{ $discrepancy->resolution_status }}</span><span class="rounded-full px-2 py-1 text-xs font-semibold capitalize {{ $discrepancy->admin_review_status === 'accepted' ? 'bg-emerald-100 text-emerald-800' : ($discrepancy->admin_review_status === 'correction_requested' ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-800') }}">{{ str_replace('_', ' ', $discrepancy->admin_review_status ?: 'pending') }}</span></div></div><p class="mt-1 text-slate-600">{{ $discrepancy->explanation }}</p><p class="mt-1 text-xs text-slate-500">PHP {{ number_format((float) $discrepancy->amount, 2) }} · Reported by: {{ $discrepancy->reporter?->name ?: 'Not recorded' }} · Evidence: {{ $discrepancy->evidence_reference ?: ($discrepancy->evidence_path ? 'Attached file' : 'Not provided') }}</p>@if($discrepancy->admin_review_note)<p class="mt-1 text-xs text-slate-500">Admin note: {{ $discrepancy->admin_review_note }}</p>@endif<div class="mt-2 flex flex-wrap items-center gap-2">@if($discrepancy->resolution_status === 'unresolved' && auth()->user()->can('prepare', \App\Models\BankReconciliation::class))<button type="button" data-edit-discrepancy data-edit-action="{{ route('bank-reconciliation.discrepancies.update', [$latestReconciliationPeriod, $discrepancy]) }}" data-edit-type="{{ $discrepancy->type }}" data-edit-custom-type="{{ $discrepancy->custom_type }}" data-edit-classification="{{ $discrepancy->classification }}" data-edit-amount="{{ $discrepancy->amount }}" data-edit-explanation="{{ $discrepancy->explanation }}" data-edit-reference="{{ $discrepancy->evidence_reference }}" class="text-xs font-semibold text-blue-700">Update report</button>@endif @can('reviewDiscrepancy', $latestReconciliationPeriod)<form method="POST" action="{{ route('bank-reconciliation.discrepancies.review', [$latestReconciliationPeriod, $discrepancy, 'accepted']) }}">@csrf<button type="submit" class="rounded border border-emerald-200 px-2 py-1 text-xs font-semibold text-emerald-700 hover:bg-emerald-50">Accept Explanation</button></form><form method="POST" action="{{ route('bank-reconciliation.discrepancies.review', [$latestReconciliationPeriod, $discrepancy, 'correction_requested']) }}" class="flex items-center gap-1"><input name="note" placeholder="Correction note (optional)" class="w-44 rounded border-slate-300 px-2 py-1 text-xs"><button type="submit" class="rounded border border-rose-200 px-2 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-50">Request Correction</button></form>@endcan</div></article>
+                    <article class="rounded-lg border border-white bg-white p-3 text-sm"><div class="flex flex-wrap items-center justify-between gap-2"><strong>{{ $discrepancy->typeLabel() }}</strong><div class="flex flex-wrap gap-1.5"><span class="rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold capitalize">{{ $discrepancy->resolution_status }}</span><span class="rounded-full px-2 py-1 text-xs font-semibold capitalize {{ $discrepancy->admin_review_status === 'accepted' ? 'bg-emerald-100 text-emerald-800' : ($discrepancy->admin_review_status === 'correction_requested' ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-800') }}">{{ str_replace('_', ' ', $discrepancy->admin_review_status ?: 'pending') }}</span></div></div><p class="mt-1 text-slate-600">{{ $discrepancy->explanation }}</p><p class="mt-1 text-xs text-slate-500">PHP {{ number_format((float) $discrepancy->amount, 2) }} · Reported by: {{ $discrepancy->reporter?->name ?: 'Not recorded' }} · Evidence: {{ $discrepancy->evidence_reference ?: ($discrepancy->evidence_path ? 'Attached file' : 'Not provided') }}</p>@if($discrepancy->admin_review_note)<p class="mt-1 text-xs text-slate-500">Admin note: {{ $discrepancy->admin_review_note }}</p>@endif<div class="mt-2 flex flex-wrap items-center gap-2">@if($discrepancy->resolution_status === 'unresolved' && auth()->user()->can('prepare', \App\Models\BankReconciliation::class))<button type="button" data-edit-discrepancy data-edit-action="{{ route('bank-reconciliation.discrepancies.update', [$latestReconciliationPeriod, $discrepancy]) }}" data-edit-type="{{ $discrepancy->type }}" data-edit-custom-type="{{ $discrepancy->custom_type }}" data-edit-classification="{{ $discrepancy->classification }}" data-edit-amount="{{ $discrepancy->amount }}" data-edit-explanation="{{ $discrepancy->explanation }}" data-edit-reference="{{ $discrepancy->evidence_reference }}" class="text-xs font-semibold text-blue-700">Update report</button>@endif @can('reviewDiscrepancy', $latestReconciliationPeriod)<form method="POST" action="{{ route('bank-reconciliation.discrepancies.review', [$latestReconciliationPeriod, $discrepancy, 'accepted']) }}">@csrf<button type="submit" class="rounded border border-emerald-200 px-2 py-1 text-xs font-semibold text-emerald-700 hover:bg-emerald-50">Accept Explanation</button></form><form method="POST" action="{{ route('bank-reconciliation.discrepancies.review', [$latestReconciliationPeriod, $discrepancy, 'correction_requested']) }}" class="flex items-center gap-1">@csrf<input name="note" placeholder="Correction note (optional)" class="w-44 rounded border-slate-300 px-2 py-1 text-xs"><button type="submit" class="rounded border border-rose-200 px-2 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-50">Request Correction</button></form>@endcan</div></article>
                 @empty
                     <p class="rounded-lg border border-dashed border-amber-300 bg-white p-3 text-sm text-slate-600">No discrepancies have been recorded for this period yet.</p>
                 @endforelse
@@ -254,11 +456,9 @@
             @endif
         </section>
             </div>
-            <footer class="bank-modal-footer">
-                <button type="button" data-dialog-close="bank-discrepancy-modal" class="secondary-button">Close</button>
-            </footer>
+            <footer></footer>
         </div>
-    </dialog>
+    </div>
     <dialog id="bank-discrepancy-details-modal" class="bank-modal">
         <div class="bank-modal-shell">
             <header class="bank-modal-header"><div><p class="text-xs font-semibold uppercase tracking-wide text-blue-700">Discrepancy report</p><h2 data-discrepancy-detail-title>Report details</h2></div><button type="button" data-dialog-close="bank-discrepancy-details-modal" aria-label="Close">&times;</button></header>
@@ -391,13 +591,49 @@
     </template>
     @endforeach
 </div>
-<style>.bank-modal{width:min(100% - 1.5rem,48rem);max-width:none;padding:0;border:0;background:transparent}.bank-modal::backdrop{background:rgb(15 23 42/.6)}.bank-modal-shell{display:flex;max-height:90vh;flex-direction:column;overflow:hidden;border-radius:1rem;background:#fff}.bank-modal-header{display:flex;flex-shrink:0;justify-content:space-between;border-bottom:1px solid #e2e8f0;padding:1.25rem}.bank-modal-body{min-height:0;flex:1;overflow-y:auto;padding:1.25rem}.bank-modal-footer{display:flex;flex-shrink:0;justify-content:flex-end;gap:.5rem;border-top:1px solid #e2e8f0;padding:1rem 1.25rem}.primary-button,.secondary-button{border-radius:.5rem;padding:.625rem 1rem;font-size:.875rem;font-weight:600}.primary-button{background:#1d4ed8;color:#fff}.secondary-button{border:1px solid #cbd5e1}.bank-modal h2{font-size:1.125rem;font-weight:700}.bank-modal-body > p.mt-5{display:none}.bank-modal [data-open-period-after-close]{display:inline-flex;align-items:center;border-radius:.5rem;background:#fff7ed;padding:.625rem .875rem;font-size:.875rem;font-weight:600;color:#b45309;box-shadow:inset 0 0 0 1px #fed7aa}.bank-modal [data-open-period-after-close]:hover{background:#ffedd5}.bank-table-scroll{height:min(58vh,36rem);min-height:18rem;flex:none;overflow-y:auto;overflow-x:auto}.bank-table-scroll thead th{position:sticky;top:0;z-index:10;background:#f8fafc;box-shadow:inset 0 -1px 0 #cbd5e1}.bank-table-footer{position:sticky;bottom:0}.bank-summary-card[aria-pressed="true"]{box-shadow:0 0 0 2px currentColor,0 6px 16px rgb(15 23 42/.1)}.bank-board-scroll{max-height:25rem;min-height:12rem;overflow:auto}.bank-board-scroll tbody tr{cursor:pointer;transition:background-color 120ms ease}.bank-board-scroll tbody tr:hover{background:#eff6ff}[data-board-tab][aria-selected="true"]{background:#2563eb;color:#fff;box-shadow:0 1px 2px rgb(15 23 42/.12)}[data-board-tab][aria-selected="false"]{background:#fff;color:#475569}[data-period-selector],[data-bank-type],[data-bank-status]{padding-right:2.5rem}@media (max-width:640px){.bank-table-scroll{height:min(58vh,30rem);min-height:14rem}.bank-board-scroll{max-height:20rem}.bank-table-footer{align-items:flex-start;flex-direction:column}.bank-table-footer>span:last-child{width:100%;justify-content:space-between}.bank-summary-card{padding:.875rem}.bank-modal-header,.bank-modal-body,.bank-modal-footer{padding:1rem}}</style>
+<style>.bank-modal{width:min(100% - 1.5rem,48rem);max-width:none;padding:0;border:0;background:transparent}.bank-modal::backdrop{background:rgb(15 23 42/.6)}.bank-modal-shell{display:flex;max-height:90vh;flex-direction:column;overflow:hidden;border-radius:1rem;background:#fff}.bank-modal-header{display:flex;flex-shrink:0;justify-content:space-between;border-bottom:1px solid #e2e8f0;padding:1.25rem}.bank-modal-body{min-height:0;flex:1;overflow-y:auto;padding:1.25rem}.bank-modal-footer{display:flex;flex-shrink:0;justify-content:flex-end;gap:.5rem;border-top:1px solid #e2e8f0;padding:1rem 1.25rem}.primary-button,.secondary-button{border-radius:.5rem;padding:.625rem 1rem;font-size:.875rem;font-weight:600}.primary-button{background:#1d4ed8;color:#fff}.secondary-button{border:1px solid #cbd5e1}.bank-modal h2{font-size:1.125rem;font-weight:700}.bank-modal-body > p.mt-5{display:none}.bank-modal [data-open-period-after-close]{display:inline-flex;align-items:center;border-radius:.5rem;background:#fff7ed;padding:.625rem .875rem;font-size:.875rem;font-weight:600;color:#b45309;box-shadow:inset 0 0 0 1px #fed7aa}.bank-modal [data-open-period-after-close]:hover{background:#ffedd5}.bank-table-scroll{height:min(58vh,36rem);min-height:18rem;flex:none;overflow-y:auto;overflow-x:auto}.bank-table-scroll thead th{position:sticky;top:0;z-index:10;background:#f8fafc;box-shadow:inset 0 -1px 0 #cbd5e1}.bank-table-footer{position:sticky;bottom:0}.bank-summary-card[aria-pressed="true"]{box-shadow:0 0 0 2px currentColor,0 6px 16px rgb(15 23 42/.1)}.bank-board-scroll{max-height:25rem;min-height:12rem;overflow:auto}.bank-board-scroll tbody tr{cursor:pointer;transition:background-color 120ms ease}.bank-board-scroll tbody tr:hover{background:#eff6ff}[data-board-tab][aria-selected="true"]{background:#2563eb;color:#fff;box-shadow:0 1px 2px rgb(15 23 42/.12)}[data-board-tab][aria-selected="false"]{background:#fff;color:#475569}[data-bank-type],[data-bank-status]{padding-right:2.5rem}@media (max-width:640px){.bank-table-scroll{height:min(58vh,30rem);min-height:14rem}.bank-board-scroll{max-height:20rem}.bank-table-footer{align-items:flex-start;flex-direction:column}.bank-table-footer>span:last-child{width:100%;justify-content:space-between}.bank-summary-card{padding:.875rem}.bank-modal-header,.bank-modal-body,.bank-modal-footer{padding:1rem}}</style>
 <style>
 .discrepancy-modal-header{align-items:flex-start;background:#fff;padding:1.15rem 1.25rem}.discrepancy-modal-kicker{display:inline-flex;border-radius:.35rem;background:#dbeafe;padding:.18rem .5rem;color:#075985;font-size:.68rem;font-weight:800;letter-spacing:.01em}.discrepancy-modal-close{color:#475569;font-size:1.5rem;line-height:1}.discrepancy-modal-close:hover{color:#0f172a}.discrepancy-modal-body{display:flex;flex-direction:column;gap:.65rem;background:#fff;padding:1rem 1.25rem 1.2rem}.discrepancy-modal-icon{display:inline-flex;flex:none;align-items:center;justify-content:center;border-radius:.65rem;background:#dbeafe;color:#2563eb}.discrepancy-modal-icon--header{height:2.75rem;width:2.75rem;border-radius:.75rem}.discrepancy-modal-summary{display:flex;align-items:flex-start;gap:.75rem;border:1px solid #93c5fd;border-radius:.65rem;background:#eff6ff;padding:.75rem .85rem;color:#1e3a8a}.discrepancy-modal-summary>div{display:flex;min-width:0;flex-direction:column;gap:.15rem}.discrepancy-modal-summary strong{overflow:hidden;color:#172554;font-size:.78rem;line-height:1.35;text-overflow:ellipsis;white-space:nowrap}.discrepancy-modal-summary [data-unmatched-record-amount]{font-size:.76rem;font-weight:600}.discrepancy-modal-note{display:flex;align-items:center;gap:.3rem;width:max-content;max-width:100%;border:1px solid #bfdbfe;border-radius:.35rem;background:#fff;padding:.25rem .45rem;color:#1e40af;font-size:.64rem}.discrepancy-modal-section{border:1px solid #dbe4f0;border-radius:.65rem;background:#f8fafc;padding:.7rem .8rem}.discrepancy-modal-section-title{display:flex;align-items:center;gap:.55rem;margin-bottom:.55rem}.discrepancy-modal-section-title h3{color:#172033;font-size:.82rem;font-weight:800}.discrepancy-modal-section-title h3 span{color:#64748b;font-weight:500}.discrepancy-modal-field{display:block;color:#172033;font-size:.68rem;font-weight:800}.discrepancy-modal-field select,.discrepancy-modal-field textarea,.discrepancy-modal-field input{display:block;width:100%;margin-top:.35rem;border:1px solid #b9c5d5;border-radius:.45rem;background:#fff;padding:.55rem .65rem;color:#172033;font-size:.75rem;box-shadow:0 1px 2px rgb(15 23 42/.03)}.discrepancy-modal-field select{padding-right:2rem}.discrepancy-modal-field textarea{min-height:4.2rem;resize:vertical}.discrepancy-modal-field select:focus,.discrepancy-modal-field textarea:focus,.discrepancy-modal-field input:focus{border-color:#60a5fa;outline:2px solid #bfdbfe;outline-offset:0}.discrepancy-modal-help{display:block;margin-top:.25rem;color:#64748b;font-size:.62rem;font-weight:500;line-height:1.4}.discrepancy-upload-zone{display:flex;min-height:4.4rem;width:100%;flex-direction:column;align-items:center;justify-content:center;gap:.1rem;border:1.5px dashed #60a5fa;border-radius:.55rem;background:#eff6ff;padding:.55rem;text-align:center;color:#172033;transition:background .15s,border-color .15s}.discrepancy-upload-zone:hover,.discrepancy-upload-zone.border-blue-600{border-color:#2563eb;background:#dbeafe}.discrepancy-upload-zone svg{color:#2563eb}.discrepancy-upload-zone strong{font-size:.72rem}.discrepancy-upload-zone span{color:#64748b;font-size:.62rem}.discrepancy-upload-error{margin-top:.4rem;border-radius:.4rem;background:#fff1f2;padding:.4rem .55rem;color:#be123c;font-size:.65rem;font-weight:600}.discrepancy-upload-list{margin-top:.45rem}.discrepancy-evidence-reference{margin-top:.6rem;color:#64748b;font-size:.65rem}.discrepancy-evidence-reference input{font-weight:500}.discrepancy-next-step{display:flex;align-items:flex-start;gap:.6rem;border:1px solid #bfdbfe;border-radius:.65rem;background:#eff6ff;padding:.7rem .8rem;color:#1e3a8a}.discrepancy-next-step h3{font-size:.75rem;font-weight:800}.discrepancy-next-step ul{margin-top:.25rem;padding-left:1rem;font-size:.65rem;line-height:1.45;list-style:disc}.discrepancy-modal-footer{background:#fff;padding:.8rem 1.25rem}.discrepancy-cancel{background:#fff;color:#334155}.discrepancy-submit{background:#1d4ed8;color:#fff;box-shadow:0 3px 8px rgb(29 78 216/.2)}.discrepancy-submit:hover{background:#1e40af}.discrepancy-modal-footer .secondary-button,.discrepancy-modal-footer .primary-button{min-width:7.5rem}@media (max-width:640px){.discrepancy-modal-header,.discrepancy-modal-body,.discrepancy-modal-footer{padding-left:.9rem;padding-right:.9rem}.discrepancy-modal-note{width:auto}.discrepancy-modal-summary strong{white-space:normal}.discrepancy-modal-footer{justify-content:stretch}.discrepancy-modal-footer button{flex:1}}
 </style>
 <style>.discrepancy-custom-type-wrap{display:block;margin-top:.6rem}.discrepancy-custom-type-wrap.hidden{display:none}.discrepancy-custom-type-label{display:block;color:#172033;font-size:.68rem;font-weight:800}.discrepancy-custom-type-label::after{content:' *';color:#dc2626}.discrepancy-custom-type-wrap input{display:block;width:100%;margin-top:.35rem;border:1px solid #b9c5d5;border-radius:.45rem;background:#fff;padding:.55rem .65rem;color:#172033;font-size:.75rem}.discrepancy-custom-type-wrap input:focus{border-color:#60a5fa;outline:2px solid #bfdbfe;outline-offset:0}</style>
 <style>.period-step{background:#fff;color:#475569}.period-step[aria-selected="true"]{border-color:#2563eb;background:#eff6ff;color:#1d4ed8;box-shadow:0 0 0 1px #2563eb}.period-step-status{font-size:.68rem;color:#64748b}.period-step[aria-selected="true"] .period-step-status{color:#1d4ed8}.bank-modal-footer{flex-wrap:wrap}.bank-modal-footer form{display:flex;align-items:center;gap:.5rem}.bank-modal-footer form:first-child{margin-right:auto}</style>
+<style>.details-tab,.transaction-view{color:#64748b;transition:background-color .15s,color .15s}.details-tab:hover,.transaction-view:hover{background:#f8fafc;color:#0f172a}.details-tab[aria-selected="true"],.transaction-view[aria-selected="true"]{background:#f1f5f9;color:#0f172a}.details-tab:focus-visible,.transaction-view:focus-visible{outline:2px solid #3b82f6;outline-offset:2px}.bank-table-footer{position:static}.bank-board-scroll{max-height:20rem;min-height:9rem}@media(max-width:640px){[data-reconciliation-details]>footer>*{flex:1}[data-reconciliation-details]>footer form button{width:100%}.bank-board-scroll{max-height:18rem;min-height:8rem}}</style>
 <script>
+const detailsTabs = [...document.querySelectorAll('[data-details-tab]')];
+const detailsPanels = [...document.querySelectorAll('[data-details-panel]')];
+const transactionAction = document.querySelector('[data-transaction-action]');
+const activateDetailsTab = (name, updateHash = true) => {
+    const validName = detailsPanels.some((panel) => panel.dataset.detailsPanel === name) ? name : 'transactions';
+    detailsTabs.forEach((tab) => tab.setAttribute('aria-selected', tab.dataset.detailsTab === validName ? 'true' : 'false'));
+    detailsPanels.forEach((panel) => panel.classList.toggle('hidden', panel.dataset.detailsPanel !== validName));
+    if (transactionAction) transactionAction.classList.toggle('hidden', validName !== 'transactions');
+    if (updateHash) history.replaceState(null, '', validName === 'transactions' ? location.pathname + location.search : '#'+validName);
+};
+detailsTabs.forEach((tab) => tab.addEventListener('click', () => activateDetailsTab(tab.dataset.detailsTab)));
+detailsTabs.forEach((tab, index) => tab.addEventListener('keydown', (event) => {
+    if (!['ArrowLeft', 'ArrowRight'].includes(event.key)) return;
+    event.preventDefault();
+    const next = (index + (event.key === 'ArrowRight' ? 1 : -1) + detailsTabs.length) % detailsTabs.length;
+    detailsTabs[next].focus();
+    activateDetailsTab(detailsTabs[next].dataset.detailsTab);
+}));
+activateDetailsTab(location.hash.slice(1) || @json($initialDetailsTab), false);
+const transactionViews = [...document.querySelectorAll('[data-transaction-view]')];
+const transactionViewPanels = [...document.querySelectorAll('[data-transaction-view-panel]')];
+const activateTransactionView = (name) => {
+    const validName = transactionViewPanels.some((panel) => panel.dataset.transactionViewPanel === name) ? name : 'needs';
+    transactionViews.forEach((view) => view.setAttribute('aria-selected', view.dataset.transactionView === validName ? 'true' : 'false'));
+    transactionViewPanels.forEach((panel) => panel.classList.toggle('hidden', panel.dataset.transactionViewPanel !== validName));
+};
+transactionViews.forEach((view) => view.addEventListener('click', () => activateTransactionView(view.dataset.transactionView)));
+transactionViews.forEach((view, index) => view.addEventListener('keydown', (event) => {
+    if (!['ArrowLeft', 'ArrowRight'].includes(event.key)) return;
+    event.preventDefault();
+    const next = (index + (event.key === 'ArrowRight' ? 1 : -1) + transactionViews.length) % transactionViews.length;
+    transactionViews[next].focus();
+    activateTransactionView(transactionViews[next].dataset.transactionView);
+}));
+activateTransactionView('needs');
 const bankRows=[...document.querySelectorAll('[data-bank-row]')],bankSize=10;let bankPage=1;const bankRefresh=()=>{const q=document.querySelector('[data-bank-search]')?.value.toLowerCase()||'',t=document.querySelector('[data-bank-type]')?.value||'all',s=document.querySelector('[data-bank-status]')?.value||'all',filtered=bankRows.filter(r=>(!q||r.dataset.search.includes(q))&&(t==='all'||r.dataset.type===t)&&(s==='needs_action'?['unmatched','unreconciled'].includes(r.dataset.status):(s==='all'||r.dataset.status===s))),pages=Math.max(1,Math.ceil(filtered.length/bankSize));bankPage=Math.min(bankPage,pages);bankRows.forEach(r=>r.hidden=true);filtered.slice((bankPage-1)*bankSize,bankPage*bankSize).forEach(r=>r.hidden=false);document.querySelector('[data-bank-summary]').textContent=filtered.length?'Showing '+((bankPage-1)*bankSize+1)+'–'+Math.min(bankPage*bankSize,filtered.length)+' of '+filtered.length:'No transactions found';document.querySelector('[data-bank-prev]').disabled=bankPage===1;document.querySelector('[data-bank-next]').disabled=bankPage===pages;const pagesEl=document.querySelector('[data-bank-pages]');pagesEl.replaceChildren(...Array.from({length:pages},(_,i)=>{const b=document.createElement('button');b.type='button';b.textContent=i+1;b.className='rounded border px-2.5 py-1.5';b.addEventListener('click',()=>{bankPage=i+1;bankRefresh()});return b}))};document.querySelectorAll('[data-bank-search],[data-bank-type],[data-bank-status]').forEach(e=>e.addEventListener('input',()=>{bankPage=1;bankRefresh()}));document.querySelector('[data-bank-prev]')?.addEventListener('click',()=>{bankPage--;bankRefresh()});document.querySelector('[data-bank-next]')?.addEventListener('click',()=>{bankPage++;bankRefresh()});bankRows.forEach(r=>r.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();document.getElementById(r.dataset.dialogOpen)?.showModal()}}));bankRefresh();document.querySelector('[data-history-search]')?.addEventListener('input',e=>{const q=e.target.value.toLowerCase();document.querySelectorAll('[data-history-row]').forEach(r=>r.hidden=!r.dataset.historySearch.includes(q))});const file=document.querySelector('[data-bank-file]'),drop=document.querySelector('[data-bank-dropzone]'),preview=document.querySelector('[data-bank-preview]'),submit=document.querySelector('[data-bank-submit]'),error=document.querySelector('[data-bank-error]');drop?.addEventListener('click',()=>file.click());file?.addEventListener('change',()=>{if(!file.files[0])return;document.querySelector('[data-bank-file-name]').textContent=file.files[0].name;document.querySelector('[data-bank-file-info]').hidden=false;document.querySelector('[data-bank-preview-summary]').textContent='File selected and ready for server validation.';preview.hidden=false;submit.disabled=false});document.querySelector('[data-bank-remove]')?.addEventListener('click',()=>{file.value='';document.querySelector('[data-bank-file-info]').hidden=true;preview.hidden=true;submit.disabled=true});
 bankRows.forEach((row) => { if (row.dataset.status === 'unreconciled') row.dataset.status = 'unmatched'; });
 const bankDiscrepancyData = @json($bankDiscrepancyData);
@@ -418,7 +654,6 @@ document.querySelector('[data-bank-status]')?.dispatchEvent(new Event('input', {
 document.querySelectorAll('[data-bank-filter-card]').forEach((card) => card.addEventListener('click', () => { const type = card.dataset.bankFilterCard; const select = document.querySelector('[data-bank-type]'); if (select) { select.value = select.value === type ? 'all' : type; select.dispatchEvent(new Event('input', { bubbles: true })); } document.querySelectorAll('[data-bank-filter-card]').forEach((item) => item.setAttribute('aria-pressed', item === card && select?.value === type ? 'true' : 'false')); document.querySelector('[data-bank-all-filter]').classList.toggle('hidden', select?.value === 'all'); }));
 document.querySelector('[data-bank-all-filter]')?.addEventListener('click', () => { const select = document.querySelector('[data-bank-type]'); if (select) { select.value = 'all'; select.dispatchEvent(new Event('input', { bubbles: true })); } document.querySelectorAll('[data-bank-filter-card]').forEach((item) => item.setAttribute('aria-pressed', 'false')); document.querySelector('[data-bank-all-filter]').classList.add('hidden'); });
 document.querySelector('[data-bank-type]')?.addEventListener('input', (event) => { document.querySelectorAll('[data-bank-filter-card]').forEach((item) => item.setAttribute('aria-pressed', item.dataset.bankFilterCard === event.target.value ? 'true' : 'false')); document.querySelector('[data-bank-all-filter]').classList.toggle('hidden', event.target.value === 'all'); });
-document.querySelector('[data-period-selector]')?.addEventListener('change', (event) => { const url = new URL(window.location.href); if (event.target.value) url.searchParams.set('period_id', event.target.value); else url.searchParams.delete('period_id'); window.location.assign(url.toString()); });
 const confirmedPeriodRows = @json($confirmedPeriodRows);
 const reconciliationPeriodRows = @json($periodRows);
 const newPeriodForm = document.querySelector('[data-new-period-form]');
@@ -551,29 +786,32 @@ if (periodWorkflowTemplate && periodBody) {
     workflow?.querySelectorAll('[data-period-jump]').forEach((button) => button.addEventListener('click', () => activatePeriodStep(button.dataset.periodJump)));
     workflow?.querySelector('[data-guided-action="match"]')?.addEventListener('click', () => {
         document.getElementById('bank-period-modal')?.close();
-        document.querySelector('[data-bank-status]').value = 'needs_action';
-        document.querySelector('[data-bank-status]').dispatchEvent(new Event('input', { bubbles: true }));
-        document.querySelector('[data-bank-transaction-table]')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        activateDetailsTab('transactions');
+        activateTransactionView('needs');
+        document.querySelector('[data-reconciliation-board]')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
     workflow?.querySelector('[data-period-discrepancies]')?.addEventListener('click', () => {
         document.getElementById('bank-period-modal')?.close();
-        document.getElementById('bank-discrepancy-modal')?.showModal();
+        activateDetailsTab('discrepancies');
     });
 }
 const discrepancyTemplate = document.querySelector('#bank-discrepancy-template');
 const discrepancyValidationFailed = @json($discrepancyValidationFailed);
 if (discrepancyValidationFailed) {
-    document.getElementById('bank-discrepancy-modal')?.showModal();
+    document.getElementById('unmatched-system-record-modal')?.showModal();
 }
-const discrepancyModal = document.getElementById('bank-discrepancy-modal');
+const discrepancyModal = document.getElementById('discrepancy-data-source');
 const discrepancyReports = [...(discrepancyModal?.querySelectorAll('[data-discrepancy-list] article') || [])];
 let discrepancyStatusFilter = 'all';
 const normalizeReviewStatus = (value) => value.trim().toLowerCase().replace(/\s+/g, '_');
 discrepancyReports.forEach((report, index) => {
-    const statusBadge = report.querySelectorAll('.rounded-full')[1];
+    const badges = report.querySelectorAll('.rounded-full');
+    const resolutionBadge = badges[0];
+    const statusBadge = badges[1];
     const rawStatus = normalizeReviewStatus(statusBadge?.textContent || 'pending');
     const status = rawStatus === 'correction_required' ? 'correction_requested' : rawStatus === 'accepted' ? 'accepted' : 'pending';
-    report.dataset.discrepancyReviewStatus = status;
+    const isResolved = ['resolved', 'accounted'].includes(normalizeReviewStatus(resolutionBadge?.textContent || ''));
+    report.dataset.discrepancyReviewStatus = isResolved ? 'resolved' : status;
     if (statusBadge) statusBadge.textContent = status === 'accepted' ? 'Accepted' : status === 'correction_requested' ? 'Correction Required' : 'Pending Review';
     report.dataset.discrepancyReportIndex = String(index);
 });
@@ -606,7 +844,7 @@ if (discrepancyModal && discrepancyReports.length) {
         row.dataset.discrepancyReviewStatus = report.dataset.discrepancyReviewStatus;
         row.dataset.discrepancySearchText = (report.textContent || '').toLowerCase();
         row.className = 'cursor-pointer border-t border-slate-200 transition hover:bg-blue-50';
-        row.innerHTML = `<td class="px-3 py-3 font-semibold text-slate-900">${discrepancyDetailData[index]?.type || 'Discrepancy'}</td><td class="px-3 py-3 font-semibold text-slate-900">${discrepancyDetailData[index]?.amount || '—'}</td><td class="px-3 py-3 capitalize text-slate-700">${cells[0]?.textContent || 'Unresolved'}</td><td class="px-3 py-3 font-semibold ${row.dataset.discrepancyReviewStatus === 'accepted' ? 'text-emerald-700' : row.dataset.discrepancyReviewStatus === 'correction_requested' ? 'text-rose-700' : 'text-amber-700'}">${cells[1]?.textContent || 'Pending Review'}</td><td class="px-3 py-3 text-right"></td>`;
+        row.innerHTML = `<td class="px-3 py-3 font-semibold text-slate-900">${discrepancyDetailData[index]?.type || 'Discrepancy'}</td><td class="px-3 py-3 font-semibold text-slate-900">${discrepancyDetailData[index]?.amount || '—'}</td><td class="px-3 py-3 capitalize text-slate-700">${cells[0]?.textContent || 'Unresolved'}</td><td class="px-3 py-3 font-semibold ${['accepted', 'resolved'].includes(row.dataset.discrepancyReviewStatus) ? 'text-emerald-700' : row.dataset.discrepancyReviewStatus === 'correction_requested' ? 'text-rose-700' : 'text-amber-700'}">${cells[1]?.textContent || 'Pending Review'}</td><td class="px-3 py-3 text-right"></td>`;
         const actions = report.querySelector('.mt-2')?.cloneNode(true);
         const view = document.createElement('button');
         view.type = 'button'; view.textContent = 'View'; view.dataset.discrepancyDetails = 'true';
@@ -654,7 +892,7 @@ window.openDiscrepancyDetails = (data) => {
         });
         detailModal?.querySelector('.bank-modal-footer')?.prepend(resolveButton);
     }
-    discrepancyModal?.close();
+    discrepancyModal?.close?.();
     detailModal?.showModal();
 };
 discrepancyModal?.addEventListener('click', (event) => {
@@ -662,6 +900,41 @@ discrepancyModal?.addEventListener('click', (event) => {
     if (!report || (event.target.closest('form, input, select, textarea, a') && !event.target.closest('button[data-discrepancy-details]'))) return;
     window.openDiscrepancyDetails(discrepancyDetailData[Number(report.dataset.discrepancyReportIndex)] || {});
 });
+document.querySelector('[data-discrepancy-reports-table]')?.addEventListener('click', (event) => {
+    const button = event.target.closest?.('[data-discrepancy-details]');
+    if (!button) return;
+    window.openDiscrepancyDetails(discrepancyDetailData[Number(button.dataset.discrepancyReportIndex)] || {});
+});
+const discrepancyDirectionFilters = document.querySelector('[data-discrepancy-direction-filters]');
+const discrepancyDirectionRows = [...document.querySelectorAll('[data-discrepancy-report-row]')];
+const discrepancyDirectionEmpty = document.querySelector('[data-discrepancy-direction-empty]');
+discrepancyDirectionFilters?.addEventListener('click', (event) => {
+    const selected = event.target.closest?.('[data-discrepancy-direction]');
+    if (!selected) return;
+    const direction = selected.dataset.discrepancyDirection || 'all';
+    let visibleCount = 0;
+    discrepancyDirectionRows.forEach((row) => {
+        row.hidden = direction !== 'all' && row.dataset.transactionDirection !== direction;
+        if (!row.hidden) visibleCount += 1;
+    });
+    discrepancyDirectionFilters.querySelectorAll('[data-discrepancy-direction]').forEach((button) => {
+        const active = button === selected;
+        button.setAttribute('aria-pressed', active ? 'true' : 'false');
+        button.classList.toggle('bg-blue-600', active);
+        button.classList.toggle('text-white', active);
+        button.classList.toggle('shadow-sm', active);
+        button.classList.toggle('text-slate-600', !active);
+    });
+    if (discrepancyDirectionEmpty) discrepancyDirectionEmpty.hidden = visibleCount > 0;
+});
+const selectedDiscrepancyIndex = @json($selectedDiscrepancyIndex === false ? null : $selectedDiscrepancyIndex);
+if (selectedDiscrepancyIndex !== null && discrepancyDetailData[selectedDiscrepancyIndex]) {
+    activateDetailsTab('discrepancies', false);
+    const selectedRow = discrepancyTableRows[selectedDiscrepancyIndex];
+    selectedRow?.classList.add('bg-blue-50', 'ring-1', 'ring-inset', 'ring-blue-200');
+    selectedRow?.scrollIntoView({ block: 'center' });
+    window.openDiscrepancyDetails(discrepancyDetailData[selectedDiscrepancyIndex]);
+}
 const resolutionFile = document.querySelector('[data-resolution-file]');
 const resolutionDropzone = document.querySelector('[data-resolution-dropzone]');
 const resolutionPreview = document.querySelector('[data-resolution-file-preview]');
@@ -903,6 +1176,8 @@ document.addEventListener('click', (event) => {
     const go = event.target.closest?.('[data-go-to-matching]');
     if (go) {
         document.getElementById('bank-entry-' + go.dataset.bankId)?.close();
+        activateDetailsTab('transactions');
+        activateTransactionView('needs');
         const tab = document.querySelector(`[data-board-tab="${go.dataset.bankType === 'withdrawal' ? 'withdrawal' : 'deposit'}"]`);
         tab?.click();
         document.querySelector('[data-reconciliation-board]')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -910,6 +1185,7 @@ document.addEventListener('click', (event) => {
 });
 const board = document.querySelector('[data-reconciliation-board]');
 if (board) {
+    const canMatchTransactions = @json($canMatchTransactions);
     const boardBanks = @json($boardBankRows);
     const boardSystems = {
         deposit: @json($boardDepositRows),
@@ -919,7 +1195,8 @@ if (board) {
     const boardEnd = @json($activePeriod?->period_end?->toDateString());
     let boardType = 'deposit';
     const selected = {system: new Set(), bank: new Set()};
-    const inPeriod = (date) => !boardStart || !date || (date >= boardStart && date <= boardEnd);
+    // Earlier uncleared items remain eligible; future-dated records never do.
+    const inPeriod = (date) => !boardEnd || !date || date <= boardEnd;
     const money = (amount) => 'PHP ' + Number(amount || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
     const systemBody = board.querySelector('[data-board-system-body]');
     const bankBody = board.querySelector('[data-board-bank-body]');
@@ -932,7 +1209,7 @@ if (board) {
         if (bankId) document.getElementById('bank-entry-' + bankId)?.showModal();
     });
     const updateBoardState = () => {
-        const matchesFilter = (item) => boardFilter === 'all' || (boardFilter === 'matched' ? item.status === 'matched' : item.status !== 'matched');
+        const matchesFilter = (item) => boardFilter === 'all' || (boardFilter === 'matched' ? item.status === 'matched' : (item.needsMatching ?? item.status !== 'matched'));
         const systems = boardSystems[boardType].filter((item) => inPeriod(item.date) && matchesFilter(item));
         const banks = boardBanks.filter((item) => item.type === boardType && inPeriod(item.date) && matchesFilter(item));
         const systemTotal = [...selected.system].reduce((sum, id) => sum + Number(systems.find((item) => String(item.id) === String(id))?.amount || 0), 0);
@@ -948,6 +1225,7 @@ if (board) {
         board.querySelector('[data-board-amount-summary]').textContent = `Bank amount: ${money(bankTotal)} · System amount: ${money(systemTotal)} · Difference: ${money(difference)}`;
         const help = board.querySelector('[data-board-selection-help]');
         const selection = board.querySelector('[data-board-selection]');
+        board.querySelector('[data-board-selection-container]').classList.toggle('hidden', !canMatchTransactions || (bankSelectionCount === 0 && selected.system.size === 0));
         if (bankSelectionCount === 0) {
             selection.textContent = 'Select one LANDBANK transaction and its matching system record(s).';
             help.textContent = 'Confirm Match is disabled until one valid bank transaction and matching system record(s) are selected.';
@@ -969,11 +1247,11 @@ if (board) {
     const checkbox = (kind, item) => { const input = document.createElement('input'); input.type = 'checkbox'; input.dataset.boardSelect = kind; input.value = item.id; input.checked = selected[kind].has(String(item.id)); input.addEventListener('change', () => { if (input.checked) { if (kind === 'bank') { selected.bank.clear(); bankBody.querySelectorAll('[data-board-select="bank"]').forEach((other) => { if (other !== input) other.checked = false; }); } selected[kind].add(String(item.id)); } else selected[kind].delete(String(item.id)); updateBoardState(); }); return input; };
     const renderBoard = () => {
         selected.system.clear(); selected.bank.clear(); systemBody.replaceChildren(); bankBody.replaceChildren();
-        const matchesFilter = (item) => boardFilter === 'all' || (boardFilter === 'matched' ? item.status === 'matched' : item.status !== 'matched');
+        const matchesFilter = (item) => boardFilter === 'all' || (boardFilter === 'matched' ? item.status === 'matched' : (item.needsMatching ?? item.status !== 'matched'));
         const systems = boardSystems[boardType].filter((item) => inPeriod(item.date) && matchesFilter(item));
         const banks = boardBanks.filter((item) => item.type === boardType && inPeriod(item.date) && matchesFilter(item));
-        systems.forEach((item) => { const row = document.createElement('tr'); row.className = 'border-t border-slate-100'; const select = document.createElement('td'); select.className = 'px-4 py-3'; const input = checkbox('system', item); input.disabled = item.status === 'matched'; select.append(input); const detail = document.createElement('td'); detail.className = 'px-4 py-3'; const label = document.createElement('strong'); label.textContent = item.label; const meta = document.createElement('span'); meta.className = 'block text-xs text-slate-500'; meta.textContent = `${item.detail || ''} · ${item.date || 'No date'}`; detail.append(label, meta); const amount = document.createElement('td'); amount.className = 'px-4 py-3 text-right font-semibold'; amount.textContent = money(item.amount); const status = document.createElement('td'); status.className = 'px-4 py-3 text-xs font-semibold capitalize ' + (item.status === 'matched' ? 'text-emerald-700' : 'text-slate-600'); status.textContent = item.status === 'matched' ? 'Matched' : item.status; row.append(select, detail, amount, status); if (canReportUnmatched && item.status !== 'matched') { const actionCell = document.createElement('td'); actionCell.className = 'px-4 py-3 text-right'; const action = document.createElement('button'); action.type = 'button'; action.className = 'text-xs font-semibold text-amber-700 hover:text-amber-900'; action.textContent = 'Report Unmatched Record'; action.addEventListener('click', (event) => { event.stopPropagation(); openUnmatchedRecordModal(item, boardType); }); actionCell.append(action); row.append(actionCell); } systemBody.append(row); });
-        banks.forEach((item) => { const row = document.createElement('tr'); row.className = 'border-t border-slate-100'; const select = document.createElement('td'); select.className = 'px-4 py-3'; const input = checkbox('bank', item); input.disabled = item.status === 'matched'; select.append(input); const detail = document.createElement('td'); detail.className = 'px-4 py-3'; const label = document.createElement('strong'); label.textContent = item.description; const meta = document.createElement('span'); meta.className = 'block text-xs text-slate-500'; meta.textContent = `${item.reference || 'No reference'} · ${item.date || 'No date'}`; detail.append(label, meta); const amount = document.createElement('td'); amount.className = 'px-4 py-3 text-right font-semibold'; amount.textContent = money(item.amount); const status = document.createElement('td'); status.className = 'px-4 py-3 text-xs font-semibold ' + (item.status === 'matched' ? 'text-emerald-700' : 'text-amber-700'); status.textContent = item.status === 'matched' ? 'Matched' : item.status; row.append(select, detail, amount, status); bankBody.append(row); });
+        systems.forEach((item) => { const row = document.createElement('tr'); row.className = 'border-t border-slate-100'; const select = document.createElement('td'); select.className = 'px-4 py-3'; if (canMatchTransactions) { const input = checkbox('system', item); input.disabled = item.status === 'matched'; select.append(input); } const detail = document.createElement('td'); detail.className = 'px-4 py-3'; const label = document.createElement('strong'); label.textContent = item.label; const meta = document.createElement('span'); meta.className = 'block text-xs text-slate-500'; meta.textContent = `${item.detail || ''} · ${item.date || 'No date'}`; detail.append(label, meta); const amount = document.createElement('td'); amount.className = 'px-4 py-3 text-right font-semibold'; amount.textContent = money(item.amount); const status = document.createElement('td'); status.className = 'px-4 py-3 text-xs font-semibold capitalize ' + (item.status === 'matched' ? 'text-emerald-700' : 'text-slate-600'); status.textContent = item.status === 'matched' ? 'Matched' : item.status; row.append(select, detail, amount, status); if (canReportUnmatched && item.status !== 'matched' && !item.discrepancy) { const actionCell = document.createElement('td'); actionCell.className = 'px-4 py-3 text-right'; const action = document.createElement('button'); action.type = 'button'; action.className = 'text-xs font-semibold text-amber-700 hover:text-amber-900'; action.textContent = 'Report Unmatched Record'; action.addEventListener('click', (event) => { event.preventDefault(); event.stopPropagation(); openUnmatchedRecordModal(item, boardType); }); actionCell.append(action); row.append(actionCell); } systemBody.append(row); });
+        banks.forEach((item) => { const row = document.createElement('tr'); row.className = 'border-t border-slate-100'; const select = document.createElement('td'); select.className = 'px-4 py-3'; if (canMatchTransactions) { const input = checkbox('bank', item); input.disabled = item.status === 'matched'; select.append(input); } const detail = document.createElement('td'); detail.className = 'px-4 py-3'; const label = document.createElement('strong'); label.textContent = item.description; const meta = document.createElement('span'); meta.className = 'block text-xs text-slate-500'; meta.textContent = `${item.reference || 'No reference'} · ${item.date || 'No date'}`; detail.append(label, meta); const amount = document.createElement('td'); amount.className = 'px-4 py-3 text-right font-semibold'; amount.textContent = money(item.amount); const status = document.createElement('td'); status.className = 'px-4 py-3 text-xs font-semibold ' + (item.status === 'matched' ? 'text-emerald-700' : 'text-amber-700'); status.textContent = item.status === 'matched' ? 'Matched' : item.status; row.append(select, detail, amount, status); bankBody.append(row); });
         emptySystem.classList.toggle('hidden', systems.length > 0); emptyBank.classList.toggle('hidden', banks.length > 0); updateBoardState();
     };
     let boardFilter = 'needs';

@@ -2,7 +2,7 @@
 
 namespace App\Http\Requests\Reports;
 
-use App\Models\Contribution;
+use App\Support\Authorization\ReportAccess;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use App\Support\Workspaces\WorkspaceValidationRules;
@@ -11,7 +11,19 @@ class ReportIndexRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->can('viewAny', Contribution::class) ?? false;
+        if (! $this->user()) {
+            return false;
+        }
+
+        $routeTab = [
+            'reports.financial' => 'financial', 'reports.financial-ledgers' => 'financial-ledgers',
+            'reports.inventory' => 'inventory', 'reports.audit' => 'audit',
+            'reports.reconciliation' => 'reconciliation', 'reports.in-kind-audits' => 'in-kind-audits',
+            'reports.philanthropy-roster' => 'philanthropy-roster',
+        ][$this->route()?->getName()] ?? null;
+
+        $tab = $routeTab ?? $this->input('tab');
+        return app(ReportAccess::class)->can($this->user(), (string) ($tab ?: app(ReportAccess::class)->allowedTabs($this->user())->first()));
     }
 
     public function rules(): array
@@ -30,7 +42,7 @@ class ReportIndexRequest extends FormRequest
 
     public function tab(): string
     {
-        return $this->validated('tab') ?? 'financial';
+        return $this->validated('tab') ?? (string) app(ReportAccess::class)->allowedTabs($this->user())->first();
     }
 
     public function year(): int
@@ -64,4 +76,5 @@ class ReportIndexRequest extends FormRequest
     }
 
     public function periodId(): ?int { return $this->validated('period_id') ? (int) $this->validated('period_id') : null; }
+
 }

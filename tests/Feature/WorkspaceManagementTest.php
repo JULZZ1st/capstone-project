@@ -46,6 +46,53 @@ class WorkspaceManagementTest extends TestCase
         $this->assertDatabaseMissing('users', ['email' => 'second.admin@example.test']);
     }
 
+    public function test_admin_can_open_workspace_management_without_an_active_workspace(): void
+    {
+        $admin = $this->userWithRole('admin');
+        Workspace::query()->update(['status' => 'inactive']);
+
+        $this->actingAs($admin)
+            ->get(route('workspaces.index'))
+            ->assertOk()
+            ->assertSee('Workspace Management');
+    }
+
+    public function test_non_admin_cannot_open_workspace_management(): void
+    {
+        $staff = $this->userWithRole('staff');
+
+        $this->actingAs($staff)
+            ->get(route('workspaces.index'))
+            ->assertForbidden();
+    }
+
+    public function test_admin_can_create_a_workspace_and_its_admin(): void
+    {
+        $admin = $this->userWithRole('admin');
+
+        $this->actingAs($admin)
+            ->post(route('workspaces.store'), [
+                'name' => 'New Workspace',
+                'admin_first_name' => 'New',
+                'admin_last_name' => 'Admin',
+                'admin_email' => 'new.admin@example.test',
+                'admin_password' => 'LongPassword123!',
+                'admin_password_confirmation' => 'LongPassword123!',
+            ])
+            ->assertRedirect(route('workspaces.index'));
+
+        $workspace = Workspace::query()->where('name', 'New Workspace')->firstOrFail();
+        $newAdmin = User::query()->where('email', 'new.admin@example.test')->firstOrFail();
+
+        $this->assertSame('new-workspace', $workspace->slug);
+        $this->assertTrue($newAdmin->must_change_password);
+        $this->assertDatabaseHas('workspace_memberships', [
+            'workspace_id' => $workspace->id,
+            'user_id' => $newAdmin->id,
+            'status' => 'active',
+        ]);
+    }
+
     private function userWithRole(string $role): User
     {
         $roleModel = Role::query()->firstOrCreate(

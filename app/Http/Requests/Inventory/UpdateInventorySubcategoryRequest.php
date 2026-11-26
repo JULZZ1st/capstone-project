@@ -29,7 +29,6 @@ class UpdateInventorySubcategoryRequest extends FormRequest
                     ->ignore($this->route('inventorySubcategory')),
             ],
             'label' => ['required', 'string', 'max:255'],
-            'is_active' => ['boolean'],
         ];
     }
 
@@ -38,7 +37,6 @@ class UpdateInventorySubcategoryRequest extends FormRequest
         $this->merge([
             'key' => $this->normalizedKey('key'),
             'label' => $this->nullableTrim('label'),
-            'is_active' => $this->boolean('is_active'),
         ]);
     }
 

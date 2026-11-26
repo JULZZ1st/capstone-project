@@ -3,13 +3,13 @@
 namespace Tests\Feature;
 
 use App\Models\BankLedgerEntry;
-use App\Models\CashTransaction;
 use App\Models\Contribution;
-use App\Models\Donation;
 use App\Models\Donor;
 use App\Models\User;
 use App\Support\Dashboard\DashboardMetrics;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Database\Events\QueryExecuted;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class DashboardMetricsTest extends TestCase
@@ -209,31 +209,33 @@ class DashboardMetricsTest extends TestCase
         $this->assertEquals(500, $actionItems['unresolved_difference_amount']);
     }
 
-    public function test_dashboard_totals_ignore_legacy_cash_transactions_and_donations_tables(): void
+    public function test_dashboard_uses_active_contribution_ledger_without_legacy_table_queries(): void
     {
-        CashTransaction::query()->create([
-            'donor_name' => 'Legacy Donor',
-            'amount' => 999999,
-            'purpose' => 'legacy',
-            'received_at' => now(),
+        $donor = $this->donor();
+        Contribution::query()->create([
+            'donor_id' => $donor->id,
+            'type' => 'cash',
             'status' => 'verified',
+            'amount' => 1234.56,
+            'payment_method' => 'cash',
+            'received_at' => now(),
         ]);
 
-        $donor = $this->donor();
-        Donation::query()->create([
-            'donor_id' => $donor->id,
-            'donation_type' => 'cash',
-            'amount' => 888888,
-            'description' => 'Legacy donation',
-            'received_at' => now(),
-        ]);
+        $queries = [];
+        DB::listen(function (QueryExecuted $query) use (&$queries): void {
+            $queries[] = strtolower($query->sql);
+        });
 
         $response = $this->actingAs(User::factory()->create())->get('/');
 
         $response->assertOk();
-        $response->assertDontSee('999,999.00');
-        $response->assertDontSee('888,888.00');
-        $response->assertDontSee('Legacy Donor');
+        $response->assertSee('1,234.56');
+        $legacyQueries = array_filter(
+            $queries,
+            fn (string $query): bool => str_contains($query, 'donations') || str_contains($query, 'cash_transactions'),
+        );
+
+        $this->assertSame([], array_values($legacyQueries));
     }
 
     private function donor(): Donor

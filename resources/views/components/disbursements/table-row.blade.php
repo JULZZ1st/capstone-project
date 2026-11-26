@@ -23,16 +23,16 @@
             <span class="data-table__secondary max-w-64 !text-red-700">Cancellation Reason: {{ $disbursement->void_reason }}</span>
         @endif
     </td>
-    <td class="data-table__number font-semibold text-slate-950">PHP {{ number_format((float) $disbursement->amount, 2) }}</td>
+    <td class="data-table__number font-semibold text-slate-950"><x-format.currency :value="$disbursement->amount" prefix="PHP " /></td>
     <td>
         <span class="inline-flex max-w-40 rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-semibold leading-5 text-slate-700">{{ $statusLabel }}</span>
         <span class="sr-only">{{ $disbursement->status }}</span>
     </td>
     <td>
         <div class="data-table__actions" data-fund-request-action>
-            <x-data-table.action :label="'View fund request '.$disbursement->id" data-open-fund-request-details="fund-request-details-modal-{{ $disbursement->id }}" data-fund-request-action data-testid="view-fund-request-{{ $disbursement->id }}">View Details</x-data-table.action>
+            <a href="{{ route('disbursements.show', $disbursement) }}" class="data-table__action" aria-label="View fund request {{ $disbursement->id }}" data-fund-request-action data-testid="view-fund-request-{{ $disbursement->id }}">View Details</a>
             @can('update', $disbursement)
-                <x-data-table.action :label="'Edit fund request '.$disbursement->id" icon="pencil" data-open-fund-request-edit="fund-request-details-modal-{{ $disbursement->id }}-edit" data-fund-request-action />
+                <a href="{{ route('disbursements.show', ['disbursement' => $disbursement, 'edit' => 1]) }}" class="data-table__action" aria-label="Edit fund request {{ $disbursement->id }}" data-fund-request-action><x-icon name="pencil" class="h-4 w-4" /><span class="sr-only">Edit fund request {{ $disbursement->id }}</span></a>
             @endcan
         </div>
     </td>

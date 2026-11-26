@@ -5,6 +5,7 @@ namespace App\Services\BankReconciliation;
 use App\Models\BankReconciliation;
 use App\Models\BankLedgerEntry;
 use App\Models\CashDisbursement;
+use App\Models\CashDisbursementPayment;
 use App\Models\Contribution;
 use App\Models\ReconciliationDiscrepancy;
 use Illuminate\Support\Carbon;
@@ -22,9 +23,29 @@ class ReconciliationPeriodService
                 throw ValidationException::withMessages(['period' => 'Only draft reconciliation periods can be changed.']);
             }
 
-            $period->forceFill($data)->save();
+            $previous = BankReconciliation::query()
+                ->whereIn('status', ['locked', 'approved_locked'])
+                ->where('id', '!=', $period->id)
+                ->where(function ($query) use ($period) {
+                    $query->where('bank_account', $period->bank_account);
+                    if ($period->bank_account === config('bank_reconciliation.bank_accounts.0')) {
+                        $query->orWhereNull('bank_account');
+                    }
+                })
+                ->whereDate('period_end', '<', $period->period_start)
+                ->orderByDesc('period_end')
+                ->first();
 
-            return $this->recalculate($period);
+            if ($previous !== null && bccomp((string) $data['opening_balance'], (string) $previous->bank_ending_balance, 2) !== 0) {
+                throw ValidationException::withMessages(['opening_balance' => 'The opening balance must equal the previous locked period bank ending balance.']);
+            }
+
+            $data['book_opening_balance'] = $previous === null
+                ? $data['opening_balance']
+                : ($previous->adjusted_book_balance ?? $previous->financial_ledger_ending_balance ?? $previous->bank_ending_balance);
+
+            $period->forceFill($data)->save();
+            return $this->recalculate($period->fresh());
         });
     }
 
@@ -97,9 +118,17 @@ class ReconciliationPeriodService
                 }
             }
 
+            $bookOpening = (float) ($data['book_opening_balance'] ?? $data['opening_balance']);
+            if ($previous !== null) {
+                $bookOpening = (float) ($previous->adjusted_book_balance
+                    ?? $previous->financial_ledger_ending_balance
+                    ?? $previous->bank_ending_balance);
+            }
+
             $period = BankReconciliation::query()->create([
                 ...$data,
                 'bank_account' => $bankAccount,
+                'book_opening_balance' => $bookOpening,
                 'date' => $end->toDateString(),
                 'period_start' => $start->toDateString(),
                 'period_end' => $end->toDateString(),
@@ -107,13 +136,15 @@ class ReconciliationPeriodService
             ]);
 
             if ($previous !== null) {
-                foreach ($previous->discrepancies()->where('classification', 'timing_difference')->whereIn('type', ['outstanding_check', 'deposit_in_transit'])->where('resolution_status', 'unresolved')->where('carry_forward', true)->get() as $item) {
+                foreach ($previous->discrepancies()->where('classification', 'timing_difference')->whereIn('type', ['outstanding_check', 'deposit_in_transit', 'cash_not_deposited'])->where('resolution_status', 'unresolved')->where('carry_forward', true)->get() as $item) {
                     $period->discrepancies()->create([
                         'type' => $item->type,
                         'classification' => $item->classification,
                         'amount' => $item->amount,
                         'explanation' => 'Carried forward from reconciliation period '.$previous->id.': '.$item->explanation,
                         'evidence_reference' => $item->evidence_reference,
+                        'system_record_type' => $item->system_record_type,
+                        'system_record_id' => $item->system_record_id,
                         'resolution_status' => 'unresolved',
                         'adjustment_amount' => 0,
                         'carry_forward' => true,
@@ -143,24 +174,37 @@ class ReconciliationPeriodService
         $start = $period->period_start->startOfDay();
         $end = $period->period_end->endOfDay();
 
-        $bankIn = (float) BankLedgerEntry::query()->whereDate('transaction_date', '>=', $start->toDateString())->whereDate('transaction_date', '<=', $end->toDateString())->where('transaction_type', 'deposit')->sum('amount');
-        $bankOut = (float) BankLedgerEntry::query()->whereDate('transaction_date', '>=', $start->toDateString())->whereDate('transaction_date', '<=', $end->toDateString())->where('transaction_type', 'withdrawal')->sum('amount');
-        $ledgerIn = (float) Contribution::query()->where('type', 'cash')->where('status', '!=', 'cancelled')->whereNull('voided_at')->whereBetween('received_at', [$start, $end])->sum('amount');
-        $ledgerOut = (float) CashDisbursement::query()->where('status', 'approved')->whereNull('voided_at')->whereBetween('created_at', [$start, $end])->sum('amount');
-        $ledgerEnding = (float) $period->opening_balance + $ledgerIn - $ledgerOut;
+        $bankIn = (float) BankLedgerEntry::query()->forBankAccount($period->bank_account)->whereDate('transaction_date', '>=', $start->toDateString())->whereDate('transaction_date', '<=', $end->toDateString())->where('transaction_type', 'deposit')->sum('amount');
+        $bankOut = (float) BankLedgerEntry::query()->forBankAccount($period->bank_account)->whereDate('transaction_date', '>=', $start->toDateString())->whereDate('transaction_date', '<=', $end->toDateString())->where('transaction_type', 'withdrawal')->sum('amount');
+        $ledgerIn = (float) Contribution::query()
+            ->forReconciliationBankAccount($period->bank_account)
+            ->where('type', 'cash')
+            ->whereIn('payment_method', config('donations.electronic_payment_methods'))
+            ->where('status', 'verified')
+            ->whereNull('voided_at')
+            ->whereBetween('received_at', [$start, $end])
+            ->sum('amount');
+        $ledgerOut = (float) CashDisbursementPayment::query()
+            ->forBankAccount($period->bank_account)
+            ->where('payment_method', 'bank_transfer')
+            ->whereBetween('payment_date', [$start->toDateString(), $end->toDateString()])
+            ->whereHas('disbursement', fn ($query) => $query->where('status', 'approved')->whereNull('voided_at'))
+            ->sum('amount');
         $accountingAdjustment = (float) ReconciliationDiscrepancy::query()->where('bank_reconciliation_id', $period->id)->where('classification', 'accounting_adjustment')->whereIn('resolution_status', ['resolved', 'accounted'])->sum('adjustment_amount');
+        $bookOpening = (float) ($period->book_opening_balance ?? $period->opening_balance);
+        $adjustedBook = $bookOpening + $ledgerIn - $ledgerOut + $accountingAdjustment;
         $this->clearTimingItems($period, $start, $end);
         $timingAdjustment = (float) ReconciliationDiscrepancy::query()
             ->where('bank_reconciliation_id', $period->id)
             ->where('classification', 'timing_difference')
             ->where('resolution_status', 'unresolved')
-            ->whereIn('type', ['outstanding_check', 'deposit_in_transit'])
-            ->sum(DB::raw("CASE WHEN type = 'outstanding_check' THEN amount ELSE -amount END"));
+            ->whereIn('type', ['outstanding_check', 'deposit_in_transit', 'cash_not_deposited'])
+            ->sum(DB::raw("CASE WHEN type = 'outstanding_check' THEN -amount ELSE amount END"));
         $unresolved = (float) ReconciliationDiscrepancy::query()->where('bank_reconciliation_id', $period->id)->where('resolution_status', 'unresolved')->where(function ($query) {
-            $query->where('classification', '!=', 'timing_difference')->orWhereNotIn('type', ['outstanding_check', 'deposit_in_transit']);
+            $query->where('classification', '!=', 'timing_difference')->orWhereNotIn('type', ['outstanding_check', 'deposit_in_transit', 'cash_not_deposited']);
         })->sum('amount');
-        $adjustedBank = $period->bank_ending_balance === null ? null : (float) $period->bank_ending_balance + $accountingAdjustment + $timingAdjustment;
-        $difference = $adjustedBank === null ? null : $adjustedBank - $ledgerEnding;
+        $adjustedBank = $period->bank_ending_balance === null ? null : (float) $period->bank_ending_balance + $timingAdjustment;
+        $difference = $adjustedBank === null ? null : $adjustedBank - $adjustedBook;
 
         return tap($period)->update([
             'calculated_bank_cash_in' => $bankIn,
@@ -169,9 +213,11 @@ class ReconciliationPeriodService
             'cash_out' => $bankOut,
             'financial_ledger_cash_in' => $ledgerIn,
             'financial_ledger_cash_out' => $ledgerOut,
-            'financial_ledger_ending_balance' => $ledgerEnding,
+            'book_opening_balance' => $bookOpening,
+            'financial_ledger_ending_balance' => $adjustedBook,
             'accounting_adjustment' => $accountingAdjustment,
             'adjusted_bank_balance' => $adjustedBank,
+            'adjusted_book_balance' => $adjustedBook,
             'unresolved_discrepancy_amount' => $unresolved,
             'reconciliation_difference' => $difference,
             'calculated_at' => now(),
@@ -183,7 +229,7 @@ class ReconciliationPeriodService
         $items = ReconciliationDiscrepancy::query()
             ->where('bank_reconciliation_id', $period->id)
             ->where('classification', 'timing_difference')
-            ->whereIn('type', ['outstanding_check', 'deposit_in_transit'])
+            ->whereIn('type', ['outstanding_check', 'deposit_in_transit', 'cash_not_deposited'])
             ->where('resolution_status', 'unresolved')
             ->whereNull('cleared_bank_ledger_entry_id')
             ->whereNotNull('evidence_reference')
@@ -193,10 +239,13 @@ class ReconciliationPeriodService
         foreach ($items as $item) {
             $transactionType = $item->type === 'outstanding_check' ? 'withdrawal' : 'deposit';
             $entry = BankLedgerEntry::query()
+                ->forBankAccount($period->bank_account)
                 ->whereDate('transaction_date', '>=', $start->toDateString())
                 ->whereDate('transaction_date', '<=', $end->toDateString())
                 ->where('transaction_type', $transactionType)
+                ->where('status', '!=', 'reconciled')
                 ->where('amount', $item->amount)
+                ->when($item->bank_ledger_entry_id, fn ($query, $entryId) => $query->where('id', '!=', $entryId))
                 ->where(function ($query) use ($item) {
                     $query->where('reference_number', $item->evidence_reference)
                         ->orWhere('statement_id', $item->evidence_reference);
@@ -205,6 +254,33 @@ class ReconciliationPeriodService
                 ->first();
 
             if ($entry) {
+                $entryUpdates = [
+                    'status' => 'reconciled',
+                    'reconciled_at' => now(),
+                ];
+
+                if ($item->system_record_type === 'contribution' && $item->system_record_id) {
+                    $contribution = Contribution::query()->find($item->system_record_id);
+                    if ($contribution
+                        && ! $contribution->ledgerEntry()->exists()
+                        && bccomp((string) $contribution->amount, (string) $entry->amount, 2) === 0) {
+                        $entryUpdates['matched_contribution_id'] = $contribution->id;
+                        $entryUpdates['matched_at'] = now();
+                    }
+                }
+
+                if ($item->system_record_type === 'cash_disbursement' && $item->system_record_id) {
+                    $disbursement = CashDisbursement::query()->find($item->system_record_id);
+                    if ($disbursement
+                        && ! $disbursement->withdrawalMatch()->exists()
+                        && bccomp((string) $disbursement->amount, (string) $entry->amount, 2) === 0) {
+                        $entry->matchedDisbursements()->syncWithoutDetaching([
+                            $disbursement->id => ['workspace_id' => $period->workspace_id],
+                        ]);
+                    }
+                }
+
+                $entry->forceFill($entryUpdates)->save();
                 $item->forceFill([
                     'resolution_status' => 'resolved',
                     'resolved_at' => now(),

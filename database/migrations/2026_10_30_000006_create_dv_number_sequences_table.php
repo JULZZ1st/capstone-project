@@ -8,6 +8,13 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::hasTable('dv_number_sequences')) {
+            return;
+        }
+        if (! Schema::hasTable('workspaces')) {
+            throw new RuntimeException('Cannot create dv_number_sequences: workspaces table is missing.');
+        }
+
         Schema::create('dv_number_sequences', function (Blueprint $table): void {
             $table->id();
             $table->foreignId('workspace_id')->constrained('workspaces')->cascadeOnDelete();
@@ -20,6 +27,8 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists('dv_number_sequences');
+        if (Schema::hasTable('dv_number_sequences')) {
+            Schema::drop('dv_number_sequences');
+        }
     }
 };

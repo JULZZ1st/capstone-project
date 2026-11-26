@@ -35,6 +35,7 @@ class ImportBankStatement
         DB::transaction(function () use ($rows, &$created, $user, $period) {
             foreach ($rows as $index => $row) {
                 $data = $this->normalize($row, $index + 2);
+                $data['bank_account'] = $period?->bank_account ?? config('bank_reconciliation.bank_accounts.0');
                 $this->periodGuard->assertMutableDate($data['transaction_date']);
                 if ($period !== null && ! Carbon::parse($data['transaction_date'])->betweenIncluded($period->period_start, $period->period_end)) {
                     $rowNumber = $index + 2;

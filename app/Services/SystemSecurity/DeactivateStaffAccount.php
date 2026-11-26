@@ -33,6 +33,10 @@ class DeactivateStaffAccount
             $previousStatus = $user->status;
             $user->forceFill(['status' => 'deactivated'])->save();
 
+            $user->workspaceMemberships()
+                ->where('workspace_id', app(WorkspaceContext::class)->requireId())
+                ->update(['status' => 'deactivated']);
+
             SecurityActivityEvent::query()->create([
                 'user_id' => $user->id,
                 'actor_id' => $actor->id,

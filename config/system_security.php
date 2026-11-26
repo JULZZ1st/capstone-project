@@ -36,6 +36,12 @@ return [
             'description' => 'Record cash and electronic donation ledger credits.',
             'sort_order' => 50,
         ],
+        ['key' => 'view_reports_donations', 'name' => 'View Donations Reports', 'description' => 'View and export donation-related reports.', 'sort_order' => 60],
+        ['key' => 'view_reports_inventory', 'name' => 'View Inventory Reports', 'description' => 'View and export inventory-related reports.', 'sort_order' => 70],
+        ['key' => 'view_reports_disbursements', 'name' => 'View Disbursement Reports', 'description' => 'View and export cash disbursement reports.', 'sort_order' => 80],
+        ['key' => 'view_reports_reconciliation', 'name' => 'View Reconciliation Reports', 'description' => 'View and export bank reconciliation reports.', 'sort_order' => 90],
+        ['key' => 'view_reports_audit', 'name' => 'View Audit Reports', 'description' => 'View and export audit trail reports.', 'sort_order' => 100],
+        ['key' => 'submit_fund_requests', 'name' => 'Submit Fund Requests', 'description' => 'Create and submit emergency fund requests.', 'sort_order' => 110],
     ],
 
     'role_permissions' => [
@@ -48,6 +54,7 @@ return [
             'adjust_stock_levels',
             'access_audit_logs',
             'record_cash_credits',
+            'submit_fund_requests',
         ],
     ],
 ];

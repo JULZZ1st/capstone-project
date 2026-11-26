@@ -14,7 +14,9 @@ use App\Http\Controllers\InventorySubcategoryController;
 use App\Http\Controllers\InventoryUnitController;
 use App\Http\Controllers\LocationController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\StaffAccountController;
 use App\Http\Controllers\SystemSecurityController;
+use App\Http\Controllers\WorkspaceManagementController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function () {
@@ -49,6 +51,7 @@ Route::middleware([
     Route::get('/locations/cities', [LocationController::class, 'cities'])->name('locations.cities');
     Route::get('/locations/barangays', [LocationController::class, 'barangays'])->name('locations.barangays');
     Route::get('/donations', [DonationPortalController::class, 'index'])->name('donations.index');
+    Route::get('/donations/create', [DonationPortalController::class, 'create'])->name('donations.create');
     Route::post('/donations', [DonationPortalController::class, 'store'])->name('donations.store');
     Route::get('/donations/{contribution}/photo', [DonationPortalController::class, 'photo'])->name('donations.photo');
     Route::get('/donations/{contribution}', [DonationPortalController::class, 'show'])->name('donations.show');
@@ -60,6 +63,7 @@ Route::middleware([
     Route::patch('/donations/{contribution}/certificate', [DonationPortalController::class, 'issueCertificate'])->name('donations.certificate.issue');
 
     Route::get('/inventory', [InventoryController::class, 'index'])->name('inventory.index');
+    Route::get('/inventory/create', [InventoryController::class, 'create'])->name('inventory.create');
     Route::post('/inventory', [InventoryController::class, 'store'])->name('inventory.store');
     Route::get('/inventory/export/pdf', [InventoryController::class, 'exportPdf'])->name('inventory.export.pdf');
 
@@ -67,13 +71,19 @@ Route::middleware([
     Route::post('/inventory/categories', [InventoryCategoryController::class, 'store'])->name('inventory.categories.store');
     Route::patch('/inventory/categories/{inventoryCategory}', [InventoryCategoryController::class, 'update'])->name('inventory.categories.update');
     Route::delete('/inventory/categories/{inventoryCategory}', [InventoryCategoryController::class, 'destroy'])->name('inventory.categories.destroy');
+    Route::patch('/inventory/categories/{inventoryCategory}/deactivate', [InventoryCategoryController::class, 'deactivate'])->name('inventory.categories.deactivate');
+    Route::patch('/inventory/categories/{inventoryCategory}/reactivate', [InventoryCategoryController::class, 'reactivate'])->name('inventory.categories.reactivate');
     Route::post('/inventory/subcategories', [InventorySubcategoryController::class, 'store'])->name('inventory.subcategories.store');
     Route::patch('/inventory/subcategories/{inventorySubcategory}', [InventorySubcategoryController::class, 'update'])->name('inventory.subcategories.update');
     Route::delete('/inventory/subcategories/{inventorySubcategory}', [InventorySubcategoryController::class, 'destroy'])->name('inventory.subcategories.destroy');
+    Route::patch('/inventory/subcategories/{inventorySubcategory}/deactivate', [InventorySubcategoryController::class, 'deactivate'])->name('inventory.subcategories.deactivate');
+    Route::patch('/inventory/subcategories/{inventorySubcategory}/reactivate', [InventorySubcategoryController::class, 'reactivate'])->name('inventory.subcategories.reactivate');
 
     Route::post('/inventory/units', [InventoryUnitController::class, 'store'])->name('inventory.units.store');
     Route::patch('/inventory/units/{inventoryUnit}', [InventoryUnitController::class, 'update'])->name('inventory.units.update');
     Route::delete('/inventory/units/{inventoryUnit}', [InventoryUnitController::class, 'destroy'])->name('inventory.units.destroy');
+    Route::patch('/inventory/units/{inventoryUnit}/deactivate', [InventoryUnitController::class, 'deactivate'])->name('inventory.units.deactivate');
+    Route::patch('/inventory/units/{inventoryUnit}/reactivate', [InventoryUnitController::class, 'reactivate'])->name('inventory.units.reactivate');
 
     Route::get('/inventory/{inventoryItem}', [InventoryController::class, 'show'])->name('inventory.show');
     Route::patch('/inventory/{inventoryItem}', [InventoryController::class, 'update'])->name('inventory.update');
@@ -81,6 +91,9 @@ Route::middleware([
         ->name('inventory.adjustments.store');
 
     Route::get('/bank-reconciliation', [BankReconciliationController::class, 'index'])->name('bank-reconciliation.index');
+    Route::get('/bank-reconciliation/pending-discrepancies', [BankReconciliationController::class, 'pendingDiscrepancies'])->name('bank-reconciliation.discrepancies.pending');
+    Route::get('/bank-reconciliation/pending-discrepancies/{discrepancy}', [BankReconciliationController::class, 'reviewPendingDiscrepancy'])->name('bank-reconciliation.discrepancies.pending.show');
+    Route::get('/bank-reconciliation/periods/{period}', [BankReconciliationController::class, 'details'])->name('bank-reconciliation.periods.show');
     Route::post('/bank-reconciliation/periods', [BankReconciliationController::class, 'createPeriod'])->name('bank-reconciliation.periods.store');
     Route::patch('/bank-reconciliation/periods/{period}', [BankReconciliationController::class, 'updatePeriod'])->name('bank-reconciliation.periods.update');
     Route::post('/bank-reconciliation/periods/{period}/discrepancies', [BankReconciliationController::class, 'createDiscrepancy'])->name('bank-reconciliation.discrepancies.store');
@@ -88,6 +101,7 @@ Route::middleware([
     Route::post('/bank-reconciliation/periods/{period}/discrepancies/{discrepancy}/review/{decision}', [BankReconciliationController::class, 'reviewDiscrepancy'])->whereIn('decision', ['accepted', 'correction_requested'])->name('bank-reconciliation.discrepancies.review');
     Route::post('/bank-reconciliation/periods/{period}/discrepancies/{discrepancy}/resolve', [BankReconciliationController::class, 'resolveDiscrepancy'])->name('bank-reconciliation.discrepancies.resolve');
     Route::get('/bank-reconciliation/periods/{period}/discrepancies/{discrepancy}/resolution-evidence', [BankReconciliationController::class, 'discrepancyResolutionEvidence'])->name('bank-reconciliation.discrepancies.resolution-evidence');
+    Route::get('/bank-reconciliation/periods/{period}/discrepancies/{discrepancy}/evidence', [BankReconciliationController::class, 'discrepancyEvidence'])->name('bank-reconciliation.discrepancies.evidence');
     Route::post('/bank-reconciliation/periods/{period}/submit', [BankReconciliationController::class, 'submitPeriod'])->name('bank-reconciliation.periods.submit');
     Route::post('/bank-reconciliation/periods/{period}/approve', [BankReconciliationController::class, 'approvePeriod'])->name('bank-reconciliation.periods.approve');
     Route::post('/bank-reconciliation/periods/{period}/reject', [BankReconciliationController::class, 'rejectPeriod'])->name('bank-reconciliation.periods.reject');
@@ -99,6 +113,7 @@ Route::middleware([
     Route::get('/bank-reconciliation/withdrawals/{withdrawal}', [BankReconciliationController::class, 'withdrawalDetails'])->name('bank-reconciliation.withdrawals.show');
     Route::post('/bank-reconciliation/reconcile', [BankReconciliationController::class, 'reconcile'])->name('bank-reconciliation.reconcile');
     Route::get('/disbursements', [DisbursementController::class, 'index'])->name('disbursements.index');
+    Route::get('/disbursements/create', [DisbursementController::class, 'create'])->name('disbursements.create');
     Route::post('/disbursements', [DisbursementController::class, 'store'])->name('disbursements.store');
     Route::patch('/disbursements/{disbursement}', [DisbursementController::class, 'update'])->name('disbursements.update');
     Route::get('/disbursements/{disbursement}', [DisbursementController::class, 'show'])->name('disbursements.show');
@@ -124,22 +139,30 @@ Route::middleware([
     Route::get('/reports/financial-ledgers/pdf', [ReportController::class, 'financialLedgersPdf'])->name('reports.financial-ledgers.pdf');
     Route::get('/reports/reconciliation/csv', [ReportController::class, 'reconciliationCsv'])->name('reports.reconciliation.csv');
     Route::get('/reports/reconciliation/pdf', [ReportController::class, 'reconciliationPdf'])->name('reports.reconciliation.pdf');
+    Route::get('/reports/reconciliation/annex-11', [ReportController::class, 'reconciliationAnnex11Pdf'])->name('reports.reconciliation.annex11');
     Route::get('/reports/in-kind-audits/csv', [ReportController::class, 'inKindAuditCsv'])->name('reports.in-kind-audits.csv');
     Route::get('/reports/in-kind-audits/pdf', [ReportController::class, 'inKindAuditPdf'])->name('reports.in-kind-audits.pdf');
     Route::get('/reports/philanthropy-roster/pdf', [ReportController::class, 'philanthropyRosterPdf'])->name('reports.philanthropy-roster.pdf');
+    Route::get('/reports/philanthropy-roster/csv', [ReportController::class, 'philanthropyRosterCsv'])->name('reports.philanthropy-roster.csv');
     Route::get('/system-security', [SystemSecurityController::class, 'index'])
         ->middleware('role:admin')
         ->name('system-security.index');
-    Route::patch('/system-security/users/{user}/two-factor-enforcement', [SystemSecurityController::class, 'updateTwoFactorEnforcement'])
-        ->middleware('role:admin')
-        ->name('system-security.two-factor-enforcement.update');
-    Route::post('/system-security/users', [App\Http\Controllers\StaffAccountController::class, 'store'])
+    Route::post('/system-security/users', [StaffAccountController::class, 'store'])
         ->middleware('role:admin')
         ->name('system-security.users.store');
-    Route::patch('/system-security/users/{user}', [App\Http\Controllers\StaffAccountController::class, 'update'])
+    Route::patch('/system-security/users/{user}', [StaffAccountController::class, 'update'])
         ->middleware('role:admin')
         ->name('system-security.users.update');
-    Route::patch('/system-security/users/{user}/deactivate', [App\Http\Controllers\StaffAccountController::class, 'deactivate'])
+    Route::patch('/system-security/users/{user}/deactivate', [StaffAccountController::class, 'deactivate'])
         ->middleware('role:admin')
         ->name('system-security.users.deactivate');
+    Route::patch('/system-security/users/{user}/status', [StaffAccountController::class, 'toggleStatus'])
+        ->middleware('role:admin')
+        ->name('system-security.users.toggle-status');
+});
+
+Route::middleware(['auth', 'password.change', 'role:admin'])->group(function () {
+    Route::get('/workspaces', [WorkspaceManagementController::class, 'index'])->name('workspaces.index');
+    Route::post('/workspaces', [WorkspaceManagementController::class, 'store'])->name('workspaces.store');
+    Route::patch('/workspaces/{workspace}/toggle', [WorkspaceManagementController::class, 'toggle'])->name('workspaces.toggle');
 });

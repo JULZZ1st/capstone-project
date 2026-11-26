@@ -1,0 +1,983 @@
+UNIVERSITY OF SAN JOSE-RECOLETOS
+
+School of Computer Studies
+
+Cebu City, Philippines
+
+BARANGAY DONATION MANAGEMENT SYSTEM
+
+Software Requirements Specification
+
+Version 1.1 - Draft for Adviser Review
+
+A Capstone Project Presented to the Faculty of the
+
+School of Computer Studies
+
+University of San Jose-Recoletos
+
+In Partial Fulfillment of the Requirements for
+
+Associate in Computer Technology Major in Software Development
+
+Presented by:
+
+Gamboa, Gina
+
+Goles, Julius
+
+Rellita, Neziel Jean
+
+Vicaran, Edemar
+
+Capstone Adviser:
+
+Rodrick Bandalan
+
+November 2026
+
+Revision History
+
+  --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  Version           Date              Description                                                                                                                            Author(s)
+  ----------------- ----------------- -------------------------------------------------------------------------------------------------------------------------------------- -----------------
+  0.1               2026-07-20        Initial draft: scope, product description, and elicitation notes                                                                       To be confirmed
+
+  0.5               2026-08-10        Complete functional and non-functional requirements; adviser review comments applied                                                   To be confirmed
+
+  1.0               2026-09-03        Baseline SRS containing the original BDMS scope and requirements; approval status is not established in the available source record.   To be confirmed
+
+  1.1               2026-11-11        Current-scope and implementation-alignment draft for adviser and panel review; not approved.                                           To be confirmed
+  --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Table of Contents
+
+Revision History 2
+
+1. Introduction 5
+
+1.1 Purpose 5
+
+1.2 Scope 5
+
+1.3 Definitions and Abbreviations 5
+
+1.4 References 7
+
+1.5 Overview 7
+
+2. Overall Description 8
+
+2.1 Product Perspective 8
+
+2.2 Product Functions 8
+
+2.3 User Classes and Responsibilities 8
+
+2.4 Operating Environment 9
+
+2.5 Design and Implementation Constraints 9
+
+2.6 Assumptions and Dependencies 10
+
+2.7 Apportioning of Requirements 10
+
+3. Specific Requirements 11
+
+3.1 External Interface Requirements 11
+
+3.1.1 User Interfaces 11
+
+3.1.2 Hardware Interfaces 11
+
+3.1.3 Software Interfaces 11
+
+3.1.4 Communications Interfaces 11
+
+3.2 Functional Requirements 11
+
+3.2.1 Authentication and Role Management 11
+
+3.2.2 Donor Management 12
+
+3.2.3 In-Kind Contributions and Inventory Posting 13
+
+3.2.4 Cash Contributions 13
+
+3.2.5 Inventory Management 14
+
+3.2.6 Fund Requests and Disbursement Vouchers 15
+
+3.2.7 Bank Reconciliation 17
+
+3.2.8 Reports and Exports 19
+
+3.2.9 Security Activity and Audit Trail 20
+
+3.3 Non-Functional Requirements 20
+
+3.3.1 Performance 20
+
+3.3.2 Security 20
+
+3.3.3 Reliability 21
+
+3.3.4 Usability 21
+
+3.3.5 Maintainability 21
+
+3.3.6 Portability 22
+
+3.3.7 Data Privacy and Legal Context 22
+
+3.4 Database Requirements 23
+
+Appendix A. Current Entity Relationship Overview 26
+
+Appendix B. Requirement Traceability Matrix 27
+
+Appendix C. Adviser Confirmation Items 33
+
+Appendix D. Approval 35
+
+1. Introduction
+
+1.1 Purpose
+
+This Software Requirements Specification (SRS) defines the implemented and intended requirements for the Barangay Donation Management System (BDMS), a web application for recording donations, managing inventory, processing fund requests and disbursements, reconciling bank activity, and producing authorized reports for the barangay.
+
+This Version 1.1 reflects the current draft scope and Laravel implementation. It is prepared for adviser and panel review and is not approved. A requirement is included only when the system implements it or when it is clearly marked as planned or requiring verification.
+
+1.2 Scope
+
+BDMS provides authenticated access based on exactly two roles: Admin and Staff. Staff records donors, contributions, inventory, Fund Requests, voucher documents, payments, Bank Reconciliation work, and authorized reports. Admin manages Staff accounts and reviews or decides restricted cash, Fund Request, voucher, and reconciliation actions.
+
+Distribution Management is outside the approved scope. The system does not manage beneficiary distribution events, distribution schedules, distribution approvals, or distribution reports. Inventory stock-out remains in scope as an inventory movement or adjustment and must not be described as beneficiary distribution.
+
+The current implementation does not expose a public donor self-service contribution route. Donors are recorded by authorized staff through the authenticated Donation Portal; review, inventory, financial, reconciliation, and reporting actions remain role- and workspace-controlled.
+
+1.3 Definitions and Abbreviations
+
+  --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  Term                                Definition
+  ----------------------------------- --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  BDMS                                Barangay Donation Management System.
+
+  Admin                               Authorized administrator who manages Staff accounts and has access to all records within the active workspace, subject to approval and self-review safeguards.
+
+  Staff                               Records donor and contribution information, inventory, Fund Requests, voucher documents, payments, Bank Reconciliation work, and authorized reports. Staff cannot manage user accounts or workspaces and cannot make Admin-only decisions.
+
+  Contribution                        A cash or in-kind donation record associated with a donor and workspace.
+
+  Contribution item                   An in-kind item line within a contribution, including quantity, unit, category, and optional inventory link.
+
+  Stock movement                      An inventory quantity change such as stock-in, stock-out, or adjustment, with actor, reason, and before/after quantities.
+
+  Fund request                        A request for funds that may proceed through approval and disbursement voucher processing.
+
+  Disbursement voucher                A document prepared for a Fund Request before Admin approval. It records the request details, Staff certification, and supporting documents; it may later be linked to an approved request and a separate payment record.
+
+  Reconciliation discrepancy          A difference or issue recorded during bank reconciliation and handled through review and resolution evidence.
+
+  Workspace                           The active barangay record scope used to isolate users and business records.
+
+  Donation portal                     The authenticated staff interface for recording and reviewing donation records; it is not public donor self-service.
+
+  Donation modal                      The contribution-entry form shown in the donation portal.
+
+  DV                                  Disbursement Voucher associated with a Fund Request and its unique DV number.
+
+  OBR                                 Obligation Request; exact project meaning: to be confirmed.
+
+  TIN                                 Tax Identification Number captured when the form provides it.
+
+  Fund source                         The selected source of funds for a Fund Request; exact policy values: to be confirmed.
+
+  Treasurer certification             The certification recorded by Staff in the existing Fund Request certification field.
+
+  Signed voucher                      The signed Disbursement Voucher document uploaded as supporting evidence.
+
+  Discrepancy                         A reported difference between a system or bank entry and the information needed for reconciliation.
+
+  Unmatched entry                     A bank or system entry not yet linked to its corresponding entry.
+
+  Unreconciled entry                  An entry that remains outside a completed reconciliation match or resolution.
+
+  Timing item                         A discrepancy expected to clear in a later period with the evidence and carry-forward data required by the code.
+
+  Outstanding item                    An entry that remains open at period review.
+
+  Financial ledger ending balance     The ending balance calculated from financial records in the selected period.
+
+  Adjusted bank balance               The bank ending balance after reconciliation adjustments recorded for the period.
+
+  Stock-out reason                    The reason stored on an inventory stock movement.
+
+  Security settings                   Application settings and permission records used by account and role checks.
+
+  Accepted                            Admin accepted a discrepancy explanation; this does not create a match.
+
+  Resolved                            The discrepancy state recorded after Staff completes resolution following Admin acceptance.
+
+  Correction Required                 Admin requested more information or correction for a discrepancy.
+
+  Disbursed                           The payment outcome after Staff records actual payment; approval alone does not mean Disbursed.
+
+  Draft                               The editable Bank Reconciliation period state.
+
+  Ready for review                    The stored Bank Reconciliation submission state, ready_for_review.
+
+  Approved and locked                 The approved_locked state; reopening returns the period to Draft.
+
+  Data privacy module                 No separate data privacy-management module is included in this project.
+  --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+1.4 References
+
+References: [1] Laravel, Laravel 11.x Documentation, https://laravel.com/docs/11.x. [2] PHP Documentation Group, PHP Manual: password_hash, https://www.php.net/manual/en/function.password-hash.php. [3] Oracle, MySQL 8.0 Reference Manual, https://dev.mysql.com/doc/refman/8.0/en/. [4] OWASP Foundation, Application Security Verification Standard, https://asvs.owasp.org/. [5] National Privacy Commission, Republic Act No. 10173, Data Privacy Act of 2012, https://privacy.gov.ph/data-privacy-act/. These sources provide platform, database, security, and legal context. The project does not include a separate Data Privacy module, and this SRS does not claim full legal compliance.
+
+1.5 Overview
+
+Section 2 describes the product and its users. Section 3 defines interfaces, functional requirements, non-functional requirements, and database requirements. The appendices summarize the current entity relationships, traceability evidence, and items requiring adviser confirmation.
+
+2. Overall Description
+
+2.1 Product Perspective 
+
+BDMS is a Laravel web application using Blade views, Eloquent models, authorization policies, a MySQL database, and application services that save related records together. It replaces fragmented manual records with a shared workspace for donations, inventory, financial requests, vouchers, reconciliation, reports, and system activity history.
+
+A valid in-kind contribution is saved with its receipt information and inventory posting in one database transaction. Stock movements retain quantity before and after values and may identify the originating contribution item. Cash contribution verification, fund request approval, voucher processing, and reconciliation use controlled workflow states and role checks.
+
+2.2 Product Functions
+
+The principal functions are authentication and role management; donor and contribution management; automatic in-kind inventory posting; inventory stock-in, stock-out, and adjustment; fund request and disbursement voucher processing; bank reconciliation and discrepancy resolution; reports and exports; and security activity auditing. Beneficiary Distribution Management is not a product function.
+
+2.3 User Classes and Responsibilities
+
+  ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  User class                          Responsibilities and permissions
+  ----------------------------------- ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  Admin                               Creates, edits, activates, and deactivates Staff accounts; manages security settings; reviews and decides restricted cash, Fund Request, voucher, and Bank Reconciliation actions; and views authorized reports and audit activity. Admin cannot approve or verify a transaction created by Admin.
+
+  Staff                               Records donor and contribution information, inventory, Fund Requests, voucher documents, payments, Bank Reconciliation work, and authorized reports. Staff cannot manage user accounts or workspaces and cannot make Admin-only decisions.
+  ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Permission matrix: Admin has access to all records within the active workspace, manages Staff accounts, and performs restricted review or decision actions. Staff records operational and financial transactions and can view the records and reports allowed by the current matrix. Staff records cash contributions; Admin alone reviews, verifies, approves, rejects, or voids eligible cash contributions.
+
+  ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  Module or action                        Admin                                                                                           Staff
+  --------------------------------------- ----------------------------------------------------------------------------------------------- ------------------------------------------------------------------------------------------------------------------------------------------------
+  Staff accounts and security             Create, edit, activate, deactivate, and manage security settings                                No access
+
+  Donors                                  Create, update, deactivate, and view records under history rules                                Create, update, deactivate, and view records under history rules
+
+  Cash contributions and review           Review, verify, approve, reject, and void eligible cash records; no self-review                 Record and view cash donations; no cash verification, approval, or rejection
+
+  In-kind contributions                   View and review records                                                                         Record in-kind contributions; Save Contribution posts inventory automatically
+
+  Inventory                               View, adjust, and manage categories, subcategories, and units                                   View items and history; record stock-in, stock-out, and adjustments without negative results
+
+  Fund requests, vouchers, and payments   Review, approve or reject, request missing or corrected documents, and void eligible requests   Prepare requests and vouchers, record the required certification, upload documents, and record payment after Admin approval; no Admin approval
+
+  Bank reconciliation                     Review discrepancies; approve, reject, lock, and reopen periods                                 Create Draft periods, import statements, match entries, report/update discrepancies, and submit periods; no Admin approval or locking
+
+  Reports and audit                       View reports and audit activity in the active workspace; no audit edit or delete                View reports and audit activity in the active workspace; no audit edit or delete
+  ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+2.4 Operating Environment
+
+  ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  Component                           Current requirement
+  ----------------------------------- ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  Server                              A PHP-capable web server or local development server running the Laravel application.
+
+  Application                         Laravel Framework 11.x as constrained by composer.json; PHP 8.2 or later within the project constraint; Composer 2.x.
+
+  Database                            MySQL with strict mode and utf8mb4 configuration. The system is designed for MySQL; SQLite is not the production target.
+
+  Frontend build                      Node.js and npm are used for Vite asset development and builds; the exact installed Node version is an environment concern, not a business requirement.
+
+  Client                              A current supported desktop browser with JavaScript enabled and network access to the application. Responsive layout is a display property, not a separate browser-support promise.
+
+  Time zone                           The application timezone is configurable through APP_TIMEZONE and defaults to UTC in config/app.php. The deployment timezone must be agreed and configured consistently before production use.
+  ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+2.5 Design and Implementation Constraints
+
+The system shall use server-side authorization in addition to UI visibility; database writes for multi-record workflows shall be transactional; evidence files shall be stored and served through protected application paths; migrations shall be additive for applied environments; and the application shall preserve historical records and audit-relevant source links. The implementation shall not introduce Distribution Management functionality.
+
+2.6 Assumptions and Dependencies
+
+The installation has a configured MySQL database, writable storage for evidence, and an Admin who manages Staff accounts. No notification requirement is in scope. Existing Staff accounts may remain during transition. Historical records imported before inventory linking may not have a linked source and are not automatically backfilled.
+
+2.7 Apportioning of Requirements
+
+The current release covers the requirements in Section 3 except those marked Partially Implemented, Implemented with limitation, Not Implemented, or Needs Verification in Appendix B. Future enhancements must not be presented as implemented requirements until verified.
+
+3. Specific Requirements 
+
+3.1 External Interface Requirements
+
+3.1.1 User Interfaces
+
+The interface shall provide form-based pages for authentication, Staff management, donor and contribution entry, inventory, Fund Requests, Disbursement Vouchers, Bank Reconciliation, reports, and audit activity. The supported client is a current desktop browser with JavaScript enabled; forms shall show validation feedback and permitted actions.
+
+3.1.2 Hardware Interfaces
+
+No specialized hardware is required. The system uses standard client devices and a server capable of running PHP, the Laravel application, and MySQL.
+
+3.1.3 Software Interfaces
+
+  ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  Interface                           Requirement
+  ----------------------------------- ----------------------------------------------------------------------------------------------------------------------------------------------
+  MySQL                               The application reads and writes the configured MySQL database using Laravel database configuration and migrations.
+
+  File storage                        Evidence and signed voucher files use protected Laravel storage paths and application authorization.
+
+  PDF/CSV output                      Authorized report pages may provide PDF or CSV exports according to the implemented report module.
+
+  Browser JavaScript                  Interactive donor, contribution, inventory, fund request, voucher, reconciliation, and filter controls may use the compiled frontend assets.
+  ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+ 3.1.4 Communications Interfaces
+
+The browser communicates with the Laravel application over HTTP(S). Production deployment shall use HTTPS, authenticated sessions, CSRF protection, and the network controls approved for the barangay environment.
+
+3.2 Functional Requirements 
+
+3.2.1 Authentication and Role Management
+
+  ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  ID                      Requirement                                                                                                                                                                                                            Priority
+  ----------------------- ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- -----------------------
+  FR-AUTH-01              The system shall authenticate users before granting access to protected staff and Admin modules.                                                                                                                       Must
+
+  FR-AUTH-02              Admin shall create, edit, activate, deactivate, and assign Staff accounts without deleting existing user records.                                                                                                      Must
+
+  FR-AUTH-03              The system shall enforce Staff permissions for donor records, cash and in-kind contributions, inventory, Fund Requests, Bank Reconciliation, and authorized reports in both the UI and backend authorization checks.   Must
+
+  FR-AUTH-04              The system shall reserve staff-account management and restricted approval or review decisions for Admin while Staff prepares and records operational and financial transactions.                                       Must
+
+  FR-AUTH-05              The system shall enforce workspace and role authorization on protected requests, not only by hiding navigation controls.                                                                                               Must
+
+  FR-AUTH-06              The system shall prevent a user from approving or verifying a transaction they created.                                                                                                                                Must
+
+  FR-AUTH-07              The system shall allow an authenticated user to log out and invalidate the active session.                                                                                                                             Must
+  ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+ 3.2.2 Donor Management
+
+  ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  ID                      Requirement                                                                                                                                                                                                                                                                                                                        Priority
+  ----------------------- ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- -----------------------
+  FR-DNR-01               Admin and Staff shall create donor records with donor type (individual or organization), required contact number, and applicable name fields: first name and last name for an individual, or organization name and contact person for an organization. Other name, contact, address, TIN, status, and notes fields are optional.   Must
+
+  FR-DNR-02               The donation entry interface shall allow a newly created donor to be selected in the same donation modal without a page reload.                                                                                                                                                                                                    Must
+
+  FR-DNR-03               The system shall require donor type, contact number, and the applicable individual or organization name fields before saving a donor.                                                                                                                                                                                              Must
+
+  FR-DNR-04               Admin and Staff shall view donor records and search by donor name, contact number, or email within the active workspace.                                                                                                                                                                                                           Must
+
+  FR-DNR-05               The system shall preserve donor-to-contribution relationships for historical reporting.                                                                                                                                                                                                                                            Must
+
+  FR-DNR-06               Admin and Staff may create, edit, and deactivate donor records within the active workspace. When a donor has contribution history, the existing removal workflow deactivates the donor instead of deleting the profile.                                                                                                            Must
+  ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+3.2.3 In-Kind Contributions and Inventory Posting
+
+  ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  ID                      Requirement                                                                                                                                                                                            Priority
+  ----------------------- ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ -----------------------
+  FR-IKD-01               Staff shall record an in-kind contribution with the donor, receipt date, category, unit, item name, and positive quantity required by the form.                                                        Must
+
+  FR-IKD-02               Save Contribution shall save a valid in-kind receipt and post its item quantities to inventory in one database transaction. No separate receipt action is required by the current interface.           Must
+
+  FR-IKD-03               The system shall reuse an active inventory item when item name, category, and unit match; otherwise it shall create an inventory item linked to a valid inventory category and unit.                   Must
+
+  FR-IKD-04               The system shall link each contribution item to the resulting inventory item and link the stock-in movement to its originating contribution item.                                                      Must
+
+  FR-IKD-05               The system shall reject zero or negative quantities, allow no more than one source stock-in movement for each contribution item, and roll back all related changes if posting fails. See NFR-REL-01.   Must
+
+  FR-IKD-06               The system shall retain the donor, receipt number when stored, source contribution item, movement reason, quantity before, and quantity after for each in-kind posting.                                Must
+
+  FR-IKD-07               Donation list filtering is defined in FR-REP-06; the in-kind list shall use the date, donor, item, and category filters supported by the contribution query.                                           Should
+  ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+3.2.4 Cash Contributions
+
+  ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  ID                      Requirement                                                                                                                                                                                                                                                  Priority
+  ----------------------- ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ -----------------------
+  FR-CSH-01               Staff shall record a cash donation with an active donor, amount greater than zero, received date, payment method, official receipt number, official receipt document, and any payment-method-specific reference or bank/check detail required by the form.   Must
+
+  FR-CSH-02               After saving, the cash donation shall appear in the Cash Donations table with Pending status.                                                                                                                                                                Must
+
+  FR-CSH-03               Admin shall review each pending cash contribution and may verify it or reject it with a written reason. The system shall preserve the resulting status, reason, reviewer, and review time.                                                                   Must
+
+  FR-CSH-04               Only Admin may verify or reject a cash contribution. Staff may record and view cash contributions but may not verify or reject any cash contribution, including one recorded by another Staff user.                                                          Must
+
+  FR-CSH-05               The system shall validate a positive amount, an allowed payment method, the official receipt number and document, and the required external reference, check detail, bank detail, or payment-method name before saving.                                      Must
+
+  FR-CSH-06               The system shall prevent duplicate payment references for the same payment method within a workspace.                                                                                                                                                        Must
+
+  FR-CSH-07               The system shall preserve cash contribution history and uploaded evidence, official receipt information, payment references, and notes stored by the form.                                                                                                   Must
+
+  FR-CSH-08               Cash contribution filters are defined in FR-REP-06; the list shall support the date, donor, amount, status, and payment-method filters implemented by the contribution query.                                                                                Should
+
+  FR-CSH-09               Cash review and decision actions shall be recorded in the system activity history.                                                                                                                                                                           Must
+
+  FR-CSH-10               Staff shall record cash contributions. Admin alone shall review, verify, reject, or void eligible cash contributions. A user shall not review or verify a transaction they created.                                                                          Must
+  ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+The configured contribution status vocabulary is Pending, Verified, Received, Distributed, Cancelled, and Rejected. The cash workflow uses Pending, Verified, and Rejected; Received and Distributed are not asserted here as cash workflow states. Voiding is recorded by the voided_at field and is not a separate status. This wording is based on config/donations.php and the Contribution model/policy.
+
+3.2.5 Inventory Management
+
+  -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  ID                      Requirement                                                                                                                                                                                                                                                                     Priority
+  ----------------------- ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- -----------------------
+  FR-INV-01               Authorized users shall view inventory items, categories, units, current quantities, and active or inactive state.                                                                                                                                                               Must
+
+  FR-INV-02               Authorized users shall record valid stock-in, stock-out, and adjustment movements without allowing a negative resulting quantity.                                                                                                                                               Must
+
+  FR-INV-03               In-kind contribution posting shall create exactly one source stock-in movement for each contribution item. See FR-IKD-05 and NFR-REL-01.                                                                                                                                        Must
+
+  FR-INV-04               Each movement shall retain actor, reason, quantity, quantity before, quantity after, and relevant source information.                                                                                                                                                           Must
+
+  FR-INV-05               For an in-kind contribution item, the source contribution-item link and the one-source-stock-in guard shall prevent a second automatic stock-in; failed multi-record writes shall leave no partial business records. See FR-IKD-05.                                             Must
+
+  FR-INV-06               Authorized users shall search the inventory report by item name and category, filter by status, and inspect movement history for an item.                                                                                                                                       Should
+
+  FR-INV-07               The system shall preserve historical movements when an item or related source record is no longer active.                                                                                                                                                                       Must
+
+  FR-INV-08               Inventory stock-out shall remain a general inventory movement and shall not be represented as beneficiary Distribution Management. The stock-out reason is the value recorded in the movement reason field; the accepted list requires verification against the current form.   Must
+  -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Known limitation: valid Save Contribution posts received in-kind quantities automatically and preserves source movement history. The current void action applies only to pending, unreconciled cash contributions and does not reverse posted in-kind stock. Existing historical movements without source links are preserved and are not automatically backfilled.
+
+3.2.6 Fund Requests and Disbursement Vouchers
+
+Fund Request workflow:
+
+1. Staff creates and submits a Pending request.
+
+2. Staff prepares the Disbursement Voucher and records the required certification.
+
+3. Staff uploads the signed voucher and supporting documents.
+
+4. Admin reviews and approves or rejects with a written reason.
+
+5. If rejected, the required workflow is for Staff to read the reason, edit the same request, add missing information or documents, and resubmit it.
+
+6. Admin reviews the resubmitted request again.
+
+7. Admin approval does not release payment.
+
+8. Staff records actual payment separately after approval.
+
+9. A voided request remains void and its history is retained.
+
+Current code does not yet allow ordinary editing and resubmission after rejection.
+
+  -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  ID                      Requirement                                                                                                                                                                                                                                                                                                                                                                   Priority
+  ----------------------- ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- -----------------------
+  FR-FRQ-01               Staff shall create a Fund Request with amount, purpose, recipient, payee address, requested date, fund source, and optional location, TIN, OBR, and notes. The request starts Pending and receives one unique sequential DV number.                                                                                                                                           Must
+
+  FR-FRQ-02               Staff shall generate or download the Disbursement Voucher before Admin review and use the request's unique sequential DV number.                                                                                                                                                                                                                                              Must
+
+  FR-FRQ-03               Staff shall record the required certification in the existing certification field and may upload the signed voucher and supporting documents. The field name is historical; it does not create a separate Treasurer role.                                                                                                                                                     Must
+
+  FR-FRQ-04               Admin shall be able to request a missing or corrected signed voucher or certification document with a written remark.                                                                                                                                                                                                                                                         Must
+
+  FR-FRQ-05               Admin shall approve or reject a pending request with a written reason and shall not decide on a request created by the same user. Current approval requires the certification record but not an approved signed-voucher review status.                                                                                                                                        Must
+
+  FR-FRQ-06               Admin approval shall not create a payment or mark the request Disbursed. Staff shall record one actual payment separately after approval, and the payment amount must equal the approved amount; partial payment is not permitted by current validation.                                                                                                                      Must
+
+  FR-FRQ-07               If Admin rejects a request, the same request ID and DV number shall return to Staff for correction and resubmission while preserving request information, remarks, reviewer details, timestamps, and history. A voided request remains void. Current implementation status: Partially Implemented; ordinary editing and resubmission after rejection are not yet supported.   Should
+  -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+See Section 3.4, Known Limitations and Implementation Status, for the current implementation limitation.
+
+3.2.7 Bank Reconciliation
+
+Bank Reconciliation workflow: Staff creates a period, imports a CSV or XLSX statement, records or matches bank movements, and reports unmatched transactions as discrepancies. Admin reviews the report and may accept the explanation or request correction. Staff follows the existing update and resolution steps. Accepting an explanation does not match the transaction automatically. A period is submitted only after the balance, matching, timing-item, and unresolved-discrepancy checks pass; Admin then approves and locks, rejects back to Draft, or reopens the period with a reason.
+
+  ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  ID                      Requirement                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                Priority
+  ----------------------- ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ -----------------------
+  FR-BNK-01               Staff shall create or update a Draft reconciliation period with dates and balances. Periods are non-overlapping date ranges. Calendar-month periods are an open decision in Appendix C; carry-forward rules follow the previous confirmed period or require a documented starting-balance explanation.                                                                                                                                                                                                                                                                                     Must
+
+  FR-BNK-02               The system shall import CSV or XLSX statements using required statement ID, transaction date, description, reference, debit, credit, and balance fields. It shall reject invalid, out-of-period, duplicate, or partial imports; exact invalid-row handling remains a verification item.                                                                                                                                                                                                                                                                                                    Must
+
+  FR-BNK-03               Staff shall match incoming verified electronic contributions and outgoing eligible disbursements without duplicate matches. An accepted discrepancy explanation does not itself create a match.                                                                                                                                                                                                                                                                                                                                                                                            Must
+
+  FR-BNK-04               If a recorded PHP 5,000 transaction cannot be found in the bank statement, Staff shall report it as an unmatched entry with amount, explanation, and evidence where required. Admin may accept the explanation or mark Correction Required; acceptance does not reconcile automatically.                                                                                                                                                                                                                                                                                                   Must
+
+  FR-BNK-05               Staff may update a discrepancy while the period has status Draft. It becomes Resolved only after Admin acceptance and Staff resolution evidence; Correction Required must be corrected and reviewed again.                                                                                                                                                                                                                                                                                                                                                                                 Must
+
+  FR-BNK-06               Staff may submit a Draft only when a bank ending balance is present, the adjusted bank balance equals the financial ledger ending balance, valid timing items have the evidence and carry-forward values required by the code, non-timing unexplained discrepancies are resolved, and no bank ledger entries in the period remain unmatched or unreconciled. Admin approval transitions the period to approved_locked; rejection returns it to Draft. An Accepted discrepancy alone does not satisfy these checks, while a valid timing item may remain unresolved under the code rules.   Must
+
+  FR-BNK-07               Admin may reopen an approved_locked period with a reason; reopening returns it to Draft. Status, discrepancy decisions, actors, timestamps, rejection reasons, and reopening history remain available.                                                                                                                                                                                                                                                                                                                                                                                     Must
+
+  FR-BNK-08               The system shall generate a Bank Reconciliation Statement for a selected period through the existing PDF and CSV report routes, including balances, bank movements, outstanding items, matches, and the calculated difference.                                                                                                                                                                                                                                                                                                                                                             Must
+  ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+See Section 3.4, Known Limitations and Implementation Status, for the current Bank Reconciliation submission and discrepancy limitations.
+
+3.2.8 Reports and Exports
+
+  -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  ID                      Requirement                                                                                                                                                                                                 Priority
+  ----------------------- ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- -----------------------
+  FR-REP-01               Contribution filtering is defined in FR-REP-06; the donation portal shall display contribution records using the implemented filters.                                                                       Should
+
+  FR-REP-02               Authorized users shall view inventory quantities and stock movement information in the inventory report.                                                                                                    Must
+
+  FR-REP-03               Admin and Staff shall view the Financial Ledger report for cash contributions and disbursement activity available to their role.                                                                            Must
+
+  FR-REP-04               Admin and Staff shall view in-kind audit information that traces contribution items to inventory movements.                                                                                                 Must
+
+  FR-REP-05               Admin and Staff shall view the Philanthropy Roster / Donor Giving Summary report; the exact business label requires adviser confirmation.                                                                   Should
+
+  FR-REP-06               The system shall provide implemented list filters: donations by date, donor, amount, item, and category; inventory by item search, category, and status; and reports by supported period or date filters.   Should
+
+  FR-REP-07               Report pages with an implemented export route shall provide the available PDF or CSV action. FR-REP-08 defines role and workspace access.                                                                   Should
+
+  FR-REP-08               Report tabs, report data, and audit export actions shall be available to Admin and Staff within the active workspace, subject to the shared server-side role and workspace checks.                          Must
+  -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+3.2.9 Security Activity and Audit Trail
+
+  --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  ID                      Requirement                                                                                                                                        Priority
+  ----------------------- -------------------------------------------------------------------------------------------------------------------------------------------------- -----------------------
+  FR-AUD-01               The system shall record activity for contribution review, inventory movements, disbursement actions, and reconciliation actions.                   Must
+
+  FR-AUD-02               Admin and Staff shall view and filter authorized activity records in a read-only audit interface within the active workspace.                      Must
+
+  FR-AUD-03               Each recorded activity event shall include actor, action, timestamp, and affected entity. Event-specific metadata is recorded where implemented.   Must
+
+  FR-AUD-04               No user role shall edit or delete audit activity through the application.                                                                          Must
+  --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+See Section 3.4, Known Limitations and Implementation Status, for the current implementation limitation.
+
+3.3 Non-Functional Requirements
+
+3.3.1 Performance
+
+  -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  ID                      Requirement                                                                                                                         Priority
+  ----------------------- ----------------------------------------------------------------------------------------------------------------------------------- -----------------------
+  NFR-PER-01              Response-time target: to be confirmed in Appendix C.                                                                                Should
+
+  NFR-PER-02              Collection pages shall use pagination, filters, or a limited number of records per page. See NFR-USA-04.                            Should
+
+  NFR-PER-03              Multi-record contribution, inventory, voucher, and reconciliation writes shall use a single database transaction. See NFR-REL-01.   Must
+  -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+3.3.2 Security
+
+  --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  ID                      Requirement                                                                                                                                  Priority
+  ----------------------- -------------------------------------------------------------------------------------------------------------------------------------------- -----------------------
+  NFR-SEC-01              Passwords shall be stored using secure one-way hashing and shall never be stored in plain text.                                              Must
+
+  NFR-SEC-02              Protected forms and state-changing requests shall use session authentication and CSRF protection.                                            Must
+
+  NFR-SEC-03              Authorization shall be enforced server-side through middleware, policies, gates, or equivalent backend checks.                               Must
+
+  NFR-SEC-04              Evidence and signed voucher files shall not be publicly readable without authorization.                                                      Must
+
+  NFR-SEC-05              Input validation shall reject invalid quantities, monetary values, status transitions, references, and unauthorized workspace identifiers.   Must
+
+  NFR-SEC-06              Production deployment shall use HTTPS and secure session, cookie, secret, and database configuration.                                        Must
+  --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+3.3.3 Reliability
+
+  -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  ID                      Requirement                                                                                                                                                                               Priority
+  ----------------------- ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- -----------------------
+  NFR-REL-01              Contribution-to-inventory posting shall commit all related changes or roll them back together, with no duplicate source stock-in. This is the canonical transaction rule for FR-IKD-05.   Must
+
+  NFR-REL-02              Inventory, disbursement, and reconciliation state changes shall use transactions and row locks where required. See NFR-REL-01.                                                            Must
+
+  NFR-REL-03              The system shall preserve historical records and source relationships rather than silently deleting required history.                                                                     Must
+
+  NFR-REL-04              Validation or processing failures shall return the form with a validation message and save no partial business records. See NFR-REL-01.                                                   Must
+  -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+3.3.4 Usability
+
+  -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  ID                      Requirement                                                                                                                                                                                       Priority
+  ----------------------- ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- -----------------------
+  NFR-USA-01              Forms shall label required fields and show clear validation or workflow feedback.                                                                                                                 Must
+
+  NFR-USA-02              The donation modal shall allow a newly created donor to be selected immediately without a page reload. See FR-DNR-02.                                                                             Must
+
+  NFR-USA-03              Status labels and permitted actions shall use clear wording for Admin and Staff; the acceptance criterion and test method are to be confirmed in Appendix C.                                      Should
+
+  NFR-USA-04              Donation lists shall provide readable filters and pagination; inventory and report pages shall provide the defined search, filters, pagination, and detail links. See FR-REP-06 and NFR-PER-02.   Should
+  -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+3.3.5 Maintainability
+
+  -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  ID                      Requirement                                                                                                                                                                                 Priority
+  ----------------------- ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- -----------------------
+  NFR-MNT-01              Schema changes shall be delivered through new Laravel migrations and shall not rewrite previously applied migrations.                                                                       Must
+
+  NFR-MNT-02              Business rules for critical workflows shall be covered by automated tests executed against the isolated MySQL test environment.                                                             Must
+
+  NFR-MNT-03              Authorization and workflow logic shall remain separated from presentation-only controls.                                                                                                    Must
+
+  NFR-MNT-04              The system documentation shall identify supported roles, entities, workflow states, and known limitations. This SRS remains an unapproved draft; final document verification is required.   Should
+  -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+3.3.6 Portability
+
+  -----------------------------------------------------------------------------------------------------------------------------------------------------------------
+  ID                      Requirement                                                                                                       Priority
+  ----------------------- ----------------------------------------------------------------------------------------------------------------- -----------------------
+  NFR-POR-01              The application shall run in an environment satisfying the Laravel 11 and PHP 8.2-or-later project constraints.   Must
+
+  NFR-POR-02              The application shall use MySQL-compatible migrations and database configuration for the supported deployment.    Must
+
+  NFR-POR-03              Frontend assets shall be buildable through the project Node.js and Vite tooling.                                  Should
+  -----------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+3.3.7 Data Privacy and Legal Context
+
+  ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  ID                      Requirement                                                                                                                                                                                                                                                                                                                                         Priority
+  ----------------------- --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- -----------------------
+  NFR-CMP-01              The system shall collect only operational data needed for the implemented workflows, including donor name, contact, email, TIN, address, status, contribution type, amount, payment method, references, receipt date, notes, item details, and evidence paths. BDMS has no separate data privacy module and this does not claim legal compliance.   Must
+
+  NFR-CMP-02              Personal and financial records shall be accessible only to authorized roles and workspace members.                                                                                                                                                                                                                                                  Must
+
+  NFR-CMP-03              Evidence and financial records shall be retained according to the approved barangay or capstone policy. Retention period: to be confirmed in Appendix C.                                                                                                                                                                                            Should
+
+  NFR-CMP-04              The deployment shall document backup, restore, access, and incident-handling responsibilities.                                                                                                                                                                                                                                                      Should
+  ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+3.4 Database Requirements
+
+The canonical application schema is defined by the current Laravel migrations. The following principal entities and relationships are in scope; framework support tables such as sessions, cache, jobs, and password reset tokens are not business entities.
+
+  -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  Entity                                                                                                          Purpose and principal relationships
+  --------------------------------------------------------------------------------------------------------------- -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  users, roles, workspaces, workspace_memberships                                                                 Users receive Admin or Staff role assignments and workspace memberships; these checks scope access.
+
+  donors, contributions, contribution_items, contribution_evidence                                                A donor has contributions; each contribution has cash or in-kind type, creator, status, and optional evidence; in-kind contribution items carry quantities and may link to inventory items.
+
+  inventory_categories, inventory_subcategories, inventory_units, inventory_items                                 Inventory catalog entities classify active items and define valid categories and units.
+
+  inventory_stock_movements                                                                                       One table records stock-in, stock-out, and adjustment movements with before/after values, actor, reason, and an optional originating contribution_item_id. There is no separate inventory_adjustments table.
+
+  cash_disbursements, disbursement_vouchers, cash_disbursement_payments, dv_number_sequences                      Fund requests and disbursements use controlled records, unique voucher numbering, payment details, approval state, and payment history.
+
+  bank_ledger_entries, bank_reconciliations, bank_withdrawal_disbursement_matches, reconciliation_discrepancies   Bank ledger entries are matched to contributions or disbursements. bank_reconciliations stores Draft, ready_for_review, approved_locked, and related period data; discrepancies belong to a period and may reference a bank entry or a system record.
+
+  security_permissions, security_permission_user, user_security_profiles, security_activity_events                Security configuration and activity records support role checks and audit visibility.
+
+  regions, provinces, cities, barangays                                                                           Reference location data supports configured location selectors where used by the application.
+  -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+  ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  ID        Requirement                                                                                                                                                                                                                                                                                                                                                                                                                                                           Priority
+  --------- --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- ----------
+  DB-01     Every workspace-scoped business record shall use workspace_id and the applicable workspace relationship for authorization and queries.                                                                                                                                                                                                                                                                                                                                Must
+
+  DB-02     Foreign keys shall preserve donor, contribution, contribution-item, inventory-item, stock-movement, disbursement, payment, bank, discrepancy, and activity relationships. Nullable historical/source links include contribution_items.inventory_item_id, inventory_stock_movements.contribution_item_id, reconciliation_discrepancies.bank_ledger_entry_id, system_record_type, system_record_id, and cleared_bank_ledger_entry_id where the migrations allow null.   Must
+
+  DB-03     The application and schema shall prevent duplicate automatic stock-in by using the unique nullable inventory_stock_movements.contribution_item_id source guard. contribution_items.inventory_item_id identifies the resulting inventory item but is not itself unique because multiple contribution items may use one inventory item.                                                                                                                                 Must
+
+  DB-04     contribution_items.quantity and inventory_stock_movements quantity fields shall use decimal(12,2) storage; inventory_items.quantity is integer storage. Application validation shall prevent a negative resulting quantity.                                                                                                                                                                                                                                           Must
+
+  DB-05     Workflow state values shall be limited to the values used by each corresponding model: contribution statuses pending, verified, received, distributed, cancelled, rejected; Fund Request statuses pending, approved, rejected with void history; Bank Reconciliation statuses draft, ready_for_review, approved_locked; discrepancy resolution statuses unresolved and resolved; and Admin review statuses pending, accepted, correction_requested.                   Must
+
+  DB-06     Monetary values shall use fixed-precision decimal storage for Philippine peso amounts, including the decimal(12,2) fields defined by the migrations.                                                                                                                                                                                                                                                                                                                  Must
+
+  DB-07     Ordinary workflow actions shall preserve historical records and audit/source links instead of physically deleting required history.                                                                                                                                                                                                                                                                                                                                   Must
+
+  DB-08     Timestamps shall be stored consistently; displayed timezone follows APP_TIMEZONE, which defaults to UTC unless deployment sets another approved timezone. See Section 2.4.                                                                                                                                                                                                                                                                                            Must
+  ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Known limitations and current implementation status are recorded here so intended requirements remain separate from verified application behavior.
+
+Cash review: ContributionPolicy and the verify endpoint still allow Staff to verify a pending cash donation created by another Staff user. This conflicts with FR-CSH-03 and FR-CSH-04; Appendix B marks the affected requirements Partially Implemented.
+
+Cash rejection reason: the current rejection path changes the contribution status but does not provide a dedicated required rejection-reason field. FR-CSH-03 therefore remains Partially Implemented until the required reason is captured and preserved.
+
+Rejected Fund Requests retain rejection reasons and history, but ordinary update is limited to Pending requests. Correction editing and resubmission of the same request are required future behavior and are not implemented.
+
+Signed voucher replacement is allowed while a request is Pending or Approved. Replacement after approval does not trigger a new Admin review, and approval does not require an approved signed-voucher review status before payment.
+
+Bank reconciliation: Admin acceptance of a discrepancy explanation does not create a match. A valid timing item may remain unresolved only when the code rules are satisfied; other unresolved discrepancies and any bank ledger entries still marked unmatched or unreconciled block submission or approval.
+
+Posted in-kind stock is not reversed by the current cash-only void action. Any correction process for posted in-kind quantities remains an adviser or barangay decision and must preserve the original movement history.
+
+Campaigns is retained as a legacy migration/model item and is not used by the current donation workflow. Distribution Management remains out of scope.
+
+Audit visibility: the shared authenticated route group and report controller allow both Admin and Staff to view the audit report. No role may edit or delete audit activity through the application. Authentication and every report-export event are not represented as one uniform audit event across all modules.
+
+Appendix A. Current Entity Relationship Overview
+
+Migration-backed relationship map: roles have many users and workspace memberships. Workspaces scope donors, contributions, inventory, disbursements, and reconciliation records through workspace_id. Donors have many contributions; contributions have items and evidence; contribution items may link to inventory items; stock movements may link to source contribution items. Disbursement vouchers and payments belong to Fund Requests. Bank reconciliation periods have discrepancies and imported bank entries. Campaigns is retained as a legacy migration/model item and is not used by the current donation workflow. No Distribution Management entity is in scope.
+
+The schema intentionally does not contain a Distribution Management relationship. Inventory stock-out is represented by an inventory movement and is not a beneficiary-distribution record.
+
+Appendix B. Requirement Traceability Matrix
+
+  ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  Requirement ID   Primary implementation reference                                                                                                                                                                                                                                                                                                                                         Test or evidence                                                                                                                                                                                         Verification status
+  ---------------- ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  FR-AUTH-01       app/Models/User.php; app/Models/Role.php; routes/web.php; app/Policies                                                                                                                                                                                                                                                                                                   tests/Feature/WorkspaceIsolationTest.php; focused authorization tests                                                                                                                                    Implemented
+
+  FR-AUTH-02       app/Models/User.php; app/Models/Role.php; app/Policies; routes/web.php                                                                                                                                                                                                                                                                                                   tests/Feature/WorkspaceIsolationTest.php::test_tenant_routes_and_reports_cannot_cross_workspace_boundaries                                                                                               Partially Implemented: Admin and Staff are the documented roles; older role-check branches remain in the code and require review.
+
+  FR-AUTH-03       app/Models/User.php; app/Policies; routes/web.php                                                                                                                                                                                                                                                                                                                        tests/Feature/WorkspaceIsolationTest.php::test_tenant_routes_and_reports_cannot_cross_workspace_boundaries                                                                                               Partially Implemented: Admin and Staff are the documented roles; older role-check branches remain in the code and require review.
+
+  FR-AUTH-04       app/Models/User.php; app/Policies; routes/web.php                                                                                                                                                                                                                                                                                                                        tests/Feature/WorkspaceIsolationTest.php::test_tenant_routes_and_reports_cannot_cross_workspace_boundaries                                                                                               Partially Implemented: Admin and Staff are the documented roles; older role-check branches remain in the code and require review.
+
+  FR-AUTH-05       app/Models/User.php; app/Models/Role.php; routes/web.php; app/Policies                                                                                                                                                                                                                                                                                                   tests/Feature/WorkspaceIsolationTest.php; focused authorization tests                                                                                                                                    Implemented
+
+  FR-AUTH-06       app/Models/User.php; app/Models/Role.php; routes/web.php; app/Policies                                                                                                                                                                                                                                                                                                   tests/Feature/WorkspaceIsolationTest.php; focused authorization tests                                                                                                                                    Implemented
+
+  FR-AUTH-07       app/Models/User.php; app/Models/Role.php; routes/web.php; app/Policies                                                                                                                                                                                                                                                                                                   tests/Feature/WorkspaceIsolationTest.php; focused authorization tests                                                                                                                                    Implemented
+
+  FR-DNR-01        app/Http/Controllers/DonorController.php; app/Models/Donor.php                                                                                                                                                                                                                                                                                                           tests/Feature/DonorManagementTest.php                                                                                                                                                                    Implemented
+
+  FR-DNR-02        app/Http/Controllers/DonorController.php; app/Models/Donor.php                                                                                                                                                                                                                                                                                                           tests/Feature/DonorManagementTest.php                                                                                                                                                                    Implemented
+
+  FR-DNR-03        app/Http/Controllers/DonorController.php; app/Models/Donor.php                                                                                                                                                                                                                                                                                                           tests/Feature/DonorManagementTest.php                                                                                                                                                                    Implemented
+
+  FR-DNR-04        app/Http/Controllers/DonorController.php; app/Models/Donor.php                                                                                                                                                                                                                                                                                                           tests/Feature/DonorManagementTest.php                                                                                                                                                                    Implemented
+
+  FR-DNR-05        app/Http/Controllers/DonorController.php; app/Models/Donor.php                                                                                                                                                                                                                                                                                                           tests/Feature/DonorManagementTest.php                                                                                                                                                                    Implemented
+
+  FR-DNR-06        app/Policies/DonorPolicy.php; app/Services/Donors/RemoveDonor.php; app/Http/Controllers/DonorController.php                                                                                                                                                                                                                                                              tests/Feature/DonorManagementTest.php::test_donor_with_contribution_history_is_deactivated_instead_of_deleted; ::test_donor_with_history_gets_a_centered_view_modal_and_safe_deactivation_confirmation   Implemented
+
+  FR-IKD-01        app/Services/Contributions/LogContribution.php; app/Services/Inventory/PostContributionToInventory.php                                                                                                                                                                                                                                                                   tests/Feature/InKindInventoryPostingTest.php                                                                                                                                                             Implemented
+
+  FR-IKD-02        app/Services/Contributions/LogContribution.php; app/Services/Inventory/PostContributionToInventory.php                                                                                                                                                                                                                                                                   tests/Feature/InKindInventoryPostingTest.php                                                                                                                                                             Implemented
+
+  FR-IKD-03        app/Services/Contributions/LogContribution.php; app/Services/Inventory/PostContributionToInventory.php                                                                                                                                                                                                                                                                   tests/Feature/InKindInventoryPostingTest.php                                                                                                                                                             Implemented
+
+  FR-IKD-04        app/Services/Contributions/LogContribution.php; app/Services/Inventory/PostContributionToInventory.php                                                                                                                                                                                                                                                                   tests/Feature/InKindInventoryPostingTest.php                                                                                                                                                             Implemented
+
+  FR-IKD-05        app/Services/Contributions/LogContribution.php; app/Services/Inventory/PostContributionToInventory.php                                                                                                                                                                                                                                                                   tests/Feature/InKindInventoryPostingTest.php                                                                                                                                                             Implemented
+
+  FR-IKD-06        app/Services/Contributions/LogContribution.php; app/Services/Inventory/PostContributionToInventory.php                                                                                                                                                                                                                                                                   tests/Feature/InKindInventoryPostingTest.php                                                                                                                                                             Implemented
+
+  FR-IKD-07        app/Services/Contributions/LogContribution.php; app/Services/Inventory/PostContributionToInventory.php                                                                                                                                                                                                                                                                   tests/Feature/InKindInventoryPostingTest.php                                                                                                                                                             Implemented
+
+  FR-CSH-01        app/Services/Contributions/LogContribution.php; app/Http/Requests/Donations/StoreContributionRequest.php                                                                                                                                                                                                                                                                 tests/Feature/DonationsPortalTest.php::test_authorized_user_can_log_a_cash_contribution                                                                                                                  Implemented
+
+  FR-CSH-02        app/Services/Contributions/LogContribution.php; config/donations.php                                                                                                                                                                                                                                                                                                     tests/Feature/DonationsPortalTest.php::test_authorized_user_can_log_a_cash_contribution                                                                                                                  Implemented
+
+  FR-CSH-03        app/Policies/ContributionPolicy.php; app/Http/Controllers/DonationPortalController.php; app/Http/Requests/Donations/UpdateContributionRequest.php                                                                                                                                                                                                                        tests/Feature/DonationsPortalTest.php::test_admin_can_approve_a_pending_cash_contribution_from_donations_portal; ::test_admin_can_reject_pending_donation_and_it_is_not_reconcilable                     Partially Implemented: Admin review and rejection status work, but the code exposes a Staff verification path and does not capture a dedicated required rejection reason.
+
+  FR-CSH-04        app/Policies/ContributionPolicy.php; app/Http/Controllers/DonationPortalController.php                                                                                                                                                                                                                                                                                   tests/Feature/DonationsPortalTest.php::test_staff_can_verify_a_pending_donation_but_cannot_reject_it                                                                                                     Partially Implemented: self-review is blocked, but Staff can verify another Staff user's pending cash contribution.
+
+  FR-CSH-05        app/Services/Contributions/LogContribution.php; app/Policies/ContributionPolicy.php                                                                                                                                                                                                                                                                                      tests/Feature/DonationsPortalTest.php                                                                                                                                                                    Implemented
+
+  FR-CSH-06        app/Services/Contributions/LogContribution.php; app/Policies/ContributionPolicy.php                                                                                                                                                                                                                                                                                      tests/Feature/DonationsPortalTest.php                                                                                                                                                                    Implemented
+
+  FR-CSH-07        app/Services/Contributions/LogContribution.php; app/Policies/ContributionPolicy.php                                                                                                                                                                                                                                                                                      tests/Feature/DonationsPortalTest.php                                                                                                                                                                    Implemented
+
+  FR-CSH-08        app/Services/Contributions/LogContribution.php; app/Policies/ContributionPolicy.php                                                                                                                                                                                                                                                                                      tests/Feature/DonationsPortalTest.php                                                                                                                                                                    Implemented
+
+  FR-CSH-09        app/Http/Controllers/DonationPortalController.php; app/Services/SecurityActivityLogger.php                                                                                                                                                                                                                                                                               No audit-specific cash-review test was confirmed in the cited test file.                                                                                                                                 Needs Verification
+
+  FR-CSH-10        app/Policies/ContributionPolicy.php; app/Http/Controllers/DonationPortalController.php                                                                                                                                                                                                                                                                                   tests/Feature/DonationsPortalTest.php::test_staff_can_verify_a_pending_donation_but_cannot_reject_it                                                                                                     Partially Implemented: confirmed Admin-only cash review differs from the current Staff verification path.
+
+  FR-INV-01        app/Services/Inventory/AdjustInventoryStock.php; app/Http/Controllers/InventoryController.php                                                                                                                                                                                                                                                                            tests/Feature/InventoryManagementTest.php                                                                                                                                                                Implemented
+
+  FR-INV-02        app/Services/Inventory/AdjustInventoryStock.php; app/Http/Controllers/InventoryController.php                                                                                                                                                                                                                                                                            tests/Feature/InventoryManagementTest.php                                                                                                                                                                Implemented
+
+  FR-INV-03        app/Services/Inventory/AdjustInventoryStock.php; app/Http/Controllers/InventoryController.php                                                                                                                                                                                                                                                                            tests/Feature/InventoryManagementTest.php                                                                                                                                                                Implemented
+
+  FR-INV-04        app/Services/Inventory/AdjustInventoryStock.php; app/Http/Controllers/InventoryController.php                                                                                                                                                                                                                                                                            tests/Feature/InventoryManagementTest.php                                                                                                                                                                Implemented
+
+  FR-INV-05        app/Services/Inventory/AdjustInventoryStock.php; app/Http/Controllers/InventoryController.php                                                                                                                                                                                                                                                                            tests/Feature/InventoryManagementTest.php                                                                                                                                                                Implemented
+
+  FR-INV-06        app/Services/Inventory/AdjustInventoryStock.php; app/Http/Controllers/InventoryController.php                                                                                                                                                                                                                                                                            tests/Feature/InventoryManagementTest.php                                                                                                                                                                Implemented
+
+  FR-INV-07        app/Services/Inventory/AdjustInventoryStock.php; app/Http/Controllers/InventoryController.php                                                                                                                                                                                                                                                                            tests/Feature/InventoryManagementTest.php                                                                                                                                                                Implemented
+
+  FR-INV-08        app/Services/Inventory/AdjustInventoryStock.php; app/Http/Controllers/InventoryController.php                                                                                                                                                                                                                                                                            tests/Feature/InventoryManagementTest.php                                                                                                                                                                Implemented
+
+  FR-FRQ-01        app/Http/Controllers/DisbursementController.php; app/Services/Disbursements                                                                                                                                                                                                                                                                                              tests/Feature/DisbursementWorkflowTest.php                                                                                                                                                               Implemented
+
+  FR-FRQ-02        app/Http/Controllers/DisbursementController.php; app/Services/Disbursements                                                                                                                                                                                                                                                                                              tests/Feature/DisbursementWorkflowTest.php                                                                                                                                                               Implemented
+
+  FR-FRQ-03        app/Http/Controllers/DisbursementController.php; app/Services/Disbursements                                                                                                                                                                                                                                                                                              tests/Feature/DisbursementWorkflowTest.php::test_staff_can_record_treasurer_certification_and_audit_it                                                                                                   Implemented with limitation: certification is recorded by Staff in the existing treasurer_certified_by field.
+
+  FR-FRQ-04        app/Policies/CashDisbursementPolicy.php; app/Services/Disbursements/UpdateDisbursement.php; app/Services/Disbursements/RejectDisbursement.php                                                                                                                                                                                                                            tests/Feature/DisbursementWorkflowTest.php::test_admin_can_request_missing_signed_voucher_documents_and_staff_sees_reason; ::test_staff_can_upload_signed_voucher_after_admin_approval                   Implemented with limitation: rejected requests are not editable, and replacement after approval does not trigger re-review.
+
+  FR-FRQ-05        app/Policies/CashDisbursementPolicy.php; app/Services/Disbursements/ApproveDisbursement.php; app/Services/Disbursements/RejectDisbursement.php                                                                                                                                                                                                                           tests/Feature/DisbursementWorkflowTest.php::test_admin_cannot_approve_pending_request_without_treasurer_certification; ::test_admin_rejection_requires_reason_and_is_audited                             Implemented
+
+  FR-FRQ-06        Admin approval shall change the request to Approved but shall not create a payment record or mark the request Disbursed. After approval, Staff shall record the actual payment separately; the system permits one payment and requires its amount to equal the approved amount. Current code does not require an approved signed-voucher review status before payment.   tests/Feature/DisbursementWorkflowTest.php                                                                                                                                                               Implemented
+
+  FR-FRQ-07        app/Policies/CashDisbursementPolicy.php; app/Services/Disbursements/UpdateDisbursement.php; app/Services/Disbursements/RejectDisbursement.php                                                                                                                                                                                                                            tests/Feature/DisbursementWorkflowTest.php::test_admin_rejection_requires_reason_and_is_audited                                                                                                          Partially Implemented: rejection history works; correction editing and resubmission are not implemented.
+
+  FR-BNK-01        app/Services/BankReconciliation/ReconciliationPeriodService.php                                                                                                                                                                                                                                                                                                          tests/Feature/BankReconciliationTest.php; tests/Feature/ReconciliationPeriodTest.php                                                                                                                     Implemented
+
+  FR-BNK-02        app/Services/BankReconciliation/ReconciliationApprovalService.php; app/Http/Controllers/BankReconciliationController.php                                                                                                                                                                                                                                                 tests/Feature/BankReconciliationTest.php; tests/Feature/ReconciliationPeriodTest.php                                                                                                                     Implemented
+
+  FR-BNK-03        app/Services/BankReconciliation/ReconciliationApprovalService.php; app/Services/BankReconciliation/ReconciliationDiscrepancyService.php                                                                                                                                                                                                                                  tests/Feature/BankReconciliationTest.php::test_staff_can_resolve_an_admin_accepted_discrepancy_with_evidence; ::test_same_disbursement_cannot_be_matched_to_more_than_one_withdrawal                     Implemented with limitation: acceptance does not create a match.
+
+  FR-BNK-04        app/Services/BankReconciliation/ReconciliationDiscrepancyService.php                                                                                                                                                                                                                                                                                                     tests/Feature/BankReconciliationTest.php::test_discrepancy_requires_an_explanation; ::test_admin_can_review_staff_discrepancy_separately_from_period_approval                                            Implemented with limitation: acceptance does not reconcile automatically.
+
+  FR-BNK-05        app/Services/BankReconciliation/ReconciliationDiscrepancyService.php; app/Policies/BankReconciliationPolicy.php                                                                                                                                                                                                                                                          tests/Feature/BankReconciliationTest.php::test_admin_can_review_staff_discrepancy_separately_from_period_approval; ::test_staff_can_resolve_an_admin_accepted_discrepancy_with_evidence                  Implemented
+
+  FR-BNK-06        app/Services/BankReconciliation/ReconciliationApprovalService.php                                                                                                                                                                                                                                                                                                        tests/Feature/ReconciliationPeriodTest.php::test_treasurer_submits_and_independent_admin_approves_and_locks_period; ::test_approval_rejects_unexplained_difference_even_when_period_is_submitted         Implemented with limitation: Accepted alone does not clear the matching and unresolved-entry checks.
+
+  FR-BNK-07        app/Services/BankReconciliation/ReconciliationApprovalService.php; app/Http/Controllers/BankReconciliationController.php                                                                                                                                                                                                                                                 tests/Feature/BankReconciliationTest.php; tests/Feature/ReconciliationPeriodTest.php                                                                                                                     Implemented
+
+  FR-BNK-08        app/Services/BankReconciliation/ReconciliationApprovalService.php; app/Http/Controllers/BankReconciliationController.php                                                                                                                                                                                                                                                 tests/Feature/BankReconciliationTest.php; tests/Feature/ReconciliationPeriodTest.php                                                                                                                     Implemented
+
+  FR-REP-01        app/Http/Controllers/ReportController.php; app/Services/Reports                                                                                                                                                                                                                                                                                                          tests/Feature/ReportGeneratorTest.php                                                                                                                                                                    Implemented
+
+  FR-REP-02        app/Http/Controllers/ReportController.php; app/Services/Reports                                                                                                                                                                                                                                                                                                          tests/Feature/ReportGeneratorTest.php                                                                                                                                                                    Implemented
+
+  FR-REP-03        app/Http/Controllers/ReportController.php; app/Services/Reports                                                                                                                                                                                                                                                                                                          tests/Feature/ReportGeneratorTest.php                                                                                                                                                                    Implemented
+
+  FR-REP-04        app/Http/Controllers/ReportController.php; app/Services/Reports/InKindAuditReportBuilder.php                                                                                                                                                                                                                                                                             tests/Feature/ReportGeneratorTest.php::test_in_kind_audits_tab_lists_monthly_stock_movements                                                                                                             Implemented
+
+  FR-REP-05        app/Http/Controllers/ReportController.php; app/Services/Reports                                                                                                                                                                                                                                                                                                          tests/Feature/ReportGeneratorTest.php                                                                                                                                                                    Implemented
+
+  FR-REP-06        app/Http/Controllers/ReportController.php; app/Services/Reports                                                                                                                                                                                                                                                                                                          tests/Feature/ReportGeneratorTest.php                                                                                                                                                                    Implemented
+
+  FR-REP-07        app/Http/Controllers/ReportController.php; app/Services/Reports                                                                                                                                                                                                                                                                                                          tests/Feature/ReportGeneratorTest.php                                                                                                                                                                    Implemented
+
+  FR-REP-08        routes/web.php; app/Http/Controllers/ReportController.php; app/Http/Requests/Reports/ReportIndexRequest.php                                                                                                                                                                                                                                                              tests/Feature/ReportGeneratorTest.php::test_audit_report_shows_user_action_module_and_date_range; ::test_guests_cannot_download_inventory_or_audit_exports                                               Implemented
+
+  FR-AUD-01        app/Models/SecurityActivityEvent.php; app/Services                                                                                                                                                                                                                                                                                                                       tests/Feature/WorkflowIntegrityRegressionTest.php                                                                                                                                                        Implemented
+
+  FR-AUD-02        routes/web.php; app/Http/Controllers/ReportController.php; app/Services/Reports/AuditTrailReportBuilder.php                                                                                                                                                                                                                                                              tests/Feature/ReportGeneratorTest.php::test_audit_report_shows_user_action_module_and_date_range; ::test_authorized_user_can_download_inventory_and_audit_exports                                        Implemented
+
+  FR-AUD-03        app/Models/SecurityActivityEvent.php; app/Services                                                                                                                                                                                                                                                                                                                       tests/Feature/WorkflowIntegrityRegressionTest.php                                                                                                                                                        Implemented
+
+  FR-AUD-04        app/Models/SecurityActivityEvent.php; app/Services                                                                                                                                                                                                                                                                                                                       tests/Feature/WorkflowIntegrityRegressionTest.php                                                                                                                                                        Implemented
+
+  NFR-PER-01       Performance target; Appendix C                                                                                                                                                                                                                                                                                                                                           No approved response-time target in repository                                                                                                                                                           Needs Verification
+
+  NFR-PER-02       app/Http/Controllers; resources/views                                                                                                                                                                                                                                                                                                                                    tests/Feature/ReportGeneratorTest.php; focused list tests                                                                                                                                                Implemented
+
+  NFR-PER-03       app/Services; DB::transaction                                                                                                                                                                                                                                                                                                                                            tests/Feature/WorkflowIntegrityRegressionTest.php; tests/Feature/InKindInventoryPostingTest.php                                                                                                          Implemented
+
+  NFR-SEC-01       app/Models/User.php; Laravel Hash                                                                                                                                                                                                                                                                                                                                        tests/Feature/Auth/LoginTest.php                                                                                                                                                                         Implemented
+
+  NFR-SEC-02       routes/web.php; Laravel CSRF middleware; resources/views                                                                                                                                                                                                                                                                                                                 tests/Feature/Auth/LoginTest.php; Laravel feature tests                                                                                                                                                  Implemented
+
+  NFR-SEC-03       routes/web.php; app/Policies; app/Support/Workspaces                                                                                                                                                                                                                                                                                                                     tests/Feature/WorkspaceIsolationTest.php; tests/Feature/WorkspaceAuthorizationQueryTest.php                                                                                                              Implemented
+
+  NFR-SEC-04       app/Http/Controllers/DonationPortalController.php; app/Http/Controllers/DisbursementController.php                                                                                                                                                                                                                                                                       tests/Feature/DonationsPortalTest.php; tests/Feature/DisbursementWorkflowTest.php                                                                                                                        Implemented
+
+  NFR-SEC-05       app/Http/Requests; app/Services                                                                                                                                                                                                                                                                                                                                          tests/Feature/BankStatementImportRegressionTest.php; tests/Feature/InKindInventoryPostingTest.php                                                                                                        Implemented
+
+  NFR-SEC-06       deployment configuration                                                                                                                                                                                                                                                                                                                                                 deployment review                                                                                                                                                                                        Needs Verification
+
+  NFR-REL-01       app/Services/Contributions/LogContribution.php; app/Services/Inventory/PostContributionToInventory.php                                                                                                                                                                                                                                                                   tests/Feature/InKindInventoryPostingTest.php                                                                                                                                                             Implemented
+
+  NFR-REL-02       app/Services; DB::transaction; lockForUpdate                                                                                                                                                                                                                                                                                                                             tests/Feature/ReconciliationPeriodTest.php; tests/Feature/WorkflowIntegrityRegressionTest.php                                                                                                            Implemented
+
+  NFR-REL-03       database/migrations; app/Models                                                                                                                                                                                                                                                                                                                                          tests/Feature/WorkflowIntegrityRegressionTest.php; migration review                                                                                                                                      Implemented
+
+  NFR-REL-04       app/Services; app/Http/Requests                                                                                                                                                                                                                                                                                                                                          tests/Feature/BankStatementImportRegressionTest.php; tests/Feature/InKindInventoryPostingTest.php                                                                                                        Implemented
+
+  NFR-USA-01       resources/views; app/Http/Requests                                                                                                                                                                                                                                                                                                                                       Laravel feature tests; Playwright form checks                                                                                                                                                            Implemented
+
+  NFR-USA-02       resources/views/donations; resources/js                                                                                                                                                                                                                                                                                                                                  tests/Feature/DonorInteractionRegressionTest.php; Playwright donor-modal check                                                                                                                           Implemented
+
+  NFR-USA-03       resources/views; app/Policies                                                                                                                                                                                                                                                                                                                                            Playwright smoke checks; Laravel authorization tests                                                                                                                                                     Implemented
+
+  NFR-USA-04       app/Http/Controllers; resources/views                                                                                                                                                                                                                                                                                                                                    tests/Feature/DonationsPortalTest.php; tests/Feature/InventoryManagementTest.php; tests/Feature/ReportGeneratorTest.php                                                                                  Implemented
+
+  NFR-MNT-01       database/migrations; migration status                                                                                                                                                                                                                                                                                                                                    migration review                                                                                                                                                                                         Implemented
+
+  NFR-MNT-02       tests/Feature; isolated MySQL test environment                                                                                                                                                                                                                                                                                                                           Laravel test suite results                                                                                                                                                                               Implemented
+
+  NFR-MNT-03       routes/web.php; app/Policies; resources/views                                                                                                                                                                                                                                                                                                                            tests/Feature/WorkspaceIsolationTest.php                                                                                                                                                                 Implemented
+
+  NFR-MNT-04       docs/BDMS-SRS-v1.1.docx; docs/SRS_COMPLIANCE_AUDIT.md                                                                                                                                                                                                                                                                                                                    Document review; this SRS is a draft pending adviser and panel review.                                                                                                                                   Needs Verification
+
+  NFR-POR-01       composer.json; composer.lock                                                                                                                                                                                                                                                                                                                                             composer validation; isolated MySQL Laravel tests                                                                                                                                                        Implemented
+
+  NFR-POR-02       config/database.php; database/migrations                                                                                                                                                                                                                                                                                                                                 isolated MySQL migration/test run                                                                                                                                                                        Implemented
+
+  NFR-POR-03       package.json; vite.config.js                                                                                                                                                                                                                                                                                                                                             frontend build verification                                                                                                                                                                              Implemented
+
+  NFR-CMP-01       app/Models; app/Http/Requests                                                                                                                                                                                                                                                                                                                                            data-minimization review                                                                                                                                                                                 Needs Verification
+
+  NFR-CMP-02       app/Support/Workspaces; app/Policies; routes/web.php                                                                                                                                                                                                                                                                                                                     tests/Feature/WorkspaceIsolationTest.php                                                                                                                                                                 Implemented
+
+  NFR-CMP-03       deployment policy                                                                                                                                                                                                                                                                                                                                                        adviser or barangay confirmation                                                                                                                                                                         Needs Verification
+
+  NFR-CMP-04       deployment operations                                                                                                                                                                                                                                                                                                                                                    adviser or barangay confirmation                                                                                                                                                                         Needs Verification
+  ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Traceability status: Appendix B lists every Section 3 requirement with one primary implementation reference, one test or evidence reference, and a verification status. Implemented means supported by the current code and evidence. Partially Implemented identifies a documented limitation. Needs Verification identifies a deployment, governance, or policy fact that the repository cannot prove.
+
+Appendix C. Adviser Confirmation Items
+
+Status: PENDING ADVISER CONFIRMATION - NOT APPROVED.
+
+The decisions below are open and have not been approved by the adviser, panel, or barangay. They must not be presented as completed system behavior.
+
+  -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  Item                                      Decision needed
+  ----------------------------------------- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  Scope                                     Confirm that Distribution Management remains out of scope and that inventory stock-out is sufficient for the approved capstone.
+
+  Roles                                     The approved role model contains only Admin and Staff. Confirm the migration sequence before any cleanup; preserve all existing accounts, workspace memberships, and historical approval records.
+
+  Timezone                                  Confirm the production APP_TIMEZONE. The current code default is UTC; set the deployment value only after approval.
+
+  Audit coverage                            Confirm whether authentication and report-export events must be added to the audit scope, since current logging is stronger for domain workflows than for every security or export event.
+
+  Performance and retention                 Confirm measurable response targets, backup/restore schedule, and record-retention period for the capstone deployment.
+
+  Historical inventory                      Confirm whether any approved process is needed for historical in-kind records with nullable inventory source links. This SRS does not require automatic backfill.
+
+  Fund Request certification identity       Confirm whether a separate certification signer identity is required. Current code records the Staff user who records certification and does not define another role.
+
+  Fund Request payment documentation gate   Confirm whether actual payment must require an approved signed-voucher status. Current code enforces Admin approval, exact amount, one payment, and void/match restrictions, but not signed-voucher approval.
+
+  Rejected request correction               No additional policy decision is requested. The confirmed SRS workflow requires correction and resubmission of the same request; current code does not yet support it.
+
+  Bank discrepancy correction transition    The confirmed current workflow requires Staff to update the discrepancy and wait for Admin acceptance before resolution. The SRS records this as implemented behavior, not an open role decision.
+
+  Posted in-kind correction or void         Confirm the approved correction procedure for an in-kind contribution after automatic stock-in. Current code does not void posted in-kind contributions or automatically reverse inventory; any future process must preserve the original movement and audit history.
+
+  Bank period schedule                      Confirm whether the barangay requires calendar-month periods. Current code supports non-overlapping date ranges and carry-forward rules but does not enforce a calendar month.
+
+  Bank statement source coverage            Confirm whether CSV/XLSX imports and the current outgoing-withdrawal entry workflow cover all bank statement sources required by the barangay.
+
+  Revision history authors and dates        Confirm the source-record dates and authors for versions 0.1, 0.5, and 1.0. Version 1.1 is dated 2026-11-11 and attributed to the proponents named on the cover.
+
+  Segregation of duties                     Current code blocks requester self-approval and self-review. Confirm whether certification and payment recording must also be performed by different people.
+  -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Appendix D. Approval
+
+  ---------------------------------------------------------------------------
+  Role                   Name                      Signature          Date
+  ---------------------- ------------------------- ------------------ -------
+  Admin representative                                                
+
+  Staff representative                                                
+
+  Adviser                                                             
+
+  Panel representative                                                
+  ---------------------------------------------------------------------------
+
+This Version 1.1 is a draft for adviser and panel review. It is not approved and does not supersede the prior baseline until the confirmation items above are reviewed and formally accepted.

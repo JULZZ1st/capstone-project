@@ -79,6 +79,10 @@ const refreshCustomSelect = (select) => {
         } else {
             button.classList.add('text-slate-700');
         }
+        if (select.hasAttribute('data-emergency-category-select') && option.value === '') {
+            button.classList.remove('bg-blue-50', 'font-semibold', 'text-blue-700', 'text-slate-700');
+            button.classList.add('font-normal', 'text-slate-400');
+        }
         optionsContainer.append(button);
     });
 
@@ -232,6 +236,19 @@ document.addEventListener('keydown', (event) => {
 
 document.addEventListener('scroll', () => {
     document.querySelectorAll('[data-custom-select][data-custom-select-open]').forEach(positionCustomSelectMenu);
+}, true);
+
+document.addEventListener('scroll', (event) => {
+    const scrollSurface = event.target.closest?.('[data-fund-request-form-scroll]');
+    if (scrollSurface) {
+        const select = scrollSurface.querySelector('[data-emergency-category-select]');
+        const wrapper = select?.closest('[data-custom-select]');
+        if (wrapper?.hasAttribute('data-custom-select-open')) {
+            closeCustomSelect(wrapper);
+        } else {
+            select?.blur();
+        }
+    }
 }, true);
 
 window.addEventListener('resize', () => {
@@ -1786,9 +1803,14 @@ const refreshContributionDonorOptions = (donor) => {
             select.add(new Option(donor.label, donor.id));
         }
 
+        select.disabled = false;
         select.value = String(donor.id);
         select.dispatchEvent(new Event('change', { bubbles: true }));
         refreshCustomSelect(select);
+    });
+
+    document.querySelectorAll('[data-contribution-submit]').forEach((submit) => {
+        submit.disabled = false;
     });
 };
 
@@ -1870,7 +1892,8 @@ document.querySelectorAll('[data-table]').forEach((table) => {
 // Mobile navigation stays compact; desktop keeps its independent collapse preference.
 const sidebar = document.getElementById('app-sidebar');
 const sidebarToggle = document.getElementById('sidebar-toggle');
-if (sidebar && sidebarToggle) {
+if (sidebar && sidebarToggle && !sidebar.dataset.sidebarControllerInitialized) {
+    sidebar.dataset.sidebarControllerInitialized = 'true';
     const desktop = window.matchMedia('(min-width: 1024px)');
     const storageKey = 'sidebarCollapsed';
     let collapsed = false;
@@ -1879,15 +1902,16 @@ if (sidebar && sidebarToggle) {
     const applySidebar = () => {
         sidebar.classList.toggle('collapsed', desktop.matches && collapsed);
         sidebar.classList.toggle('mobile-open', !desktop.matches && mobileOpen);
-        document.documentElement.classList.toggle('sidebar-collapsed', desktop.matches && collapsed);
         const expanded = desktop.matches ? !collapsed : mobileOpen;
         sidebarToggle.setAttribute('aria-expanded', String(expanded));
         sidebarToggle.setAttribute('aria-label', desktop.matches ? (collapsed ? 'Expand sidebar' : 'Collapse sidebar') : (expanded ? 'Close navigation' : 'Open navigation'));
         sidebarToggle.setAttribute('title', desktop.matches ? (collapsed ? 'Expand sidebar' : 'Collapse sidebar') : (expanded ? 'Close navigation' : 'Open navigation'));
-        sidebarToggle.querySelector('.sidebar-expanded-icon')?.classList.toggle('hidden', desktop.matches && collapsed);
-        sidebarToggle.querySelector('.sidebar-collapsed-icon')?.classList.toggle('hidden', !(desktop.matches && collapsed));
+        sidebarToggle.querySelector('.sidebar-expanded-icon')?.classList.toggle('hidden', !expanded);
+        sidebarToggle.querySelector('.sidebar-collapsed-icon')?.classList.toggle('hidden', expanded);
     };
-    sidebarToggle.addEventListener('click', () => {
+    sidebarToggle.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
         if (desktop.matches) {
             collapsed = !collapsed;
             try { localStorage.setItem(storageKey, collapsed ? '1' : '0'); } catch {}
@@ -1897,6 +1921,12 @@ if (sidebar && sidebarToggle) {
         applySidebar();
     });
     desktop.addEventListener('change', () => { mobileOpen = false; applySidebar(); });
+    document.addEventListener('click', (event) => {
+        if (!desktop.matches && mobileOpen && !sidebar.contains(event.target)) {
+            mobileOpen = false;
+            applySidebar();
+        }
+    });
     document.addEventListener('keydown', (event) => {
         if (event.key === 'Escape' && !desktop.matches && mobileOpen) {
             mobileOpen = false;
@@ -1905,4 +1935,120 @@ if (sidebar && sidebarToggle) {
         }
     });
     applySidebar();
+    // State is now hydrated; allow the existing toggle transitions for explicit user actions.
+    document.documentElement.classList.remove('sidebar-preload');
 }
+
+{
+    const FOCUS_KEY = 'inventory-search-focus';
+    const searchField = document.querySelector('[data-inventory-autosearch]');
+
+    const storedPosition = sessionStorage.getItem(FOCUS_KEY);
+    if (searchField instanceof HTMLInputElement && storedPosition !== null) {
+        sessionStorage.removeItem(FOCUS_KEY);
+        const position = Math.min(Number(storedPosition) || searchField.value.length, searchField.value.length);
+        searchField.focus();
+        searchField.setSelectionRange(position, position);
+    }
+
+    let searchDebounce = null;
+
+    document.addEventListener('input', (event) => {
+        const field = event.target.closest('[data-inventory-autosearch]');
+        if (!(field instanceof HTMLInputElement)) return;
+
+        clearTimeout(searchDebounce);
+        searchDebounce = setTimeout(() => {
+            sessionStorage.setItem(FOCUS_KEY, String(field.selectionStart ?? field.value.length));
+            field.form?.requestSubmit();
+        }, 450);
+    });
+
+    document.addEventListener('change', (event) => {
+        const field = event.target.closest('[data-inventory-autosubmit]');
+        if (field) field.form?.requestSubmit();
+    });
+}
+
+document.querySelectorAll('[data-inventory-reference-tabs]').forEach((tabs) => {
+    const buttons = Array.from(tabs.querySelectorAll('[data-reference-tab]'));
+    const panels = Array.from(tabs.querySelectorAll('[data-reference-panel]'));
+    const storageKey = 'inventory-reference-tab';
+
+    const selectTab = (name, focus = false) => {
+        if (! buttons.some((button) => button.dataset.referenceTab === name)) name = 'categories';
+
+        buttons.forEach((button) => {
+            const active = button.dataset.referenceTab === name;
+            button.setAttribute('aria-selected', String(active));
+            button.classList.toggle('border-blue-600', active);
+            button.classList.toggle('text-blue-700', active);
+            button.classList.toggle('border-transparent', ! active);
+            button.classList.toggle('text-slate-500', ! active);
+            if (active && focus) button.focus();
+        });
+        panels.forEach((panel) => { panel.hidden = panel.dataset.referencePanel !== name; });
+        try { sessionStorage.setItem(storageKey, name); } catch {}
+    };
+
+    buttons.forEach((button, index) => {
+        button.addEventListener('click', () => selectTab(button.dataset.referenceTab));
+        button.addEventListener('keydown', (event) => {
+            if (! ['ArrowLeft', 'ArrowRight'].includes(event.key)) return;
+            event.preventDefault();
+            const offset = event.key === 'ArrowRight' ? 1 : -1;
+            selectTab(buttons[(index + offset + buttons.length) % buttons.length].dataset.referenceTab, true);
+        });
+    });
+
+    let initial = 'categories';
+    try { initial = sessionStorage.getItem(storageKey) || initial; } catch {}
+    selectTab(initial);
+});
+
+{
+    const search = document.querySelector('[data-staff-account-search]');
+    let timer = null;
+    search?.addEventListener('input', () => {
+        clearTimeout(timer);
+        timer = setTimeout(() => search.form?.requestSubmit(), 350);
+    });
+
+    document.querySelectorAll('[data-staff-account-filter]').forEach((filter) => {
+        filter.addEventListener('change', () => filter.form?.requestSubmit());
+    });
+}
+
+document.querySelectorAll('[data-account-actions]').forEach((menu) => {
+    menu.addEventListener('toggle', () => {
+        const panel = menu.querySelector(':scope > div');
+        const trigger = menu.querySelector('summary');
+        if (! panel || ! trigger || ! menu.open) {
+            panel?.removeAttribute('style');
+            return;
+        }
+
+        const triggerRect = trigger.getBoundingClientRect();
+        const panelHeight = panel.offsetHeight;
+        const top = triggerRect.bottom + 4 + panelHeight > window.innerHeight
+            ? Math.max(8, triggerRect.top - panelHeight - 4)
+            : triggerRect.bottom + 4;
+        panel.style.position = 'fixed';
+        panel.style.top = `${top}px`;
+        panel.style.right = `${Math.max(8, window.innerWidth - triggerRect.right)}px`;
+        panel.style.marginTop = '0';
+    });
+});
+document.addEventListener('change', (event) => {
+    const control = event.target.closest('[data-report-autosubmit]');
+    if (control) control.form?.requestSubmit();
+});
+
+let reportSearchTimer;
+document.addEventListener('input', (event) => {
+    const search = event.target.closest('[data-report-search]');
+    if (! search) return;
+
+    window.clearTimeout(reportSearchTimer);
+    reportSearchTimer = window.setTimeout(() => search.form?.requestSubmit(), 350);
+});

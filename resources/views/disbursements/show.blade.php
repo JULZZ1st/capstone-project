@@ -7,7 +7,7 @@
 @section('content')
     <div class="space-y-6">
         <div>
-            <a href="{{ route('disbursements.index') }}" class="text-sm font-semibold text-blue-700 hover:text-blue-800">Back to request history</a>
+            <a href="{{ route('disbursements.index') }}" class="inline-flex min-h-10 items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700">Back to Fund Requests</a>
         </div>
 
         <section class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
@@ -89,7 +89,7 @@
                 </div>
                 <div>
                     <dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">Amount</dt>
-                    <dd class="mt-1 text-sm font-medium text-slate-950">PHP {{ number_format((float) $disbursement->amount, 2) }}</dd>
+                    <dd class="mt-1 text-sm font-medium text-slate-950"><x-format.currency :value="$disbursement->amount" prefix="PHP " /></dd>
                 </div>
                 <div>
                     <dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">Payee Address</dt>
@@ -131,16 +131,17 @@
                 @if ($disbursement->payment)
                     <dl class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4" data-testid="payment-details">
                         <div><dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">Payment Date</dt><dd class="mt-1 text-sm font-medium text-slate-950">{{ $disbursement->payment->payment_date->format('M d, Y') }}</dd></div>
-                        <div><dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">Amount Released</dt><dd class="mt-1 text-sm font-medium text-slate-950">PHP {{ number_format((float) $disbursement->payment->amount, 2) }}</dd></div>
+                        <div><dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">Amount Released</dt><dd class="mt-1 text-sm font-medium text-slate-950"><x-format.currency :value="$disbursement->payment->amount" prefix="PHP " /></dd></div>
                         <div><dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">Method</dt><dd class="mt-1 text-sm font-medium text-slate-950">{{ match($disbursement->payment->payment_method) { 'bank_transfer' => 'Bank Transfer', 'check' => 'Check', default => 'Cash' } }}</dd></div>
                         <div><dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">Reference</dt><dd class="mt-1 text-sm font-medium text-slate-950">{{ $disbursement->payment->reference_number ?: 'Not provided' }}</dd></div>
                     </dl>
+                    @if($disbursement->payment->payment_method === 'bank_transfer')<p class="mt-2 text-xs text-slate-500">Reconciliation account: {{ $disbursement->payment->bank_account ?? config('bank_reconciliation.bank_accounts.0') }}</p>@endif
                     <p class="mt-3 text-xs text-slate-500">Released by {{ $disbursement->payment->releaser?->name ?? 'Unknown user' }} on {{ $disbursement->payment->released_at->format('M d, Y h:i A') }}.</p>
                 @else
                     <div class="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
                         <div class="flex flex-col gap-1 sm:flex-row sm:justify-between">
                             <p class="text-sm font-semibold text-slate-900">Remaining balance</p>
-                            <p class="text-sm font-semibold text-slate-900">PHP {{ number_format($disbursement->remainingBalance(), 2) }} of PHP {{ number_format((float) $disbursement->amount, 2) }}</p>
+                            <p class="text-sm font-semibold text-slate-900"><x-format.currency :value="$disbursement->remainingBalance()" prefix="PHP " /> of <x-format.currency :value="$disbursement->amount" prefix="PHP " /></p>
                         </div>
                         @can('recordPayment', $disbursement)
                             <form method="POST" action="{{ route('disbursements.payment.store', $disbursement) }}" class="mt-4 space-y-4" data-testid="record-payment-form">
@@ -172,6 +173,15 @@
                                     <input id="payment_reference" name="reference_number" type="text" value="{{ old('reference_number') }}" class="mt-1 block h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200">
                                     <x-form.error name="reference_number" />
                                 </div>
+                                @if(count(config('bank_reconciliation.bank_accounts', [])) > 1)
+                                    <div>
+                                        <label for="payment_bank_account" class="block text-sm font-medium text-slate-700">Reconciliation Bank Account <span class="font-normal text-slate-500">(Bank Transfer)</span></label>
+                                        <select id="payment_bank_account" name="bank_account" class="mt-1 block h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200">
+                                            @foreach(config('bank_reconciliation.bank_accounts', []) as $account)<option value="{{ $account }}" @selected(old('bank_account', config('bank_reconciliation.bank_accounts.0')) === $account)>{{ $account }}</option>@endforeach
+                                        </select>
+                                        <x-form.error name="bank_account" />
+                                    </div>
+                                @endif
                                 <button type="submit" class="inline-flex items-center justify-center rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800">Record Actual Payment</button>
                             </form>
                         @elseif ($disbursement->status !== 'approved')
@@ -290,24 +300,25 @@
     @endif
 
     @can('update', $disbursement)
-        <dialog id="edit-fund-request-modal" class="m-auto w-[calc(100%-2rem)] max-w-3xl overflow-hidden rounded-xl border-0 p-0 shadow-2xl backdrop:bg-slate-950/55">
+        <dialog id="edit-fund-request-modal" class="m-auto w-[calc(100%-2rem)] max-w-3xl overflow-hidden rounded-xl border-0 p-0 shadow-2xl backdrop:bg-slate-950/55" @if($errors->any()) data-reopen="true" @endif>
             <form method="POST" action="{{ route('disbursements.update', $disbursement) }}" class="flex max-h-[86vh] flex-col bg-white">
                 @csrf @method('PATCH')
+                <input type="hidden" name="_modal" value="edit-fund-request-{{ $disbursement->id }}">
                 <header class="flex shrink-0 items-start justify-between gap-4 border-b border-slate-200 px-5 py-4">
                     <div><h2 class="text-lg font-semibold text-slate-950">Edit Fund Request</h2><p class="mt-1 text-sm text-slate-500">Changes are allowed while the request is pending.</p></div>
                     <button type="button" data-close-edit-fund-request class="rounded-lg px-2 py-1 text-2xl leading-none text-slate-500 hover:bg-slate-100" aria-label="Close edit fund request">&times;</button>
                 </header>
                 <div class="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-5">
                     <div class="grid gap-4 sm:grid-cols-2">
-                        <div><label for="edit_amount" class="block text-sm font-medium text-slate-700">Amount</label><input id="edit_amount" name="amount" type="number" step="0.01" min="0.01" required value="{{ $disbursement->amount }}" class="mt-1 block h-11 w-full rounded-lg border-slate-300 text-sm"><x-form.error name="amount" /></div>
-                        <div><label for="edit_requested_date" class="block text-sm font-medium text-slate-700">Request Date</label><input id="edit_requested_date" name="requested_date" type="date" required value="{{ $disbursement->requested_date?->format('Y-m-d') }}" class="mt-1 block h-11 w-full rounded-lg border-slate-300 text-sm"><x-form.error name="requested_date" /></div>
-                        <div><label for="edit_recipient" class="block text-sm font-medium text-slate-700">Recipient / Payee</label><input id="edit_recipient" name="recipient" required value="{{ $disbursement->recipient }}" class="mt-1 block h-11 w-full rounded-lg border-slate-300 text-sm"><x-form.error name="recipient" /></div>
-                        <div><label for="edit_payee_address" class="block text-sm font-medium text-slate-700">Payee Address</label><input id="edit_payee_address" name="payee_address" required value="{{ $disbursement->payee_address }}" class="mt-1 block h-11 w-full rounded-lg border-slate-300 text-sm"><x-form.error name="payee_address" /></div>
+                        <div><label for="edit_amount" class="block text-sm font-medium text-slate-700">Amount</label><input id="edit_amount" name="amount" type="number" step="0.01" min="0.01" required value="{{ old('amount', $disbursement->amount) }}" class="mt-1 block h-11 w-full rounded-lg border-slate-300 text-sm"><x-form.error name="amount" /></div>
+                        <div><label for="edit_requested_date" class="block text-sm font-medium text-slate-700">Request Date</label><input id="edit_requested_date" name="requested_date" type="date" required value="{{ old('requested_date', $disbursement->requested_date?->format('Y-m-d')) }}" class="mt-1 block h-11 w-full rounded-lg border-slate-300 text-sm"><x-form.error name="requested_date" /></div>
+                        <div><label for="edit_recipient" class="block text-sm font-medium text-slate-700">Recipient / Payee</label><input id="edit_recipient" name="recipient" required value="{{ old('recipient', $disbursement->recipient) }}" class="mt-1 block h-11 w-full rounded-lg border-slate-300 text-sm"><x-form.error name="recipient" /></div>
+                        <div><label for="edit_payee_address" class="block text-sm font-medium text-slate-700">Payee Address</label><input id="edit_payee_address" name="payee_address" required value="{{ old('payee_address', $disbursement->payee_address) }}" class="mt-1 block h-11 w-full rounded-lg border-slate-300 text-sm"><x-form.error name="payee_address" /></div>
                         <div><label for="edit_payee_tin" class="block text-sm font-medium text-slate-700">Payee TIN <span class="font-normal text-slate-500">(Optional)</span></label><input id="edit_payee_tin" name="payee_tin" value="{{ $disbursement->payee_tin }}" class="mt-1 block h-11 w-full rounded-lg border-slate-300 text-sm"></div>
                         <div><label for="edit_fund_source" class="block text-sm font-medium text-slate-700">Fund Source</label><select id="edit_fund_source" name="fund_source" required class="mt-1 block h-11 w-full rounded-lg border-slate-300 text-sm"><option value="">Select Fund Source</option>@foreach (config('disbursements.fund_sources', []) as $fundSource)<option value="{{ $fundSource }}" @selected($disbursement->fund_source === $fundSource)>{{ $fundSource }}</option>@endforeach</select><x-form.error name="fund_source" /></div>
                         <div><label for="edit_obr_number" class="block text-sm font-medium text-slate-700">ObR No. <span class="font-normal text-slate-500">(Optional)</span></label><input id="edit_obr_number" name="obr_number" value="{{ $disbursement->obr_number }}" class="mt-1 block h-11 w-full rounded-lg border-slate-300 text-sm"></div>
                     </div>
-                    <div><label for="edit_purpose" class="block text-sm font-medium text-slate-700">Purpose</label><textarea id="edit_purpose" name="purpose" rows="3" required class="mt-1 block w-full rounded-lg border-slate-300 text-sm">{{ $disbursement->purpose }}</textarea><x-form.error name="purpose" /></div>
+                    <div><label for="edit_purpose" class="block text-sm font-medium text-slate-700">Purpose</label><textarea id="edit_purpose" name="purpose" rows="3" required class="mt-1 block w-full rounded-lg border-slate-300 text-sm">{{ old('purpose', $disbursement->purpose) }}</textarea><x-form.error name="purpose" /></div>
                     <div class="grid gap-4 sm:grid-cols-2"><div><label for="edit_notes" class="block text-sm font-medium text-slate-700">Notes / Remarks (Optional)</label><textarea id="edit_notes" name="notes" rows="2" class="mt-1 block w-full rounded-lg border-slate-300 text-sm">{{ $disbursement->notes }}</textarea></div></div>
                 </div>
                 <footer class="flex justify-end gap-3 border-t border-slate-200 bg-slate-50 px-5 py-3"><button type="button" data-close-edit-fund-request class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700">Cancel</button><button type="submit" class="rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white">Save Changes</button></footer>
@@ -318,6 +329,7 @@
                 const dialog = document.getElementById('edit-fund-request-modal');
                 document.querySelector('[data-open-edit-fund-request]')?.addEventListener('click', () => dialog?.showModal());
                 document.querySelectorAll('[data-close-edit-fund-request]').forEach((button) => button.addEventListener('click', () => dialog?.close()));
+                if (new URLSearchParams(window.location.search).get('edit') === '1' || @json($errors->any())) dialog?.showModal();
             });
         </script>
     @endcan

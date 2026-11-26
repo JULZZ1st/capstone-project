@@ -58,12 +58,12 @@ class StoreWithdrawalDisbursementMatchRequest extends FormRequest
                 }
 
                 $validCount = CashDisbursement::query()
-                    ->eligibleForWithdrawalMatching($withdrawal->id)
+                    ->eligibleForWithdrawalMatching($withdrawal->id, $withdrawal->transaction_date?->toDateString(), $withdrawal->bank_account ?? config('bank_reconciliation.bank_accounts.0'))
                     ->whereIn('id', $ids)
                     ->count();
 
                 if ($validCount !== count($ids)) {
-                    $validator->errors()->add('disbursement_ids', 'Selected requests must be approved, active, unpaid or paid by bank transfer, and not matched to another withdrawal.');
+                    $validator->errors()->add('disbursement_ids', 'Selected requests must be approved, active, have a recorded bank-transfer payment, and not be matched to another withdrawal.');
 
                     return;
                 }

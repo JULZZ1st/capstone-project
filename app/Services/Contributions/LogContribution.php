@@ -3,8 +3,10 @@
 namespace App\Services\Contributions;
 
 use App\Models\Contribution;
+use App\Models\Donor;
 use App\Models\SecurityActivityEvent;
 use App\Models\User;
+use App\Services\Inventory\PostContributionToInventory;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -13,6 +15,10 @@ use Throwable;
 
 class LogContribution
 {
+    public function __construct(private readonly PostContributionToInventory $inventoryPoster)
+    {
+    }
+
     public function handle(array $data, User $user): Contribution
     {
         $storedPaths = [];
@@ -20,15 +26,16 @@ class LogContribution
         try {
             return DB::transaction(function () use ($data, $user, &$storedPaths) {
                 $type = $data['donation_type'];
+                $donorId = $data['donor_id'] ?? $this->anonymousDonor()->id;
 
                 $contribution = Contribution::query()->create([
-                    'donor_id' => $data['donor_id'],
+                    'donor_id' => $donorId,
                     'created_by' => $user->id,
                     'type' => $type,
                     'status' => config("donations.default_status.{$type}"),
                     'amount' => $type === 'cash' ? $data['amount'] : null,
-                    'purpose_type' => $type === 'cash' ? ($data['purpose_type'] ?? 'general') : null,
-                    'purpose_name' => $type === 'cash' ? ($data['purpose_name'] ?? null) : null,
+                    'purpose_type' => $type === 'cash' ? 'general' : null,
+                    'purpose_name' => null,
                     'payment_method' => $type === 'cash' ? $data['payment_method'] : null,
                     'payment_method_name' => $type === 'cash' && ($data['payment_method'] ?? null) === 'other'
                         ? ($data['payment_method_name'] ?? null)
@@ -45,6 +52,12 @@ class LogContribution
                     'registered_bank_account' => $type === 'cash' && ($data['payment_method'] ?? null) === 'bank_transfer'
                         ? ($data['registered_bank_account'] ?? null)
                         : null,
+                    'reconciliation_bank_account' => $type === 'cash'
+                        && in_array($data['payment_method'] ?? null, config('donations.electronic_payment_methods'), true)
+                            ? (in_array($data['registered_bank_account'] ?? null, config('bank_reconciliation.bank_accounts', []), true)
+                                ? $data['registered_bank_account']
+                                : config('bank_reconciliation.bank_accounts.0'))
+                            : null,
                     'official_receipt_number' => $type === 'cash'
                         ? ($data['official_receipt_number'] ?? null)
                         : null,
@@ -97,6 +110,8 @@ class LogContribution
                             'notes' => Arr::get($item, 'notes'),
                         ])->all()
                     );
+
+                    $this->inventoryPoster->handle($contribution, $user);
                 }
 
                 foreach ($data['evidence'] ?? [] as $file) {
@@ -148,6 +163,20 @@ class LogContribution
 
             throw $exception;
         }
+    }
+
+    private function anonymousDonor(): Donor
+    {
+        return Donor::query()->firstOrCreate(
+            ['full_name' => 'Anonymous'],
+            [
+                'donor_type' => config('donors.defaults.type'),
+                'address' => 'Not provided',
+                'contact_number' => 'Not provided',
+                'status' => config('donors.defaults.status'),
+                'notes' => 'System profile for donations recorded without a selected donor.',
+            ],
+        );
     }
 
     private function receiptNumberFor(Contribution $contribution): string

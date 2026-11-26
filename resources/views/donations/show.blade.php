@@ -93,43 +93,39 @@
                         </div>
                     @endif
                 @else
-                    <div class="mt-6 overflow-hidden rounded-lg border border-slate-200">
-                        <table class="min-w-full divide-y divide-slate-200 text-sm">
-                            <thead class="bg-slate-50 text-left text-xs font-semibold uppercase text-slate-500">
+                    <div class="mt-6 min-w-0">
+                        <x-data-table caption="Donated items" min-width="40rem">
+                            <x-slot:head>
+                                <x-data-table.heading>Item</x-data-table.heading>
+                                <x-data-table.heading>Quantity</x-data-table.heading>
+                                <x-data-table.heading>Condition</x-data-table.heading>
+                                <x-data-table.heading align="right">Est. Total Value (PHP)</x-data-table.heading>
+                            </x-slot:head>
+                            @foreach ($contribution->items as $item)
                                 <tr>
-                                    <th class="px-4 py-3">Item</th>
-                                    <th class="px-4 py-3">Quantity</th>
-                                    <th class="px-4 py-3">Condition</th>
-                                    <th class="px-4 py-3 text-right">Est. Total Value (PHP)</th>
+                                    <td class="px-4 py-3">
+                                        <p class="font-medium text-slate-900">{{ $item->name }}</p>
+                                        @php($subcategoryLabel = $item->subcategory ? $subcategoryLabels->get($item->category.':'.$item->subcategory) : null)
+                                        <p class="text-xs text-slate-500">
+                                            {{ $categoryLabels->get($item->category, $item->category) }}@if($subcategoryLabel) &middot; {{ $subcategoryLabel }} @endif
+                                            @if($item->category === 'others' && $item->category_description) &mdash; {{ $item->category_description }} @endif
+                                        </p>
+                                        @php($details = array_filter([
+                                            $item->brand ? 'Brand: '.$item->brand : null,
+                                            $item->model ? 'Model: '.$item->model : null,
+                                            $item->serial_number ? 'SN: '.$item->serial_number : null,
+                                            $item->expiration_date ? 'Expires: '.$item->expiration_date->format('M d, Y') : null,
+                                        ]))
+                                        @if($details)
+                                            <p class="text-xs text-slate-400">{{ implode(' · ', $details) }}</p>
+                                        @endif
+                                    </td>
+                                    <td class="px-4 py-3">{{ $item->quantity }} {{ config("donations.units.{$item->unit}") }}</td>
+                                    <td class="px-4 py-3">{{ config("donations.item_conditions.{$item->condition}") }}</td>
+                                    <td class="data-table__number">{{ $item->estimated_value ? 'PHP '.number_format((float) $item->estimated_value, 2) : 'Not provided' }}</td>
                                 </tr>
-                            </thead>
-                            <tbody class="divide-y divide-slate-200 bg-white">
-                                @foreach ($contribution->items as $item)
-                                    <tr>
-                                        <td class="px-4 py-3">
-                                            <p class="font-medium text-slate-900">{{ $item->name }}</p>
-                                            @php($subcategoryLabel = $item->subcategory ? $subcategoryLabels->get($item->category.':'.$item->subcategory) : null)
-                                            <p class="text-xs text-slate-500">
-                                                {{ $categoryLabels->get($item->category, $item->category) }}@if($subcategoryLabel) &middot; {{ $subcategoryLabel }} @endif
-                                                @if($item->category === 'others' && $item->category_description) &mdash; {{ $item->category_description }} @endif
-                                            </p>
-                                            @php($details = array_filter([
-                                                $item->brand ? 'Brand: '.$item->brand : null,
-                                                $item->model ? 'Model: '.$item->model : null,
-                                                $item->serial_number ? 'SN: '.$item->serial_number : null,
-                                                $item->expiration_date ? 'Expires: '.$item->expiration_date->format('M d, Y') : null,
-                                            ]))
-                                            @if($details)
-                                                <p class="text-xs text-slate-400">{{ implode(' · ', $details) }}</p>
-                                            @endif
-                                        </td>
-                                        <td class="px-4 py-3">{{ $item->quantity }} {{ config("donations.units.{$item->unit}") }}</td>
-                                        <td class="px-4 py-3">{{ config("donations.item_conditions.{$item->condition}") }}</td>
-                                        <td class="px-4 py-3 text-right">{{ $item->estimated_value ? 'PHP '.number_format((float) $item->estimated_value, 2) : 'Not provided' }}</td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
+                            @endforeach
+                        </x-data-table>
                     </div>
                 @endif
 

@@ -38,7 +38,7 @@
             @endcan
             <div class="flex flex-wrap items-center justify-end gap-2">
                 @can('update', $contribution)
-                    @if(auth()->user()->hasRole('admin') && $contribution->status === 'pending')
+                    @if(auth()->user()->hasRole('admin') && $contribution->status === 'pending' && (int) auth()->id() !== (int) $contribution->created_by)
                         <form method="POST" action="{{ route('donations.update', $contribution) }}">
                             @csrf @method('PATCH')
                             <input type="hidden" name="status" value="rejected">

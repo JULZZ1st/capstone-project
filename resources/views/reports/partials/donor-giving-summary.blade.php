@@ -1,7 +1,7 @@
 @props(['donorSummary', 'year', 'month', 'search', 'sort'])
 
 <div class="space-y-4">
-    <form method="GET" action="{{ route('reports.index') }}" class="flex flex-wrap items-end gap-3 rounded-lg border border-slate-200 bg-white p-4">
+    <form method="GET" action="{{ route('reports.index') }}" class="hidden">
         <input type="hidden" name="tab" value="philanthropy-roster">
 
         <div>
@@ -12,13 +12,13 @@
                 type="search"
                 value="{{ $search }}"
                 placeholder="Name, email, or phone"
-                class="mt-1 block rounded-md border-slate-300 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                class="report-filter-input mt-1 block focus:border-blue-500 focus:ring-blue-500"
             >
         </div>
 
         <div>
             <label for="donor-summary-month" class="block text-xs font-semibold uppercase text-slate-500">Month</label>
-            <select id="donor-summary-month" name="month" class="mt-1 rounded-md border-slate-300 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500">
+            <select id="donor-summary-month" name="month" class="report-filter-select mt-1 focus:border-blue-500 focus:ring-blue-500">
                 @foreach (range(1, 12) as $monthOption)
                     <option value="{{ $monthOption }}" @selected($month === $monthOption)>{{ date('F', mktime(0, 0, 0, $monthOption, 1)) }}</option>
                 @endforeach
@@ -27,7 +27,7 @@
 
         <div>
             <label for="donor-summary-year" class="block text-xs font-semibold uppercase text-slate-500">Year</label>
-            <select id="donor-summary-year" name="year" class="mt-1 rounded-md border-slate-300 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500">
+            <select id="donor-summary-year" name="year" class="report-filter-select mt-1 focus:border-blue-500 focus:ring-blue-500">
                 @foreach (range(now()->year - 3, now()->year) as $yearOption)
                     <option value="{{ $yearOption }}" @selected($year === $yearOption)>{{ $yearOption }}</option>
                 @endforeach
@@ -36,7 +36,7 @@
 
         <div>
             <label for="donor-summary-sort" class="block text-xs font-semibold uppercase text-slate-500">Sort by</label>
-            <select id="donor-summary-sort" name="sort" class="mt-1 rounded-md border-slate-300 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500">
+            <select id="donor-summary-sort" name="sort" class="report-filter-select mt-1 focus:border-blue-500 focus:ring-blue-500">
                 <option value="highest" @selected(! $sort || $sort === 'highest')>Highest Giving</option>
                 <option value="lowest" @selected($sort === 'lowest')>Lowest Giving</option>
                 <option value="most_contributions" @selected($sort === 'most_contributions')>Most Contributions</option>
@@ -57,7 +57,7 @@
                 <p class="text-xs text-slate-400">{{ $donorSummary['total_donors'] }} donor(s) with recorded giving</p>
                 <a
                     href="{{ route('reports.philanthropy-roster.pdf', ['year' => $year, 'month' => $month, 'search' => $search, 'sort' => $sort]) }}"
-                    class="inline-flex items-center justify-center gap-2 rounded-md bg-red-700 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-red-800"
+                    class="hidden"
                 >
                     Download PDF
                 </a>
@@ -69,36 +69,32 @@
                 <x-dashboard.empty-state message="No donor giving activity found for this period." />
             </div>
         @else
-            <div class="overflow-x-auto">
-                <table class="min-w-full text-sm">
-                    <thead>
-                        <tr class="bg-slate-100 text-left">
-                            <th class="p-3 font-semibold text-slate-600">Donor</th>
-                            <th class="p-3 font-semibold text-slate-600">Contact</th>
-                            <th class="p-3 font-semibold text-slate-600">Contributions</th>
-                            <th class="p-3 text-right font-semibold text-slate-600">Cash</th>
-                            <th class="p-3 text-right font-semibold text-slate-600">In-Kind (est.)</th>
-                            <th class="p-3 text-right font-semibold text-slate-600">Combined</th>
-                            <th class="p-3 font-semibold text-slate-600">First / Last Gift</th>
+            <div class="min-w-0 p-4 sm:p-5">
+                <x-data-table caption="Donor giving summary" min-width="54rem" class="report-table" style="--report-table-offset: 20rem">
+                    <x-slot:head>
+                        <x-data-table.heading>Donor</x-data-table.heading>
+                        <x-data-table.heading>Contact</x-data-table.heading>
+                        <x-data-table.heading>Contributions</x-data-table.heading>
+                        <x-data-table.heading align="right">Cash</x-data-table.heading>
+                        <x-data-table.heading align="right">In-Kind (est.)</x-data-table.heading>
+                        <x-data-table.heading align="right">Combined</x-data-table.heading>
+                        <x-data-table.heading>First / Last Gift</x-data-table.heading>
+                    </x-slot:head>
+                    @foreach ($donorSummary['rows'] as $row)
+                        <tr>
+                            <td class="px-4 py-3 font-medium text-slate-950">{{ $row['donor_name'] }}</td>
+                            <td class="px-4 py-3 text-slate-600">
+                                <div>{{ $row['email'] ?: 'No email' }}</div>
+                                <div class="text-xs text-slate-400">{{ $row['phone'] }}</div>
+                            </td>
+                            <td class="px-4 py-3 text-slate-600">{{ number_format($row['total_donation_count']) }}</td>
+                            <td class="data-table__number">&#8369;{{ number_format($row['total_cash_donations'], 2) }}</td>
+                            <td class="data-table__number">&#8369;{{ number_format($row['total_in_kind_donations'], 2) }}</td>
+                            <td class="data-table__number font-semibold">&#8369;{{ number_format($row['combined_donation_value'], 2) }}</td>
+                            <td class="px-4 py-3 text-xs text-slate-500">{{ $row['first_donation_date'] ?? '—' }} &rarr; {{ $row['last_donation_date'] ?? '—' }}</td>
                         </tr>
-                    </thead>
-                    <tbody>
-                        @foreach ($donorSummary['rows'] as $row)
-                            <tr class="border-t border-slate-100">
-                                <td class="p-3 font-medium text-slate-950">{{ $row['donor_name'] }}</td>
-                                <td class="p-3 text-slate-600">
-                                    <div>{{ $row['email'] ?: 'No email' }}</div>
-                                    <div class="text-xs text-slate-400">{{ $row['phone'] }}</div>
-                                </td>
-                                <td class="p-3 text-slate-600">{{ number_format($row['total_donation_count']) }}</td>
-                                <td class="p-3 text-right text-slate-950">&#8369;{{ number_format($row['total_cash_donations'], 2) }}</td>
-                                <td class="p-3 text-right text-slate-950">&#8369;{{ number_format($row['total_in_kind_donations'], 2) }}</td>
-                                <td class="p-3 text-right font-semibold text-slate-950">&#8369;{{ number_format($row['combined_donation_value'], 2) }}</td>
-                                <td class="p-3 text-xs text-slate-500">{{ $row['first_donation_date'] ?? '—' }} &rarr; {{ $row['last_donation_date'] ?? '—' }}</td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
+                    @endforeach
+                </x-data-table>
             </div>
         @endif
     </section>

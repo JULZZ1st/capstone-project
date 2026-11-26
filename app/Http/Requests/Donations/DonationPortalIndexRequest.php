@@ -20,7 +20,6 @@ class DonationPortalIndexRequest extends FormRequest
         return [
             'search' => ['nullable', 'string', 'max:255'],
             'type' => ['nullable', Rule::in(array_keys(config('donations.types')))],
-            'status' => ['nullable', Rule::in(array_keys(config('donations.statuses')))],
         ];
     }
 
@@ -29,7 +28,6 @@ class DonationPortalIndexRequest extends FormRequest
         $this->merge([
             'search' => $this->nullableTrim('search'),
             'type' => $this->nullableTrim('type'),
-            'status' => $this->nullableTrim('status'),
         ]);
     }
 
