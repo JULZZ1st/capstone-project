@@ -1,0 +1,54 @@
+@startuml
+'==============================================================
+' BDMS — Detailed Use Case Diagram: Workspace Management
+'
+' Source of truth: routes/web.php - the '/workspaces' routes sit
+' in their own middleware group restricted to 'role:admin' (not
+' the shared admin,staff group), and
+' app/Http/Controllers/WorkspaceManagementController.php. A
+' workspace models one barangay branch; Staff has no access to
+' this module, so only Admin appears here.
+'==============================================================
+
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam nodesep 14
+skinparam ranksep 90
+skinparam defaultTextAlignment center
+
+skinparam actor {
+  BackgroundColor #FEFEFE
+  BorderColor #333333
+  FontSize 14
+}
+skinparam rectangle {
+  BorderColor #333333
+  BackgroundColor white
+  FontStyle bold
+  FontSize 16
+}
+skinparam usecase {
+  BackgroundColor<<admin>> #FFCC80
+  BorderColor<<admin>>     #B06A00
+  ArrowColor #555555
+  FontSize 13
+  BorderThickness 1.2
+}
+
+title BDMS — Workspace Management (Detailed)
+
+actor "Admin" as Admin
+
+rectangle "Workspace Management" {
+  usecase "View Workspaces"                          as UC_View   <<admin>>
+  usecase "Create Workspace\n(Barangay Branch + Admin Account)" as UC_Create <<admin>>
+  usecase "Activate / Deactivate\nWorkspace"          as UC_Toggle <<admin>>
+}
+
+Admin -- UC_View
+Admin -- UC_Create
+Admin -- UC_Toggle
+
+caption Admin-only module. Creating a workspace also provisions that branch's own Admin account.
+
+@enduml

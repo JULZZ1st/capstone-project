@@ -22,7 +22,7 @@
                     <x-data-table.heading>Source</x-data-table.heading>
                     <x-data-table.heading>Logged by</x-data-table.heading>
                 </x-slot:head>
-                @forelse ($inventoryItem->stockMovements as $movement)
+                @forelse ($movements as $movement)
                     <tr>
                         <td class="px-4 py-3 text-slate-600">{{ $movement->created_at?->format('M d, Y g:i A') }}</td>
                         <td class="px-4 py-3 font-medium text-slate-900">{{ config('inventory.movement_types.'.$movement->movement_type, $movement->movement_type) }}</td>
@@ -45,6 +45,9 @@
                 @empty
                     <x-data-table.empty :columns="8" title="No stock movements have been recorded for this item." />
                 @endforelse
+                @if ($movements->hasPages())
+                    <x-slot:footer>{{ $movements->links() }}</x-slot:footer>
+                @endif
             </x-data-table>
         </div>
     </div>

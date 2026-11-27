@@ -33,7 +33,7 @@ class DashboardMetrics
                 'registered_donors' => Cache::remember(
                     "dashboard.workspace.{$workspaceId}.summary.registered_donors",
                     config('dashboard.cache.safe_summary_ttl'),
-                    fn (): int => Donor::query()->count(),
+                    fn (): int => Donor::query()->registered()->count(),
                 ),
             ],
             'staff_finance_action_items' => $this->staffFinanceActionItems($pendingStatus),

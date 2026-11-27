@@ -1,0 +1,80 @@
+@startuml
+'==============================================================
+' BDMS — Detailed Use Case Diagram: Reports
+'
+' Source of truth: app/Support/Authorization/ReportAccess.php
+' (ADMIN_TABS vs STAFF_TABS) as enforced in
+' app/Http/Controllers/ReportController.php. Each tab is
+' exportable as CSV and/or PDF from the same reports screen.
+'
+' Admin gets all seven report tabs. Staff's baseline is five
+' operational tabs; the consolidated financial summary and the
+' audit trail stay Admin-exclusive review reports.
+'==============================================================
+
+left to right direction
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam nodesep 10
+skinparam ranksep 130
+skinparam defaultTextAlignment center
+
+skinparam actor {
+  BackgroundColor #FEFEFE
+  BorderColor #333333
+  FontSize 14
+}
+skinparam rectangle {
+  BorderColor #333333
+  BackgroundColor white
+  FontStyle bold
+  FontSize 16
+}
+skinparam usecase {
+  BackgroundColor<<admin>>  #FFCC80
+  BorderColor<<admin>>      #B06A00
+  BackgroundColor<<shared>> #A5D6A7
+  BorderColor<<shared>>     #2E7D32
+  ArrowColor #555555
+  FontSize 13
+  BorderThickness 1.2
+}
+
+title BDMS — Reports (Detailed)
+
+actor "Admin" as Admin
+
+rectangle "Reports" {
+  together {
+    usecase "View & Export\nFinancial Summary Report"     as UC_Financial  <<admin>>
+    usecase "View & Export\nAudit Trail Report"            as UC_Audit      <<admin>>
+    usecase "View & Export\nFinancial Ledger Report"       as UC_Ledger     <<shared>>
+    usecase "View & Export\nInventory Report"              as UC_Inventory  <<shared>>
+    usecase "View & Export\nBank Reconciliation Report"    as UC_Recon      <<shared>>
+    usecase "View & Export\nIn-Kind Audit Report"          as UC_InKind     <<shared>>
+    usecase "View & Export\nPhilanthropy Roster Report"    as UC_Roster     <<shared>>
+  }
+}
+
+actor "Staff" as Staff
+
+Admin -[hidden]r-> UC_Financial
+UC_Ledger -[hidden]r-> Staff
+
+Admin -- UC_Financial
+Admin -- UC_Audit
+Admin -- UC_Ledger
+Admin -- UC_Inventory
+Admin -- UC_Recon
+Admin -- UC_InKind
+Admin -- UC_Roster
+
+UC_Ledger -- Staff
+UC_Inventory -- Staff
+UC_Recon -- Staff
+UC_InKind -- Staff
+UC_Roster -- Staff
+
+caption Financial Summary and Audit Trail (orange) are Admin-exclusive; the other five report tabs are Staff's baseline operational set.
+
+@enduml

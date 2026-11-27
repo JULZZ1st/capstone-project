@@ -1,0 +1,97 @@
+@startuml
+'==============================================================
+' BDMS — Detailed Use Case Diagram: Bank Reconciliation
+'
+' Source of truth: app/Policies/BankReconciliationPolicy.php and
+' app/Policies/BankLedgerEntryPolicy.php, as enforced in
+' app/Http/Controllers/BankReconciliationController.php.
+'
+' Maker-checker workflow:
+'  - Staff prepares a draft period, edits it, and submits it.
+'  - Admin approves, rejects, or (once approved) reopens it -
+'    and can never act on a period Staff prepared themself in
+'    the same account would still require a different preparer,
+'    since approve/reject require prepared_by != the acting user.
+'  - Either role can import statements, record withdrawals,
+'    match/reconcile a transaction, and report a discrepancy.
+'  - Admin reviews a reported discrepancy (accept or ask for a
+'    correction); Staff resolves the ones sent back for correction.
+'==============================================================
+
+left to right direction
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam nodesep 10
+skinparam ranksep 150
+skinparam defaultTextAlignment center
+
+skinparam actor {
+  BackgroundColor #FEFEFE
+  BorderColor #333333
+  FontSize 14
+}
+skinparam rectangle {
+  BorderColor #333333
+  BackgroundColor white
+  FontStyle bold
+  FontSize 16
+}
+skinparam usecase {
+  BackgroundColor<<admin>>  #FFCC80
+  BorderColor<<admin>>      #B06A00
+  BackgroundColor<<staff>>  #90CAF9
+  BorderColor<<staff>>      #1B5FA8
+  BackgroundColor<<shared>> #A5D6A7
+  BorderColor<<shared>>     #2E7D32
+  ArrowColor #555555
+  FontSize 13
+  BorderThickness 1.2
+}
+
+title BDMS — Bank Reconciliation (Detailed)
+
+actor "Admin" as Admin
+
+rectangle "Bank Reconciliation" {
+  together {
+    usecase "Import Bank Statement"            as UC_Import   <<shared>>
+    usecase "Record Bank Withdrawal"           as UC_Withdraw <<shared>>
+    usecase "Match & Reconcile Transaction"    as UC_Match    <<shared>>
+    usecase "Report Discrepancy"               as UC_Report   <<shared>>
+    usecase "Review Pending Discrepancy\n(accept / request correction)" as UC_ReviewDisc <<admin>>
+    usecase "Resolve Flagged Discrepancy"      as UC_ResolveDisc <<staff>>
+    usecase "Prepare Reconciliation Period"    as UC_Prepare  <<staff>>
+    usecase "Edit Draft Period"                as UC_EditDraft <<staff>>
+    usecase "Submit Reconciliation Period"     as UC_Submit   <<staff>>
+    usecase "Approve Reconciliation Period"    as UC_Approve  <<admin>>
+    usecase "Reject Reconciliation Period"     as UC_RejectP  <<admin>>
+    usecase "Reopen Reconciliation Period"     as UC_Reopen   <<admin>>
+  }
+}
+
+actor "Staff" as Staff
+
+Admin -[hidden]r-> UC_Import
+UC_Report -[hidden]r-> Staff
+
+Admin -- UC_Import
+Admin -- UC_Withdraw
+Admin -- UC_Match
+Admin -- UC_Report
+Admin -- UC_ReviewDisc
+Admin -- UC_Approve
+Admin -- UC_RejectP
+Admin -- UC_Reopen
+
+UC_Import -- Staff
+UC_Withdraw -- Staff
+UC_Match -- Staff
+UC_Report -- Staff
+UC_ResolveDisc -- Staff
+UC_Prepare -- Staff
+UC_EditDraft -- Staff
+UC_Submit -- Staff
+
+caption Admin (orange) cannot approve/reject/review a period or discrepancy they themselves prepared or reported. Reopen only applies to an already-approved period.
+
+@enduml

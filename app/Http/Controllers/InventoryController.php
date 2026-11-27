@@ -111,23 +111,25 @@ class InventoryController extends Controller
             'creator:id,first_name,last_name,name',
             'updater:id,first_name,last_name,name',
             'subcategory:id,key,label',
-            'stockMovements' => fn ($query) => $query
-                ->with([
-                    'creator:id,first_name,last_name,name',
-                    'contributionItem.contribution:id,receipt_number,donor_id',
-                    'contributionItem.contribution.donor:id,full_name',
-                ])
-                ->latest()
-                ->limit(25),
         ]);
+
+        $movements = $inventoryItem->stockMovements()
+            ->with([
+                'creator:id,first_name,last_name,name',
+                'contributionItem.contribution:id,receipt_number,donor_id',
+                'contributionItem.contribution.donor:id,full_name',
+            ])
+            ->latest()
+            ->paginate(25)
+            ->withQueryString();
 
         if ($request->expectsJson()) {
             return response()->json([
-                'html' => view('inventory.partials.details', compact('inventoryItem'))->render(),
+                'html' => view('inventory.partials.details', compact('inventoryItem', 'movements'))->render(),
             ])->header('Cache-Control', 'no-store, private');
         }
 
-        return view('inventory.show', compact('inventoryItem'));
+        return view('inventory.show', compact('inventoryItem', 'movements'));
     }
 
     public function update(UpdateInventoryItemRequest $request, InventoryItem $inventoryItem, ResolveInventoryClassification $resolver): RedirectResponse

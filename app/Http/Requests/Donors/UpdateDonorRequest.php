@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Donors;
 
 use App\Http\Requests\Concerns\ReadsScalarInput;
+use App\Models\Donor;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -25,7 +26,16 @@ class UpdateDonorRequest extends FormRequest
             'last_name' => ['required_if:donor_type,individual', 'nullable', 'string', 'max:255'],
             'suffix' => ['nullable', 'string', 'max:30'],
             'organization_name' => ['required_if:donor_type,organization', 'nullable', 'string', 'max:255'],
-            'full_name' => ['nullable', 'string', 'max:255'],
+            'full_name' => [
+                'nullable',
+                'string',
+                'max:255',
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    if (Str::lower(trim((string) $value)) === Str::lower(Donor::SYSTEM_PLACEHOLDER_NAME)) {
+                        $fail('Anonymous is reserved for donations without a registered donor.');
+                    }
+                },
+            ],
             'email' => ['nullable', 'string', config('donors.email_rule'), 'max:255'],
             'tin' => ['nullable', 'string', 'max:30'],
             'contact_number' => ['required', 'string', 'max:30'],

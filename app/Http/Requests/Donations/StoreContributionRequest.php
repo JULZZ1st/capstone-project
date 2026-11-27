@@ -4,6 +4,7 @@ namespace App\Http\Requests\Donations;
 
 use App\Http\Requests\Concerns\ReadsScalarInput;
 use App\Models\Contribution;
+use App\Models\Donor;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
@@ -29,6 +30,7 @@ class StoreContributionRequest extends FormRequest
                 'nullable',
                 'integer',
                 WorkspaceValidationRules::exists('donors')
+                    ->where('full_name', '!=', Donor::SYSTEM_PLACEHOLDER_NAME)
                     ->where('status', config('donors.defaults.status')),
             ],
             'received_at' => ['nullable', 'date_format:Y-m-d'],

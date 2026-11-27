@@ -81,6 +81,10 @@ class DonationPortalController extends Controller
             ->withSum('items', 'estimated_value')
             ->search($filters['search'] ?? null)
             ->type($filters['type'] ?? null)
+            ->receivedBetween($filters['date_from'] ?? null, $filters['date_to'] ?? null)
+            ->donorId(isset($filters['donor_id']) ? (int) $filters['donor_id'] : null)
+            ->itemName($filters['item'] ?? null)
+            ->itemCategory($filters['category'] ?? null)
             ->latest('received_at')
             ->latest()
             ->paginate(config('donations.pagination.per_page'))
@@ -91,6 +95,11 @@ class DonationPortalController extends Controller
             'contributions' => $contributions,
             'filters' => $filters,
             'availableDonationTypes' => config('donations.types'),
+            'filterDonors' => Donor::query()
+                ->active()
+                ->orderBy('full_name')
+                ->get(['id', 'full_name']),
+            'filterCategories' => config('donations.item_main_categories'),
         ]);
     }
 
@@ -101,7 +110,7 @@ class DonationPortalController extends Controller
         return view('donations.create', [
             'donors' => Donor::query()
                 ->active()
-                ->where('full_name', '!=', 'Anonymous')
+                ->registered()
                 ->orderBy('full_name')
                 ->get(['id', 'full_name', 'contact_number']),
         ]);
