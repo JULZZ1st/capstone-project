@@ -11,6 +11,8 @@ class Donor extends Model
     use HasFactory;
     use Concerns\WorkspaceScoped;
 
+    public const SYSTEM_PLACEHOLDER_NAME = 'Anonymous';
+
     protected $fillable = [
         'workspace_id',
         'donor_type',
@@ -76,6 +78,16 @@ class Donor extends Model
     public function scopeActive($query)
     {
         return $query->where('status', config('donors.defaults.status'));
+    }
+
+    public function scopeRegistered($query)
+    {
+        return $query->where('full_name', '!=', self::SYSTEM_PLACEHOLDER_NAME);
+    }
+
+    public function isSystemPlaceholder(): bool
+    {
+        return $this->full_name === self::SYSTEM_PLACEHOLDER_NAME;
     }
 
     public function scopeWithDonationMetrics($query)

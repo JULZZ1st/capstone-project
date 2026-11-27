@@ -1,0 +1,70 @@
+@startuml
+'==============================================================
+' BDMS — Detailed Use Case Diagram: Authentication & Dashboard
+'
+' Source of truth: routes/web.php ('guest' and 'auth' middleware
+' groups), Auth\AuthenticatedSessionController, Auth\
+' ChangePasswordController, EnsurePasswordChanged middleware
+' ('must_change_password' column), and DashboardController.
+' Both Admin and Staff share every use case here.
+'==============================================================
+
+left to right direction
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam nodesep 10
+skinparam ranksep 120
+skinparam defaultTextAlignment center
+
+skinparam actor {
+  BackgroundColor #FEFEFE
+  BorderColor #333333
+  FontSize 14
+}
+skinparam rectangle {
+  BorderColor #333333
+  BackgroundColor white
+  FontStyle bold
+  FontSize 16
+}
+skinparam usecase {
+  BackgroundColor<<shared>> #A5D6A7
+  BorderColor<<shared>>     #2E7D32
+  ArrowColor #555555
+  FontSize 13
+  BorderThickness 1.2
+}
+
+title BDMS — Authentication & Dashboard (Detailed)
+
+actor "Admin" as Admin
+
+rectangle "Authentication & Dashboard" {
+  together {
+    usecase "Log In"                as UC_Login   <<shared>>
+    usecase "Change Password"       as UC_ChangePwd <<shared>>
+    usecase "View Dashboard"        as UC_Dash    <<shared>>
+    usecase "Log Out"               as UC_Logout  <<shared>>
+  }
+}
+
+actor "Staff" as Staff
+
+Admin -[hidden]r-> UC_Login
+UC_Logout -[hidden]r-> Staff
+
+Admin -- UC_Login
+Admin -- UC_ChangePwd
+Admin -- UC_Dash
+Admin -- UC_Logout
+
+UC_Login -- Staff
+UC_ChangePwd -- Staff
+UC_Dash -- Staff
+UC_Logout -- Staff
+
+UC_Login .> UC_ChangePwd : <<extend>>\n(forced on first login)
+
+caption A forced password change (must_change_password) extends Log In before any other page is reachable.
+
+@enduml

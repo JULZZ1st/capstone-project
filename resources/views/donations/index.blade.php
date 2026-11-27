@@ -16,6 +16,8 @@
             <x-donations.filter-bar
                 :filters="$filters"
                 :types="$availableDonationTypes"
+                :donors="$filterDonors"
+                :categories="$filterCategories"
             >
                 @can('viewAny', \App\Models\Donor::class)
                     <a
@@ -42,13 +44,13 @@
                 <div class="p-8">
                     <x-dashboard.empty-state
                         icon="cube"
-                        :message="request()->hasAny(['search', 'type'])
+                        :message="request()->hasAny(['search', 'type', 'date_from', 'date_to', 'donor_id', 'item', 'category'])
                             ? 'No contributions match the current filters.'
                             : 'No contributions have been logged yet.'"
                     />
                     <p class="mt-1 text-center text-sm text-slate-400">
 
-                        @if (request()->hasAny(['search', 'type']))
+                        @if (request()->hasAny(['search', 'type', 'date_from', 'date_to', 'donor_id', 'item', 'category']))
 
                             Try adjusting your search or filters.
 

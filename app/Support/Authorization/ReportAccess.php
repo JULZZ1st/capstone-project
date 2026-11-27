@@ -7,6 +7,32 @@ use Illuminate\Support\Collection;
 
 class ReportAccess
 {
+    /** @var list<string> */
+    private const ADMIN_TABS = [
+        'financial',
+        'inventory',
+        'audit',
+        'reconciliation',
+        'financial-ledgers',
+        'in-kind-audits',
+        'philanthropy-roster',
+    ];
+
+    /**
+     * Staff report access follows the operational reporting scope in the SRS:
+     * cash ledger, reconciliation, donor, and in-kind activity. The audit
+     * trail and consolidated financial summary remain Admin review reports.
+     *
+     * @var list<string>
+     */
+    private const STAFF_TABS = [
+        'financial-ledgers',
+        'inventory',
+        'reconciliation',
+        'in-kind-audits',
+        'philanthropy-roster',
+    ];
+
     /** @var array<string, list<string>> */
     private const TAB_PERMISSIONS = [
         'financial' => ['view_reports_donations', 'view_reports_disbursements'],
@@ -21,23 +47,25 @@ class ReportAccess
     /** @return Collection<int, string> */
     public function allowedTabs(User $user): Collection
     {
-        $tabs = collect(array_keys(self::TAB_PERMISSIONS));
-
         if ($user->hasRole('admin')) {
-            return $tabs;
+            return collect(self::ADMIN_TABS);
         }
 
         if (! $user->hasRole('staff')) {
             return collect();
         }
 
+        $tabs = collect(self::STAFF_TABS);
+
         $assigned = $user->securityPermissions()
             ->whereIn('key', $this->reportPermissionKeys())
             ->pluck('key');
 
-        // Existing staff predate granular report permissions and retain the
-        // report access their role already provided. Once report permissions
-        // are assigned, they become an explicit allow-list.
+        // Existing Staff accounts may not have report permission rows because
+        // the role-level operational boundary predates granular report
+        // permissions. Their safe baseline is the Staff report set above.
+        // Once report permissions are assigned, they narrow that baseline to
+        // the explicitly permitted report domains.
         if ($assigned->isEmpty()) {
             return $tabs;
         }

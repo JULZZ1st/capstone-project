@@ -1,0 +1,90 @@
+@startuml
+'==============================================================
+' BDMS — Detailed Use Case Diagram: Fund Disbursement
+' (Fund Requests)
+'
+' Source of truth: app/Policies/CashDisbursementPolicy.php, as
+' enforced in app/Http/Controllers/DisbursementController.php.
+'
+' - create: Admin, or Staff (the default baseline permission)
+' - update / uploadSignedVoucher / recordTreasurerCertification /
+'   recordPayment: Staff only, and only on their OWN pending
+'   request (maker)
+' - approve / reject / requestMissingSignedVoucher / void:
+'   Admin only, and never on a request Admin themself filed
+'   (checker)
+'
+' Note: voiding an already-logged donation record (Contribution)
+' is implemented in this same controller (voidContribution) but
+' is diagrammed under "Donation & Contribution Management" since
+' that is the module a user experiences it in.
+'==============================================================
+
+left to right direction
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam nodesep 10
+skinparam ranksep 140
+skinparam defaultTextAlignment center
+
+skinparam actor {
+  BackgroundColor #FEFEFE
+  BorderColor #333333
+  FontSize 14
+}
+skinparam rectangle {
+  BorderColor #333333
+  BackgroundColor white
+  FontStyle bold
+  FontSize 16
+}
+skinparam usecase {
+  BackgroundColor<<admin>>  #FFCC80
+  BorderColor<<admin>>      #B06A00
+  BackgroundColor<<staff>>  #90CAF9
+  BorderColor<<staff>>      #1B5FA8
+  BackgroundColor<<shared>> #A5D6A7
+  BorderColor<<shared>>     #2E7D32
+  ArrowColor #555555
+  FontSize 13
+  BorderThickness 1.2
+}
+
+title BDMS — Fund Disbursement (Detailed)
+
+actor "Admin" as Admin
+
+rectangle "Fund Disbursement" {
+  together {
+    usecase "Request Fund Disbursement"        as UC_Request  <<shared>>
+    usecase "Edit Pending Fund Request"        as UC_EditReq  <<staff>>
+    usecase "Upload Signed Voucher"            as UC_Voucher  <<staff>>
+    usecase "Record Treasurer Certification"   as UC_Treas    <<staff>>
+    usecase "Record Fund Payment"              as UC_Payment  <<staff>>
+    usecase "Approve Fund Disbursement"        as UC_Approve  <<admin>>
+    usecase "Reject Fund Disbursement"         as UC_Reject   <<admin>>
+    usecase "Request Missing Signed Voucher"   as UC_ReqVoucher <<admin>>
+    usecase "Void Fund Disbursement"           as UC_Void     <<admin>>
+  }
+}
+
+actor "Staff" as Staff
+
+Admin -[hidden]r-> UC_Request
+UC_Request -[hidden]r-> Staff
+
+Admin -- UC_Request
+Admin -- UC_Approve
+Admin -- UC_Reject
+Admin -- UC_ReqVoucher
+Admin -- UC_Void
+
+UC_Request -- Staff
+UC_EditReq -- Staff
+UC_Voucher -- Staff
+UC_Treas -- Staff
+UC_Payment -- Staff
+
+caption Staff (blue) acts only on their own pending request. Admin (orange) approves/rejects/voids - never their own request.
+
+@enduml

@@ -168,7 +168,7 @@ class LogContribution
     private function anonymousDonor(): Donor
     {
         return Donor::query()->firstOrCreate(
-            ['full_name' => 'Anonymous'],
+            ['full_name' => Donor::SYSTEM_PLACEHOLDER_NAME],
             [
                 'donor_type' => config('donors.defaults.type'),
                 'address' => 'Not provided',

@@ -7,6 +7,7 @@ use App\Models\Contribution;
 use App\Models\Donor;
 use App\Models\InventoryItem;
 use App\Models\InventoryStockMovement;
+use App\Models\Role;
 use App\Models\SecurityActivityEvent;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -22,6 +23,60 @@ class ReportGeneratorTest extends TestCase
         $this->get(route('reports.index'))->assertRedirect(route('login'));
     }
 
+    public function test_staff_sees_only_operational_report_types_and_cannot_open_admin_reports(): void
+    {
+        $staff = User::factory()->create();
+
+        $response = $this->actingAs($staff)
+            ->get(route('reports.index'));
+
+        $response->assertOk()
+            ->assertSee('Financial Ledgers')
+            ->assertSee('Inventory Report')
+            ->assertSee('Reconciliation Report')
+            ->assertSee('In-Kind Audits')
+            ->assertSee('Philanthropy Roster')
+            ->assertDontSee('Financial Report')
+            ->assertDontSee('Audit Trail Report');
+
+        $this->actingAs($staff)
+            ->get(route('reports.financial.csv'))
+            ->assertForbidden();
+
+        $this->actingAs($staff)
+            ->get(route('reports.financial.pdf'))
+            ->assertForbidden();
+
+        $this->actingAs($staff)
+            ->get(route('reports.index', ['tab' => 'financial']))
+            ->assertForbidden();
+
+        $this->actingAs($staff)
+            ->get(route('reports.audit.csv'))
+            ->assertForbidden();
+
+        $this->actingAs($staff)
+            ->get(route('reports.audit.pdf'))
+            ->assertForbidden();
+    }
+
+    public function test_admin_sees_all_report_types(): void
+    {
+        $adminRole = Role::query()->firstOrCreate(['name' => 'admin'], ['display_name' => 'Admin']);
+        $admin = User::factory()->create(['role_id' => $adminRole->id]);
+
+        $this->actingAs($admin)
+            ->get(route('reports.index'))
+            ->assertOk()
+            ->assertSee('Financial Report')
+            ->assertSee('Inventory Report')
+            ->assertSee('Audit Trail Report')
+            ->assertSee('Reconciliation Report')
+            ->assertSee('Financial Ledgers')
+            ->assertSee('In-Kind Audits')
+            ->assertSee('Philanthropy Roster');
+    }
+
     public function test_authorized_user_can_view_financial_ledgers_report(): void
     {
         $reconciled = $this->cashContribution(['amount' => 15000, 'payment_method' => 'bank_transfer', 'received_at' => '2026-06-05', 'donor_name' => 'Dr. Manuel Co']);
@@ -29,11 +84,11 @@ class ReportGeneratorTest extends TestCase
         $this->cashContribution(['amount' => 10000, 'payment_method' => 'gcash', 'received_at' => '2026-06-10', 'donor_name' => 'Enrique Razon']);
 
         $response = $this->actingAs(User::factory()->create())
-            ->get(route('reports.index', ['year' => 2026, 'month' => 6]));
+            ->get(route('reports.index', ['tab' => 'financial-ledgers', 'year' => 2026, 'month' => 6]));
 
         $response->assertOk();
         $response->assertSee('Report Generator');
-        $response->assertSee('Financial Report');
+        $response->assertSee('Financial Ledgers');
         $response->assertSee('15,000');
         $response->assertSee('10,000');
         $response->assertSee('25,000');
@@ -222,7 +277,8 @@ class ReportGeneratorTest extends TestCase
             'summary' => 'Recorded relief stock', 'occurred_at' => '2026-06-15 10:30:00',
         ]);
 
-        $response = $this->actingAs(User::factory()->create())
+        $adminRole = Role::query()->firstOrCreate(['name' => 'admin'], ['display_name' => 'Admin']);
+        $response = $this->actingAs(User::factory()->create(['role_id' => $adminRole->id]))
             ->get(route('reports.index', ['tab' => 'audit', 'from' => '2026-06-01', 'to' => '2026-06-30']));
 
         $response->assertOk();
@@ -241,7 +297,7 @@ class ReportGeneratorTest extends TestCase
         $this->reconcile($reconciled);
 
         $response = $this->actingAs(User::factory()->create())
-            ->get(route('reports.financial.csv', ['year' => 2026, 'month' => 6]));
+            ->get(route('reports.financial-ledgers.csv', ['year' => 2026, 'month' => 6]));
 
         $response->assertOk();
         $this->assertStringContainsString('text/csv', $response->headers->get('Content-Type'));
@@ -263,7 +319,7 @@ class ReportGeneratorTest extends TestCase
         $this->reconcile($reconciled);
 
         $response = $this->actingAs(User::factory()->create())
-            ->get(route('reports.financial.pdf', ['year' => 2026, 'month' => 6]));
+            ->get(route('reports.financial-ledgers.pdf', ['year' => 2026, 'month' => 6]));
 
         $response->assertOk();
         $this->assertStringContainsString('application/pdf', $response->headers->get('Content-Type'));
@@ -340,7 +396,9 @@ class ReportGeneratorTest extends TestCase
         $this->assertStringContainsString('application/pdf', $pdf->headers->get('Content-Type'));
         $this->assertStringStartsWith('%PDF', $pdf->getContent());
 
-        $audit = $user->get(route('reports.audit.csv', ['from' => '2026-01-01', 'to' => '2026-12-31']));
+        $adminRole = Role::query()->firstOrCreate(['name' => 'admin'], ['display_name' => 'Admin']);
+        $audit = $this->actingAs(User::factory()->create(['role_id' => $adminRole->id]))
+            ->get(route('reports.audit.csv', ['from' => '2026-01-01', 'to' => '2026-12-31']));
         $audit->assertOk();
         $this->assertStringContainsString('User,Action,Module,Date/Time,Details', $audit->streamedContent());
     }

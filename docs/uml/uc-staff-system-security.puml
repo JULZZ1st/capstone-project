@@ -1,0 +1,59 @@
+@startuml
+'==============================================================
+' BDMS — Detailed Use Case Diagram: System Security & Staff
+' Account Management
+'
+' Source of truth: routes/web.php - the '/system-security' and
+' '/system-security/users/*' routes all carry an explicit
+' 'role:admin' middleware (on top of the shared group), and
+' SystemSecurityController@index renders the single
+' "staff-account-management" Blade view that both features live
+' on. app/Http/Controllers/StaffAccountController.php supplies
+' the four account actions. Staff has no access to this module
+' at all, so only Admin appears here.
+'==============================================================
+
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam nodesep 14
+skinparam ranksep 90
+skinparam defaultTextAlignment center
+
+skinparam actor {
+  BackgroundColor #FEFEFE
+  BorderColor #333333
+  FontSize 14
+}
+skinparam rectangle {
+  BorderColor #333333
+  BackgroundColor white
+  FontStyle bold
+  FontSize 16
+}
+skinparam usecase {
+  BackgroundColor<<admin>> #FFCC80
+  BorderColor<<admin>>     #B06A00
+  ArrowColor #555555
+  FontSize 13
+  BorderThickness 1.2
+}
+
+title BDMS — System Security & Staff Account Management (Detailed)
+
+actor "Admin" as Admin
+
+rectangle "System Security & Staff Account Management" {
+  usecase "View System Security\nDashboard"     as UC_Dashboard <<admin>>
+  usecase "Create Staff Account"                as UC_Create    <<admin>>
+  usecase "Update Staff Account"                as UC_Update    <<admin>>
+  usecase "Deactivate / Reactivate\nStaff Account" as UC_Toggle <<admin>>
+}
+
+Admin -- UC_Dashboard
+Admin -- UC_Create
+Admin -- UC_Update
+Admin -- UC_Toggle
+
+caption Admin-only module. Staff has no route into System Security or Staff Account Management.
+
+@enduml
