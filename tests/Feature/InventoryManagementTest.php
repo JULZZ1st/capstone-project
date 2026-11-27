@@ -78,6 +78,47 @@ class InventoryManagementTest extends TestCase
         $response->assertDontSee($other->name);
     }
 
+    public function test_movement_pages_with_equal_timestamps_keep_a_stable_newest_first_order(): void
+    {
+        $item = $this->inventoryItem();
+        $user = User::factory()->create();
+        $ids = [];
+        foreach (range(1, 26) as $quantity) {
+            $ids[] = $item->stockMovements()->create([
+                'created_by' => $user->id, 'movement_type' => 'stock_in',
+                'quantity' => 1, 'quantity_before' => $quantity - 1, 'quantity_after' => $quantity,
+                'reason' => 'correction', 'created_at' => '2026-11-20 10:00:00',
+            ])->id;
+        }
+
+        $this->actingAs($user)->get(route('inventory.show', $item))
+            ->assertOk()->assertViewHas('movements', fn ($page) => $page->pluck('id')->all() === array_slice(array_reverse($ids), 0, 25));
+        $this->get(route('inventory.show', [$item, 'page' => 2]))
+            ->assertOk()->assertViewHas('movements', fn ($page) => $page->pluck('id')->all() === [$ids[0]]);
+    }
+
+    public function test_inventory_pdf_cannot_bypass_assigned_report_permissions(): void
+    {
+        $this->inventoryItem();
+        $staff = User::factory()->create();
+        $permission = \App\Models\SecurityPermission::create([
+            'key' => 'view_reports_donations', 'name' => 'Donation reports',
+            'description' => 'Donation reports only', 'sort_order' => 1,
+        ]);
+        $staff->securityPermissions()->attach($permission);
+
+        $this->actingAs($staff)->get(route('inventory.index'))->assertOk();
+        $this->get(route('reports.inventory.pdf'))->assertForbidden();
+        $this->get(route('inventory.export.pdf'))->assertForbidden();
+
+        $inventoryPermission = \App\Models\SecurityPermission::create([
+            'key' => 'view_reports_inventory', 'name' => 'Inventory reports',
+            'description' => 'Inventory reports', 'sort_order' => 2,
+        ]);
+        $staff->securityPermissions()->attach($inventoryPermission);
+        $this->get(route('inventory.export.pdf'))->assertOk();
+    }
+
     public function test_live_inventory_refresh_returns_filtered_current_stock(): void
     {
         $item = $this->inventoryItem(['name' => 'Live Rice', 'current_quantity' => 10]);

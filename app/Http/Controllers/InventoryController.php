@@ -12,6 +12,7 @@ use App\Services\Inventory\CreateInventoryItem;
 use App\Services\Inventory\ResolveInventoryClassification;
 use App\Services\Reports\InventoryReportBuilder;
 use App\Services\Reports\InventoryReportPdfExporter;
+use App\Support\Authorization\ReportAccess;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -86,6 +87,7 @@ class InventoryController extends Controller
 
     public function exportPdf(InventoryIndexRequest $request, InventoryReportBuilder $builder, InventoryReportPdfExporter $exporter): Response
     {
+        app(ReportAccess::class)->authorize($request->user(), 'inventory');
         $report = $builder->build($request->validated());
 
         $filename = sprintf('inventory-summary-report-%s.pdf', now()->toDateString());
@@ -120,6 +122,7 @@ class InventoryController extends Controller
                 'contributionItem.contribution.donor:id,full_name',
             ])
             ->latest()
+            ->latest('id')
             ->paginate(25)
             ->withQueryString();
 

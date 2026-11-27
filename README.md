@@ -56,20 +56,29 @@ A web-based donation management system for barangay operations. It helps manage 
    ```
 
 Open http://127.0.0.1:8000. `composer dev` builds the frontend once and starts the
-local server with OPcache when the extension is installed. It does not require
-Vite to stay running. PHP edits are picked up within two seconds; rebuild with
+local server with OPcache when the extension is installed. The bytecode file
+cache in `storage/framework/cache/opcache` is reused after server restarts.
+It does not require Vite to stay running. PHP edits are picked up within two seconds; rebuild with
 `npm run build` after changing JavaScript or CSS. Stop an existing PHP server
 before starting this command. `composer dev:fast` runs the same local setup.
 
 For frontend development with Vite hot reload, use `composer dev:hot`. This also
 starts the queue listener and log viewer. Stop it before using `composer dev`.
+`php artisan serve` uses the same accelerated PHP settings and built assets by
+default. Use `php artisan serve --hot` together with `npm run dev` to opt into
+Vite. A leftover `public/hot` file does not override the built-asset local mode.
 
 Use the printed `127.0.0.1` address to connect directly to this server. Keep using
 the same address after signing in so the browser retains the local session.
+On the loopback development server, GET requests using `localhost` redirect to
+`127.0.0.1` before authentication. This avoids repeated IPv6-to-IPv4 connection
+fallbacks on systems where localhost resolves to an IPv6 address first. POST
+requests and production or shared-server hosts retain their original address.
 
 To use another port after building, run `php scripts/serve-local.php 8001`.
-This server requires `APP_ENV=local` and an uncached local configuration
-(`php artisan config:clear`). It remains PHP's development server; simultaneous
+This server requires `APP_ENV=local`. The local launchers clear cached local
+configuration before starting so runtime and asset settings take effect.
+It remains PHP's development server; simultaneous
 testing from multiple computers should use the shared web server deployment.
 
 ## After pulling changes

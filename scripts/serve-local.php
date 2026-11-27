@@ -15,8 +15,7 @@ if (! $app->environment('local')) {
 }
 
 if ($app->configurationIsCached()) {
-    fwrite(STDERR, "Run php artisan config:clear before starting the local server.\n");
-    exit(1);
+    $app->make(Kernel::class)->call('config:clear');
 }
 
 if (! is_file($root.'/public/build/manifest.json')) {
@@ -30,28 +29,8 @@ if (! ctype_digit($port) || (int) $port < 1 || (int) $port > 65535) {
     exit(1);
 }
 
-$command = [PHP_BINARY];
-$opcacheAvailable = extension_loaded('Zend OPcache');
-if (! $opcacheAvailable) {
-    $extensionDirectory = ini_get('extension_dir');
-    if (! preg_match('~^(?:[A-Za-z]:[\\\\/]|/)~', $extensionDirectory)) {
-        $extensionDirectory = dirname(PHP_BINARY).'/'.$extensionDirectory;
-    }
-    $extension = $extensionDirectory.'/'.(PHP_OS_FAMILY === 'Windows' ? 'php_opcache.dll' : 'opcache.so');
-    if (is_file($extension)) {
-        array_push($command, '-d', 'zend_extension='.$extension);
-        $opcacheAvailable = true;
-    }
-}
-
-if ($opcacheAvailable) {
-    array_push($command,
-        '-d', 'opcache.enable=1',
-        '-d', 'opcache.enable_cli=1',
-        '-d', 'opcache.validate_timestamps=1',
-        '-d', 'opcache.revalidate_freq=2',
-    );
-}
+$command = \App\Support\Development\LocalPhpRuntime::command(PHP_BINARY, $root.'/storage/framework/cache/opcache');
+$opcacheAvailable = count($command) > 1;
 
 array_push($command, '-S', '127.0.0.1:'.$port, $root.'/vendor/laravel/framework/src/Illuminate/Foundation/resources/server.php');
 
@@ -61,7 +40,7 @@ if ($opcacheAvailable) {
     fwrite(STDOUT, 'PHP edits are checked every 2 seconds.'.PHP_EOL);
 }
 
-$environment = ['LOCAL_BUILT_ASSETS' => 'true'];
+$environment = ['LOCAL_BUILT_ASSETS' => 'true', 'LOCAL_SERVER_HOST' => '127.0.0.1'];
 if (PHP_OS_FAMILY === 'Windows') {
     $environment['PHP_CLI_SERVER_WORKERS'] = false;
 }

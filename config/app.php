@@ -28,7 +28,8 @@ return [
 
     'env' => env('APP_ENV', 'production'),
 
-    'local_built_assets' => (bool) env('LOCAL_BUILT_ASSETS', false),
+    'local_built_assets' => (bool) env('LOCAL_BUILT_ASSETS', true),
+    'local_server_host' => env('LOCAL_SERVER_HOST'),
 
     /*
     |--------------------------------------------------------------------------

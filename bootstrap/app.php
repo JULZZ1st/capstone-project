@@ -14,7 +14,10 @@ return Application::configure(basePath: dirname(__DIR__))
         __DIR__.'/../app/Console/Commands',
     ])
     ->withMiddleware(function (Middleware $middleware) {
-        $middleware->web(append: [\App\Http\Middleware\EnsureAccountIsActive::class]);
+        $middleware->web(
+            prepend: [\App\Http\Middleware\CanonicalizeLocalHost::class],
+            append: [\App\Http\Middleware\EnsureAccountIsActive::class],
+        );
 
         $middleware->alias([
             'role' => \App\Http\Middleware\EnsureRole::class,
