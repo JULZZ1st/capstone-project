@@ -1,6 +1,6 @@
 @props(['contributions'])
 
-<x-data-table caption="Donation records" title="Contributions" :description="'Showing '.$contributions->count().' of '.$contributions->total().' donations.'" min-width="55rem">
+<x-data-table caption="Donation records" min-width="55rem" class="donations-table flex-1" max-height="none">
     <x-slot:head>
         <x-data-table.heading>Donation</x-data-table.heading>
         <x-data-table.heading>Donor</x-data-table.heading>

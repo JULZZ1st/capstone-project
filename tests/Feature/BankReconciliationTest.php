@@ -34,7 +34,6 @@ class BankReconciliationTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('Bank Reconciliation');
-        $response->assertSee('Reconciliation Periods');
         $response->assertDontSee('aria-label="Reconciliation summary"', false);
         $response->assertSee($period->period_start->format('M Y'));
         $response->assertSee(route('bank-reconciliation.periods.show', $period), false);

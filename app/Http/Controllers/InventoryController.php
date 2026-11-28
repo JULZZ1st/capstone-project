@@ -10,7 +10,6 @@ use App\Models\InventoryItem;
 use App\Models\InventoryUnit;
 use App\Services\Inventory\CreateInventoryItem;
 use App\Services\Inventory\ResolveInventoryClassification;
-use App\Services\Inventory\InventoryAlertQuery;
 use App\Services\Reports\InventoryReportBuilder;
 use App\Services\Reports\InventoryReportPdfExporter;
 use Illuminate\Http\RedirectResponse;
@@ -20,7 +19,7 @@ use Illuminate\View\View;
 
 class InventoryController extends Controller
 {
-    public function index(InventoryIndexRequest $request, InventoryAlertQuery $alertQuery): View
+    public function index(InventoryIndexRequest $request): View
     {
         $filters = $request->validated();
 
@@ -51,28 +50,30 @@ class InventoryController extends Controller
             ->paginate(config('inventory.pagination.per_page'))
             ->withQueryString();
 
-        $stockSummary = InventoryItem::query()
-            ->active()
-            ->selectRaw(<<<'SQL'
-                COUNT(*) as total_items,
-                SUM(CASE WHEN current_quantity <= 0 THEN 1 ELSE 0 END) as out_of_stock,
-                SUM(CASE WHEN current_quantity > 0 AND current_quantity <= minimum_reserve_quantity THEN 1 ELSE 0 END) as low_stock,
-                SUM(CASE WHEN current_quantity > minimum_reserve_quantity THEN 1 ELSE 0 END) as in_stock
-            SQL)
-            ->first();
-
         return view('inventory.index', [
             'items' => $items,
             'filters' => $filters,
-            'alerts' => $alertQuery->get(),
-            'stockSummary' => $stockSummary,
+            ...$this->referenceData(),
+        ]);
+    }
+
+    public function create(): View
+    {
+        Gate::authorize('create', InventoryItem::class);
+
+        return view('inventory.create', $this->referenceData());
+    }
+
+    private function referenceData(): array
+    {
+        return [
             'categories' => InventoryCategory::query()
                 ->active()
                 ->with(['subcategories' => fn ($query) => $query->active()->orderBy('label')])
                 ->orderBy('label')
                 ->get(),
             'units' => InventoryUnit::query()->active()->orderBy('label')->get(),
-        ]);
+        ];
     }
 
     public function exportPdf(InventoryIndexRequest $request, InventoryReportBuilder $builder, InventoryReportPdfExporter $exporter): Response
@@ -102,17 +103,19 @@ class InventoryController extends Controller
             'creator:id,first_name,last_name,name',
             'updater:id,first_name,last_name,name',
             'subcategory:id,key,label',
-            'stockMovements' => fn ($query) => $query
-                ->with([
-                    'creator:id,first_name,last_name,name',
-                    'contributionItem.contribution:id,receipt_number,donor_id',
-                    'contributionItem.contribution.donor:id,full_name',
-                ])
-                ->latest()
-                ->limit(25),
         ]);
 
-        return view('inventory.show', compact('inventoryItem'));
+        $movements = $inventoryItem->stockMovements()
+            ->with([
+                'creator:id,first_name,last_name,name',
+                'contributionItem.contribution:id,receipt_number,donor_id',
+                'contributionItem.contribution.donor:id,full_name',
+            ])
+            ->latest()
+            ->paginate(25)
+            ->withQueryString();
+
+        return view('inventory.show', compact('inventoryItem', 'movements'));
     }
 
     public function update(UpdateInventoryItemRequest $request, InventoryItem $inventoryItem, ResolveInventoryClassification $resolver): RedirectResponse

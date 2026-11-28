@@ -1,0 +1,102 @@
+@startuml
+'==============================================================
+' Barangay Donation Management System (BDMS)
+' MAIN Use Case Diagram — system overview only.
+'
+' Scope: one oval per MODULE (major system function), not per
+' action. Smaller actions/workflows live in the per-module
+' detailed diagrams alongside this file (uc-*.puml).
+'
+' Layout: Admin and Staff flank the system boundary (Admin left,
+' Staff right). Every module oval sits in a single rank between
+' them ("together" below), so Admin's association lines stay
+' entirely left of that rank and Staff's stay entirely right of
+' it - the two actors' line "fans" occupy disjoint halves of the
+' picture and never cross each other or any other line.
+'
+' Source of truth: routes/web.php, the EnsureRole middleware,
+' and every app/Policies/* + FormRequest authorize() check as
+' implemented in the codebase. Only two actors exist: Admin
+' and Staff. No feature or role here is invented.
+'==============================================================
+
+left to right direction
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam nodesep 8
+skinparam ranksep 150
+skinparam defaultTextAlignment center
+
+skinparam actor {
+  BackgroundColor #FEFEFE
+  BorderColor #333333
+  FontSize 14
+}
+
+skinparam rectangle {
+  BorderColor #333333
+  BackgroundColor white
+  FontStyle bold
+  FontSize 16
+}
+
+skinparam usecase {
+  BackgroundColor<<admin>>  #FFCC80
+  BorderColor<<admin>>      #B06A00
+  BackgroundColor<<shared>> #A5D6A7
+  BorderColor<<shared>>     #2E7D32
+  ArrowColor #555555
+  FontSize 13
+  BorderThickness 1.2
+}
+
+title Barangay Donation Management System (BDMS) — Main Use Case Diagram
+
+actor "Admin" as Admin
+
+rectangle "Barangay Donation Management System" {
+  together {
+    usecase "Log In / Manage Session"              as UC_Auth       <<shared>>
+    usecase "View Dashboard"                        as UC_Dashboard  <<shared>>
+    usecase "Manage Donor Records"                  as UC_Donor      <<shared>>
+    usecase "Manage Donations & Contributions"      as UC_Donation   <<shared>>
+    usecase "Manage Inventory"                      as UC_Inventory  <<shared>>
+    usecase "Process Bank Reconciliation"           as UC_BankRecon  <<shared>>
+    usecase "Manage Fund Disbursements"             as UC_Disb       <<shared>>
+    usecase "Generate Reports"                      as UC_Reports    <<shared>>
+    usecase "Administer System Security\n& Staff Accounts" as UC_Security <<admin>>
+    usecase "Manage Workspaces (Barangay Branches)" as UC_Workspace  <<admin>>
+  }
+}
+
+actor "Staff" as Staff
+
+' Rank-forcing hints only (invisible): pin Admin to the left of the
+' column and Staff to the right of it.
+Admin -[hidden]r-> UC_Auth
+UC_Reports -[hidden]r-> Staff
+
+' ---------- Associations: simple lines only, no include/extend ----------
+Admin -- UC_Auth
+Admin -- UC_Dashboard
+Admin -- UC_Donor
+Admin -- UC_Donation
+Admin -- UC_Inventory
+Admin -- UC_BankRecon
+Admin -- UC_Disb
+Admin -- UC_Reports
+Admin -- UC_Security
+Admin -- UC_Workspace
+
+UC_Auth -- Staff
+UC_Dashboard -- Staff
+UC_Donor -- Staff
+UC_Donation -- Staff
+UC_Inventory -- Staff
+UC_BankRecon -- Staff
+UC_Disb -- Staff
+UC_Reports -- Staff
+
+caption <back:#A5D6A7>  </back> Shared (Admin & Staff)      <back:#FFCC80>  </back> Admin only\nEach oval is one module — see uc-*.puml in this folder for the detailed actions and admin/staff split within each.
+
+@enduml

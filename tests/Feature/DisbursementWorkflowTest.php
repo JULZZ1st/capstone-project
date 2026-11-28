@@ -59,7 +59,7 @@ class DisbursementWorkflowTest extends TestCase
             ->assertSee('PHP 2,450.75')
             ->assertSee($requester->name)
             ->assertSee('pending')
-            ->assertSee('Save Request')
+            ->assertSee('Create Fund Request')
             ->assertSee('View Details')
             ->assertSee(route('disbursements.show', CashDisbursement::query()->firstOrFail()), false)
             ->assertSee('Urgent dialysis support');
@@ -221,8 +221,8 @@ class DisbursementWorkflowTest extends TestCase
             ->assertDontSee('MED-001')
             ->assertSee('Prescription support')
             ->assertDontSee('Approve')
-            ->assertSee('Admin Review')
-            ->assertSee("Treasurer Box B certification is required before approval.", false);
+            ->assertSee('Admin decision')
+            ->assertSee("Staff must record the Treasurer's physical Box B certification before approval.", false);
     }
 
     public function test_admin_can_approve_another_users_pending_request_from_request_history(): void
@@ -241,7 +241,8 @@ class DisbursementWorkflowTest extends TestCase
             ->assertOk()
             ->assertSee('View Details')
             ->assertDontSee('Quick Review')
-            ->assertSee('data-open-fund-request-details="fund-request-details-modal-', false);
+            ->assertSee(route('disbursements.show', CashDisbursement::query()->firstOrFail()), false)
+            ->assertDontSee('data-open-fund-request-details', false);
     }
 
     public function test_non_admin_cannot_approve_or_reject_server_side(): void
@@ -502,8 +503,8 @@ class DisbursementWorkflowTest extends TestCase
             ->get(route('disbursements.show', $disbursement))
             ->assertSee('Disbursed')
             ->assertSee('PHP 1,250.00')
-            ->assertDontSee('Actual Disbursement')
-            ->assertDontSee('Amount Released');
+            ->assertSee('Actual Fund Disbursement')
+            ->assertSee('Amount Released');
     }
 
     public function test_payment_requires_exact_approved_amount_and_prevents_duplicates(): void

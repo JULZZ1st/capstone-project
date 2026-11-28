@@ -18,8 +18,8 @@
 	}
 
 	html {
-		scrollbar-gutter: stable;
 		overscroll-behavior-y: none;
+		height: 100%;
 	}
 
 	html:has(dialog:modal) {
@@ -34,6 +34,11 @@
 	body {
 		background: var(--ui-page);
 		color: var(--ui-ink);
+	}
+
+	body.app-shell-body {
+		height: 100%;
+		overflow: hidden;
 	}
 
 	[hidden] {
@@ -72,6 +77,36 @@
 }
 
 @layer components {
+	.app-shell {
+		display: flex;
+		flex-direction: column;
+		height: 100vh;
+		height: 100dvh;
+		min-height: 0;
+		overflow: hidden;
+	}
+	.app-shell__content {
+		display: flex;
+		min-height: 0;
+		flex: 1 1 0%;
+		flex-direction: column;
+		overflow: hidden;
+	}
+	.app-shell__main {
+		min-height: 0;
+		flex: 1 1 0%;
+		overflow-x: hidden;
+		overflow-y: auto;
+		overscroll-behavior: contain;
+		scrollbar-gutter: stable;
+	}
+	.app-shell__main .sticky.top-16 {
+		top: 0;
+	}
+	.app-shell__sidebar {
+		min-height: 0;
+		flex-shrink: 0;
+	}
 	.ui-card { @apply rounded-xl border border-slate-200 bg-white shadow-sm; }
 	.ui-card__header { @apply flex flex-wrap items-start justify-between gap-3 border-b border-slate-100 px-4 py-4 sm:px-5; }
 	.ui-page-section { @apply space-y-5; }
@@ -80,7 +115,28 @@
 	.ui-button--primary { @apply bg-blue-700 text-white hover:bg-blue-800; }
 	.ui-button--secondary { @apply border border-slate-300 bg-white text-slate-700 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700; }
 	.ui-button--danger { @apply bg-rose-700 text-white hover:bg-rose-800; }
-	.ui-control { @apply rounded-lg border-slate-300 bg-slate-100 px-3 py-2 text-sm shadow-sm; }
+	.ui-control { @apply rounded-lg border-slate-300 bg-white px-3 py-2 text-sm shadow-sm; }
+	.ui-select--compact {
+		appearance: base-select;
+	}
+	.ui-select--compact::picker-icon {
+		display: none;
+	}
+	.ui-select--compact::picker(select) {
+		max-height: 16rem;
+		overflow-y: auto;
+		border-radius: 0.5rem;
+		border: 1px solid #e2e8f0;
+		box-shadow: var(--ui-shadow-lg);
+	}
+	.ui-select--compact option {
+		padding: 0.375rem 0.75rem;
+		line-height: 1.25rem;
+	}
+	.ui-select--compact option:checked {
+		background-color: #dbeafe;
+		color: #1d4ed8;
+	}
 	.report-filter-select {
 		@apply min-h-10 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm;
 		min-width: 8rem;
@@ -121,6 +177,104 @@
     .data-table__empty { @apply sticky left-4 flex min-h-48 max-w-full flex-col items-center justify-center px-4 py-8 text-center; width: calc(var(--table-viewport-width, 100%) - 2rem); }
     .data-table__hint { @apply flex items-center gap-2 border-t border-slate-100 bg-slate-50 px-4 py-2 text-xs leading-5 text-slate-500; }
     .data-table__footer { @apply border-t border-slate-200 px-4 py-3 sm:px-5; }
+
+    /* Donations keeps its header outside the only vertical scroll owner. */
+    body:has(.donations-page) .app-shell__main { overflow-y: hidden; }
+    .donations-table { @apply flex min-h-0 flex-col overflow-hidden; }
+    .donations-table .data-table__scroll { overflow-x: auto; overflow-y: hidden; }
+    .donations-table .data-table__table { table-layout: fixed; }
+    .donations-table .data-table__table thead,
+    .donations-table .data-table__table tbody tr { display: table; width: 100%; table-layout: fixed; }
+    .donations-table .data-table__table tbody {
+        display: block;
+        max-height: min(calc(100dvh - 17rem), 38rem);
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        scrollbar-gutter: stable;
+    }
+    .compact-reference-table .data-table__scroll { overflow-x: auto; overflow-y: hidden; }
+    .compact-reference-table .data-table__table thead th { @apply px-3 py-2; }
+    .compact-reference-table .data-table__table tbody td { @apply px-3 py-2 align-middle; }
+    .staff-accounts-table .data-table__scroll { overflow-x: auto; overflow-y: hidden; }
+    .staff-accounts-table .data-table__table thead th { @apply px-4 py-2.5; }
+    .staff-accounts-table .data-table__table tbody td { @apply px-4 py-2.5 align-middle; }
+    .report-page .data-table__table thead th { @apply px-3 py-2.5; }
+    .report-page .data-table__table tbody td { @apply px-3 py-2.5 align-middle; }
+    .report-page .data-table__footer { @apply px-3 py-2.5; }
+
+    /* Report Generator: filter toolbar stays fixed; only each report's table body (or ledger list)
+       scrolls, with the header kept outside the scroll owner so the scrollbar never runs behind it.
+       --report-table-offset lets a tab tune how much fixed chrome sits above its table while reusing
+       the same mechanism everywhere. */
+    body:has(.report-page) .app-shell__main { overflow-y: hidden; }
+    .report-table { @apply flex min-h-0 flex-col overflow-hidden; }
+    .report-table .data-table__scroll { overflow-x: auto; overflow-y: hidden; }
+    .report-table .data-table__table { table-layout: fixed; }
+    .report-table .data-table__table thead,
+    .report-table .data-table__table tbody tr { display: table; width: 100%; table-layout: fixed; }
+    .report-table .data-table__table tbody {
+        display: block;
+        max-height: max(14rem, calc(100dvh - var(--report-table-offset, 25rem)));
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        scrollbar-gutter: stable;
+    }
+    .report-scroll-area {
+        max-height: max(12rem, calc(100dvh - var(--report-table-offset, 25rem)));
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        scrollbar-gutter: stable;
+    }
+
+    /* Donor Management: the generic slate-300 border is too faint on the search filters and profile form. */
+    [data-donor-search-form] input,
+    [data-donor-search-form] select,
+    [data-donor-form] input:not([type='checkbox']):not([type='radio']):not([type='file']):not([type='hidden']),
+    [data-donor-form] select,
+    [data-donor-form] textarea {
+        border: 1px solid #cbd5e1;
+    }
+    [data-donor-search-form] input:focus,
+    [data-donor-search-form] select:focus,
+    [data-donor-form] input:focus,
+    [data-donor-form] select:focus,
+    [data-donor-form] textarea:focus {
+        border-color: var(--ui-blue);
+    }
+    [data-donor-create-form] [data-donor-form] input:not([type='checkbox']):not([type='radio']):not([type='file']):not([type='hidden']):disabled,
+    [data-donor-create-form] [data-donor-form] select:disabled,
+    [data-donor-create-form] [data-donor-form] textarea:disabled {
+        border-color: #cbd5e1;
+        background-color: #f1f5f9;
+        color: #64748b;
+        cursor: not-allowed;
+        opacity: 1;
+    }
+    [data-donor-create-form] [data-donor-form] input[aria-invalid='true'],
+    [data-donor-create-form] [data-donor-form] select[aria-invalid='true'],
+    [data-donor-create-form] [data-donor-form] textarea[aria-invalid='true'],
+    [data-donor-create-form] [data-donor-form] .border-red-400 {
+        border-color: #f87171;
+    }
+    [data-donor-create-form] [data-donor-form] input[aria-invalid='true']:focus,
+    [data-donor-create-form] [data-donor-form] select[aria-invalid='true']:focus,
+    [data-donor-create-form] [data-donor-form] textarea[aria-invalid='true']:focus,
+    [data-donor-create-form] [data-donor-form] .border-red-400:focus {
+        border-color: #2563eb;
+    }
+}
+
+@media (min-width: 1024px) {
+	.app-shell {
+		flex-direction: row;
+	}
+	.app-shell__content {
+		height: 100%;
+	}
+	.app-shell__sidebar {
+		height: 100%;
+		max-height: 100dvh;
+	}
 }
 
 @media (max-width: 639px) {

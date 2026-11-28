@@ -30,9 +30,9 @@
     </td>
     <td>
         <div class="data-table__actions" data-fund-request-action>
-            <x-data-table.action :label="'View fund request '.$disbursement->id" data-open-fund-request-details="fund-request-details-modal-{{ $disbursement->id }}" data-fund-request-action data-testid="view-fund-request-{{ $disbursement->id }}">View Details</x-data-table.action>
+            <a href="{{ route('disbursements.show', $disbursement) }}" class="data-table__action" aria-label="View fund request {{ $disbursement->id }}" data-fund-request-action data-testid="view-fund-request-{{ $disbursement->id }}">View Details</a>
             @can('update', $disbursement)
-                <x-data-table.action :label="'Edit fund request '.$disbursement->id" icon="pencil" data-open-fund-request-edit="fund-request-details-modal-{{ $disbursement->id }}-edit" data-fund-request-action />
+                <a href="{{ route('disbursements.show', ['disbursement' => $disbursement, 'edit' => 1]) }}" class="data-table__action" aria-label="Edit fund request {{ $disbursement->id }}" data-fund-request-action><x-icon name="pencil" class="h-4 w-4" /><span class="sr-only">Edit fund request {{ $disbursement->id }}</span></a>
             @endcan
         </div>
     </td>

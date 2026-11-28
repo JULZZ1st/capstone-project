@@ -1,0 +1,84 @@
+@startuml
+'==============================================================
+' BDMS — Detailed Use Case Diagram: Donation & Contribution
+' Management
+'
+' Source of truth: app/Policies/ContributionPolicy.php and
+' app/Http/Controllers/DonationPortalController.php +
+' app/Http/Controllers/DisbursementController.php (void only).
+'
+' - create/view: shared
+' - update: Admin (any, own-workspace) OR Staff (own, editable,
+'   not voided) - includes Admin rejecting a pending cash
+'   donation (status -> rejected) via the same edit form
+' - verify / requestDocuments / issueCertificate / void: Admin
+'   only, and only on the submitter's record (maker-checker)
+' - uploadDeed: Admin OR Staff-own (pending cash only)
+'==============================================================
+
+left to right direction
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam nodesep 10
+skinparam ranksep 130
+skinparam defaultTextAlignment center
+
+skinparam actor {
+  BackgroundColor #FEFEFE
+  BorderColor #333333
+  FontSize 14
+}
+skinparam rectangle {
+  BorderColor #333333
+  BackgroundColor white
+  FontStyle bold
+  FontSize 16
+}
+skinparam usecase {
+  BackgroundColor<<admin>>  #FFCC80
+  BorderColor<<admin>>      #B06A00
+  BackgroundColor<<shared>> #A5D6A7
+  BorderColor<<shared>>     #2E7D32
+  ArrowColor #555555
+  FontSize 13
+  BorderThickness 1.2
+}
+
+title BDMS — Donation & Contribution Management (Detailed)
+
+actor "Admin" as Admin
+
+rectangle "Donation & Contribution Management" {
+  together {
+    usecase "Record Donation\n(Cash / In-Kind)"        as UC_Record    <<shared>>
+    usecase "View / Edit Donation Record"               as UC_Edit      <<shared>>
+    usecase "Upload Deed of Donation"                   as UC_Deed      <<shared>>
+    usecase "Verify Cash Donation"                      as UC_Verify    <<admin>>
+    usecase "Reject Cash Donation"                      as UC_Reject    <<admin>>
+    usecase "Request Supporting Documents"              as UC_ReqDocs   <<admin>>
+    usecase "Issue Donation Certificate"                as UC_Cert      <<admin>>
+    usecase "Void Donation"                             as UC_Void      <<admin>>
+  }
+}
+
+actor "Staff" as Staff
+
+Admin -[hidden]r-> UC_Record
+UC_Edit -[hidden]r-> Staff
+
+Admin -- UC_Record
+Admin -- UC_Edit
+Admin -- UC_Deed
+Admin -- UC_Verify
+Admin -- UC_Reject
+Admin -- UC_ReqDocs
+Admin -- UC_Cert
+Admin -- UC_Void
+
+UC_Record -- Staff
+UC_Edit -- Staff
+UC_Deed -- Staff
+
+caption Verify / Reject / Request Documents / Issue Certificate / Void (orange) are Admin review decisions made on an existing pending cash donation; Admin can never action their own submission.
+
+@enduml

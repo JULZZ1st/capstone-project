@@ -1938,3 +1938,117 @@ if (sidebar && sidebarToggle && !sidebar.dataset.sidebarControllerInitialized) {
     // State is now hydrated; allow the existing toggle transitions for explicit user actions.
     document.documentElement.classList.remove('sidebar-preload');
 }
+
+{
+    const FOCUS_KEY = 'inventory-search-focus';
+    const searchField = document.querySelector('[data-inventory-autosearch]');
+
+    const storedPosition = sessionStorage.getItem(FOCUS_KEY);
+    if (searchField instanceof HTMLInputElement && storedPosition !== null) {
+        sessionStorage.removeItem(FOCUS_KEY);
+        const position = Math.min(Number(storedPosition) || searchField.value.length, searchField.value.length);
+        searchField.focus();
+        searchField.setSelectionRange(position, position);
+    }
+
+    let searchDebounce = null;
+
+    document.addEventListener('input', (event) => {
+        const field = event.target.closest('[data-inventory-autosearch]');
+        if (!(field instanceof HTMLInputElement)) return;
+
+        clearTimeout(searchDebounce);
+        searchDebounce = setTimeout(() => {
+            sessionStorage.setItem(FOCUS_KEY, String(field.selectionStart ?? field.value.length));
+            field.form?.requestSubmit();
+        }, 450);
+    });
+
+    document.addEventListener('change', (event) => {
+        const field = event.target.closest('[data-inventory-autosubmit]');
+        if (field) field.form?.requestSubmit();
+    });
+}
+
+document.querySelectorAll('[data-inventory-reference-tabs]').forEach((tabs) => {
+    const buttons = Array.from(tabs.querySelectorAll('[data-reference-tab]'));
+    const panels = Array.from(tabs.querySelectorAll('[data-reference-panel]'));
+    const storageKey = 'inventory-reference-tab';
+
+    const selectTab = (name, focus = false) => {
+        if (! buttons.some((button) => button.dataset.referenceTab === name)) name = 'categories';
+
+        buttons.forEach((button) => {
+            const active = button.dataset.referenceTab === name;
+            button.setAttribute('aria-selected', String(active));
+            button.classList.toggle('border-blue-600', active);
+            button.classList.toggle('text-blue-700', active);
+            button.classList.toggle('border-transparent', ! active);
+            button.classList.toggle('text-slate-500', ! active);
+            if (active && focus) button.focus();
+        });
+        panels.forEach((panel) => { panel.hidden = panel.dataset.referencePanel !== name; });
+        try { sessionStorage.setItem(storageKey, name); } catch {}
+    };
+
+    buttons.forEach((button, index) => {
+        button.addEventListener('click', () => selectTab(button.dataset.referenceTab));
+        button.addEventListener('keydown', (event) => {
+            if (! ['ArrowLeft', 'ArrowRight'].includes(event.key)) return;
+            event.preventDefault();
+            const offset = event.key === 'ArrowRight' ? 1 : -1;
+            selectTab(buttons[(index + offset + buttons.length) % buttons.length].dataset.referenceTab, true);
+        });
+    });
+
+    let initial = 'categories';
+    try { initial = sessionStorage.getItem(storageKey) || initial; } catch {}
+    selectTab(initial);
+});
+
+{
+    const search = document.querySelector('[data-staff-account-search]');
+    let timer = null;
+    search?.addEventListener('input', () => {
+        clearTimeout(timer);
+        timer = setTimeout(() => search.form?.requestSubmit(), 350);
+    });
+
+    document.querySelectorAll('[data-staff-account-filter]').forEach((filter) => {
+        filter.addEventListener('change', () => filter.form?.requestSubmit());
+    });
+}
+
+document.querySelectorAll('[data-account-actions]').forEach((menu) => {
+    menu.addEventListener('toggle', () => {
+        const panel = menu.querySelector(':scope > div');
+        const trigger = menu.querySelector('summary');
+        if (! panel || ! trigger || ! menu.open) {
+            panel?.removeAttribute('style');
+            return;
+        }
+
+        const triggerRect = trigger.getBoundingClientRect();
+        const panelHeight = panel.offsetHeight;
+        const top = triggerRect.bottom + 4 + panelHeight > window.innerHeight
+            ? Math.max(8, triggerRect.top - panelHeight - 4)
+            : triggerRect.bottom + 4;
+        panel.style.position = 'fixed';
+        panel.style.top = `${top}px`;
+        panel.style.right = `${Math.max(8, window.innerWidth - triggerRect.right)}px`;
+        panel.style.marginTop = '0';
+    });
+});
+document.addEventListener('change', (event) => {
+    const control = event.target.closest('[data-report-autosubmit]');
+    if (control) control.form?.requestSubmit();
+});
+
+let reportSearchTimer;
+document.addEventListener('input', (event) => {
+    const search = event.target.closest('[data-report-search]');
+    if (! search) return;
+
+    window.clearTimeout(reportSearchTimer);
+    reportSearchTimer = window.setTimeout(() => search.form?.requestSubmit(), 350);
+});

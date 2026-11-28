@@ -19,6 +19,11 @@
         ->map(fn ($key) => $errors->first($key))
         ->first(fn ($message) => filled($message));
     $activePeriod = $latestReconciliationPeriod;
+    $isAdmin = auth()->user()->hasRole('admin');
+    // Matching (checkboxes, Confirm Match, Upload Statement) is Staff's job while a period
+    // is Draft. Once Admin is reviewing a submitted period, or the period is approved/locked
+    // for anyone, there is nothing left to match -- the board becomes read-only.
+    $canMatchTransactions = $activePeriod !== null && ! $activePeriod->isApproved() && ! ($isAdmin && $activePeriod->isReadyForReview());
     $periodTransactionEntries = $activePeriod
         ? $bankTransactions->filter(fn ($entry) => $entry->transaction_date && $entry->transaction_date->betweenIncluded($activePeriod->period_start, $activePeriod->period_end))
         : collect();
@@ -127,7 +132,7 @@
     </section>
 </template>
 @endif
-<div data-reconciliation-details>
+<div data-reconciliation-details class="flex min-h-full flex-col">
     <header class="pb-4">
         <a href="{{ route('bank-reconciliation.index') }}" class="inline-flex items-center gap-1 text-xs font-medium text-slate-500 transition hover:text-blue-700"><x-icon name="chevron-left" class="h-3.5 w-3.5" /> Back to Reconciliation Periods</a>
         <div class="mt-4 flex items-start justify-between gap-4">
@@ -157,14 +162,17 @@
 
     <div class="flex flex-col gap-3 border-y border-slate-200 py-3 sm:flex-row sm:items-center sm:justify-between">
         <nav class="flex min-w-0 gap-1 overflow-x-auto" role="tablist" aria-label="Reconciliation details">
-            <button type="button" role="tab" aria-selected="true" aria-controls="reconciliation-transactions-panel" data-details-tab="transactions" class="details-tab whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold">Transactions</button>
-            <button type="button" role="tab" aria-selected="false" aria-controls="reconciliation-discrepancies-panel" data-details-tab="discrepancies" class="details-tab whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold">Discrepancies</button>
-            <button type="button" role="tab" aria-selected="false" aria-controls="reconciliation-statement-panel" data-details-tab="statement" class="details-tab whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold">Statement</button>
-            <button type="button" role="tab" aria-selected="false" aria-controls="reconciliation-history-panel" data-details-tab="history" class="details-tab whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold">History</button>
+            <button type="button" role="tab" aria-selected="true" aria-controls="reconciliation-transactions-panel" data-details-tab="transactions" class="details-tab whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold text-slate-500 transition hover:text-slate-900">Transactions</button>
+            <button type="button" role="tab" aria-selected="false" aria-controls="reconciliation-discrepancies-panel" data-details-tab="discrepancies" class="details-tab whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold text-slate-500 transition hover:text-slate-900">Discrepancies</button>
+            <button type="button" role="tab" aria-selected="false" aria-controls="reconciliation-statement-panel" data-details-tab="statement" class="details-tab whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold text-slate-500 transition hover:text-slate-900">Statement</button>
+            <button type="button" role="tab" aria-selected="false" aria-controls="reconciliation-history-panel" data-details-tab="history" class="details-tab whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold text-slate-500 transition hover:text-slate-900">History</button>
         </nav>
-        @can('import', \App\Models\BankLedgerEntry::class)
-            <button type="button" data-transaction-action data-dialog-open="bank-import-modal" class="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-full bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800"><x-icon name="upload" class="h-4 w-4" /> Upload Statement</button>
-        @endcan
+        <style>.details-tab[aria-selected="true"] { background-color: #0f172a; color: #fff; }</style>
+        @if($canMatchTransactions)
+            @can('import', \App\Models\BankLedgerEntry::class)
+                <button type="button" data-transaction-action data-dialog-open="bank-import-modal" class="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-full bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800"><x-icon name="upload" class="h-4 w-4" /> Upload Statement</button>
+            @endcan
+        @endif
     </div>
 
     <div class="hidden" aria-hidden="true">
@@ -175,7 +183,7 @@
         <article class="rounded-xl border border-emerald-200 bg-emerald-50 p-4"><p class="text-xs font-semibold uppercase tracking-wide text-emerald-700">Incoming · Credit</p><p class="mt-1 text-2xl font-bold text-emerald-950">&#8369;{{ number_format($bankTransactions->where('transaction_type', 'deposit')->sum('amount'), 2) }}</p></article>
         <article class="rounded-xl border border-rose-200 bg-rose-50 p-4"><p class="text-xs font-semibold uppercase tracking-wide text-rose-700">Outgoing · Debit</p><p class="mt-1 text-2xl font-bold text-rose-950">&#8369;{{ number_format($bankTransactions->where('transaction_type', 'withdrawal')->sum('amount'), 2) }}</p></article>
     </div>
-    <div class="pb-28 sm:pb-20" data-reconciliation-content>
+    <div class="pb-6 sm:pb-4" data-reconciliation-content>
     <section id="reconciliation-transactions-panel" role="tabpanel" data-details-panel="transactions" class="space-y-4 py-5">
         <div class="flex flex-wrap items-center justify-between gap-3">
             <h2 class="text-lg font-bold text-slate-950">Bank Transactions</h2>
@@ -187,13 +195,13 @@
     <section id="transaction-needs-panel" role="tabpanel" data-transaction-view-panel="needs" data-reconciliation-board>
         <div class="flex flex-wrap items-start justify-between gap-3">
             <div class="flex items-center gap-1" role="tablist" aria-label="Transaction direction"><button type="button" data-board-tab="deposit" aria-selected="true" class="rounded-full px-3 py-2 text-sm font-semibold transition hover:bg-slate-100">Incoming</button><button type="button" data-board-tab="withdrawal" aria-selected="false" class="rounded-full px-3 py-2 text-sm font-semibold transition hover:bg-slate-100">Outgoing</button></div>
-            <p class="pt-2 text-xs text-slate-500">Select a bank entry and its matching system record</p>
+            <p class="pt-2 text-xs text-slate-500">{{ $canMatchTransactions ? 'Select a bank entry and its matching system record' : 'Read-only — matching is handled by Staff while the period is in Draft.' }}</p>
         </div>
         <div class="mt-3 grid gap-3 lg:grid-cols-2">
             <section class="min-w-0 rounded-lg border border-slate-200" aria-labelledby="system-records-heading"><div class="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-4 py-3"><div><h3 id="system-records-heading" class="font-semibold text-slate-900">System Records</h3><p class="text-xs text-slate-500">Verified incoming donations or approved fund payments</p></div><span data-board-system-count class="rounded-full bg-white px-2 py-1 text-xs font-semibold text-slate-600"></span></div><div class="bank-board-scroll"><table class="min-w-full text-left text-sm"><thead class="sticky top-0 z-10 bg-white text-xs uppercase tracking-wide text-slate-500"><tr><th class="w-10 px-4 py-3">&nbsp;</th><th class="px-4 py-3">Record</th><th class="px-4 py-3 text-right">Amount</th><th class="px-4 py-3">Status</th><th class="px-4 py-3 text-right">&nbsp;</th></tr></thead><tbody data-board-system-body></tbody></table><p data-board-system-empty class="hidden p-6 text-center text-sm text-slate-500">No eligible system records are available for this direction.</p></div></section>
             <section class="min-w-0 rounded-lg border border-slate-200" aria-labelledby="landbank-transactions-heading"><div class="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-4 py-3"><div><h3 id="landbank-transactions-heading" class="font-semibold text-slate-900">LANDBANK Transactions</h3><p class="text-xs text-slate-500">Imported statement rows for the selected period</p></div><span data-board-bank-count class="rounded-full bg-white px-2 py-1 text-xs font-semibold text-slate-600"></span></div><div class="bank-board-scroll"><table class="min-w-full text-left text-sm"><thead class="sticky top-0 z-10 bg-white text-xs uppercase tracking-wide text-slate-500"><tr><th class="w-10 px-4 py-3">&nbsp;</th><th class="px-4 py-3">Transaction</th><th class="px-4 py-3 text-right">Amount</th><th class="px-4 py-3">Status</th></tr></thead><tbody data-board-bank-body></tbody></table><p data-board-bank-empty class="hidden p-6 text-center text-sm text-slate-500">No imported LANDBANK transactions are available for this direction.</p></div></section>
         </div>
-<div class="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-blue-100 bg-blue-50/60 p-3"><div class="min-w-0 space-y-1"><p data-board-selection class="text-sm font-semibold text-blue-900">Select one LANDBANK transaction and its matching system record(s).</p><p data-board-amount-summary class="text-xs text-blue-800">Bank amount: PHP 0.00 · System amount: PHP 0.00 · Difference: PHP 0.00</p><p data-board-selection-help class="text-xs text-slate-600">Confirm Match is disabled until one valid bank transaction and matching system record(s) are selected.</p></div><button type="button" data-board-clear class="primary-button reconciliation-confirm-match" disabled>Confirm Match</button></div>
+<div data-board-selection-container class="hidden mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-blue-100 bg-blue-50/60 p-3"><div class="min-w-0 space-y-1"><p data-board-selection class="text-sm font-semibold text-blue-900">Select one LANDBANK transaction and its matching system record(s).</p><p data-board-amount-summary class="text-xs text-blue-800">Bank amount: PHP 0.00 · System amount: PHP 0.00 · Difference: PHP 0.00</p><p data-board-selection-help class="text-xs text-slate-600">Confirm Match is disabled until one valid bank transaction and matching system record(s) are selected.</p></div><button type="button" data-board-clear class="primary-button reconciliation-confirm-match" disabled>Confirm Match</button></div>
     </section>
     <section id="transaction-all-panel" role="tabpanel" class="hidden" data-transaction-view-panel="all" data-bank-transaction-table>
         <div class="flex flex-wrap items-center justify-between gap-2 pb-3"><button type="button" data-bank-all-filter class="hidden rounded-full border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-100">Show all transactions</button><div class="ml-auto flex w-full flex-wrap gap-2 sm:w-auto sm:justify-end"><input data-bank-search aria-label="Search transactions" placeholder="Search description or reference" class="min-h-10 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm sm:w-64"><select data-bank-type aria-label="Filter transaction type" class="min-h-10 max-w-full rounded-lg border border-slate-300 bg-white px-3 py-2 pr-10 text-sm"><option value="all">All types</option><option value="deposit">Incoming</option><option value="withdrawal">Outgoing</option></select><select data-bank-status aria-label="Filter transaction status" class="min-h-10 max-w-full rounded-lg border border-slate-300 bg-white px-3 py-2 pr-10 text-sm"><option value="all">All statuses</option><option value="unmatched">Unmatched</option><option value="reconciled">Reconciled</option></select></div></div>
@@ -246,14 +254,21 @@
 
     <section id="reconciliation-statement-panel" role="tabpanel" data-details-panel="statement" class="hidden py-5">
         <div class="mx-auto max-w-4xl space-y-5">
-            <div><h2 class="text-lg font-bold text-slate-950">Bank Reconciliation Statement</h2><p class="mt-1 text-sm text-slate-500">Review the period totals and generate the official statement for reporting.</p></div>
+            <div class="flex flex-wrap items-start justify-between gap-3">
+                <div><h2 class="text-lg font-bold text-slate-950">Bank Reconciliation Statement</h2><p class="mt-1 text-sm text-slate-500">Review the period totals and generate the official statement for reporting.</p></div>
+                @if($activePeriod)
+                    <div class="flex flex-wrap items-center gap-2">
+                        <a href="{{ route('reports.reconciliation.pdf', ['period_id' => $activePeriod->id]) }}" class="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-blue-700 px-4 text-sm font-semibold text-white hover:bg-blue-800"><x-icon name="document" class="h-4 w-4" /> Generate Bank Reconciliation Statement</a>
+                        <a href="{{ route('reports.reconciliation.annex11', ['period_id' => $activePeriod->id]) }}" class="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-slate-950 px-4 text-sm font-semibold text-white hover:bg-slate-800"><x-icon name="document" class="h-4 w-4" /> Download Annex 11 PDF</a>
+                    </div>
+                @endif
+            </div>
             @if($activePeriod)
                 <dl class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                     <div class="rounded-xl border border-slate-200 bg-slate-50 p-4"><dt class="text-xs font-medium text-slate-500">Opening balance</dt><dd class="mt-1 text-lg font-bold text-slate-950">PHP {{ number_format((float) $activePeriod->opening_balance, 2) }}</dd></div>
                     <div class="rounded-xl border border-slate-200 bg-slate-50 p-4"><dt class="text-xs font-medium text-slate-500">Ending balance</dt><dd class="mt-1 text-lg font-bold text-slate-950">{{ $activePeriod->bank_ending_balance === null ? 'Not entered' : 'PHP '.number_format((float) $activePeriod->bank_ending_balance, 2) }}</dd></div>
                     <div class="rounded-xl border border-slate-200 bg-slate-50 p-4"><dt class="text-xs font-medium text-slate-500">Difference</dt><dd class="mt-1 text-lg font-bold {{ $periodBalancesReady ? 'text-emerald-700' : 'text-amber-700' }}">{{ $periodDifference === null ? 'Not calculated' : 'PHP '.number_format((float) $periodDifference, 2) }}</dd></div>
                 </dl>
-                <a href="{{ route('reports.reconciliation.pdf', ['period_id' => $activePeriod->id]) }}" class="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-blue-700 px-4 text-sm font-semibold text-white hover:bg-blue-800"><x-icon name="document" class="h-4 w-4" /> Generate Bank Reconciliation Statement</a>
             @else
                 <p class="rounded-xl border border-dashed border-slate-300 p-10 text-center text-sm text-slate-500">Select a reconciliation period before generating a statement.</p>
             @endif
@@ -267,18 +282,46 @@
             <div class="overflow-hidden rounded-xl border border-slate-200"><div class="overflow-x-auto"><table class="min-w-full text-left text-sm"><thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500"><tr><th class="px-4 py-3">Date</th><th class="px-4 py-3">Description</th><th class="px-4 py-3">Reference</th><th class="px-4 py-3 text-right">Amount</th></tr></thead><tbody class="divide-y divide-slate-100">@forelse($history->concat($withdrawalHistory)->unique('id') as $entry)<tr data-history-row data-history-search="{{ strtolower($entry->description.' '.$entry->reference_number) }}"><td class="whitespace-nowrap px-4 py-3">{{ $entry->transaction_date?->format('M d, Y') }}</td><td class="px-4 py-3 font-medium text-slate-900">{{ $entry->description }}</td><td class="px-4 py-3 text-slate-600">{{ $entry->reference_number ?: '-' }}</td><td class="whitespace-nowrap px-4 py-3 text-right font-medium">PHP {{ number_format((float) $entry->amount, 2) }}</td></tr>@empty<tr><td colspan="4" class="px-4 py-12 text-center text-sm text-slate-500">No reconciled transactions yet.</td></tr>@endforelse</tbody></table></div></div>
         </div>
     </section>
-    </div>
 
-    <footer data-reconciliation-actions class="sticky bottom-0 z-20 -mx-1 flex flex-wrap items-center justify-end gap-2 border-t border-slate-200 bg-white/95 px-1 py-4 shadow-[0_-8px_20px_-16px_rgba(15,23,42,0.45)] backdrop-blur supports-[backdrop-filter]:bg-white/90">
+    <footer data-reconciliation-actions class="mt-auto flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-slate-200 bg-white px-4 py-3">
         @can('viewAny', \App\Models\BankLedgerEntry::class)
-            <button type="button" data-dialog-open="bank-period-modal" class="inline-flex h-10 items-center justify-center gap-2 rounded-full border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50"><x-icon name="filter" class="h-4 w-4" /> Manage Period</button>
+            <button type="button" data-dialog-open="bank-period-modal" class="inline-flex h-9 items-center justify-center gap-2 rounded-full border border-slate-400 bg-white px-4 text-sm font-semibold text-slate-800 shadow-sm transition hover:border-slate-500 hover:bg-slate-50 hover:shadow"><x-icon name="filter" class="h-4 w-4" /> Manage Period</button>
         @endcan
         @if($activePeriod)
             @can('submit', $activePeriod)
-                <form method="POST" action="{{ route('bank-reconciliation.periods.submit', $activePeriod) }}">@csrf<button type="submit" class="inline-flex h-10 items-center justify-center rounded-full bg-slate-950 px-5 text-sm font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40" @disabled(!$periodSubmitReady)>Submit for Review</button></form>
+                <form method="POST" action="{{ route('bank-reconciliation.periods.submit', $activePeriod) }}">@csrf<button type="submit" class="inline-flex h-9 items-center justify-center rounded-full bg-slate-950 px-5 text-sm font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40" @disabled(!$periodSubmitReady)>Submit for Review</button></form>
+            @endcan
+            @can('approve', $activePeriod)
+                <button type="button" data-dialog-open="bank-period-reject-modal" class="inline-flex h-9 items-center justify-center rounded-full border border-rose-300 bg-white px-4 text-sm font-semibold text-rose-700 hover:bg-rose-50">Reject / Return for Correction</button>
+                <form method="POST" action="{{ route('bank-reconciliation.periods.approve', $activePeriod) }}">@csrf<button type="submit" class="inline-flex h-9 items-center justify-center rounded-full bg-emerald-700 px-5 text-sm font-semibold text-white hover:bg-emerald-800">Approve &amp; Lock</button></form>
             @endcan
         @endif
     </footer>
+    </div>
+
+    @if($activePeriod)
+        @can('approve', $activePeriod)
+            <dialog id="bank-period-reject-modal" class="bank-modal">
+                <form method="POST" action="{{ route('bank-reconciliation.periods.reject', $activePeriod) }}" class="bank-modal-shell">
+                    @csrf
+                    <header class="bank-modal-header">
+                        <h2>Reject &amp; Return for Correction</h2>
+                        <button type="button" data-dialog-close="bank-period-reject-modal" aria-label="Close">&times;</button>
+                    </header>
+                    <div class="bank-modal-body space-y-3">
+                        <p class="text-sm text-slate-600">This returns the period to Draft so the preparer can address the issue. A reason is required and is recorded in the audit history.</p>
+                        <label class="block space-y-1 text-sm font-semibold text-slate-800">Reason for correction
+                            <textarea name="reason" required minlength="3" rows="4" class="mt-1 w-full rounded-lg border-slate-300 text-sm" placeholder="Explain what needs to be corrected before this period can be resubmitted."></textarea>
+                        </label>
+                    </div>
+                    <footer class="bank-modal-footer">
+                        <button type="button" data-dialog-close="bank-period-reject-modal" class="secondary-button">Cancel</button>
+                        <button type="submit" class="primary-button bg-rose-700 hover:bg-rose-800">Confirm Rejection</button>
+                    </footer>
+                </form>
+            </dialog>
+        @endcan
+    @endif
 
     <template id="bank-reconciliation-workflows">
         <h2>Bank Transactions to Review</h2>
@@ -1142,6 +1185,7 @@ document.addEventListener('click', (event) => {
 });
 const board = document.querySelector('[data-reconciliation-board]');
 if (board) {
+    const canMatchTransactions = @json($canMatchTransactions);
     const boardBanks = @json($boardBankRows);
     const boardSystems = {
         deposit: @json($boardDepositRows),
@@ -1181,6 +1225,7 @@ if (board) {
         board.querySelector('[data-board-amount-summary]').textContent = `Bank amount: ${money(bankTotal)} · System amount: ${money(systemTotal)} · Difference: ${money(difference)}`;
         const help = board.querySelector('[data-board-selection-help]');
         const selection = board.querySelector('[data-board-selection]');
+        board.querySelector('[data-board-selection-container]').classList.toggle('hidden', !canMatchTransactions || (bankSelectionCount === 0 && selected.system.size === 0));
         if (bankSelectionCount === 0) {
             selection.textContent = 'Select one LANDBANK transaction and its matching system record(s).';
             help.textContent = 'Confirm Match is disabled until one valid bank transaction and matching system record(s) are selected.';
@@ -1205,8 +1250,8 @@ if (board) {
         const matchesFilter = (item) => boardFilter === 'all' || (boardFilter === 'matched' ? item.status === 'matched' : (item.needsMatching ?? item.status !== 'matched'));
         const systems = boardSystems[boardType].filter((item) => inPeriod(item.date) && matchesFilter(item));
         const banks = boardBanks.filter((item) => item.type === boardType && inPeriod(item.date) && matchesFilter(item));
-        systems.forEach((item) => { const row = document.createElement('tr'); row.className = 'border-t border-slate-100'; const select = document.createElement('td'); select.className = 'px-4 py-3'; const input = checkbox('system', item); input.disabled = item.status === 'matched'; select.append(input); const detail = document.createElement('td'); detail.className = 'px-4 py-3'; const label = document.createElement('strong'); label.textContent = item.label; const meta = document.createElement('span'); meta.className = 'block text-xs text-slate-500'; meta.textContent = `${item.detail || ''} · ${item.date || 'No date'}`; detail.append(label, meta); const amount = document.createElement('td'); amount.className = 'px-4 py-3 text-right font-semibold'; amount.textContent = money(item.amount); const status = document.createElement('td'); status.className = 'px-4 py-3 text-xs font-semibold capitalize ' + (item.status === 'matched' ? 'text-emerald-700' : 'text-slate-600'); status.textContent = item.status === 'matched' ? 'Matched' : item.status; row.append(select, detail, amount, status); if (canReportUnmatched && item.status !== 'matched' && !item.discrepancy) { const actionCell = document.createElement('td'); actionCell.className = 'px-4 py-3 text-right'; const action = document.createElement('button'); action.type = 'button'; action.className = 'text-xs font-semibold text-amber-700 hover:text-amber-900'; action.textContent = 'Report Unmatched Record'; action.addEventListener('click', (event) => { event.preventDefault(); event.stopPropagation(); openUnmatchedRecordModal(item, boardType); }); actionCell.append(action); row.append(actionCell); } systemBody.append(row); });
-        banks.forEach((item) => { const row = document.createElement('tr'); row.className = 'border-t border-slate-100'; const select = document.createElement('td'); select.className = 'px-4 py-3'; const input = checkbox('bank', item); input.disabled = item.status === 'matched'; select.append(input); const detail = document.createElement('td'); detail.className = 'px-4 py-3'; const label = document.createElement('strong'); label.textContent = item.description; const meta = document.createElement('span'); meta.className = 'block text-xs text-slate-500'; meta.textContent = `${item.reference || 'No reference'} · ${item.date || 'No date'}`; detail.append(label, meta); const amount = document.createElement('td'); amount.className = 'px-4 py-3 text-right font-semibold'; amount.textContent = money(item.amount); const status = document.createElement('td'); status.className = 'px-4 py-3 text-xs font-semibold ' + (item.status === 'matched' ? 'text-emerald-700' : 'text-amber-700'); status.textContent = item.status === 'matched' ? 'Matched' : item.status; row.append(select, detail, amount, status); bankBody.append(row); });
+        systems.forEach((item) => { const row = document.createElement('tr'); row.className = 'border-t border-slate-100'; const select = document.createElement('td'); select.className = 'px-4 py-3'; if (canMatchTransactions) { const input = checkbox('system', item); input.disabled = item.status === 'matched'; select.append(input); } const detail = document.createElement('td'); detail.className = 'px-4 py-3'; const label = document.createElement('strong'); label.textContent = item.label; const meta = document.createElement('span'); meta.className = 'block text-xs text-slate-500'; meta.textContent = `${item.detail || ''} · ${item.date || 'No date'}`; detail.append(label, meta); const amount = document.createElement('td'); amount.className = 'px-4 py-3 text-right font-semibold'; amount.textContent = money(item.amount); const status = document.createElement('td'); status.className = 'px-4 py-3 text-xs font-semibold capitalize ' + (item.status === 'matched' ? 'text-emerald-700' : 'text-slate-600'); status.textContent = item.status === 'matched' ? 'Matched' : item.status; row.append(select, detail, amount, status); if (canReportUnmatched && item.status !== 'matched' && !item.discrepancy) { const actionCell = document.createElement('td'); actionCell.className = 'px-4 py-3 text-right'; const action = document.createElement('button'); action.type = 'button'; action.className = 'text-xs font-semibold text-amber-700 hover:text-amber-900'; action.textContent = 'Report Unmatched Record'; action.addEventListener('click', (event) => { event.preventDefault(); event.stopPropagation(); openUnmatchedRecordModal(item, boardType); }); actionCell.append(action); row.append(actionCell); } systemBody.append(row); });
+        banks.forEach((item) => { const row = document.createElement('tr'); row.className = 'border-t border-slate-100'; const select = document.createElement('td'); select.className = 'px-4 py-3'; if (canMatchTransactions) { const input = checkbox('bank', item); input.disabled = item.status === 'matched'; select.append(input); } const detail = document.createElement('td'); detail.className = 'px-4 py-3'; const label = document.createElement('strong'); label.textContent = item.description; const meta = document.createElement('span'); meta.className = 'block text-xs text-slate-500'; meta.textContent = `${item.reference || 'No reference'} · ${item.date || 'No date'}`; detail.append(label, meta); const amount = document.createElement('td'); amount.className = 'px-4 py-3 text-right font-semibold'; amount.textContent = money(item.amount); const status = document.createElement('td'); status.className = 'px-4 py-3 text-xs font-semibold ' + (item.status === 'matched' ? 'text-emerald-700' : 'text-amber-700'); status.textContent = item.status === 'matched' ? 'Matched' : item.status; row.append(select, detail, amount, status); bankBody.append(row); });
         emptySystem.classList.toggle('hidden', systems.length > 0); emptyBank.classList.toggle('hidden', banks.length > 0); updateBoardState();
     };
     let boardFilter = 'needs';

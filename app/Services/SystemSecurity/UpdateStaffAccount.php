@@ -27,11 +27,6 @@ class UpdateStaffAccount
             'status' => $data['status'] ?? $user->status,
         ])->save();
 
-        if (array_key_exists('permissions', $data)) {
-            $permissionIds = \App\Models\SecurityPermission::query()->whereIn('key', $data['permissions'] ?? [])->pluck('id');
-            $user->securityPermissions()->sync($permissionIds->mapWithKeys(fn (int $id) => [$id => ['granted_by' => $actor->id]])->all());
-        }
-
         $workspace = app(WorkspaceContext::class)->get();
         if ($workspace !== null) {
             $workspace->memberships()->updateOrCreate(

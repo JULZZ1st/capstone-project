@@ -1,0 +1,74 @@
+@startuml
+'==============================================================
+' BDMS — Detailed Use Case Diagram: Inventory Management
+'
+' Source of truth: app/Policies/InventoryItemPolicy.php (view/
+' create/update/adjustStock/audit all shared), app/Policies/
+' InventoryCategoryPolicy.php + InventoryUnitPolicy.php
+' (create/update/delete all Admin-only - and the categories
+' index page itself is gated Gate::authorize('create', ...), so
+' Staff cannot even view the reference-data screen), and
+' app/Http/Controllers/Inventory*Controller.php.
+'==============================================================
+
+left to right direction
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam nodesep 10
+skinparam ranksep 130
+skinparam defaultTextAlignment center
+
+skinparam actor {
+  BackgroundColor #FEFEFE
+  BorderColor #333333
+  FontSize 14
+}
+skinparam rectangle {
+  BorderColor #333333
+  BackgroundColor white
+  FontStyle bold
+  FontSize 16
+}
+skinparam usecase {
+  BackgroundColor<<admin>>  #FFCC80
+  BorderColor<<admin>>      #B06A00
+  BackgroundColor<<shared>> #A5D6A7
+  BorderColor<<shared>>     #2E7D32
+  ArrowColor #555555
+  FontSize 13
+  BorderThickness 1.2
+}
+
+title BDMS — Inventory Management (Detailed)
+
+actor "Admin" as Admin
+
+rectangle "Inventory Management" {
+  together {
+    usecase "Add Inventory Item"                 as UC_Add     <<shared>>
+    usecase "View / Update Inventory Item"       as UC_Update  <<shared>>
+    usecase "Adjust Stock Level"                 as UC_Adjust  <<shared>>
+    usecase "Export Inventory Report (PDF)"      as UC_Export  <<shared>>
+    usecase "Manage Categories, Subcategories\n& Units (Reference Data)" as UC_Ref <<admin>>
+  }
+}
+
+actor "Staff" as Staff
+
+Admin -[hidden]r-> UC_Add
+UC_Export -[hidden]r-> Staff
+
+Admin -- UC_Add
+Admin -- UC_Update
+Admin -- UC_Adjust
+Admin -- UC_Export
+Admin -- UC_Ref
+
+UC_Add -- Staff
+UC_Update -- Staff
+UC_Adjust -- Staff
+UC_Export -- Staff
+
+caption Only Admin can create/edit/deactivate categories, subcategories, and units - Staff cannot even open that screen.
+
+@enduml

@@ -66,18 +66,18 @@ class UiWorkflowRegressionTest extends TestCase
         $this->assertNull($donation->fresh()->verified_at);
     }
 
-    public function test_donation_creation_validation_reopens_its_own_form(): void
+    public function test_donation_creation_validation_is_restored_on_the_create_page(): void
     {
-        $this->validationSession(['_modal' => 'log-contribution', 'donation_type' => 'cash', 'amount' => '100'], ['donor_id' => 'Select a donor']);
-        $xpath = $this->xpath($this->actingAs($this->user('staff'))->get(route('donations.index'))->assertOk()->getContent());
-        $this->assertSame(1, $xpath->query('//dialog[@id="log-contribution-dialog"][@open]')->length);
+        $this->validationSession(['donation_type' => 'cash', 'amount' => '100'], ['amount' => 'Enter an amount']);
+        $xpath = $this->xpath($this->actingAs($this->user('staff'))->get(route('donations.create'))->assertOk()->getContent());
+        $this->assertSame(1, $xpath->query('//form[@data-contribution-form]//input[@name="amount"][@value="100"]')->length);
     }
 
     public function test_donor_directory_actions_resolve_to_authorized_dialogs(): void
     {
         $donation = $this->donation();
         foreach (['admin', 'staff'] as $role) {
-            $xpath = $this->xpath($this->actingAs($this->user($role))->get(route('donations.index'))->assertOk()->getContent());
+            $xpath = $this->xpath($this->actingAs($this->user($role))->get(route('donors.index'))->assertOk()->getContent());
             foreach ($xpath->query('//*[@data-dialog-open]') as $button) {
                 $id = $button->getAttribute('data-dialog-open');
                 $this->assertSame(1, $xpath->query('//dialog[@id="'.$id.'"]')->length, 'Missing dialog '.$id);
@@ -140,7 +140,7 @@ class UiWorkflowRegressionTest extends TestCase
         $this->assertSame('Submitted name', $xpath->evaluate('string(//input[@id="staff-edit-'.$edited->id.'-first_name"]/@value)'));
         $this->assertSame($other->first_name, $xpath->evaluate('string(//input[@id="staff-edit-'.$other->id.'-first_name"]/@value)'));
         $this->assertSame('', $xpath->evaluate('string(//input[@id="staff-create-first_name"]/@value)'));
-        $this->assertSame(1, $xpath->query('//details[@open]')->length);
+        $this->assertSame(1, $xpath->query('//dialog[@id="edit-staff-'.$edited->id.'"][@open]')->length);
         $this->assertSame(1, $xpath->query('//*[@id="staff-edit-'.$edited->id.'-email-error"]')->length);
         $this->assertUniqueIds($xpath);
     }
@@ -152,19 +152,19 @@ class UiWorkflowRegressionTest extends TestCase
             'requested_by' => $staff->id, 'requested_date' => now(), 'status' => 'pending',
             'payee_address' => 'Original address', 'fund_source' => config('disbursements.fund_sources')[0]]);
 
-        $page = $this->xpath($this->actingAs($staff)->get(route('disbursements.index'))->assertOk()->getContent());
-        $modalKey = $page->evaluate('string(//dialog[@id="fund-request-details-modal-'.$fund->id.'-edit"]//input[@name="_modal"]/@value)');
+        $page = $this->xpath($this->actingAs($staff)->get(route('disbursements.show', $fund))->assertOk()->getContent());
+        $modalKey = $page->evaluate('string(//dialog[@id="edit-fund-request-modal"]//input[@name="_modal"]/@value)');
         $this->assertSame('edit-fund-request-'.$fund->id, $modalKey);
 
-        $this->actingAs($staff)->from(route('disbursements.index'))->patch(route('disbursements.update', $fund), [
+        $this->actingAs($staff)->from(route('disbursements.show', $fund))->patch(route('disbursements.update', $fund), [
             '_modal' => $modalKey, 'amount' => 0, 'purpose' => 'Edited purpose', 'recipient' => 'Edited supplier',
             'payee_address' => 'Edited address', 'fund_source' => $fund->fund_source, 'requested_date' => now()->toDateString(),
         ])->assertRedirect(route('disbursements.show', $fund))->assertSessionHasErrors('amount');
 
         $xpath = $this->xpath($this->get(route('disbursements.show', $fund))->assertOk()->getContent());
-        $this->assertSame('Edited supplier', $xpath->evaluate('string(//dialog[@id="fund-request-details-modal-edit"]//input[@name="recipient"]/@value)'));
-        $this->assertSame('0', $xpath->evaluate('string(//dialog[@id="fund-request-details-modal-edit"]//input[@name="amount"]/@value)'));
-        $this->assertSame(1, $xpath->query('//dialog[@id="fund-request-details-modal-edit"][@data-reopen="true"]')->length);
+        $this->assertSame('Edited supplier', $xpath->evaluate('string(//dialog[@id="edit-fund-request-modal"]//input[@name="recipient"]/@value)'));
+        $this->assertSame('0', $xpath->evaluate('string(//dialog[@id="edit-fund-request-modal"]//input[@name="amount"]/@value)'));
+        $this->assertSame(1, $xpath->query('//dialog[@id="edit-fund-request-modal"][@data-reopen="true"]')->length);
         $this->assertSame('Original supplier', $fund->fresh()->recipient);
         $this->assertUniqueIds($xpath);
     }

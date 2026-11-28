@@ -11,6 +11,11 @@
     @endphp
 
     <div class="space-y-4">
+        @if (request('from') === 'donations')
+            <a href="{{ route('donations.index') }}" class="inline-flex h-10 items-center rounded-lg border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50">
+                Back to Donations Portal
+            </a>
+        @endif
         @if ($errors->any())
             <x-alert type="error">
                 Please review the highlighted donor profile fields and try again.
@@ -29,7 +34,7 @@
         </div>
 
         <div data-donor-results>
-            <x-data-table caption="Registered donors" title="Donor directory" description="Contact information and locations for your registered donors." min-width="47rem" body-hook="data-donor-tbody">
+            <x-data-table caption="Registered donors" min-width="47rem" body-hook="data-donor-tbody">
                 <x-slot:head>
                     <x-data-table.heading>Donor</x-data-table.heading>
                     <x-data-table.heading>Contact</x-data-table.heading>

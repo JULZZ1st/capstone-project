@@ -1,0 +1,122 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="780" viewBox="0 0 1280 780" font-family="'Segoe UI', Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#64748b" />
+    </marker>
+
+    <symbol id="icon-person" viewBox="0 0 100 100">
+      <circle cx="50" cy="26" r="18" fill="var(--c)"/>
+      <path d="M50 48 C22 48 10 66 8 92 L92 92 C90 66 78 48 50 48 Z" fill="var(--c)"/>
+    </symbol>
+
+    <symbol id="icon-monitor" viewBox="0 0 100 100">
+      <rect x="8" y="10" width="84" height="56" rx="4" fill="var(--c)"/>
+      <rect x="16" y="18" width="68" height="40" rx="2" fill="#ffffff" opacity="0.92"/>
+      <rect x="44" y="66" width="12" height="14" fill="var(--c)"/>
+      <rect x="30" y="80" width="40" height="8" rx="3" fill="var(--c)"/>
+    </symbol>
+
+    <symbol id="icon-server" viewBox="0 0 100 100">
+      <rect x="14" y="8" width="72" height="24" rx="4" fill="var(--c)"/>
+      <rect x="14" y="38" width="72" height="24" rx="4" fill="var(--c)"/>
+      <rect x="14" y="68" width="72" height="24" rx="4" fill="var(--c)"/>
+      <circle cx="26" cy="20" r="3.2" fill="#ffffff"/>
+      <circle cx="26" cy="50" r="3.2" fill="#ffffff"/>
+      <circle cx="26" cy="80" r="3.2" fill="#ffffff"/>
+      <circle cx="68" cy="50" r="13" fill="#ffffff"/>
+      <circle cx="68" cy="50" r="13" fill="none" stroke="var(--accent)" stroke-width="3"/>
+      <text x="68" y="54" font-size="11" font-weight="700" fill="var(--accent)" text-anchor="middle">PHP</text>
+    </symbol>
+
+    <symbol id="icon-db" viewBox="0 0 100 100">
+      <path d="M12 26 C12 16 29 8 50 8 C71 8 88 16 88 26 L88 74 C88 84 71 92 50 92 C29 92 12 84 12 74 Z" fill="var(--c)"/>
+      <ellipse cx="50" cy="26" rx="38" ry="12" fill="var(--c)" stroke="#c9741f" stroke-width="2"/>
+      <ellipse cx="50" cy="26" rx="38" ry="12" fill="#ffffff" opacity="0.18"/>
+    </symbol>
+  </defs>
+
+  <rect width="1280" height="780" fill="#ffffff"/>
+
+  <text x="640" y="44" text-anchor="middle" font-size="25" font-weight="700" fill="#1e293b">Barangay Donation Management System</text>
+  <text x="640" y="70" text-anchor="middle" font-size="15" fill="#64748b">System Architecture — Actual Implementation</text>
+
+  <!-- ================= Column labels ================= -->
+  <text x="150" y="118" text-anchor="middle" font-size="13" font-weight="700" fill="#94a3b8" letter-spacing="1">USERS</text>
+  <text x="430" y="118" text-anchor="middle" font-size="13" font-weight="700" fill="#94a3b8" letter-spacing="1">CLIENT (BROWSER)</text>
+  <text x="800" y="118" text-anchor="middle" font-size="13" font-weight="700" fill="#94a3b8" letter-spacing="1">BACKEND</text>
+  <text x="1110" y="118" text-anchor="middle" font-size="13" font-weight="700" fill="#94a3b8" letter-spacing="1">DATA</text>
+
+  <!-- ================= Connector lines (drawn first, under icons) ================= -->
+  <g stroke="#64748b" stroke-width="2.2" fill="none" marker-start="url(#arrow)" marker-end="url(#arrow)">
+    <line x1="195" y1="230" x2="365" y2="230"/>
+    <line x1="195" y1="520" x2="365" y2="520"/>
+    <line x1="470" y1="230" x2="710" y2="340"/>
+    <line x1="470" y1="520" x2="710" y2="400"/>
+    <line x1="870" y1="370" x2="1040" y2="370"/>
+  </g>
+
+  <!-- Arrow labels -->
+  <g font-size="13" fill="#475569">
+    <rect x="200" y="200" width="160" height="20" fill="#ffffff"/>
+    <text x="280" y="215" text-anchor="middle">logs in &amp; uses UI</text>
+
+    <rect x="200" y="490" width="160" height="20" fill="#ffffff"/>
+    <text x="280" y="505" text-anchor="middle">logs in &amp; uses UI</text>
+
+    <rect x="505" y="346" width="180" height="22" fill="#ffffff"/>
+    <text x="595" y="361" text-anchor="middle">HTTP request ⇄ Blade view</text>
+
+    <rect x="878" y="340" width="190" height="20" fill="#ffffff"/>
+    <text x="955" y="355" text-anchor="middle">Eloquent query ⇄ result set</text>
+  </g>
+
+  <!-- ================= Users ================= -->
+  <g style="--c:#f2994a">
+    <use href="#icon-person" x="100" y="180" width="100" height="100"/>
+  </g>
+  <text x="150" y="300" text-anchor="middle" font-size="16" font-weight="700" fill="#1e293b">Admin User</text>
+  <text x="150" y="320" text-anchor="middle" font-size="12.5" fill="#64748b">role: admin</text>
+
+  <g style="--c:#f2994a">
+    <use href="#icon-person" x="100" y="470" width="100" height="100"/>
+  </g>
+  <text x="150" y="590" text-anchor="middle" font-size="16" font-weight="700" fill="#1e293b">Staff User</text>
+  <text x="150" y="610" text-anchor="middle" font-size="12.5" fill="#64748b">role: staff</text>
+
+  <!-- ================= Browsers ================= -->
+  <g style="--c:#2bbbad">
+    <use href="#icon-monitor" x="370" y="180" width="100" height="100"/>
+  </g>
+  <text x="420" y="300" text-anchor="middle" font-size="16" font-weight="700" fill="#1e293b">Web Browser</text>
+  <text x="420" y="320" text-anchor="middle" font-size="12.5" fill="#64748b">Blade views + Tailwind CSS</text>
+  <text x="420" y="337" text-anchor="middle" font-size="12.5" fill="#64748b">(assets bundled by Vite)</text>
+
+  <g style="--c:#2bbbad">
+    <use href="#icon-monitor" x="370" y="470" width="100" height="100"/>
+  </g>
+  <text x="420" y="590" text-anchor="middle" font-size="16" font-weight="700" fill="#1e293b">Web Browser</text>
+  <text x="420" y="610" text-anchor="middle" font-size="12.5" fill="#64748b">Blade views + Tailwind CSS</text>
+  <text x="420" y="627" text-anchor="middle" font-size="12.5" fill="#64748b">(assets bundled by Vite)</text>
+
+  <!-- ================= Application server ================= -->
+  <g style="--c:#2bbbad;--accent:#f2994a">
+    <use href="#icon-server" x="710" y="320" width="100" height="100"/>
+  </g>
+  <text x="760" y="440" text-anchor="middle" font-size="16" font-weight="700" fill="#1e293b">Laravel Application Server</text>
+  <text x="760" y="460" text-anchor="middle" font-size="12.5" fill="#64748b">Laravel 11 · PHP 8.2 · Controllers</text>
+  <text x="760" y="477" text-anchor="middle" font-size="12.5" fill="#64748b">Session Auth + Role Middleware</text>
+  <text x="760" y="494" text-anchor="middle" font-size="12.5" fill="#64748b">(admin / staff route gating)</text>
+
+  <!-- ================= Database ================= -->
+  <g style="--c:#f2994a">
+    <use href="#icon-db" x="1040" y="320" width="100" height="100"/>
+  </g>
+  <text x="1090" y="440" text-anchor="middle" font-size="16" font-weight="700" fill="#1e293b">MySQL Database</text>
+  <text x="1090" y="460" text-anchor="middle" font-size="12.5" fill="#64748b">barangay_donation_system</text>
+  <text x="1090" y="477" text-anchor="middle" font-size="12.5" fill="#64748b">(single centralized instance)</text>
+
+  <!-- ================= Footer ================= -->
+  <line x1="60" y1="690" x2="1220" y2="690" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="640" y="718" text-anchor="middle" font-size="12.5" fill="#64748b">Tech stack: Laravel 11 (PHP 8.2) · Blade · Tailwind CSS · Vite · MySQL · Session-based authentication · Role-based access control (Admin, Staff)</text>
+  <text x="640" y="738" text-anchor="middle" font-size="12.5" fill="#64748b">Core modules: Donor &amp; Donation Records · Inventory · Cash Transactions &amp; Disbursements · Bank Reconciliation · Reports</text>
+</svg>

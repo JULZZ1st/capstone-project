@@ -10,7 +10,6 @@ use App\Http\Requests\Donations\UpdateContributionRequest;
 use App\Http\Requests\Donations\VerifyContributionRequest;
 use App\Http\Requests\Donations\UploadContributionDeedRequest;
 use App\Models\Contribution;
-use App\Models\Campaign;
 use App\Models\ContributionEvidence;
 use App\Models\Donor;
 use App\Models\InventoryCategory;
@@ -82,11 +81,8 @@ class DonationPortalController extends Controller
             ->withSum('items', 'estimated_value')
             ->search($filters['search'] ?? null)
             ->type($filters['type'] ?? null)
-            ->status($filters['status'] ?? null)
-            ->when($filters['campaign_id'] ?? null, fn ($query, $campaignId) => $query->where('campaign_id', $campaignId))
             ->receivedBetween($filters['date_from'] ?? null, $filters['date_to'] ?? null)
             ->donorId(isset($filters['donor_id']) ? (int) $filters['donor_id'] : null)
-            ->amountBetween($filters['amount_min'] ?? null, $filters['amount_max'] ?? null)
             ->itemName($filters['item'] ?? null)
             ->itemCategory($filters['category'] ?? null)
             ->latest('received_at')
@@ -99,39 +95,24 @@ class DonationPortalController extends Controller
             'contributions' => $contributions,
             'filters' => $filters,
             'availableDonationTypes' => config('donations.types'),
-            'donors' => Donor::query()
+            'filterDonors' => Donor::query()
                 ->active()
                 ->orderBy('full_name')
-                ->get(['id', 'full_name', 'contact_number']),
-            'filterDonors' => Donor::query()
-                ->orderBy('full_name')
                 ->get(['id', 'full_name']),
-            'itemCategories' => config('donations.item_main_categories'),
-            'donorDirectory' => Donor::query()
+            'filterCategories' => config('donations.item_main_categories'),
+        ]);
+    }
+
+    public function create(): View
+    {
+        Gate::authorize('create', Contribution::class);
+
+        return view('donations.create', [
+            'donors' => Donor::query()
+                ->active()
+                ->registered()
                 ->orderBy('full_name')
-                ->get([
-                    'id',
-                    'workspace_id',
-                    'donor_type',
-                    'first_name',
-                    'middle_name',
-                    'last_name',
-                    'suffix',
-                    'full_name',
-                    'contact_person',
-                    'contact_number',
-                    'email',
-                    'preferred_contact_method',
-                    'tin',
-                    'address',
-                    'barangay',
-                    'barangay_area',
-                    'city_municipality',
-                    'province',
-                    'region',
-                    'notes',
-                    'status',
-                ]),
+                ->get(['id', 'full_name', 'contact_number']),
         ]);
     }
 

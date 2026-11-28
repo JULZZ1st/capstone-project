@@ -4,6 +4,19 @@ return [
     'bank_accounts' => array_values(array_filter(array_map('trim', explode(',', env('BANK_RECONCILIATION_ACCOUNTS', 'LANDBANK Barangay Operating Account'))))),
     'audit_lockout_enabled' => (bool) env('BANK_RECONCILIATION_AUDIT_LOCKOUT', true),
 
+    // Structured identity details for each bank account named above, used on the COA
+    // Annex 11 Bank Reconciliation Statement PDF (Bank Name / Branch / Account No. header
+    // fields). Keyed by the exact string used in `bank_accounts`. Hand-maintained, like
+    // `channel_keywords` below — add an entry here for every additional account configured
+    // in BANK_RECONCILIATION_ACCOUNTS.
+    'bank_profiles' => [
+        'LANDBANK Barangay Operating Account' => [
+            'bank_name' => env('BANK_RECONCILIATION_BANK_NAME', 'LANDBANK'),
+            'branch' => env('BANK_RECONCILIATION_BANK_BRANCH'),
+            'account_number' => env('BANK_RECONCILIATION_ACCOUNT_NUMBER'),
+        ],
+    ],
+
     'statuses' => [
         'unmatched' => ['label' => 'Unreconciled', 'class' => 'bg-amber-100 text-amber-800 ring-amber-200'],
         'reconciled' => ['label' => 'Reconciled', 'class' => 'bg-emerald-100 text-emerald-800 ring-emerald-200'],

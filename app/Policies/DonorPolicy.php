@@ -14,7 +14,7 @@ class DonorPolicy
 
     public function view(User $user, Donor $donor): bool
     {
-        return $this->viewAny($user) && $this->sameWorkspace($user, $donor);
+        return $this->viewAny($user) && ! $donor->isSystemPlaceholder() && $this->sameWorkspace($user, $donor);
     }
 
     public function create(User $user): bool
@@ -24,12 +24,12 @@ class DonorPolicy
 
     public function update(User $user, Donor $donor): bool
     {
-        return $this->active($user) && $this->sameWorkspace($user, $donor) && $user->hasRole(['admin', 'staff']);
+        return $this->active($user) && ! $donor->isSystemPlaceholder() && $this->sameWorkspace($user, $donor) && $user->hasRole(['admin', 'staff']);
     }
 
     public function delete(User $user, Donor $donor): bool
     {
-        return $this->active($user) && $this->sameWorkspace($user, $donor) && $user->hasRole(['admin', 'staff']);
+        return $this->active($user) && ! $donor->isSystemPlaceholder() && $this->sameWorkspace($user, $donor) && $user->hasRole(['admin', 'staff']);
     }
 
     private function active(User $user): bool { return app(\App\Support\Workspaces\WorkspaceAuthorizer::class)->hasActiveWorkspace(); }

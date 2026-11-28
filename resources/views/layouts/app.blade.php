@@ -31,18 +31,17 @@
     </style>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="overflow-x-clip bg-slate-50 text-slate-900 antialiased">
-    <div class="min-h-screen lg:flex">
+<body class="app-shell-body bg-slate-50 text-slate-900 antialiased">
+    <div class="app-shell lg:flex">
         <x-app.sidebar />
 
-        <div class="min-w-0 flex-1 overflow-x-clip">
+        <div class="app-shell__content min-w-0 flex-1">
             <x-app.header
                 :title="$title ?? trim($__env->yieldContent('page-title', 'Dashboard'))"
                 :subtitle="$subtitle ?? trim($__env->yieldContent('page-subtitle', ''))"
             />
 
-            <main class="min-w-0 w-full px-4 py-6 sm:px-5 lg:px-6">
-
+            <main class="app-shell__main min-w-0 w-full px-4 py-6 sm:px-5 lg:px-6">
                 @yield('content')
             </main>
         </div>

@@ -5,13 +5,13 @@
 @section('page-subtitle', 'Review request details before approval or rejection.')
 
 @section('content')
-    <div class="space-y-6">
+    <div class="mx-auto w-full max-w-4xl space-y-4">
         <div>
-            <a href="{{ route('disbursements.index') }}" class="text-sm font-semibold text-blue-700 hover:text-blue-800">Back to request history</a>
+            <a href="{{ route('disbursements.index') }}" class="inline-flex min-h-10 items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700">Back to Fund Requests</a>
         </div>
 
-        <section class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-            <div class="flex flex-col gap-3 border-b border-slate-100 pb-4 sm:flex-row sm:items-start sm:justify-between">
+        <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+            <div class="flex flex-col gap-3 border-b border-slate-200 px-4 py-4 sm:flex-row sm:items-start sm:justify-between sm:px-6">
                 <div>
                     <h2 class="text-base font-semibold text-slate-950">Fund Request Details #{{ $disbursement->id }}</h2>
                     <p class="mt-1 text-sm text-slate-600">{{ $disbursement->purpose }}</p>
@@ -25,13 +25,14 @@
                 <span class="sr-only">{{ $disbursement->status }}</span>
             </div>
 
+            <div class="space-y-5 px-4 py-5 sm:px-6">
             @can('update', $disbursement)
-                <div class="mt-4 flex justify-end">
+                <div class="flex justify-end">
                     <button type="button" data-open-edit-fund-request class="inline-flex items-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Edit Fund Request</button>
                 </div>
             @endcan
 
-            <div class="mt-4 flex flex-col gap-2 rounded-lg border border-blue-100 bg-blue-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div class="flex flex-col gap-3 rounded-xl border border-blue-100 bg-blue-50 p-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                     <p class="text-sm font-semibold text-blue-950">Ready for physical signatures</p>
                     <p class="mt-1 text-xs text-blue-800">Generate the Annex 12 voucher now. Record the Treasurer's physical certification before Admin review; signed upload and payment remain separate steps.</p>
@@ -46,7 +47,7 @@
                 </div>
             @endif
 
-            <section class="mt-5 border-t border-slate-100 pt-5" aria-labelledby="signed-voucher-heading">
+            <section class="border-t border-slate-100 pt-5" aria-labelledby="signed-voucher-heading">
                 <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div>
                         <h3 id="signed-voucher-heading" class="text-xs font-semibold uppercase tracking-wide text-slate-500">Signed Voucher</h3>
@@ -76,7 +77,7 @@
                 @endcan
             </section>
 
-            <div class="mt-5">
+            <div class="border-t border-slate-100 pt-5">
                 <h3 class="text-xs font-semibold uppercase tracking-wide text-slate-500">Request Details</h3>
                 <dl class="mt-3 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 <div>
@@ -119,7 +120,7 @@
                 </dl>
             </div>
 
-            <div class="mt-6 border-t border-slate-100 pt-5" data-testid="actual-payment-section">
+            <div class="border-t border-slate-100 pt-5" data-testid="actual-payment-section">
                 <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                     <div>
                         <h3 class="text-xs font-semibold uppercase tracking-wide text-slate-500">Actual Fund Disbursement</h3>
@@ -240,10 +241,11 @@
             @if ($disbursement->isVoided())
                 <p class="mt-5 text-sm font-semibold text-red-700">Cancelled by {{ $disbursement->voider?->name ?? 'Unknown user' }}. Cancellation Reason: {{ $disbursement->void_reason }}</p>
             @endif
+            </div>
         </section>
 
         @can('approve', $disbursement)
-            <section class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+            <section class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
                 <h2 class="text-base font-semibold text-slate-950">Admin decision</h2>
                 @if (! $disbursement->hasTreasurerCertification())
                     <p class="mt-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">Staff must record the Treasurer's physical Box B certification before approval.</p>
@@ -300,24 +302,25 @@
     @endif
 
     @can('update', $disbursement)
-        <dialog id="edit-fund-request-modal" class="m-auto w-[calc(100%-2rem)] max-w-3xl overflow-hidden rounded-xl border-0 p-0 shadow-2xl backdrop:bg-slate-950/55">
+        <dialog id="edit-fund-request-modal" class="m-auto w-[calc(100%-2rem)] max-w-3xl overflow-hidden rounded-xl border-0 p-0 shadow-2xl backdrop:bg-slate-950/55" @if($errors->any()) data-reopen="true" @endif>
             <form method="POST" action="{{ route('disbursements.update', $disbursement) }}" class="flex max-h-[86vh] flex-col bg-white">
                 @csrf @method('PATCH')
+                <input type="hidden" name="_modal" value="edit-fund-request-{{ $disbursement->id }}">
                 <header class="flex shrink-0 items-start justify-between gap-4 border-b border-slate-200 px-5 py-4">
                     <div><h2 class="text-lg font-semibold text-slate-950">Edit Fund Request</h2><p class="mt-1 text-sm text-slate-500">Changes are allowed while the request is pending.</p></div>
                     <button type="button" data-close-edit-fund-request class="rounded-lg px-2 py-1 text-2xl leading-none text-slate-500 hover:bg-slate-100" aria-label="Close edit fund request">&times;</button>
                 </header>
                 <div class="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-5">
                     <div class="grid gap-4 sm:grid-cols-2">
-                        <div><label for="edit_amount" class="block text-sm font-medium text-slate-700">Amount</label><input id="edit_amount" name="amount" type="number" step="0.01" min="0.01" required value="{{ $disbursement->amount }}" class="mt-1 block h-11 w-full rounded-lg border-slate-300 text-sm"><x-form.error name="amount" /></div>
-                        <div><label for="edit_requested_date" class="block text-sm font-medium text-slate-700">Request Date</label><input id="edit_requested_date" name="requested_date" type="date" required value="{{ $disbursement->requested_date?->format('Y-m-d') }}" class="mt-1 block h-11 w-full rounded-lg border-slate-300 text-sm"><x-form.error name="requested_date" /></div>
-                        <div><label for="edit_recipient" class="block text-sm font-medium text-slate-700">Recipient / Payee</label><input id="edit_recipient" name="recipient" required value="{{ $disbursement->recipient }}" class="mt-1 block h-11 w-full rounded-lg border-slate-300 text-sm"><x-form.error name="recipient" /></div>
-                        <div><label for="edit_payee_address" class="block text-sm font-medium text-slate-700">Payee Address</label><input id="edit_payee_address" name="payee_address" required value="{{ $disbursement->payee_address }}" class="mt-1 block h-11 w-full rounded-lg border-slate-300 text-sm"><x-form.error name="payee_address" /></div>
+                        <div><label for="edit_amount" class="block text-sm font-medium text-slate-700">Amount</label><input id="edit_amount" name="amount" type="number" step="0.01" min="0.01" required value="{{ old('amount', $disbursement->amount) }}" class="mt-1 block h-11 w-full rounded-lg border-slate-300 text-sm"><x-form.error name="amount" /></div>
+                        <div><label for="edit_requested_date" class="block text-sm font-medium text-slate-700">Request Date</label><input id="edit_requested_date" name="requested_date" type="date" required value="{{ old('requested_date', $disbursement->requested_date?->format('Y-m-d')) }}" class="mt-1 block h-11 w-full rounded-lg border-slate-300 text-sm"><x-form.error name="requested_date" /></div>
+                        <div><label for="edit_recipient" class="block text-sm font-medium text-slate-700">Recipient / Payee</label><input id="edit_recipient" name="recipient" required value="{{ old('recipient', $disbursement->recipient) }}" class="mt-1 block h-11 w-full rounded-lg border-slate-300 text-sm"><x-form.error name="recipient" /></div>
+                        <div><label for="edit_payee_address" class="block text-sm font-medium text-slate-700">Payee Address</label><input id="edit_payee_address" name="payee_address" required value="{{ old('payee_address', $disbursement->payee_address) }}" class="mt-1 block h-11 w-full rounded-lg border-slate-300 text-sm"><x-form.error name="payee_address" /></div>
                         <div><label for="edit_payee_tin" class="block text-sm font-medium text-slate-700">Payee TIN <span class="font-normal text-slate-500">(Optional)</span></label><input id="edit_payee_tin" name="payee_tin" value="{{ $disbursement->payee_tin }}" class="mt-1 block h-11 w-full rounded-lg border-slate-300 text-sm"></div>
                         <div><label for="edit_fund_source" class="block text-sm font-medium text-slate-700">Fund Source</label><select id="edit_fund_source" name="fund_source" required class="mt-1 block h-11 w-full rounded-lg border-slate-300 text-sm"><option value="">Select Fund Source</option>@foreach (config('disbursements.fund_sources', []) as $fundSource)<option value="{{ $fundSource }}" @selected($disbursement->fund_source === $fundSource)>{{ $fundSource }}</option>@endforeach</select><x-form.error name="fund_source" /></div>
                         <div><label for="edit_obr_number" class="block text-sm font-medium text-slate-700">ObR No. <span class="font-normal text-slate-500">(Optional)</span></label><input id="edit_obr_number" name="obr_number" value="{{ $disbursement->obr_number }}" class="mt-1 block h-11 w-full rounded-lg border-slate-300 text-sm"></div>
                     </div>
-                    <div><label for="edit_purpose" class="block text-sm font-medium text-slate-700">Purpose</label><textarea id="edit_purpose" name="purpose" rows="3" required class="mt-1 block w-full rounded-lg border-slate-300 text-sm">{{ $disbursement->purpose }}</textarea><x-form.error name="purpose" /></div>
+                    <div><label for="edit_purpose" class="block text-sm font-medium text-slate-700">Purpose</label><textarea id="edit_purpose" name="purpose" rows="3" required class="mt-1 block w-full rounded-lg border-slate-300 text-sm">{{ old('purpose', $disbursement->purpose) }}</textarea><x-form.error name="purpose" /></div>
                     <div class="grid gap-4 sm:grid-cols-2"><div><label for="edit_notes" class="block text-sm font-medium text-slate-700">Notes / Remarks (Optional)</label><textarea id="edit_notes" name="notes" rows="2" class="mt-1 block w-full rounded-lg border-slate-300 text-sm">{{ $disbursement->notes }}</textarea></div></div>
                 </div>
                 <footer class="flex justify-end gap-3 border-t border-slate-200 bg-slate-50 px-5 py-3"><button type="button" data-close-edit-fund-request class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700">Cancel</button><button type="submit" class="rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white">Save Changes</button></footer>
@@ -328,6 +331,7 @@
                 const dialog = document.getElementById('edit-fund-request-modal');
                 document.querySelector('[data-open-edit-fund-request]')?.addEventListener('click', () => dialog?.showModal());
                 document.querySelectorAll('[data-close-edit-fund-request]').forEach((button) => button.addEventListener('click', () => dialog?.close()));
+                if (new URLSearchParams(window.location.search).get('edit') === '1' || @json($errors->any())) dialog?.showModal();
             });
         </script>
     @endcan

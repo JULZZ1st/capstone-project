@@ -3,6 +3,7 @@
 namespace App\Services\Contributions;
 
 use App\Models\Contribution;
+use App\Models\Donor;
 use App\Models\SecurityActivityEvent;
 use App\Models\User;
 use App\Services\Inventory\PostContributionToInventory;
@@ -25,15 +26,16 @@ class LogContribution
         try {
             return DB::transaction(function () use ($data, $user, &$storedPaths) {
                 $type = $data['donation_type'];
+                $donorId = $data['donor_id'] ?? $this->anonymousDonor()->id;
 
                 $contribution = Contribution::query()->create([
-                    'donor_id' => $data['donor_id'],
+                    'donor_id' => $donorId,
                     'created_by' => $user->id,
                     'type' => $type,
                     'status' => config("donations.default_status.{$type}"),
                     'amount' => $type === 'cash' ? $data['amount'] : null,
-                    'purpose_type' => $type === 'cash' ? ($data['purpose_type'] ?? 'general') : null,
-                    'purpose_name' => $type === 'cash' ? ($data['purpose_name'] ?? null) : null,
+                    'purpose_type' => $type === 'cash' ? 'general' : null,
+                    'purpose_name' => null,
                     'payment_method' => $type === 'cash' ? $data['payment_method'] : null,
                     'payment_method_name' => $type === 'cash' && ($data['payment_method'] ?? null) === 'other'
                         ? ($data['payment_method_name'] ?? null)
@@ -161,6 +163,20 @@ class LogContribution
 
             throw $exception;
         }
+    }
+
+    private function anonymousDonor(): Donor
+    {
+        return Donor::query()->firstOrCreate(
+            ['full_name' => Donor::SYSTEM_PLACEHOLDER_NAME],
+            [
+                'donor_type' => config('donors.defaults.type'),
+                'address' => 'Not provided',
+                'contact_number' => 'Not provided',
+                'status' => config('donors.defaults.status'),
+                'notes' => 'System profile for donations recorded without a selected donor.',
+            ],
+        );
     }
 
     private function receiptNumberFor(Contribution $contribution): string

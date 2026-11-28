@@ -24,7 +24,39 @@ class InventoryManagementTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('In-Kind Inventory');
-        $response->assertSee('Inventory Alerts');
+        $response->assertSee('Search by item name, category, batch, location, or notes');
+    }
+
+    public function test_inventory_movement_history_is_paginated_without_dropping_records(): void
+    {
+        $user = User::factory()->create();
+        $item = $this->inventoryItem();
+
+        foreach (range(1, 26) as $index) {
+            InventoryStockMovement::query()->create([
+                'inventory_item_id' => $item->id,
+                'created_by' => $user->id,
+                'movement_type' => 'stock_in',
+                'quantity' => 1,
+                'quantity_before' => $index - 1,
+                'quantity_after' => $index,
+                'reason' => 'correction',
+                'reference_number' => 'HISTORY-'.$index,
+                'remarks' => 'Pagination test movement.',
+                'created_at' => now()->subMinutes(26 - $index),
+                'updated_at' => now()->subMinutes(26 - $index),
+            ]);
+        }
+
+        $firstPage = $this->actingAs($user)->get(route('inventory.show', $item));
+        $firstPage->assertOk()->assertViewHas('movements', fn ($movements) => $movements->perPage() === 25 && $movements->total() === 26);
+        $firstPage->assertSee('26.00')->assertSee('Next');
+
+        $this->actingAs($user)
+            ->get(route('inventory.show', [$item, 'page' => 2]))
+            ->assertOk()
+            ->assertViewHas('movements', fn ($movements) => $movements->currentPage() === 2
+                && $movements->first()->reference_number === 'HISTORY-1');
     }
 
     public function test_inventory_search_filters_items(): void

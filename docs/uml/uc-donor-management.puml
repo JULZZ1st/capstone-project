@@ -1,0 +1,69 @@
+@startuml
+'==============================================================
+' BDMS — Detailed Use Case Diagram: Donor Management
+'
+' Source of truth: app/Policies/DonorPolicy.php (viewAny, view,
+' create, update, delete all require hasRole(['admin','staff']))
+' and app/Http/Controllers/DonorController.php /
+' routes/web.php (donors.* routes under the shared
+' 'role:admin,staff' middleware group). Fully shared module -
+' no admin-only or staff-only action exists here.
+'==============================================================
+
+left to right direction
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam nodesep 10
+skinparam ranksep 120
+skinparam defaultTextAlignment center
+
+skinparam actor {
+  BackgroundColor #FEFEFE
+  BorderColor #333333
+  FontSize 14
+}
+skinparam rectangle {
+  BorderColor #333333
+  BackgroundColor white
+  FontStyle bold
+  FontSize 16
+}
+skinparam usecase {
+  BackgroundColor<<shared>> #A5D6A7
+  BorderColor<<shared>>     #2E7D32
+  ArrowColor #555555
+  FontSize 13
+  BorderThickness 1.2
+}
+
+title BDMS — Donor Management (Detailed)
+
+actor "Admin" as Admin
+
+rectangle "Donor Management" {
+  together {
+    usecase "Register Donor"          as UC_Create <<shared>>
+    usecase "View Donor Profile"      as UC_View   <<shared>>
+    usecase "Update Donor Profile"    as UC_Update  <<shared>>
+    usecase "Remove Donor"            as UC_Delete  <<shared>>
+  }
+}
+
+actor "Staff" as Staff
+
+Admin -[hidden]r-> UC_Create
+UC_Delete -[hidden]r-> Staff
+
+Admin -- UC_Create
+Admin -- UC_View
+Admin -- UC_Update
+Admin -- UC_Delete
+
+UC_Create -- Staff
+UC_View -- Staff
+UC_Update -- Staff
+UC_Delete -- Staff
+
+caption Every donor action is available to both roles (DonorPolicy has no admin-only ability).
+
+@enduml

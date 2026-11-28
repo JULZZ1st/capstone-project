@@ -39,45 +39,41 @@
         @if ($report['movements']->isEmpty())
             <x-dashboard.empty-state message="No in-kind inventory movements were recorded for this period." />
         @else
-            <div class="overflow-x-auto">
-                <table class="min-w-full text-sm">
-                    <thead>
-                        <tr class="bg-slate-100 text-left">
-                            <th class="whitespace-nowrap p-3 font-semibold text-slate-600">Date</th>
-                            <th class="p-3 font-semibold text-slate-600">Item</th>
-                            <th class="p-3 font-semibold text-slate-600">Movement</th>
-                            <th class="whitespace-nowrap p-3 text-right font-semibold text-slate-600">Quantity</th>
-                            <th class="whitespace-nowrap p-3 text-right font-semibold text-slate-600">Before → After</th>
-                            <th class="p-3 font-semibold text-slate-600">Reason / Reference</th>
-                            <th class="p-3 font-semibold text-slate-600">Recorded By</th>
-                            <th class="p-3 font-semibold text-slate-600">Remarks</th>
+            <div class="min-w-0">
+                <x-data-table caption="In-kind stock movement history" min-width="60rem" class="report-table" style="--report-table-offset: 27rem">
+                    <x-slot:head>
+                        <x-data-table.heading>Date</x-data-table.heading>
+                        <x-data-table.heading>Item</x-data-table.heading>
+                        <x-data-table.heading>Movement</x-data-table.heading>
+                        <x-data-table.heading align="right">Quantity</x-data-table.heading>
+                        <x-data-table.heading align="right">Before &rarr; After</x-data-table.heading>
+                        <x-data-table.heading>Reason / Reference</x-data-table.heading>
+                        <x-data-table.heading>Recorded By</x-data-table.heading>
+                        <x-data-table.heading>Remarks</x-data-table.heading>
+                    </x-slot:head>
+                    @foreach ($report['movements'] as $movement)
+                        <tr>
+                            <td class="whitespace-nowrap px-4 py-3 text-slate-600">{{ $movement->created_at->format('M d, Y H:i') }}</td>
+                            <td class="px-4 py-3">
+                                <p class="font-medium text-slate-900">{{ $movement->inventoryItem?->name ?? 'Deleted inventory item' }}</p>
+                                @if ($movement->inventoryItem)
+                                    <p class="mt-0.5 text-xs text-slate-500">{{ str($movement->inventoryItem->category)->replace('_', ' ')->title() }}{{ $movement->inventoryItem->subcategory ? ' / '.$movement->inventoryItem->subcategory->label : '' }}</p>
+                                @endif
+                            </td>
+                            <td class="whitespace-nowrap px-4 py-3 text-slate-700">{{ str($movement->movement_type)->replace('_', ' ')->title() }}</td>
+                            <td class="data-table__number">{{ number_format((float) $movement->quantity, 2) }} {{ $movement->inventoryItem?->unit }}</td>
+                            <td class="data-table__number">{{ number_format((float) $movement->quantity_before, 2) }} &rarr; {{ number_format((float) $movement->quantity_after, 2) }}</td>
+                            <td class="px-4 py-3 text-slate-700">
+                                {{ str($movement->reason)->replace('_', ' ')->title() }}
+                                @if ($movement->reference_number)
+                                    <p class="mt-0.5 text-xs text-slate-500">Ref: {{ $movement->reference_number }}</p>
+                                @endif
+                            </td>
+                            <td class="px-4 py-3 text-slate-600">{{ $movement->creator?->name ?? 'Unknown user' }}</td>
+                            <td class="max-w-xs whitespace-pre-line px-4 py-3 text-slate-600">{{ $movement->remarks ?: '—' }}</td>
                         </tr>
-                    </thead>
-                    <tbody>
-                        @foreach ($report['movements'] as $movement)
-                            <tr class="border-t border-slate-100 align-top">
-                                <td class="whitespace-nowrap p-3 text-slate-600">{{ $movement->created_at->format('M d, Y H:i') }}</td>
-                                <td class="p-3">
-                                    <p class="font-medium text-slate-900">{{ $movement->inventoryItem?->name ?? 'Deleted inventory item' }}</p>
-                                    @if ($movement->inventoryItem)
-                                        <p class="mt-0.5 text-xs text-slate-500">{{ str($movement->inventoryItem->category)->replace('_', ' ')->title() }}{{ $movement->inventoryItem->subcategory ? ' / '.$movement->inventoryItem->subcategory->label : '' }}</p>
-                                    @endif
-                                </td>
-                                <td class="whitespace-nowrap p-3 text-slate-700">{{ str($movement->movement_type)->replace('_', ' ')->title() }}</td>
-                                <td class="whitespace-nowrap p-3 text-right font-medium text-slate-900">{{ number_format((float) $movement->quantity, 2) }} {{ $movement->inventoryItem?->unit }}</td>
-                                <td class="whitespace-nowrap p-3 text-right text-slate-600">{{ number_format((float) $movement->quantity_before, 2) }} → {{ number_format((float) $movement->quantity_after, 2) }}</td>
-                                <td class="p-3 text-slate-700">
-                                    {{ str($movement->reason)->replace('_', ' ')->title() }}
-                                    @if ($movement->reference_number)
-                                        <p class="mt-0.5 text-xs text-slate-500">Ref: {{ $movement->reference_number }}</p>
-                                    @endif
-                                </td>
-                                <td class="p-3 text-slate-600">{{ $movement->creator?->name ?? 'Unknown user' }}</td>
-                                <td class="max-w-xs whitespace-pre-line p-3 text-slate-600">{{ $movement->remarks ?: '—' }}</td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
+                    @endforeach
+                </x-data-table>
             </div>
         @endif
     </div>

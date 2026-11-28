@@ -83,18 +83,161 @@ class DonationsPortalTest extends TestCase
         $this->assertTrue(Schema::hasColumn('cash_disbursements', 'supporting_reference'));
     }
 
-    public function test_donations_portal_has_compact_filters_and_no_campaign_controls_or_summary_cards(): void
+    public function test_donations_portal_retains_live_search_and_type_filters(): void
     {
         $response = $this->actingAs(User::factory()->create())->get(route('donations.index'));
 
         $response->assertOk()
-            ->assertSee('All statuses')
-            ->assertSee('Cash starts as Pending')
-            ->assertSee('Reset filters')
+            ->assertSee('Search donations')
+            ->assertSee('All types')
+            ->assertSee('data-donation-live-search', false)
+            ->assertSee('data-donation-live-filter', false)
+            ->assertDontSee('All statuses')
+            ->assertDontSee('Cash starts as Pending')
+            ->assertDontSee('Reset filters')
             ->assertDontSee('Campaign')
             ->assertDontSee('Total Contributions')
             ->assertDontSee('Log New Contribution')
             ->assertDontSee('<<div', false);
+    }
+
+    public function test_donation_portal_filters_in_kind_contributions_by_date_donor_item_and_category(): void
+    {
+        $user = User::factory()->create();
+        $matchingDonor = $this->donor(['full_name' => 'Filter Match Donor']);
+        $otherDonor = $this->donor(['full_name' => 'Filter Other Donor']);
+
+        $matching = $this->inKindContribution($matchingDonor, [
+            'receipt_number' => 'DON-FILTER-MATCH',
+            'received_at' => '2026-11-15',
+        ]);
+        $matching->items()->create([
+            'name' => 'Filter Rice',
+            'category' => 'food_relief',
+            'quantity' => 2,
+            'unit' => 'sack',
+            'condition' => 'new',
+        ]);
+
+        $other = $this->inKindContribution($otherDonor, [
+            'receipt_number' => 'DON-FILTER-OTHER',
+            'received_at' => '2026-10-15',
+        ]);
+        $other->items()->create([
+            'name' => 'Filter Bandages',
+            'category' => 'medical_health',
+            'quantity' => 2,
+            'unit' => 'box',
+            'condition' => 'new',
+        ]);
+
+        $this->actingAs($user)->get(route('donations.index', [
+            'type' => 'in_kind', 'date_from' => '2026-11-01', 'date_to' => '2026-11-30',
+        ]))
+            ->assertOk()
+            ->assertSee($matching->receipt_number)
+            ->assertDontSee($other->receipt_number);
+
+        $this->actingAs($user)->get(route('donations.index', [
+            'type' => 'in_kind', 'donor_id' => $matchingDonor->id,
+        ]))->assertSee($matching->receipt_number)->assertDontSee($other->receipt_number);
+
+        $this->actingAs($user)->get(route('donations.index', [
+            'type' => 'in_kind', 'item' => 'Filter Rice',
+        ]))->assertSee($matching->receipt_number)->assertDontSee($other->receipt_number);
+
+        $this->actingAs($user)->get(route('donations.index', [
+            'type' => 'in_kind', 'category' => 'food_relief',
+        ]))->assertSee($matching->receipt_number)->assertDontSee($other->receipt_number);
+    }
+
+    public function test_donation_portal_rejects_invalid_filter_values(): void
+    {
+        $this->actingAs(User::factory()->create())
+            ->get(route('donations.index', [
+                'date_from' => '2026-12-31',
+                'date_to' => '2026-01-01',
+                'category' => 'not-a-category',
+                'donor_id' => 999999,
+            ]))
+            ->assertSessionHasErrors(['date_to', 'category', 'donor_id']);
+    }
+
+    public function test_donation_and_donor_management_are_separate_pages_with_back_navigation(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)->get(route('donations.index'))
+            ->assertOk()
+            ->assertSee(route('donations.create'), false)
+            ->assertSee(route('donors.index', ['from' => 'donations']), false)
+            ->assertDontSee('log-contribution-dialog');
+
+        $this->actingAs($user)->get(route('donations.create'))
+            ->assertOk()
+            ->assertSee('Back to Donations Portal')
+            ->assertSee('Donor')
+            ->assertSee('(optional)')
+            ->assertDontSee('What is the donation for?');
+
+        $this->actingAs($user)->get(route('donors.index', ['from' => 'donations']))
+            ->assertOk()
+            ->assertSee('Back to Donations Portal');
+    }
+
+    public function test_anonymous_cash_and_in_kind_donations_reuse_one_system_donor(): void
+    {
+        Storage::fake('local');
+        $user = User::factory()->create();
+
+        $this->actingAs($user)->post(route('donations.store'), [
+            'donation_type' => 'cash',
+            'amount' => 250,
+            'payment_method' => 'cash',
+            ...$this->cashDocuments(250),
+        ])->assertSessionDoesntHaveErrors();
+
+        $this->actingAs($user)->post(route('donations.store'), [
+            'donation_type' => 'in_kind',
+            'items' => [
+                ['name' => 'Rice', 'category' => 'food_relief', 'quantity' => 2, 'unit' => 'sack', 'condition' => 'new'],
+            ],
+        ])->assertSessionDoesntHaveErrors();
+
+        $anonymous = Donor::query()->where('full_name', 'Anonymous')->sole();
+        $this->assertSame(2, Contribution::query()->where('donor_id', $anonymous->id)->count());
+        $this->assertSame(1, Donor::query()->where('full_name', 'Anonymous')->count());
+        $inKind = Contribution::query()->where('type', 'in_kind')->firstOrFail();
+        $item = ContributionItem::query()->where('contribution_id', $inKind->id)->firstOrFail();
+        $this->assertDatabaseHas('inventory_stock_movements', ['contribution_item_id' => $item->id]);
+    }
+
+    public function test_system_anonymous_placeholder_is_hidden_from_donor_management_and_selectors(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)->post(route('donations.store'), [
+            'donation_type' => 'cash',
+            'amount' => 250,
+            'payment_method' => 'cash',
+            ...$this->cashDocuments(250),
+        ])->assertSessionDoesntHaveErrors();
+
+        $anonymous = Donor::query()->where('full_name', Donor::SYSTEM_PLACEHOLDER_NAME)->sole();
+
+        $this->actingAs($user)
+            ->get(route('donors.index'))
+            ->assertOk()
+            ->assertDontSee(Donor::SYSTEM_PLACEHOLDER_NAME);
+
+        $this->actingAs($user)
+            ->get(route('donations.create'))
+            ->assertOk()
+            ->assertDontSee('<option value="'.$anonymous->id.'"', false);
+
+        $this->actingAs($user)
+            ->get(route('donors.show', $anonymous))
+            ->assertForbidden();
     }
 
     public function test_admin_can_approve_a_pending_cash_contribution_from_donations_portal(): void
@@ -583,7 +726,7 @@ class DonationsPortalTest extends TestCase
 
         $this->followingRedirects()
             ->actingAs(User::factory()->create())
-            ->get(route('donations.index'))
+            ->get(route('donations.create'))
             ->assertSee('"category":"food_relief"', false);
     }
 
@@ -809,7 +952,7 @@ class DonationsPortalTest extends TestCase
         $this->assertDatabaseHas('contributions', ['id' => $donation->id, 'status' => 'pending']);
     }
 
-    public function test_staff_can_verify_a_pending_donation_but_cannot_reject_it(): void
+    public function test_staff_cannot_verify_or_reject_a_pending_cash_donation(): void
     {
         $staff = User::factory()->create();
         $creator = User::factory()->create();
@@ -834,12 +977,12 @@ class DonationsPortalTest extends TestCase
 
         $this->actingAs($staff)
             ->patch(route('donations.verify', $donation))
-            ->assertRedirect();
+            ->assertForbidden();
 
         $donation->refresh();
-        $this->assertSame('verified', $donation->status);
-        $this->assertSame($staff->id, $donation->verified_by);
-        $this->assertNotNull($donation->verified_at);
+        $this->assertSame('pending', $donation->status);
+        $this->assertNull($donation->verified_by);
+        $this->assertNull($donation->verified_at);
     }
 
     public function test_admin_can_reject_pending_donation_and_it_is_not_reconcilable(): void
@@ -890,6 +1033,17 @@ class DonationsPortalTest extends TestCase
             'contact_number' => '09171234567',
             'email' => 'maria@example.com',
             'status' => config('donors.defaults.status'),
+        ], $overrides));
+    }
+
+    private function inKindContribution(Donor $donor, array $overrides = []): Contribution
+    {
+        return Contribution::query()->create(array_merge([
+            'donor_id' => $donor->id,
+            'created_by' => User::factory()->create()->id,
+            'type' => 'in_kind',
+            'status' => 'received',
+            'received_at' => now(),
         ], $overrides));
     }
 

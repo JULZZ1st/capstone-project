@@ -45,6 +45,7 @@ class DonorController extends Controller
                 'notes',
                 'created_at',
             ])
+            ->registered()
             ->search($search)
             ->type($type)
             ->withDonationMetrics()
