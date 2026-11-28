@@ -12,8 +12,6 @@ use App\Http\Requests\Donations\UploadContributionDeedRequest;
 use App\Models\Contribution;
 use App\Models\ContributionEvidence;
 use App\Models\Donor;
-use App\Models\InventoryCategory;
-use App\Models\InventorySubcategory;
 use App\Models\SecurityActivityEvent;
 use App\Services\Contributions\LogContribution;
 use App\Services\Contributions\UploadContributionDeed;
@@ -156,16 +154,7 @@ class DonationPortalController extends Controller
             'evidence',
         ]);
 
-        $categoryLabels = collect(config('donations.item_main_categories'))
-            ->union(InventoryCategory::query()->pluck('label', 'key'));
-        $subcategoryLabels = InventorySubcategory::query()
-            ->with('category:id,key')
-            ->get(['id', 'inventory_category_id', 'key', 'label'])
-            ->mapWithKeys(fn (InventorySubcategory $subcategory) => [
-                $subcategory->category->key.':'.$subcategory->key => $subcategory->label,
-            ]);
-
-        return view('donations.show', compact('contribution', 'categoryLabels', 'subcategoryLabels'));
+        return view('donations.show', compact('contribution'));
     }
 
     public function photo(Contribution $contribution)

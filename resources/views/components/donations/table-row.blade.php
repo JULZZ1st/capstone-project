@@ -26,5 +26,5 @@
         <span class="whitespace-nowrap">{{ $contribution->received_at?->format('M d, Y') ?? 'Not set' }}</span>
         <span class="data-table__secondary max-w-40">Logged by {{ $creatorName }}</span>
     </td>
-    <td><div class="data-table__actions"><x-data-table.action :label="'View donation '.$contribution->id" data-dialog-open="view-contribution-{{ $contribution->id }}">View</x-data-table.action></div></td>
+    <td><div class="data-table__actions"><a href="{{ route('donations.show', $contribution) }}" aria-label="View donation {{ $contribution->id }}" class="inline-flex min-h-9 items-center justify-center rounded-lg px-3 text-sm font-semibold text-blue-700 hover:bg-blue-50">View</a></div></td>
 </tr>

@@ -16,7 +16,3 @@
         <x-slot:footer>{{ $contributions->links() }}</x-slot:footer>
     @endif
 </x-data-table>
-
-@foreach ($contributions as $contribution)
-    <x-donations.contribution-details-modal :contribution="$contribution" />
-@endforeach

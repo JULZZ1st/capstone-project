@@ -132,7 +132,7 @@
     </section>
 </template>
 @endif
-<div data-reconciliation-details class="flex min-h-full flex-col">
+<div data-reconciliation-details class="flex min-h-full flex-1 flex-col">
     <header class="pb-4">
         <a href="{{ route('bank-reconciliation.index') }}" class="inline-flex items-center gap-1 text-xs font-medium text-slate-500 transition hover:text-blue-700"><x-icon name="chevron-left" class="h-3.5 w-3.5" /> Back to Reconciliation Periods</a>
         <div class="mt-4 flex items-start justify-between gap-4">
@@ -283,7 +283,7 @@
         </div>
     </section>
 
-    <footer data-reconciliation-actions class="mt-auto flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-slate-200 bg-white px-4 py-3">
+    <footer data-reconciliation-actions class="mt-auto flex w-full shrink-0 flex-wrap items-center justify-end gap-2 border-t border-slate-200 bg-white px-4 py-3 sm:flex-nowrap">
         @can('viewAny', \App\Models\BankLedgerEntry::class)
             <button type="button" data-dialog-open="bank-period-modal" class="inline-flex h-9 items-center justify-center gap-2 rounded-full border border-slate-400 bg-white px-4 text-sm font-semibold text-slate-800 shadow-sm transition hover:border-slate-500 hover:bg-slate-50 hover:shadow"><x-icon name="filter" class="h-4 w-4" /> Manage Period</button>
         @endcan
@@ -597,7 +597,7 @@
 </style>
 <style>.discrepancy-custom-type-wrap{display:block;margin-top:.6rem}.discrepancy-custom-type-wrap.hidden{display:none}.discrepancy-custom-type-label{display:block;color:#172033;font-size:.68rem;font-weight:800}.discrepancy-custom-type-label::after{content:' *';color:#dc2626}.discrepancy-custom-type-wrap input{display:block;width:100%;margin-top:.35rem;border:1px solid #b9c5d5;border-radius:.45rem;background:#fff;padding:.55rem .65rem;color:#172033;font-size:.75rem}.discrepancy-custom-type-wrap input:focus{border-color:#60a5fa;outline:2px solid #bfdbfe;outline-offset:0}</style>
 <style>.period-step{background:#fff;color:#475569}.period-step[aria-selected="true"]{border-color:#2563eb;background:#eff6ff;color:#1d4ed8;box-shadow:0 0 0 1px #2563eb}.period-step-status{font-size:.68rem;color:#64748b}.period-step[aria-selected="true"] .period-step-status{color:#1d4ed8}.bank-modal-footer{flex-wrap:wrap}.bank-modal-footer form{display:flex;align-items:center;gap:.5rem}.bank-modal-footer form:first-child{margin-right:auto}</style>
-<style>.details-tab,.transaction-view{color:#64748b;transition:background-color .15s,color .15s}.details-tab:hover,.transaction-view:hover{background:#f8fafc;color:#0f172a}.details-tab[aria-selected="true"],.transaction-view[aria-selected="true"]{background:#f1f5f9;color:#0f172a}.details-tab:focus-visible,.transaction-view:focus-visible{outline:2px solid #3b82f6;outline-offset:2px}.bank-table-footer{position:static}.bank-board-scroll{max-height:20rem;min-height:9rem}@media(max-width:640px){[data-reconciliation-details]>footer>*{flex:1}[data-reconciliation-details]>footer form button{width:100%}.bank-board-scroll{max-height:18rem;min-height:8rem}}</style>
+<style>.app-shell__main:has([data-reconciliation-details]){display:flex;flex-direction:column}.details-tab,.transaction-view{color:#64748b;transition:background-color .15s,color .15s}.details-tab:hover,.transaction-view:hover{background:#f8fafc;color:#0f172a}.details-tab[aria-selected="true"],.transaction-view[aria-selected="true"]{background:#f1f5f9;color:#0f172a}.details-tab:focus-visible,.transaction-view:focus-visible{outline:2px solid #3b82f6;outline-offset:2px}.bank-table-footer{position:static}.bank-board-scroll{max-height:20rem;min-height:9rem}@media(max-width:640px){[data-reconciliation-details]>footer>*{flex:1}[data-reconciliation-details]>footer form button{width:100%}.bank-board-scroll{max-height:18rem;min-height:8rem}}</style>
 <script>
 const detailsTabs = [...document.querySelectorAll('[data-details-tab]')];
 const detailsPanels = [...document.querySelectorAll('[data-details-panel]')];
