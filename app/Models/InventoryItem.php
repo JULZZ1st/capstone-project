@@ -183,6 +183,14 @@ class InventoryItem extends Model
         return (float) $this->current_quantity - $quantity >= 0;
     }
 
+    public function canChangeUnit(): bool
+    {
+        return bccomp((string) ($this->current_quantity ?? '0'), '0', 2) === 0
+            && (int) $this->quantity === 0
+            && ! $this->stockMovements()->exists()
+            && ! $this->contributionItems()->exists();
+    }
+
     public function stockProgressPercentage(): int
     {
         $minimumReserve = (float) $this->minimum_reserve_quantity;

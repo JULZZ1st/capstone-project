@@ -22,12 +22,12 @@ class UpdateInventoryItemRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:255'],
-            'category' => ['required', Rule::in([...array_keys(InventoryCategory::options()), '__other__'])],
+            'category' => ['required', Rule::in([...array_keys(InventoryCategory::options()), $this->route('inventoryItem')->category, '__other__'])],
             'custom_category' => ['required_if:category,__other__', 'nullable', 'string', 'max:255'],
             'subcategory_selection' => ['nullable', 'string', 'max:100'],
             'custom_subcategory' => ['required_if:subcategory_selection,__other__', 'nullable', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:2000'],
-            'unit' => ['required', Rule::in(array_keys(InventoryUnit::options()))],
+            'unit' => ['required', Rule::in([...array_keys(InventoryUnit::options()), $this->route('inventoryItem')->unit])],
             'minimum_reserve_quantity' => ['required', 'numeric', 'decimal:0,2', 'min:0', 'max:999999.99'],
             'estimated_unit_value' => ['nullable', 'numeric', 'decimal:0,2', 'min:0', 'max:99999999.99'],
             'expires_at' => ['nullable', 'date'],
@@ -47,14 +47,20 @@ class UpdateInventoryItemRequest extends FormRequest
                 return;
             }
 
-            $subcategory = InventorySubcategory::query()->active()->where('key', $subcategoryKey)->first();
             $categoryKey = $this->input('category');
 
             if ($categoryKey === '__other__') {
                 return;
             }
 
-            if (! $subcategory || $subcategory->category?->key !== $categoryKey) {
+            $validSubcategory = InventorySubcategory::query()
+                ->where('key', $subcategoryKey)
+                ->whereHas('category', fn ($query) => $query->where('key', $categoryKey))
+                ->where(fn ($query) => $query->where('is_active', true)
+                    ->orWhere('id', $this->route('inventoryItem')->inventory_subcategory_id))
+                ->exists();
+
+            if (! $validSubcategory) {
                 $validator->errors()->add('subcategory_selection', 'The selected subcategory is invalid for the selected category.');
             }
         });
@@ -62,18 +68,17 @@ class UpdateInventoryItemRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        foreach (['name', 'description', 'estimated_unit_value', 'expires_at', 'batch_number', 'storage_location', 'notes'] as $key) {
-            $this->merge([$key => $this->nullableTrim($key)]);
+        foreach (['name', 'description', 'estimated_unit_value', 'expires_at', 'batch_number', 'storage_location', 'notes', 'subcategory_selection', 'custom_category', 'custom_subcategory'] as $key) {
+            if ($this->exists($key)) {
+                $this->merge([$key => $this->nullableTrim($key)]);
+            }
         }
 
-        $this->merge([
-            'category' => $this->nullableLower('category'),
-            'subcategory_selection' => $this->nullableTrim('subcategory_selection'),
-            'custom_category' => $this->nullableTrim('custom_category'),
-            'custom_subcategory' => $this->nullableTrim('custom_subcategory'),
-            'unit' => $this->nullableLower('unit'),
-            'status' => $this->nullableLower('status'),
-        ]);
+        foreach (['category', 'unit', 'status'] as $key) {
+            if ($this->exists($key)) {
+                $this->merge([$key => $this->nullableLower($key)]);
+            }
+        }
     }
 
     private function nullableTrim(string $key): ?string

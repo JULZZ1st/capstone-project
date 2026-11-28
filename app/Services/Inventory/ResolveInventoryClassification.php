@@ -13,7 +13,8 @@ class ResolveInventoryClassification
     public function category(User $user, ?string $selectedKey, ?string $customLabel): InventoryCategory
     {
         if ($selectedKey !== '__other__') {
-            return InventoryCategory::query()->active()->where('key', $selectedKey)->firstOrFail();
+            return InventoryCategory::query()->active()->where('key', $selectedKey)->first()
+                ?? throw ValidationException::withMessages(['category' => 'The selected category is unavailable. Select an active category.']);
         }
 
         return $this->findOrCreateCategory($user, $customLabel);
@@ -30,7 +31,8 @@ class ResolveInventoryClassification
                 ->active()
                 ->where('inventory_category_id', $category->id)
                 ->where('key', $selectedKey)
-                ->firstOrFail();
+                ->first()
+                ?? throw ValidationException::withMessages(['subcategory_selection' => 'The selected subcategory is unavailable for this category.']);
         }
 
         $label = trim((string) $customLabel);

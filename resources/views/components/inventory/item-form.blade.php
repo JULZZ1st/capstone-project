@@ -4,11 +4,15 @@
     $subcategoryOptions = $categories
         ->mapWithKeys(fn ($category) => [$category->key => $category->subcategories->map(fn ($subcategory) => [
             'id' => $subcategory->key,
-            'label' => $subcategory->label,
+            'label' => $subcategory->label.($subcategory->is_active ? '' : ' (inactive)'),
         ])->values()])
         ->all();
     $selectedCategoryIsOther = old('category') === '__other__';
     $selectedSubcategory = old('subcategory_selection', $item?->subcategory?->key);
+    $selectedCategory = old('category', $item?->category);
+    $unitLocked = $item && ! $item->canChangeUnit();
+    $canArchive = $item ? auth()->user()->can('archive', $item) : auth()->user()->hasRole('admin');
+    $statusLocked = $item?->status === 'archived' && ! $canArchive;
     $fieldClass = 'mt-1 block h-10 w-full rounded-lg border-slate-300 px-3 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500';
 @endphp
 
@@ -20,11 +24,17 @@
 
             <div>
                 <x-form.label for="unit">Unit</x-form.label>
-                <select id="unit" name="unit" class="{{ $fieldClass }}" required>
-                    @foreach ($units as $unit)
-                        <option value="{{ $unit->key }}" @selected(old('unit', $item?->unit ?? config('inventory.defaults.unit')) === $unit->key)>{{ $unit->label }}</option>
-                    @endforeach
-                </select>
+                @if ($unitLocked)
+                    <input id="unit" type="text" value="{{ $units->firstWhere('key', $item->unit)?->label ?? $item->unit }}" class="{{ $fieldClass }} bg-slate-50" readonly aria-describedby="inventory-unit-help">
+                    <input type="hidden" name="unit" value="{{ $item->unit }}">
+                    <p id="inventory-unit-help" class="mt-1 text-xs leading-5 text-slate-500">The unit is fixed once stock or history is recorded. Use a separate item for a different unit.</p>
+                @else
+                    <select id="unit" name="unit" class="{{ $fieldClass }}" required>
+                        @foreach ($units as $unit)
+                            <option value="{{ $unit->key }}" @selected(old('unit', $item?->unit ?? config('inventory.defaults.unit')) === $unit->key)>{{ $unit->label }}{{ $unit->is_active ? '' : ' (inactive)' }}</option>
+                        @endforeach
+                    </select>
+                @endif
                 <x-form.error name="unit" />
             </div>
 
@@ -35,7 +45,7 @@
                         <select id="category" name="category" data-inventory-category class="{{ $fieldClass }}" required>
                             <option value="">Select category</option>
                             @foreach ($categories as $category)
-                                <option value="{{ $category->key }}" @selected(old('category', $item?->category) === $category->key)>{{ $category->label }}</option>
+                                <option value="{{ $category->key }}" @selected($selectedCategory === $category->key)>{{ $category->label }}{{ $category->is_active ? '' : ' (inactive)' }}</option>
                             @endforeach
                             <option value="__other__" @selected($selectedCategoryIsOther)>Other</option>
                         </select>
@@ -45,7 +55,11 @@
                     <div>
                         <x-form.label for="inventory_subcategory_id">Subcategory</x-form.label>
                         <select id="inventory_subcategory_id" name="subcategory_selection" data-inventory-subcategory data-selected-subcategory="{{ $selectedSubcategory }}" class="{{ $fieldClass }}">
-                            <option value="">Select category first</option>
+                            <option value="">{{ $selectedCategory ? 'Select subcategory' : 'Select category first' }}</option>
+                            @foreach ($subcategoryOptions[$selectedCategory] ?? [] as $option)
+                                <option value="{{ $option['id'] }}" @selected($selectedSubcategory === $option['id'])>{{ $option['label'] }}</option>
+                            @endforeach
+                            <option value="__other__" @selected($selectedSubcategory === '__other__')>Other</option>
                         </select>
                         <x-form.error name="subcategory_selection" />
                     </div>
@@ -95,11 +109,19 @@
 
             <div>
                 <x-form.label for="status">Status</x-form.label>
-                <select id="status" name="status" class="{{ $fieldClass }}" required>
-                    @foreach (config('inventory.item_statuses') as $key => $status)
-                        <option value="{{ $key }}" @selected(old('status', $item?->status ?? config('inventory.defaults.status')) === $key)>{{ $status['label'] }}</option>
-                    @endforeach
-                </select>
+                @if ($statusLocked)
+                    <input id="status" type="text" value="{{ config('inventory.item_statuses.archived.label') }}" class="{{ $fieldClass }} bg-slate-50" readonly aria-describedby="inventory-status-help">
+                    <input type="hidden" name="status" value="archived">
+                    <p id="inventory-status-help" class="mt-1 text-xs leading-5 text-slate-500">Only an Admin can restore an archived item.</p>
+                @else
+                    <select id="status" name="status" class="{{ $fieldClass }}" required>
+                        @foreach (config('inventory.item_statuses') as $key => $status)
+                            @if ($key !== 'archived' || $canArchive)
+                                <option value="{{ $key }}" @selected(old('status', $item?->status ?? config('inventory.defaults.status')) === $key)>{{ $status['label'] }}</option>
+                            @endif
+                        @endforeach
+                    </select>
+                @endif
                 <x-form.error name="status" />
             </div>
         </div>

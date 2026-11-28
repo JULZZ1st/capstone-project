@@ -10,6 +10,7 @@ use App\Models\InventoryItem;
 use App\Models\InventoryUnit;
 use App\Services\Inventory\CreateInventoryItem;
 use App\Services\Inventory\ResolveInventoryClassification;
+use App\Services\Inventory\UpdateInventoryItem;
 use App\Services\Reports\InventoryReportBuilder;
 use App\Services\Reports\InventoryReportPdfExporter;
 use App\Support\Authorization\ReportAccess;
@@ -74,15 +75,22 @@ class InventoryController extends Controller
         return view('inventory.create', $this->referenceData());
     }
 
-    private function referenceData(): array
+    private function referenceData(?InventoryItem $item = null): array
     {
         return [
             'categories' => InventoryCategory::query()
-                ->active()
-                ->with(['subcategories' => fn ($query) => $query->active()->orderBy('label')])
+                ->where(fn ($query) => $query->where('is_active', true)
+                    ->when($item, fn ($query) => $query->orWhere('key', $item->category)))
+                ->with(['subcategories' => fn ($query) => $query
+                    ->where(fn ($query) => $query->where('is_active', true)
+                        ->when($item?->inventory_subcategory_id, fn ($query) => $query->orWhere('id', $item->inventory_subcategory_id)))
+                    ->orderBy('label')])
                 ->orderBy('label')
                 ->get(),
-            'units' => InventoryUnit::query()->active()->orderBy('label')->get(),
+            'units' => InventoryUnit::query()
+                ->where(fn ($query) => $query->where('is_active', true)
+                    ->when($item, fn ($query) => $query->orWhere('key', $item->unit)))
+                ->orderBy('label')->get(),
         ];
     }
 
@@ -144,22 +152,13 @@ class InventoryController extends Controller
 
         return view('inventory.edit', [
             'inventoryItem' => $inventoryItem,
-            ...$this->referenceData(),
+            ...$this->referenceData($inventoryItem),
         ]);
     }
 
-    public function update(UpdateInventoryItemRequest $request, InventoryItem $inventoryItem, ResolveInventoryClassification $resolver): RedirectResponse
+    public function update(UpdateInventoryItemRequest $request, InventoryItem $inventoryItem, ResolveInventoryClassification $resolver, UpdateInventoryItem $updater): RedirectResponse
     {
-        $data = $request->validated();
-        $category = $resolver->category($request->user(), $data['category'], $data['custom_category'] ?? null);
-        $subcategory = $resolver->subcategory($request->user(), $category, $data['subcategory_selection'] ?? null, $data['custom_subcategory'] ?? null);
-
-        $inventoryItem->update([
-            ...$data,
-            'category' => $category->key,
-            'inventory_subcategory_id' => $subcategory?->id,
-            'updated_by' => $request->user()->id,
-        ]);
+        $updater->handle($inventoryItem, $request->validated(), $request->user(), $resolver);
 
         return redirect()
             ->route('inventory.show', $inventoryItem)

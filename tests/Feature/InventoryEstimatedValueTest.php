@@ -2,10 +2,18 @@
 
 namespace Tests\Feature;
 
+use App\Models\InventoryCategory;
 use App\Models\InventoryItem;
+use App\Models\InventorySubcategory;
+use App\Models\InventoryUnit;
+use App\Models\Role;
 use App\Models\User;
 use App\Models\Workspace;
+use App\Services\Inventory\AdjustInventoryStock;
+use App\Services\Inventory\ResolveInventoryClassification;
+use App\Services\Inventory\UpdateInventoryItem;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
 class InventoryEstimatedValueTest extends TestCase
@@ -115,6 +123,170 @@ class InventoryEstimatedValueTest extends TestCase
         $foreign = $this->item(['workspace_id' => $other->id]);
         $this->actingAs(User::factory()->create())->get(route('inventory.edit', $foreign))->assertNotFound();
         $this->patch(route('inventory.update', $foreign), $this->payload())->assertNotFound();
+    }
+
+    public function test_unit_changes_cannot_relabel_existing_stock_or_movement_history(): void
+    {
+        $item = $this->item(['unit' => 'sack', 'estimated_unit_value' => '2500.00']);
+        $this->actingAs(User::factory()->create());
+        $this->patchJson(route('inventory.update', $item), $this->payload(['unit' => 'kilogram']))
+            ->assertUnprocessable()->assertJsonValidationErrors('unit');
+        $this->assertSame('sack', $item->fresh()->unit);
+        $this->assertSame('2500.00', $item->fresh()->estimated_unit_value);
+
+        $item->update(['quantity' => 0, 'current_quantity' => '0']);
+        $item->stockMovements()->create([
+            'created_by' => auth()->id(), 'movement_type' => 'stock_out', 'quantity' => '20',
+            'quantity_before' => '20', 'quantity_after' => '0', 'reason' => 'distribution',
+        ]);
+        $this->patchJson(route('inventory.update', $item), $this->payload(['unit' => 'kilogram']))
+            ->assertUnprocessable()->assertJsonValidationErrors('unit');
+        $this->assertSame('sack', $item->fresh()->unit);
+    }
+
+    public function test_omitted_optional_values_are_preserved_and_explicit_blank_values_can_be_cleared(): void
+    {
+        $subcategory = InventorySubcategory::query()->create([
+            'inventory_category_id' => InventoryCategory::query()->where('key', 'food')->firstOrFail()->id,
+            'key' => 'rice_test', 'label' => 'Rice Test', 'is_active' => true,
+        ]);
+        $item = $this->item([
+            'estimated_unit_value' => '55.25', 'description' => 'Keep description', 'notes' => 'Keep notes',
+            'inventory_subcategory_id' => $subcategory->id, 'batch_number' => 'KEEP-1', 'expires_at' => '2027-12-31',
+        ]);
+        $payload = $this->payload();
+        unset($payload['estimated_unit_value']);
+        $this->actingAs(User::factory()->create())->patch(route('inventory.update', $item), $payload)->assertSessionDoesntHaveErrors();
+        $item->refresh();
+        $this->assertSame('55.25', $item->estimated_unit_value);
+        $this->assertSame('Keep description', $item->description);
+        $this->assertSame('Keep notes', $item->notes);
+        $this->assertSame('KEEP-1', $item->batch_number);
+        $this->assertSame('2027-12-31', $item->expires_at->toDateString());
+        $this->assertSame($subcategory->id, $item->inventory_subcategory_id);
+
+        $this->patch(route('inventory.update', $item), $this->payload([
+            'estimated_unit_value' => '', 'notes' => '', 'subcategory_selection' => '',
+        ]))->assertSessionDoesntHaveErrors();
+        $this->assertNull($item->fresh()->estimated_unit_value);
+        $this->assertNull($item->fresh()->notes);
+        $this->assertNull($item->fresh()->inventory_subcategory_id);
+    }
+
+    public function test_existing_inactive_classification_can_be_retained_while_updating_the_value(): void
+    {
+        $category = InventoryCategory::query()->where('key', 'food')->firstOrFail();
+        $unit = InventoryUnit::query()->where('key', 'pack')->firstOrFail();
+        $subcategory = InventorySubcategory::query()->create([
+            'inventory_category_id' => $category->id, 'key' => 'old_rice', 'label' => 'Old Rice', 'is_active' => false,
+        ]);
+        $item = $this->item(['inventory_subcategory_id' => $subcategory->id]);
+        $category->update(['is_active' => false]);
+        $unit->update(['is_active' => false]);
+        $this->actingAs(User::factory()->create());
+
+        $page = $this->get(route('inventory.edit', $item))->assertOk();
+        $document = $this->document($page->getContent());
+        $this->assertSame('food', $document->evaluate('string(//select[@name="category"]/option[@selected]/@value)'));
+        $this->assertSame('pack', $document->evaluate('string(//input[@name="unit"]/@value)'));
+        $this->assertSame('old_rice', $document->evaluate('string(//select[@name="subcategory_selection"]/option[@selected]/@value)'));
+
+        $this->patch(route('inventory.update', $item), $this->payload(['subcategory_selection' => 'old_rice']))
+            ->assertSessionDoesntHaveErrors();
+        $this->assertSame('1250.75', $item->fresh()->estimated_unit_value);
+        $this->assertSame($subcategory->id, $item->fresh()->inventory_subcategory_id);
+
+        $other = $this->item(['category' => 'clothing', 'unit' => 'piece']);
+        $this->patchJson(route('inventory.update', $other), $this->payload(['unit' => 'piece']))
+            ->assertUnprocessable()->assertJsonValidationErrors('category');
+    }
+
+    public function test_failed_custom_classification_update_does_not_leave_an_unused_category(): void
+    {
+        $role = Role::query()->where('name', 'admin')->firstOrFail();
+        $user = User::factory()->create(['role_id' => $role->id]);
+        $item = $this->item();
+        $response = $this->actingAs($user)->patchJson(route('inventory.update', $item), $this->payload([
+            'category' => '__other__', 'custom_category' => 'Must Roll Back', 'subcategory_selection' => 'missing',
+        ]));
+        $this->assertDatabaseMissing('inventory_categories', ['label' => 'Must Roll Back']);
+        $response->assertUnprocessable()->assertJsonValidationErrors('subcategory_selection');
+        $this->assertSame('food', $item->fresh()->category);
+    }
+
+    public function test_an_empty_item_without_stock_history_can_still_correct_its_unit(): void
+    {
+        $item = $this->item(['quantity' => 0, 'current_quantity' => '0', 'unit' => 'sack']);
+        $this->actingAs(User::factory()->create())->patch(route('inventory.update', $item), $this->payload(['unit' => 'kilogram']))
+            ->assertSessionDoesntHaveErrors();
+        $this->assertSame('kilogram', $item->fresh()->unit);
+    }
+
+    public function test_staff_cannot_bypass_archive_permissions_through_item_create_or_update(): void
+    {
+        $item = $this->item();
+        $staff = User::factory()->create();
+        $this->assertFalse($staff->can('archive', $item));
+        $this->actingAs($staff)->patchJson(route('inventory.update', $item), $this->payload(['status' => 'archived']))->assertForbidden();
+        $this->assertSame('active', $item->fresh()->status);
+        $this->postJson(route('inventory.store'), $this->payload(['status' => 'archived']))->assertForbidden();
+        $this->assertDatabaseCount('inventory_items', 1);
+
+        $item->update(['status' => 'archived']);
+        $this->patchJson(route('inventory.update', $item), $this->payload(['status' => 'active']))->assertForbidden();
+        $this->assertSame('archived', $item->fresh()->status);
+        $this->patch(route('inventory.update', $item), $this->payload(['status' => 'archived']))->assertSessionDoesntHaveErrors();
+    }
+
+    public function test_admin_can_archive_and_restore_an_inventory_item(): void
+    {
+        $role = Role::query()->where('name', 'admin')->firstOrFail();
+        $item = $this->item();
+        $this->actingAs(User::factory()->create(['role_id' => $role->id]));
+
+        foreach (['archived', 'active'] as $status) {
+            $this->patch(route('inventory.update', $item), $this->payload(['status' => $status]))->assertSessionDoesntHaveErrors();
+            $this->assertSame($status, $item->fresh()->status);
+        }
+    }
+
+    public function test_subcategory_keys_shared_by_different_categories_resolve_to_the_selected_category(): void
+    {
+        foreach (['food', 'clothing'] as $key) {
+            $category = InventoryCategory::query()->where('key', $key)->firstOrFail();
+            $subcategory = InventorySubcategory::query()->create([
+                'inventory_category_id' => $category->id, 'key' => 'shared', 'label' => 'Shared', 'is_active' => true,
+            ]);
+        }
+        $item = $this->item(['category' => 'clothing', 'inventory_subcategory_id' => $subcategory->id]);
+        $this->actingAs(User::factory()->create());
+        $payload = $this->payload(['category' => 'clothing', 'subcategory_selection' => 'shared']);
+        $this->patch(route('inventory.update', $item), $payload)->assertSessionDoesntHaveErrors();
+        $this->assertSame($subcategory->id, $item->fresh()->inventory_subcategory_id);
+        $this->post(route('inventory.store'), $payload)->assertSessionDoesntHaveErrors();
+        $this->assertDatabaseCount('inventory_items', 2);
+    }
+
+    public function test_unit_guard_reads_current_stock_instead_of_a_stale_edit_model(): void
+    {
+        $user = User::factory()->create();
+        $item = $this->item(['quantity' => 0, 'current_quantity' => '0', 'unit' => 'sack']);
+        app(AdjustInventoryStock::class)->handle($item, [
+            'movement_type' => 'stock_in', 'quantity' => '2', 'reason' => 'correction',
+        ], $user);
+        $this->assertSame('0.00', $item->current_quantity);
+
+        try {
+            app(UpdateInventoryItem::class)->handle(
+                $item, $this->payload(['unit' => 'kilogram']), $user,
+                app(ResolveInventoryClassification::class),
+            );
+            $this->fail('A stale edit must not relabel newly recorded stock.');
+        } catch (ValidationException $error) {
+            $this->assertArrayHasKey('unit', $error->errors());
+        }
+        $this->assertSame('sack', $item->fresh()->unit);
+        $this->assertSame('2.00', $item->fresh()->current_quantity);
     }
 
     private function payload(array $overrides = []): array

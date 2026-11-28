@@ -16,7 +16,8 @@ class StoreInventoryItemRequest extends FormRequest
 
     public function authorize(): bool
     {
-        return $this->user()?->can('create', InventoryItem::class) ?? false;
+        return ($this->user()?->can('create', InventoryItem::class) ?? false)
+            && ($this->input('status') !== 'archived' || $this->user()->hasRole('admin'));
     }
 
     public function rules(): array
@@ -49,14 +50,18 @@ class StoreInventoryItemRequest extends FormRequest
                 return;
             }
 
-            $subcategory = InventorySubcategory::query()->active()->where('key', $subcategoryKey)->first();
             $categoryKey = $this->input('category');
 
             if ($categoryKey === '__other__') {
                 return;
             }
 
-            if (! $subcategory || $subcategory->category?->key !== $categoryKey) {
+            $validSubcategory = InventorySubcategory::query()->active()
+                ->where('key', $subcategoryKey)
+                ->whereHas('category', fn ($query) => $query->where('key', $categoryKey))
+                ->exists();
+
+            if (! $validSubcategory) {
                 $validator->errors()->add('subcategory_selection', 'The selected subcategory is invalid for the selected category.');
             }
         });
