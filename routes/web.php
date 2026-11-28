@@ -86,6 +86,7 @@ Route::middleware([
     Route::patch('/inventory/units/{inventoryUnit}/reactivate', [InventoryUnitController::class, 'reactivate'])->name('inventory.units.reactivate');
 
     Route::get('/inventory/{inventoryItem}', [InventoryController::class, 'show'])->name('inventory.show');
+    Route::get('/inventory/{inventoryItem}/edit', [InventoryController::class, 'edit'])->name('inventory.edit');
     Route::patch('/inventory/{inventoryItem}', [InventoryController::class, 'update'])->name('inventory.update');
     Route::post('/inventory/{inventoryItem}/adjustments', [InventoryStockAdjustmentController::class, 'store'])
         ->name('inventory.adjustments.store');

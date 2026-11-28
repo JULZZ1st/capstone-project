@@ -70,7 +70,19 @@
             @endif
 
             <x-form.input name="minimum_reserve_quantity" label="Minimum Reserve Quantity" type="number" step="0.01" min="0" :value="$item?->minimum_reserve_quantity" required class="h-10 rounded-lg text-sm" />
-            <x-form.input name="estimated_unit_value" label="Estimated Unit Value" type="number" step="0.01" min="0" :value="$item?->estimated_unit_value" class="h-10 rounded-lg text-sm" />
+            <div>
+                <x-form.label for="estimated_unit_value">Estimated Value per Unit (PHP)</x-form.label>
+                <div class="relative mt-1">
+                    <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-slate-500" aria-hidden="true">&#8369;</span>
+                    <input id="estimated_unit_value" name="estimated_unit_value" type="number" step="0.01" min="0" max="99999999.99" inputmode="decimal" placeholder="0.00"
+                        value="{{ old('estimated_unit_value', $item?->estimated_unit_value) }}"
+                        class="ui-control block h-10 w-full rounded-lg pl-8 pr-3 text-sm"
+                        aria-describedby="estimated-unit-value-help{{ $errors->has('estimated_unit_value') ? ' estimated-unit-value-error' : '' }}"
+                        @if ($errors->has('estimated_unit_value')) aria-invalid="true" @endif>
+                </div>
+                <p id="estimated-unit-value-help" class="mt-1 text-xs leading-5 text-slate-500">Peso value of one selected unit, such as one pack or sack. Leave blank if unknown.</p>
+                <x-form.error name="estimated_unit_value" id="estimated-unit-value-error" />
+            </div>
         </div>
     </section>
 

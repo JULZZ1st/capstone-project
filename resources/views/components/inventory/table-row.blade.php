@@ -16,6 +16,14 @@
         <span class="font-semibold text-slate-950">{{ number_format((float) $item->current_quantity, 2) }}</span>
         <span class="block text-xs text-slate-500">{{ $unitLabel }}</span>
     </td>
+    <td class="data-table__number">
+        @if ($item->estimated_unit_value !== null)
+            <span class="font-semibold text-slate-950"><x-format.currency :value="$item->estimated_unit_value" /></span>
+            <span class="block text-xs text-slate-500">per {{ $unitLabel }}</span>
+        @else
+            <span class="text-xs text-slate-500">Not set</span>
+        @endif
+    </td>
     <td class="min-w-44 px-4 py-4 align-top">
         <div class="flex items-center justify-between gap-3">
             <span class="text-xs text-slate-500">Min {{ number_format((float) $item->minimum_reserve_quantity, 2) }}</span>

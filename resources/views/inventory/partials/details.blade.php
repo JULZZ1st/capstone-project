@@ -5,7 +5,12 @@
                 <h1 class="mt-2 text-2xl font-semibold text-slate-950">{{ $inventoryItem->name }}</h1>
                 <p class="mt-1 text-sm text-slate-600">{{ $inventoryItem->description ?: 'No description provided.' }}</p>
             </div>
-            <x-inventory.status-badge :status="$inventoryItem->stockStatus()" />
+            <div class="flex shrink-0 flex-wrap items-center gap-3">
+                <x-inventory.status-badge :status="$inventoryItem->stockStatus()" />
+                @can('update', $inventoryItem)
+                    <a href="{{ route('inventory.edit', $inventoryItem) }}" class="ui-button ui-button--secondary w-auto">Edit Item</a>
+                @endcan
+            </div>
         </div>
 
         <x-inventory.stock-summary :item="$inventoryItem" />

@@ -1,9 +1,10 @@
 @props(['items'])
 
-<x-data-table caption="Inventory records" title="Inventory items" :description="'Showing '.$items->count().' of '.$items->total().' items. Check stock levels and record movements.'" min-width="57rem">
+<x-data-table caption="Inventory records" title="Inventory items" :description="'Showing '.$items->count().' of '.$items->total().' items. Check stock levels and record movements.'" min-width="65rem">
     <x-slot:head>
         <x-data-table.heading>Item</x-data-table.heading>
         <x-data-table.heading align="right">Current stock</x-data-table.heading>
+        <x-data-table.heading align="right">Est. value / unit</x-data-table.heading>
         <x-data-table.heading>Reserve level</x-data-table.heading>
         <x-data-table.heading>Stock status</x-data-table.heading>
         <x-data-table.heading>Updated</x-data-table.heading>

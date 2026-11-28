@@ -62,6 +62,12 @@ It does not require Vite to stay running. PHP edits are picked up within two sec
 `npm run build` after changing JavaScript or CSS. Stop an existing PHP server
 before starting this command. `composer dev:fast` runs the same local setup.
 
+Both local launchers compile missing or changed Blade templates before accepting
+requests, so the first page visit does not have to compile the templates. They
+preserve existing compiled views. Run `php artisan view:warm` after clearing the
+view cache while a local server is already running. Blade edits still take effect
+normally; there is no need to clear the view cache for routine development.
+
 For frontend development with Vite hot reload, use `composer dev:hot`. This also
 starts the queue listener and log viewer. Stop it before using `composer dev`.
 `php artisan serve` uses the same accelerated PHP settings and built assets by

@@ -37,6 +37,7 @@ class InventoryController extends Controller
                 'unit',
                 'current_quantity',
                 'minimum_reserve_quantity',
+                'estimated_unit_value',
                 'expires_at',
                 'batch_number',
                 'storage_location',
@@ -133,6 +134,18 @@ class InventoryController extends Controller
         }
 
         return view('inventory.show', compact('inventoryItem', 'movements'));
+    }
+
+    public function edit(InventoryItem $inventoryItem): View
+    {
+        Gate::authorize('update', $inventoryItem);
+
+        $inventoryItem->load('subcategory:id,key,label');
+
+        return view('inventory.edit', [
+            'inventoryItem' => $inventoryItem,
+            ...$this->referenceData(),
+        ]);
     }
 
     public function update(UpdateInventoryItemRequest $request, InventoryItem $inventoryItem, ResolveInventoryClassification $resolver): RedirectResponse

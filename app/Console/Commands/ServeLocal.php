@@ -22,6 +22,10 @@ class ServeLocal extends ServeCommand
                 return self::FAILURE;
             }
 
+            if ($this->call('view:warm') !== self::SUCCESS) {
+                return self::FAILURE;
+            }
+
             $values = [
                 'LOCAL_BUILT_ASSETS' => $this->option('hot') ? 'false' : 'true',
                 'LOCAL_SERVER_HOST' => in_array($this->host(), ['127.0.0.1', 'localhost'], true) ? '127.0.0.1' : '',

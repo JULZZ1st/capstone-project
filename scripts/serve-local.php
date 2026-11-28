@@ -29,6 +29,12 @@ if (! ctype_digit($port) || (int) $port < 1 || (int) $port > 65535) {
     exit(1);
 }
 
+// Prepare templates before the server accepts requests, including after cache clears.
+if ($app->make(Kernel::class)->call('view:warm') !== 0) {
+    fwrite(STDERR, "Unable to prepare Blade templates.\n");
+    exit(1);
+}
+
 $command = \App\Support\Development\LocalPhpRuntime::command(PHP_BINARY, $root.'/storage/framework/cache/opcache');
 $opcacheAvailable = count($command) > 1;
 
