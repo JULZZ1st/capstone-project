@@ -15,6 +15,7 @@ class DeactivateStaffAccountRequest extends FormRequest
 
         return $user !== null
             && $target !== null
+            && ! $user->is($target)
             && $user->can('updateSecuritySettings', SecurityActivityEvent::class)
             && app(WorkspaceAuthorizer::class)->canManageMember($user, $target);
     }

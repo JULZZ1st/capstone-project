@@ -61,6 +61,20 @@
         </div>
     @endif
 
+    @if (session('error'))
+        <div
+            data-toast
+            role="alert"
+            aria-live="assertive"
+            class="fixed right-4 top-4 z-[110] max-w-sm rounded-lg border border-rose-200 bg-white px-4 py-3 text-sm font-medium text-rose-800 shadow-lg ring-1 ring-black/5 transition duration-300 sm:right-6 sm:top-6"
+        >
+            <div class="flex items-start gap-3">
+                <span class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-rose-100 text-xs font-bold text-rose-700">!</span>
+                <span>{{ session('error') }}</span>
+            </div>
+        </div>
+    @endif
+
     @stack('scripts')
 </body>
 </html>

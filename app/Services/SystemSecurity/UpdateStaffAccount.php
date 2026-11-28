@@ -12,11 +12,10 @@ class UpdateStaffAccount
 {
     public function handle(User $user, array $data, User $actor): User
     {
-        abort_unless(app(WorkspaceAuthorizer::class)->canManageStaffRole($actor, $data['role']), 403);
-        $role = Role::query()->firstOrCreate(
-            ['name' => $data['role']],
-            ['display_name' => ucfirst($data['role']), 'description' => ucfirst($data['role'])]
-        );
+        abort_if($user->is($actor), 422, 'You cannot edit your own account.');
+        abort_unless(app(WorkspaceAuthorizer::class)->canManageMember($actor, $user), 403);
+        abort_unless($data['role'] === $user->roleName(), 422, 'Account roles cannot be changed here.');
+        $role = $user->role;
 
         $user->forceFill([
             'role_id' => $role->id,

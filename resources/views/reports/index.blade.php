@@ -33,17 +33,17 @@
         ];
     @endphp
     <div class="report-page flex h-full min-h-0 flex-col gap-4">
-        <div class="report-toolbar sticky top-0 z-10 flex shrink-0 flex-col gap-3 border-b border-slate-200 bg-white py-3 lg:flex-row lg:items-end lg:justify-between">
-            <form method="GET" action="{{ route('reports.index') }}" class="flex min-w-0 flex-1 flex-wrap items-end gap-3" data-report-filter-form>
+        <div class="report-toolbar sticky top-0 z-10 flex shrink-0 flex-wrap items-center gap-2">
+            <form method="GET" action="{{ route('reports.index') }}" class="flex min-w-0 flex-1 flex-wrap items-center gap-2" data-report-filter-form>
                 <div class="min-w-48 flex-1 sm:max-w-64">
-                    <label for="report-type" class="block text-xs font-semibold text-slate-600">Report Type</label>
-                    <select id="report-type" name="tab" class="report-filter-select mt-1 w-full" data-report-autosubmit>
+                    <label for="report-type" class="sr-only">Report Type</label>
+                    <select id="report-type" name="tab" class="report-filter-select w-full" data-report-autosubmit>
                         @foreach ($tabs as $key => $label)<option value="{{ $key }}" @selected($tab === $key)>{{ $label }}</option>@endforeach
                     </select>
                 </div>
                 @if (in_array($tab, $monthTabs, true))
-                    <div><label for="report-month" class="block text-xs font-semibold text-slate-600">Month</label><select id="report-month" name="month" class="report-filter-select mt-1" data-report-autosubmit>@foreach(range(1, 12) as $monthOption)<option value="{{ $monthOption }}" @selected($month === $monthOption)>{{ date('F', mktime(0, 0, 0, $monthOption, 1)) }}</option>@endforeach</select></div>
-                    <div><label for="report-year" class="block text-xs font-semibold text-slate-600">Year</label><select id="report-year" name="year" class="report-filter-select mt-1" data-report-autosubmit>@foreach(range(now()->year - 3, now()->year) as $yearOption)<option value="{{ $yearOption }}" @selected($year === $yearOption)>{{ $yearOption }}</option>@endforeach</select></div>
+                    <div><label for="report-month" class="sr-only">Month</label><select id="report-month" name="month" class="report-filter-select" data-report-autosubmit>@foreach(range(1, 12) as $monthOption)<option value="{{ $monthOption }}" @selected($month === $monthOption)>{{ date('F', mktime(0, 0, 0, $monthOption, 1)) }}</option>@endforeach</select></div>
+                    <div><label for="report-year" class="sr-only">Year</label><select id="report-year" name="year" class="report-filter-select" data-report-autosubmit>@foreach(range(now()->year - 3, now()->year) as $yearOption)<option value="{{ $yearOption }}" @selected($year === $yearOption)>{{ $yearOption }}</option>@endforeach</select></div>
                 @elseif ($tab === 'audit')
                     <div><label for="audit-from" class="block text-xs font-semibold text-slate-600">From</label><input id="audit-from" name="from" type="date" value="{{ $from }}" class="report-filter-input mt-1" data-report-autosubmit></div>
                     <div><label for="audit-to" class="block text-xs font-semibold text-slate-600">To</label><input id="audit-to" name="to" type="date" value="{{ $to }}" class="report-filter-input mt-1" data-report-autosubmit></div>

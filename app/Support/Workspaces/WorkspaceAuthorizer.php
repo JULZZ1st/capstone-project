@@ -28,13 +28,28 @@ class WorkspaceAuthorizer
     public function canManageMember(User $actor, User $member): bool
     {
         $workspaceId = app(WorkspaceContext::class)->id();
+        $workspace = app(WorkspaceContext::class)->get();
 
-        if ($workspaceId === null || ! $this->canManageMembers($actor, Workspace::findOrFail($workspaceId))) {
+        if ($workspaceId === null || $workspace === null || ! $this->canManageMembers($actor, $workspace)) {
             return false;
         }
 
-        if (! $member->hasRole(Role::STAFF)) {
+        // Admin accounts are platform-level accounts and are listed globally on
+        // the administration screen. They remain manageable only by another
+        // Admin; self-management is rejected by the request/service layer.
+        if ($member->hasRole(Role::ADMIN)) {
+            return $actor->hasRole(Role::ADMIN);
+        }
+
+        if (! $member->hasRole([Role::ADMIN, Role::STAFF])) {
             return false;
+        }
+
+        if ($member->relationLoaded('workspaceMemberships')) {
+            return $member->workspaceMemberships->contains(function ($membership) use ($workspaceId): bool {
+                return (int) $membership->workspace_id === (int) $workspaceId
+                    && in_array($membership->status, ['active', 'deactivated'], true);
+            });
         }
 
         return $member->workspaceMemberships()

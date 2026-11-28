@@ -12,6 +12,8 @@ class DeactivateStaffAccount
 {
     public function handle(User $user, User $actor): User
     {
+        abort_if($user->is($actor), 422, 'You cannot deactivate your own account.');
+
         return DB::transaction(function () use ($user, $actor): User {
             $roleName = $user->roleName();
 

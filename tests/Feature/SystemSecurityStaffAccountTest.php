@@ -370,6 +370,44 @@ class SystemSecurityStaffAccountTest extends TestCase
         ]);
     }
 
+    public function test_staff_account_actions_and_deactivation_confirmation_are_rendered(): void
+    {
+        $admin = $this->userWithRole('admin');
+        $staff = $this->userWithRole('staff');
+
+        $this->actingAs($admin)
+            ->get(route('system-security.index'))
+            ->assertOk()
+            ->assertSee('View Details')
+            ->assertSee('Edit Account')
+            ->assertSee('Deactivate Account')
+            ->assertSee('Cancel')
+            ->assertSee('Confirm Deactivation')
+            ->assertSee('Are you sure you want to deactivate this account? This user will no longer be able to log in.');
+
+        $staff->forceFill(['status' => 'deactivated'])->save();
+
+        $this->actingAs($admin)
+            ->get(route('system-security.index'))
+            ->assertOk()
+            ->assertSee('Reactivate Account')
+            ->assertSee('Confirm Reactivation');
+    }
+
+    public function test_admin_cannot_change_their_own_account_status(): void
+    {
+        $admin = $this->userWithRole('admin');
+
+        $this->actingAs($admin)
+            ->patch(route('system-security.users.toggle-status', $admin))
+            ->assertForbidden();
+
+        $this->assertDatabaseHas('users', [
+            'id' => $admin->id,
+            'status' => config('auth_defaults.user_status'),
+        ]);
+    }
+
     public function test_staff_cannot_toggle_another_staff_account_status(): void
     {
         $staff = $this->userWithRole('staff');

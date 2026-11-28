@@ -25,6 +25,39 @@
 	html:has(dialog:modal) {
 		overflow: hidden;
 	}
+
+	dialog[id^='status-staff-'] {
+		max-height: 90vh;
+	}
+
+	dialog[id^='status-staff-'] > form {
+		display: flex;
+		max-height: 90vh;
+		flex-direction: column;
+		overflow: hidden;
+	}
+
+	dialog[id^='status-staff-'] header,
+	dialog[id^='status-staff-'] footer {
+		position: sticky;
+		z-index: 10;
+		flex-shrink: 0;
+	}
+
+	dialog[id^='status-staff-'] header {
+		top: 0;
+		background: white;
+	}
+
+	dialog[id^='status-staff-'] footer {
+		bottom: 0;
+	}
+
+	dialog[id^='status-staff-'] form > div {
+		min-height: 0;
+		flex: 1;
+		overflow-y: auto;
+	}
 	html,
 	body {
 		min-width: 0;

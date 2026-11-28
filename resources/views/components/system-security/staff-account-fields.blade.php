@@ -10,9 +10,14 @@
     @endforeach
     <div>
         <x-form.label :for="'staff-'.$formKey.'-role'">Role</x-form.label>
-        <select id="staff-{{ $formKey }}-role" name="role" required class="mt-1 w-full rounded border px-2 py-1 text-sm">
-            <option value="staff">Staff</option>
-        </select>
+        @if ($user)
+            <input type="hidden" name="role" value="{{ $user->roleName() }}">
+            <div class="mt-1 rounded border border-slate-200 bg-slate-50 px-2 py-1 text-sm text-slate-700">{{ $user->roleDisplayName() }}</div>
+        @else
+            <select id="staff-{{ $formKey }}-role" name="role" required class="mt-1 w-full rounded border px-2 py-1 text-sm">
+                <option value="staff">Staff</option>
+            </select>
+        @endif
         @if($restoreInput)<x-form.error name="role" :id="'staff-'.$formKey.'-role-error'" />@endif
     </div>
     @if(! $user)

@@ -28,7 +28,12 @@ class SystemSecurityDashboardQuery
     {
         return User::query()
             ->select(['id', 'role_id', 'first_name', 'last_name', 'name', 'email', 'status', 'last_login_at'])
-            ->with('role:id,name,display_name')
+            ->with([
+                'role:id,name,display_name',
+                'workspaceMemberships' => fn ($query) => $query
+                    ->select(['id', 'user_id', 'workspace_id', 'status'])
+                    ->where('workspace_id', app(WorkspaceContext::class)->requireId()),
+            ])
             ->whereHas('role', fn ($query) => $query->whereIn('name', ['admin', 'staff']))
             ->when($role, fn ($query, string $role) => $query->whereHas('role', fn ($roleQuery) => $roleQuery->where('name', $role)))
             ->when($status, fn ($query, string $status) => $query->where('status', $status))

@@ -3,6 +3,7 @@
 namespace App\Http\Requests\SystemSecurity;
 
 use App\Models\SecurityActivityEvent;
+use App\Models\Role;
 use App\Support\Workspaces\WorkspaceAuthorizer;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -18,6 +19,7 @@ class UpdateStaffAccountRequest extends FormRequest
         return $user !== null
             && $target !== null
             && $user->can('updateSecuritySettings', SecurityActivityEvent::class)
+            && (string) $this->input('role') === (string) $target->roleName()
             && app(WorkspaceAuthorizer::class)->canManageMember($user, $target);
     }
 
@@ -30,7 +32,7 @@ class UpdateStaffAccountRequest extends FormRequest
             'first_name' => ['required', 'string', 'max:100'],
             'last_name' => ['required', 'string', 'max:100'],
             'email' => ['required', 'string', $emailRule, 'max:255', Rule::unique('users', 'email')->ignore($userId)],
-            'role' => ['required', 'string', 'in:staff'],
+            'role' => ['required', 'string', Rule::in([Role::ADMIN, Role::STAFF])],
             'status' => ['nullable', 'string', Rule::in([config('auth_defaults.user_status'), 'deactivated'])],
         ];
     }
